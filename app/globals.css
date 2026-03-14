@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* MapLibre Popup styling for draw-mode address hover */
+.maplibregl-popup.sketch-point-popup .maplibregl-popup-content {
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+
+.maplibregl-popup.sketch-point-popup .maplibregl-popup-tip {
+  border-top-color: rgba(0, 0, 0, 0.72);
+  border-bottom-color: rgba(0, 0, 0, 0.72);
+}
+
+/*
+  Prevent hover popups from stealing the mouse.
+
+  Without this, the popup appears under the cursor, triggers marker mouseleave,
+  then the popup is removed, then mouse re-enters the marker… causing flicker.
+
+  Pinned popups remain interactive.
+*/
+.maplibregl-popup.sketch-point-popup--hover {
+  pointer-events: none;
+}
+
+.maplibregl-popup.sketch-point-popup--pinned {
+  pointer-events: auto;
+}
+
+/* MapLibre Popup styling for navigation waypoint place info (Foursquare) */
+.maplibregl-popup.nav-place-popup .maplibregl-popup-content {
+  background: rgba(0, 0, 0, 0.78);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(245, 158, 11, 0.35); /* amber */
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+  max-width: 260px;
+}
+
+.maplibregl-popup.nav-place-popup .maplibregl-popup-tip {
+  border-top-color: rgba(0, 0, 0, 0.78);
+  border-bottom-color: rgba(0, 0, 0, 0.78);
+}
+
+.maplibregl-popup.nav-place-popup--pinned {
+  pointer-events: auto;
+}
+
+.nav-place-popup__name {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.nav-place-popup__meta {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+}
+
+.nav-place-popup__addr {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.80);
+  font-size: 11px;
+}
+
+.nav-place-popup__row {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.nav-place-popup__label {
+  color: rgba(255, 255, 255, 0.55);
+  margin-right: 6px;
+}
+
+.nav-place-popup__desc {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.80);
+}
+
+.nav-place-popup__link {
+  color: rgba(245, 158, 11, 0.95);
+  text-decoration: none;
+}
+.nav-place-popup__link:hover {
+  text-decoration: underline;
+}
+
+.nav-place-popup__photo {
+  margin-top: 8px;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
