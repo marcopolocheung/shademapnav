@@ -1,8 +1,6 @@
-IMPORTANT: YOUR GROUND TRUTHS CAN BE SUMMARIZED IN ALL FILES LABELED CLAUDE.md
-
 # ShadeMap Navigator — Build State
 
-Browser-based sun shadow simulation app built with React + Vite. Shadows render in real time as the user navigates a map and drags a time slider. Includes shade-aware pedestrian routing.
+Browser-based sun shadow simulation app built with React + Vite. Shadows render in real time as the user navigates a map and drags a time slider. Includes shade-aware pedestrian routing and sketch-guided route drawing.
 
 ---
 
@@ -22,6 +20,7 @@ npm run dev                         # http://localhost:5173
 | `VITE_SHADEMAP_API_KEY` | https://shademap.app/about/ | Free (Educational tier, localhost only) |
 | `VITE_MAPTILER_API_KEY` | https://maptiler.com/ | Free (100k tiles/month) |
 | `VITE_TRANSITLAND_API_KEY` | https://www.transit.land/ | Free tier |
+| `VITE_FOURSQUARE_API_KEY` | https://foursquare.com/developers/ | Free tier |
 
 ---
 
@@ -30,7 +29,9 @@ npm run dev                         # http://localhost:5173
 - **Vite 5** + React 19, TypeScript, Tailwind CSS v4, `react-router-dom` for client routing
 - **`maplibre-gl` pinned to `5.9.0`** — see critical note below, do NOT upgrade
 - **`mapbox-gl-shadow-simulator` ^0.68.1** — shadow rendering library
+- **`vitest`** — unit tests (`npm test`)
 - No extra packages for GeoTIFF — custom binary TIFF writer inline in `AccumulationPanel.tsx`
+- **Foursquare Places API** — building/POI info for draw-mode popups; CORS-proxied in dev via `/__fsq` rewrite in `vite.config.ts` (production needs a reverse proxy or serverless function)
 
 ### ⚠ maplibre-gl Must Stay at 5.9.0
 
@@ -55,21 +56,28 @@ app/
     TimelineSlider.tsx    # Custom scrollable 24-h ruler; inertial drag; fixed red center cursor
     LocationSearch.tsx    # Nominatim geocoding, 400ms debounce
     AccumulationPanel.tsx # Sun exposure mode toggle + date range + quality slider + GeoTIFF export
-    NavigationPanel.tsx   # Shade-aware routing UI: waypoints, route cards, errors
+    NavigationPanel.tsx   # Shade-aware routing UI: waypoints, route cards, draw mode toggle, geolocation
     SaveRouteModal.tsx    # Modal for naming/saving routes to localStorage folders
     SettingsPanel.tsx     # App settings
     DaySlider.tsx         # Day-of-year slider for accumulation mode
     DateInput.tsx         # Styled date input wrapper
   lib/
-    overpass.ts           # Fetches walkable road graph from Overpass API as RoutingGraph
-    routing.ts            # Pure TS: types, haversine, snapToGraph, Dijkstra, graphToGeoJSON
+    overpass.ts           # Fetches walkable road graph from Overpass API; LRU bbox-containment cache
+    routing.ts            # Pure TS: Pareto bi-criteria routing, snapToGraph/Edge, SpatialGrid, RDP simplification
     trainGraph.ts         # Dynamic OSM-based train graph: fetch, parse, Dijkstra, route finder
-    building-snap.ts      # Snaps waypoints to nearest walkable road node
+    building-snap.ts      # Snaps a coordinate inside a building to just outside its footprint
     exportRoute.ts        # GPX and GeoJSON export for route cards
     savedRoutes.ts        # localStorage CRUD for saved routes (folders, names, sun conditions)
     nominatim.ts          # Nominatim geocoding helpers
     timezone.ts           # Auto-resolves local timezone from map center
     metrics.ts            # Route distance/shade percentage calculations
+  services/
+    foursquare.ts         # Foursquare Places API v2 wrapper; TTL cache (1 hr); CORS-proxied via /__fsq
+  lib/shadow/
+    IShadowLayer.ts       # Interface: setDate, resize, remove, setSunExposure, on
+    ShadeMapAdapter.ts    # Wraps the external mapbox-gl-shadow-simulator library
+    LocalShadowAdapter.ts # Custom WebGL CustomLayer shadow renderer (4-pass pipeline)
+    createShadowLayer.ts  # Factory: returns ShadeMapAdapter or LocalShadowAdapter based on env
 ```
 
 ### `page.tsx` layout (overlay structure)
@@ -81,15 +89,15 @@ app/
 │              MapView (full screen)                    │
 │                                                       │
 │ [AccumulationPanel]                                   │  ← absolute bottom-20 left-3
-│ [NavigationPanel]                                     │
+│ [NavigationPanel]  (collapsible)                      │
 │ [About / API link]                                    │
 ├──────────────────────────────────────────────────────┤
 │  [════════ TimelineSlider ruler (scrollable) ══════]  │  ← absolute bottom-0, full width
-│          [▶]  [date picker]  [6:30 AM (editable)]     │  ← centered controls row
+│    [⏸]  [🕐/📅 mode toggle]  [date]  [6:30 AM]       │  ← centered controls row
 └──────────────────────────────────────────────────────┘
 ```
 
-The timeline ruler and controls row are hidden when Sun Exposure (accumulation) mode is active.
+The timeline ruler and controls row are hidden when Sun Exposure (accumulation) mode is active. The mode-toggle button switches between time-of-day (clock icon) and day-of-year (calendar icon) slider modes; in day-of-year mode, ± year buttons replace the date/time inputs.
 
 `page.tsx` also defines module-level helpers: `formatTime12h`, `toDateInput`, `parseTime`, and the `TimeInput` component (clickable time label that becomes a text input).
 
@@ -125,9 +133,53 @@ Set to `false` by default. When false, the `buildings-3d` layer is hidden and th
 **Resize fix explanation:**
 The shadow simulator renders into a framebuffer texture sized to the viewport. On resize, calling `setDate` forces `setRenderBuffer(gl, gl.canvas.width, gl.canvas.height)` which resizes the texture to match the new dimensions, preventing shadow offset.
 
+**`bringNavOverlaysToFront()`:**
+Helper called after any layer add to defensively `moveLayer` nav-related layers to the top of the style stack. Needed because ShadeMap's WebGL layer can be re-inserted above vector layers after each `setDate`, which would hide route lines and sketch polylines.
+
 **Navigation layers (updated via effects):**
 - Waypoint markers managed in a `useEffect` on `navWaypoints` — removes old markers and places new MapLibre Markers
 - Route line managed in a `useEffect` on `navRoute` — adds/updates/removes `nav-route` GeoJSON source and `nav-route-line` layer (amber `#f59e0b`, width 4, opacity 0.9)
+
+**Sketch layers (updated via effects):**
+- `sketch-line` GeoJSON source + `sketch-line-layer` (white polyline) drawn while user places freehand points in draw mode
+- `sketch-preview-layer` renders a rubber-band segment from the last sketch point to the current cursor position
+- Both layers managed in a `useEffect` on `sketchPoints` and `drawMode`; cleared automatically after a route is calculated
+
+**Transit visualization layers:**
+- `mrt-entrance-connector-line` — dashed line connecting the walk leg to the train station entrance
+- Train route stops and transfer marker layers added dynamically for "Via Transit" route cards
+
+**Foursquare integration:**
+- `MapView.tsx` imports `getPlaceDetails`, `getPlaceInfoFromAddress`, `isFoursquareRateLimited`, `getFoursquareApiStatus` from `services/foursquare.ts`
+- When the user clicks the map in draw mode, MapView fetches the building address and Foursquare place info and displays it in a popup
+
+---
+
+## LocalShadowAdapter (`app/lib/shadow/LocalShadowAdapter.ts`)
+
+Custom WebGL shadow renderer registered as a MapLibre `CustomLayerInterface`. Replaces the ShadeMap API path for local/offline use. Draws shadows inside MapLibre's render loop using the camera matrix, eliminating the pan/zoom lag that occurred with a separate 2D canvas overlay.
+
+**4-pass render pipeline:**
+
+```
+Pass A: Shadow triangles → Shadow FBO       (MAX blending, shadow color #01112f)
+Pass B: Shadow triangles → Height FBO       (MAX blending, height-as-grayscale h/maxH)
+Pass C: Roof footprints  → Shadow FBO       (destination-out, conditional erase)
+Pass D: Shadow FBO       → Screen           (standard premult-alpha compositing)
+```
+
+**Passes B + C implement height-aware roof exclusion:**
+- Pass B writes the normalized height of the tallest shadow caster at each pixel into a separate FBO (grayscale, 8-bit, `h/maxH`)
+- Pass C renders each building's un-offset footprint (convex hull, triangulated) and samples the height FBO; if `maxIncomingHeight <= buildingHeight + 0.004` the fragment outputs `alpha=1` which destination-out erases the shadow → buildings do NOT self-shadow their own rooftops
+- The `0.004` tolerance covers 8-bit quantization (1/255 ≈ 0.004); two buildings of equal height also have shadow erased (correct behaviour)
+- Passes B+C are skipped when sun is below horizon or zoom < 12
+
+**`ShadowGeometry` struct (returned by `computeShadowGeometry()`):**
+- `shadowVerts / shadowHeights` — Mercator XY shadow triangles + normalized height per vertex
+- `roofVerts / roofHeights` — Mercator XY footprint triangles + normalized height per vertex
+- `sunBelowHorizon` — when true, a full-world quad covers the screen; B+C skipped
+
+**Shadow color:** premultiplied `#01112f` at α=0.7. The B/R ratio (47/1 ≈ 47) satisfies the `B/R > 1.8` shade-sampling heuristic in `page.tsx`.
 
 ---
 
@@ -137,13 +189,15 @@ The main feature beyond shadow display. Users click "Navigate", place two waypoi
 
 **Pipeline (in `page.tsx` `calculateRoute`):**
 1. Compute bounding box with 0.005° padding (~500 m) around the two waypoints
-2. `fetchRoutingGraph(south, west, north, east)` — POST to Overpass API, returns `RoutingGraph`
+2. `fetchRoutingGraph(south, west, north, east)` — POST to Overpass API, returns `RoutingGraph`; LRU cache (max 5) reuses a cached graph if the new bbox is contained within a previously-fetched one
 3. Read the current map canvas once via `canvas.toBlob` → `createImageBitmap` → 2D canvas `getImageData`
 4. For every graph edge: call `sampleEdgeShade(map, imageData, dpr, from, to, samples=5)` — samples 6 evenly-spaced pixels along the edge; a pixel is "shaded" if `B/R > 1.8` (ShadeMap's overlay color `#01112f` has heavy blue dominance)
-5. Run Dijkstra × 3 with `shadeStrength` = 0.0, 0.5, 1.0 — deduplicated by node-ID key
+5. Run **Pareto bi-criteria label-setting** (`paretoRoutes` in `routing.ts`) to find the full Pareto front of (distance, shaded distance) trade-offs; extract up to 3 representatives: shortest (min distM), most shaded (max shadeM), balanced (knee point — closest to the ideal in normalized space). Labels use integer back-pointer IDs so memory is O(nodes × MAX_LABELS_PER_NODE) rather than O(nodes × pathLength); paths are reconstructed lazily only for the selected representatives.
 6. Render up to 3 route cards: "Shortest", "Balanced", "Most shaded" — with distance and % shaded
 
-**Dijkstra cost model (`routing.ts`):**
+**For multi-point / loop routes** (intermediate waypoints set via Alt+click), three separate `dijkstra` calls with fixed strengths [0.0, 0.5, 1.0] are run per leg and stitched together, rather than Pareto routing across all legs.
+
+**Cost model (`routing.ts`):**
 ```
 edge cost = distanceM * (1 - shadeStrength * shadeFactor * MAX_SHADE_SAVING)
 MAX_SHADE_SAVING = 0.7   // caps saving so fully-shaded edges still cost 30% of distance
@@ -152,7 +206,24 @@ MAX_SHADE_SAVING = 0.7   // caps saving so fully-shaded edges still cost 30% of 
 **Overpass query (`overpass.ts`):**
 - Highway types: `footway|path|pedestrian|living_street|residential|unclassified|tertiary|secondary|service|cycleway|steps`
 - Bidirectional adjacency list; all edge `shadeFactor` values initialised to 0 (caller fills in)
+- Also exports `fetchStationEntrances()` for matching OSM `railway=subway_entrance` nodes to transit stations
 - Throws if no walkable roads found in the bounding box
+
+---
+
+## Sketch-Guided Routing
+
+Users can draw a freehand route on the map (draw mode) to hint the routing algorithm at a preferred path shape.
+
+**Pipeline:**
+1. User toggles "Draw Route" in NavigationPanel; `drawMode` state activates in `page.tsx`
+2. Each map click appends a `SketchPoint` to `sketchPoints[]`; MapView renders the live polyline and rubber-band preview
+3. On "Calculate": `simplifyPolyline(sketchPoints, 30)` runs Ramer-Douglas-Peucker (30 m tolerance) to reduce point count
+4. `findSketchGaps()` checks each consecutive simplified pair for gaps > 200 m to the nearest road node; warns if any are found
+5. `dijkstraMultiLeg()` runs Dijkstra on each consecutive simplified-waypoint pair and stitches results into one route
+6. Sketch polyline is automatically cleared from the map after the route calculates
+
+**Key exports in `routing.ts`:** `SketchPoint`, `simplifyPolyline`, `sketchBoundingBox`, `findSketchGaps`, `dijkstraMultiLeg`, `snapToEdge`, `SpatialGrid`
 
 ---
 
@@ -193,7 +264,7 @@ Fetches complete route relations that have at least one stop in the bbox, then a
 - Only attempts train routing when straight-line distance > 500m
 - Fetches train graph in parallel with walking graph (expanded bbox, +1.5km)
 - Walk legs use the existing shade-aware Dijkstra on the walking graph
-- Station entrances from `fetchStationEntrances()` are matched by name/proximity
+- Station entrances from `fetchStationEntrances()` are matched by name/proximity; prefers OSM `railway=subway_entrance` nodes over station centroids, falling back to centroid if no entrance found
 - Train travel time estimated at 30 km/h average
 - Sun exposure per mode: subway=0, light_rail=0.25, monorail=0.1
 - Route displayed as "Via Transit" card with line color/name from OSM relation tags
@@ -213,6 +284,7 @@ Fetches complete route relations that have at least one stop in the bbox, then a
 | Geocoding | Nominatim (`nominatim.openstreetmap.org/search`) — requires `User-Agent` header | No |
 | Routing graph | Overpass API (`overpass-api.de`) — requires `User-Agent` header | No |
 | Transit stops | Transitland REST v2 (`transit.land/api/v2/rest/stops`) | Yes (`VITE_TRANSITLAND_API_KEY`) |
+| POI / building info | Foursquare Places API v2 — CORS-proxied in dev via `/__fsq` in `vite.config.ts` | Yes (`VITE_FOURSQUARE_API_KEY`) |
 
 **Building query (`getFeatures`):**
 - Source: `maptiler_planet`, layer: `building`
@@ -276,16 +348,21 @@ Replaces the native `<input type="range">`. The ruler is a fixed-width overflow-
 - ✅ Editable time label (click to type; parses 12/24-hour formats)
 - ✅ Terrain shadows (hills/valleys) via AWS Terrarium elevation data
 - ✅ Building shadows from OSM heights via MapTiler vector tiles
+- ✅ Height-aware roof exclusion — building rooftops not self-shadowed; only taller buildings' shadows fall on shorter rooftops
 - ✅ 3D extruded buildings + terrain mesh when map is tilted (`ENABLE_3D=true` required; currently `false`)
 - ✅ Location search (Nominatim)
 - ✅ Shadow accumulation map with configurable date range and quality (iterations 8–64)
 - ✅ Sun exposure legend bar in AccumulationPanel (blue → cyan → green → yellow → red, 0 h → 12 h+)
 - ✅ GeoTIFF export of accumulation map
 - ✅ Shadow overlay correctly resizes when browser window is resized
-- ✅ Shade-aware pedestrian routing (Shortest / Balanced / Most shaded via Dijkstra on Overpass graph)
+- ✅ Shade-aware pedestrian routing — Pareto bi-criteria algorithm returning Shortest / Balanced / Most shaded routes
+- ✅ Sketch-guided routing — freehand draw mode with RDP simplification, gap detection, multi-leg Dijkstra, auto-clear after route calculates
 - ✅ Generic train transit routing via OSM route relations (subway/light_rail/monorail, any city)
 - ✅ `/about` page with API docs and pricing tiers
 - ✅ Save Route: bookmark routes with names, folders, and sun conditions (localStorage)
 - ✅ Multi-point waypoints for loop routes (Alt+click on map)
 - ✅ GPX and GeoJSON export for generated routes
-- ✅ Draw mode: each point snaps to a real building address (building centroid when available, then Nominatim reverse geocode); only points with a resolved address show the address on hover (tooltip)
+- ✅ NavigationPanel collapse/expand toggle
+- ✅ User geolocation ("Locate me" with "Use as start/end" options) in NavigationPanel
+- ✅ Foursquare Places info popups when clicking buildings in draw mode
+- ✅ Timeline slider mode toggle: time-of-day (clock) ↔ day-of-year (calendar) with ± year buttons
