@@ -204,7 +204,8 @@ const WaypointInput = memo(function WaypointInput({
             setQuery(labelRef.current ?? "");
             closeDropdown();
           }}
-          className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-xs text-white/80 placeholder-white/30 border border-white/10 focus:outline-none focus:border-white/25 transition-colors"
+          className="flex-1 min-w-0 rounded px-2 py-1 text-xs placeholder-white/30 border focus:outline-none transition-colors"
+          style={{ background: 'transparent', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
         />
         {label && (
           <button
@@ -419,17 +420,19 @@ export default function NavigationPanel({
       <div className="absolute bottom-6 left-3 z-20 flex gap-1.5">
         <button
           onClick={onToggleNavMode}
-          className="bg-black/70 backdrop-blur-sm text-white/80 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:border-white/25"
+          className="glass-panel border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:border-[rgba(200,175,110,0.35)]"
+          style={{ color: 'var(--brass)', fontFamily: 'var(--font-display)' }}
         >
           Navigate
         </button>
         <button
           onClick={onDrawModeToggle}
-          className={`bg-black/70 backdrop-blur-sm border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          className={`glass-panel border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             drawMode
               ? "text-yellow-300 border-yellow-400/40 hover:border-yellow-400/60"
-              : "text-white/80 hover:text-white border-white/10 hover:border-white/25"
+              : "hover:border-[rgba(200,175,110,0.35)]"
           }`}
+          style={{ color: drawMode ? undefined : 'var(--brass)', fontFamily: 'var(--font-display)' }}
         >
           {drawMode ? "Cancel Drawing" : "Draw Route"}
         </button>
@@ -445,10 +448,10 @@ export default function NavigationPanel({
           collapsed ? 'w-0' : 'w-72'
         }`}
       >
-        <div className="w-72 h-full flex flex-col bg-black/85 backdrop-blur-md border-r border-white/[0.07]">
+        <div className="w-72 h-full flex flex-col glass-panel border-r">
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-3 border-b border-white/[0.07] shrink-0">
-            <span className="text-white/80 text-sm font-semibold tracking-wide">Navigate</span>
+            <span className="panel-heading">Navigate</span>
             <button
               onClick={onToggleNavMode}
               className="text-white/30 hover:text-white/70 transition-colors p-1 rounded"
@@ -655,7 +658,8 @@ export default function NavigationPanel({
               <button
                 onClick={onCalculate}
                 disabled={drawMode ? sketchPointCount < 2 || isCalculating : !waypointA || !waypointB || isCalculating}
-                className="flex-1 px-2 py-1.5 rounded text-xs font-medium bg-amber-500 text-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-400 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 px-2 py-1.5 rounded text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+                style={{ background: 'var(--brass)', color: 'var(--ink)', fontFamily: 'var(--font-display)' }}
               >
                 {isCalculating && (
                   <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
@@ -810,7 +814,7 @@ export default function NavigationPanel({
       {/* Collapse toggle tab — always visible on the sidebar's right edge */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="pointer-events-auto self-center bg-black/85 backdrop-blur-md border border-l-0 border-white/[0.07] rounded-r-lg px-1 py-4 text-white/40 hover:text-white/80 transition-colors shrink-0"
+        className="pointer-events-auto self-center glass-panel border border-l-0 rounded-r-lg px-1 py-4 text-white/40 hover:text-white/80 transition-colors shrink-0"
         title={collapsed ? 'Expand navigation panel' : 'Collapse navigation panel'}
       >
         <svg

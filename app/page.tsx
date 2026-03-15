@@ -12,6 +12,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import DateInput from "./components/DateInput";
 import DaySlider from "./components/DaySlider";
 import type { AccumulationOptions } from "./components/MapView";
+import type { ShadowMode } from "./lib/shadow/createShadowLayer";
 import { fetchRoutingGraph, fetchStationEntrances } from "./lib/overpass";
 import { geocodeReverse } from "./lib/nominatim";
 import { snapToEdge, dijkstra, snapToGraph, paretoRoutes, graphToGeoJSON, haversineMeters, bfsReachable, snapToReachableEdge, RouteOption, SpatialGrid, simplifyPolyline, sketchBoundingBox, findSketchGaps } from "./lib/routing";
@@ -130,7 +131,8 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
             setEditing(false);
           }
         }}
-        className="bg-white/10 rounded px-2 py-1 text-white text-xs border border-amber-400/60 focus:outline-none w-20 text-center"
+        className="rounded px-2 py-1 text-xs border focus:outline-none w-20 text-center"
+        style={{ background: 'rgba(200,175,110,0.1)', color: '#e8c97a', borderColor: 'rgba(200,175,110,0.45)', fontFamily: "'Special Elite', monospace", letterSpacing: '0.08em' }}
         autoFocus
       />
     );
@@ -139,7 +141,8 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
   return (
     <button
       onClick={startEdit}
-      className="text-white/70 hover:text-white/90 text-xs tabular-nums w-20 text-center rounded px-2 py-1 hover:bg-white/10 transition-colors"
+      className="text-xs tabular-nums w-20 text-center rounded px-2 py-1 hover:bg-white/10 transition-colors"
+      style={{ color: '#e8c97a', fontFamily: "'Special Elite', monospace", letterSpacing: '0.08em' }}
       title="Click to type a time (e.g. 6:30 AM, 14:30)"
     >
       {formatTime12h(date, utcOffsetMin)}
@@ -278,6 +281,9 @@ export default function Home() {
   const [drawMode, setDrawMode] = useState(false);
   const [navWarning, setNavWarning] = useState<string | null>(null);
   const [simplifiedWaypoints, setSimplifiedWaypoints] = useState<LatLng[] | null>(null);
+
+  // Shadow renderer mode
+  const [shadowMode, setShadowMode] = useState<ShadowMode>('api');
 
   // Debug / log state
   const [mapZoom, setMapZoom] = useState(2);
@@ -1727,8 +1733,12 @@ export default function Home() {
           onSketchPointClick={handleSketchPointClick}
           onSketchFinish={handleSketchFinish}
           simplifiedWaypoints={simplifiedWaypoints}
+          shadowMode={shadowMode}
         />
       </Suspense>
+
+      {/* Compass rose decoration */}
+      <CompassRose />
 
       {/* Pending waypoint selection banner */}
       {pendingSlot && (
@@ -1748,13 +1758,16 @@ export default function Home() {
 
       {/* Full-width timeline ruler + controls */}
       {!accumulation.enabled && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/70 backdrop-blur-sm border-t border-white/10">
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-[#1c140c]/85 backdrop-blur-md border-t border-[rgba(200,175,110,0.28)]">
           {/* Floating tooltip — shows time in time mode, month name in month mode */}
           <div
             className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20"
             style={{ bottom: "calc(100% + 6px)" }}
           >
-            <div className="bg-amber-500 text-black text-[11px] font-bold px-2.5 py-0.5 rounded-md tabular-nums shadow-md whitespace-nowrap">
+            <div
+              className="text-[11px] font-bold px-2.5 py-0.5 rounded-md tabular-nums shadow-md whitespace-nowrap"
+              style={{ background: '#c8390a', color: 'var(--parchment)', fontFamily: "'Special Elite', monospace" }}
+            >
               {sliderMode === "time"
                 ? formatTime12h(date, mapUtcOffsetMin)
                 : new Date(date.getTime() + mapUtcOffsetMin * 60000)
@@ -1766,7 +1779,7 @@ export default function Home() {
                 height: 0,
                 borderLeft: "5px solid transparent",
                 borderRight: "5px solid transparent",
-                borderTop: "5px solid #f59e0b",
+                borderTop: "5px solid #c8390a",
               }}
             />
           </div>
@@ -1794,7 +1807,8 @@ export default function Home() {
             {/* Play/pause */}
             <button
               onClick={() => setIsPlaying((p) => !p)}
-              className="text-white/60 hover:text-amber-400 transition-colors flex items-center justify-center w-11 h-11 rounded-lg hover:bg-white/5"
+              className="hover:text-amber-400 transition-colors flex items-center justify-center w-11 h-11 rounded-lg hover:bg-white/5"
+              style={{ color: 'rgba(200,175,110,0.7)' }}
               title={isPlaying ? "Pause" : "Play"}
             >
               {isPlaying ? (
@@ -1812,7 +1826,8 @@ export default function Home() {
             {/* Slider mode toggle — clock (time) / calendar (day) */}
             <button
               onClick={() => setSliderMode((m) => m === "time" ? "day" : "time")}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] transition-colors"
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg hover:bg-white/10 transition-colors"
+              style={{ background: 'rgba(200,175,110,0.06)', border: '1px solid rgba(200,175,110,0.18)' }}
               title={sliderMode === "time" ? "Switch to day of year" : "Switch to time of day"}
             >
               {/* Clock icon */}
@@ -1848,19 +1863,21 @@ export default function Home() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => adjustYear(-1)}
-                  className="text-white/50 hover:text-white/90 transition-colors w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5"
+                  className="hover:text-white/90 transition-colors w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5"
+                  style={{ color: 'rgba(200,175,110,0.6)' }}
                   aria-label="Previous year"
                 >
                   <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polyline points="5,1 1,5 5,9" />
                   </svg>
                 </button>
-                <span className="text-white/70 text-sm tabular-nums w-12 text-center">
+                <span className="text-sm tabular-nums w-12 text-center" style={{ color: 'rgba(200,175,110,0.7)', fontFamily: "'Special Elite', monospace" }}>
                   {_localYear}
                 </span>
                 <button
                   onClick={() => adjustYear(+1)}
-                  className="text-white/50 hover:text-white/90 transition-colors w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5"
+                  className="hover:text-white/90 transition-colors w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5"
+                  style={{ color: 'rgba(200,175,110,0.6)' }}
                   aria-label="Next year"
                 >
                   <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1875,7 +1892,7 @@ export default function Home() {
 
       {/* Bottom-right overlay: view tools */}
       <div className="absolute bottom-20 right-3 z-10">
-        <div className="bg-black/60 backdrop-blur-sm rounded-xl border border-white/[0.07] p-1.5 flex flex-col gap-1">
+        <div className="glass-panel rounded-xl border p-1.5 flex flex-col gap-1">
           <AccumulationPanel
             accumulation={accumulation}
             onChange={setAccumulation}
@@ -1892,6 +1909,16 @@ export default function Home() {
           >
             About / API
           </a>
+
+          {/* Shadow mode toggle */}
+          <button
+            onClick={() => setShadowMode(m => m === 'api' ? 'local' : 'api')}
+            className="flex items-center gap-1.5 text-[10px] text-white/30 hover:text-white/60 transition-colors px-1.5 py-0.5"
+            title={shadowMode === 'api' ? 'Using ShadeMap API' : 'Using local renderer'}
+          >
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${shadowMode === 'api' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            {shadowMode === 'api' ? 'API shadows' : 'Local shadows'}
+          </button>
 
           {/* Divider */}
           <div className="h-px bg-white/[0.06] mx-1" />
@@ -1953,6 +1980,29 @@ export default function Home() {
           onCancel={() => setSaveModalRouteIndex(null)}
         />
       )}
+    </div>
+  );
+}
+
+function CompassRose() {
+  return (
+    <div
+      className="absolute z-10 pointer-events-none select-none"
+      style={{ top: 16, right: 16, width: 56, height: 56, opacity: 0.4 }}
+    >
+      <svg viewBox="0 0 56 56" width="56" height="56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="28" cy="28" r="26" stroke="rgba(200,175,110,0.6)" strokeWidth="1" />
+        <circle cx="28" cy="28" r="18" stroke="rgba(200,175,110,0.35)" strokeWidth="0.75" />
+        <polygon points="28,4 25,22 28,19 31,22" fill="#c8390a" />
+        <polygon points="28,52 25,34 28,37 31,34" fill="rgba(200,175,110,0.6)" />
+        <polygon points="52,28 34,25 37,28 34,31" fill="rgba(200,175,110,0.35)" />
+        <polygon points="4,28 22,25 19,28 22,31" fill="rgba(200,175,110,0.35)" />
+        <circle cx="28" cy="28" r="2" fill="rgba(200,175,110,0.7)" />
+        <text x="28" y="14" textAnchor="middle" fill="#c8390a" fontSize="7" fontFamily="'IM Fell English', serif" fontWeight="bold">N</text>
+        <text x="28" y="49" textAnchor="middle" fill="rgba(200,175,110,0.7)" fontSize="7" fontFamily="'IM Fell English', serif">S</text>
+        <text x="46" y="30" textAnchor="middle" fill="rgba(200,175,110,0.7)" fontSize="7" fontFamily="'IM Fell English', serif">E</text>
+        <text x="10" y="30" textAnchor="middle" fill="rgba(200,175,110,0.7)" fontSize="7" fontFamily="'IM Fell English', serif">W</text>
+      </svg>
     </div>
   );
 }

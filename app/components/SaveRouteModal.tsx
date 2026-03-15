@@ -27,8 +27,8 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl w-80 p-5 flex flex-col gap-4">
-        <h2 className="text-white/90 text-sm font-semibold">Save Route</h2>
+      <div className="glass-panel border rounded-xl shadow-2xl w-80 p-5 flex flex-col gap-4">
+        <h2 className="panel-heading text-sm">Save Route</h2>
 
         {/* Name */}
         <div className="flex flex-col gap-1">
@@ -37,7 +37,8 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white/80 focus:outline-none focus:border-white/25"
+            className="border rounded px-2 py-1.5 text-xs focus:outline-none"
+            style={{ background: 'transparent', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
             placeholder="Route name"
           />
         </div>
@@ -48,7 +49,8 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
           <select
             value={folderId ?? ""}
             onChange={e => setFolderId(e.target.value || null)}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white/80 focus:outline-none focus:border-white/25"
+            className="border rounded px-2 py-1.5 text-xs focus:outline-none"
+            style={{ background: 'var(--glass-bg)', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
           >
             <option value="">None</option>
             {folders.map(f => (
@@ -89,7 +91,8 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
           <button
             onClick={() => onSave(name.trim() || defaultName, folderId)}
             disabled={!name.trim()}
-            className="flex-1 py-1.5 rounded text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 py-1.5 rounded text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ background: 'var(--brass)', color: 'var(--ink)', fontFamily: 'var(--font-display)' }}
           >
             Save
           </button>

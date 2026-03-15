@@ -194,30 +194,30 @@ export default function AccumulationPanel({
         className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
           accumulation.enabled
             ? "bg-amber-500/90 text-black font-medium"
-            : "bg-black/70 backdrop-blur-sm text-white/70 hover:text-white border border-white/10"
+            : "glass-panel border hover:text-white"
         }`}
       >
         ☀ Sun Exposure
       </button>
 
       {open && (
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg p-3 flex flex-col gap-2 text-white text-xs min-w-[240px]">
+        <div className="glass-panel border rounded-lg p-3 flex flex-col gap-2 text-white text-xs min-w-[240px]">
           <div className="flex items-center gap-2">
-            <label className="text-white/50 w-12">From</label>
+            <label className="w-12" style={{ color: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}>From</label>
             <DateInput
               date={accumulation.startDate}
               onChange={(d) => onChange({ ...accumulation, startDate: d })}
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-white/50 w-12">To</label>
+            <label className="w-12" style={{ color: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}>To</label>
             <DateInput
               date={accumulation.endDate}
               onChange={(d) => onChange({ ...accumulation, endDate: d })}
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-white/50 w-12">Quality</label>
+            <label className="w-12" style={{ color: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}>Quality</label>
             <input
               type="range"
               min={8}

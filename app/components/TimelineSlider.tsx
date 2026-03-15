@@ -381,8 +381,10 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                 width: 1,
                 height: h,
                 backgroundColor: label
-                  ? "rgba(255,255,255,0.35)"
-                  : "rgba(255,255,255,0.18)",
+                  ? "rgba(200,175,110,0.75)"
+                  : h === 12
+                  ? "rgba(200,175,110,0.35)"
+                  : "rgba(200,175,110,0.18)",
               }}
             />
             {label && (
@@ -393,9 +395,10 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                   left: 0,
                   transform: "translateX(-50%)",
                   whiteSpace: "nowrap",
-                  fontSize: 10,
+                  fontSize: 9,
                   lineHeight: 1,
-                  color: "rgba(255,255,255,0.45)",
+                  color: "rgba(200,175,110,0.75)",
+                  fontFamily: "'Special Elite', monospace",
                   fontVariantNumeric: "tabular-nums",
                   userSelect: "none",
                   pointerEvents: "none",
@@ -408,15 +411,30 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
         ))}
       </div>
 
-      {/* Fixed red center cursor — never moves, content scrolls under it */}
+      {/* Compass needle cursor — diamond cap + gradient shaft */}
       <div
-        className="absolute inset-y-0 pointer-events-none z-10"
+        className="absolute pointer-events-none z-10"
         style={{
           left: "50%",
+          top: 0,
+          transform: "translateX(-4px)",
+          width: 8,
+          height: 8,
+          backgroundColor: "#c8390a",
+          rotate: "45deg",
+          boxShadow: "0 0 6px 2px rgba(200,57,10,0.55)",
+        }}
+      />
+      <div
+        className="absolute pointer-events-none z-10"
+        style={{
+          left: "50%",
+          top: 8,
+          bottom: 0,
           width: 2,
           transform: "translateX(-1px)",
-          backgroundColor: "#ef4444",
-          boxShadow: "0 0 6px 2px rgba(239,68,68,0.55)",
+          background: "linear-gradient(to bottom, #c8390a, rgba(200,57,10,0.35))",
+          boxShadow: "0 0 4px 1px rgba(200,57,10,0.4)",
         }}
       />
     </div>

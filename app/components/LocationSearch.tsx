@@ -51,7 +51,8 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
     <div className="relative min-w-[240px]">
       {/* Search icon */}
       <svg
-        className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30"
+        className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+        style={{ color: 'var(--brass-dim)' }}
         width="14" height="14" viewBox="0 0 20 20"
         fill="none" stroke="currentColor" strokeWidth="2.5"
         strokeLinecap="round" strokeLinejoin="round"
@@ -65,7 +66,8 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
         value={query}
         onChange={handleChange}
         placeholder="Search location…"
-        className="w-full bg-black/70 backdrop-blur-sm text-white placeholder-white/40 text-sm rounded-lg pl-9 pr-8 py-2 border border-white/10 focus:outline-none focus:border-white/30"
+        className="w-full glass-panel placeholder-[rgba(244,237,212,0.45)] text-sm rounded-lg pl-9 pr-8 py-2 border focus:outline-none focus:border-[rgba(200,175,110,0.4)]"
+        style={{ color: 'var(--parchment)', fontFamily: 'var(--font-serif)' }}
       />
       {/* Clear button — only when there is text */}
       {query.length > 0 && (
@@ -81,7 +83,7 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
         </button>
       )}
       {results.length > 0 && (
-        <ul className="absolute top-full mt-1 w-full bg-black/90 backdrop-blur-sm rounded-lg overflow-hidden border border-white/10 z-20">
+        <ul className="absolute top-full mt-1 w-full glass-panel rounded-lg overflow-hidden border z-20">
           {results.map((r, i) => (
             <li key={i}>
               <button

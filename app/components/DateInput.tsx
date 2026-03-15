@@ -91,7 +91,8 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
             setEditing(false);
           }
         }}
-        className="bg-white/10 rounded px-2 py-1 text-white text-xs border border-amber-400/60 focus:outline-none w-32 text-center"
+        className="rounded px-2 py-1 text-xs border focus:outline-none w-32 text-center"
+        style={{ background: 'rgba(200,175,110,0.1)', color: 'rgba(200,175,110,0.65)', borderColor: 'rgba(200,175,110,0.45)', fontFamily: "'Crimson Pro', serif", fontStyle: 'italic' }}
         autoFocus
       />
     );
@@ -100,7 +101,8 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   return (
     <button
       onClick={startEdit}
-      className="text-white/70 hover:text-white/90 text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-white/10 transition-colors"
+      className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-white/10 transition-colors"
+      style={{ color: 'rgba(200,175,110,0.65)', fontFamily: "'Crimson Pro', serif", fontStyle: 'italic' }}
       title="Click to set date (e.g. Mar 3, 3/3/2026)"
     >
       {formatDateDisplay(date, utcOffsetMin)}

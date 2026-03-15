@@ -18,7 +18,7 @@ export default function SettingsPanel({
         className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
           open
             ? "bg-white/20 text-white border border-white/30"
-            : "bg-black/70 backdrop-blur-sm text-white/70 hover:text-white border border-white/10"
+            : "glass-panel border hover:text-white"
         }`}
         title="Settings"
       >
@@ -26,8 +26,8 @@ export default function SettingsPanel({
       </button>
 
       {open && (
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg p-3 flex flex-col gap-3 text-white text-xs min-w-[200px] border border-white/10">
-          <div className="text-white/40 uppercase tracking-widest text-[9px] font-semibold">
+        <div className="glass-panel rounded-lg p-3 flex flex-col gap-3 text-white text-xs min-w-[200px] border">
+          <div className="panel-heading uppercase tracking-widest text-[9px]">
             Display
           </div>
 
