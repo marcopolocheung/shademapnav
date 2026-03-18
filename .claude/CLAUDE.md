@@ -17,7 +17,6 @@ npm run dev                         # http://localhost:5173
 
 | Variable | Where to get it | Cost |
 |---|---|---|
-| `VITE_SHADEMAP_API_KEY` | https://shademap.app/about/ | Free (Educational tier, localhost only) |
 | `VITE_MAPTILER_API_KEY` | https://maptiler.com/ | Free (100k tiles/month) |
 | `VITE_TRANSITLAND_API_KEY` | https://www.transit.land/ | Free tier |
 | `VITE_FOURSQUARE_API_KEY` | https://foursquare.com/developers/ | Free tier |

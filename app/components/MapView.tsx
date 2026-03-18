@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { TrainDrawData } from "../lib/trainGraph";
 import type { LatLng, SketchPoint } from "../lib/routing";
 import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFoursquareRateLimited, type FoursquarePlaceInfo } from "../services/foursquare";
-import { createShadowLayer, type ShadowMode } from "../lib/shadow/createShadowLayer";
+import { createShadowLayer } from "../lib/shadow/createShadowLayer";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 
 export interface AccumulationOptions {
@@ -34,11 +34,9 @@ interface MapViewProps {
   onSketchPointClick?: (coord: LatLng) => void;
   onSketchFinish?: () => void;
   simplifiedWaypoints?: LatLng[] | null;
-  shadowMode?: ShadowMode;
 }
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY ?? "";
-const SHADEMAP_KEY = import.meta.env.VITE_SHADEMAP_API_KEY ?? "";
 const ENABLE_3D = false;
 
 function escapeHtml(s: string): string {
@@ -311,14 +309,12 @@ export default function MapView({
   onSketchPointClick,
   onSketchFinish,
   simplifiedWaypoints,
-  shadowMode = 'api',
 }: MapViewProps) {
   const containerRef    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<maplibregl.Map | null>(null);
   const shadeRef        = useRef<IShadowLayer | null>(null);
   const initRef         = useRef(false);
   const dateRef         = useRef(date);
-  const shadowModeRef   = useRef(shadowMode);
   const shadeUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMapClickRef      = useRef(onMapClick);
   const onMarkerDragEndRef = useRef(onMarkerDragEnd);
@@ -497,7 +493,7 @@ export default function MapView({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`,
+      style: `https://api.maptiler.com/maps/dataviz/style.json?key=${MAPTILER_KEY}`,
       center: [0, 20],
       zoom: 2,
       maxTileCacheSize: 50,
@@ -689,33 +685,9 @@ export default function MapView({
       update3DVisibility();
       if (!ENABLE_3D) map.setLayoutProperty("buildings-3d", "visibility", "none");
 
-      // Create shadow layer via factory (ShadeMap API or local renderer)
-      const shadowLayer = await createShadowLayer(map, {
+      // Create local shadow layer
+      const shadowLayer = createShadowLayer(map, {
         date: dateRef.current,
-        apiKey: SHADEMAP_KEY,
-        mode: shadowModeRef.current,
-        color: "#01112f",
-        opacity: 0.7,
-        terrainSource: {
-          tileSize: 256,
-          maxZoom: 15,
-          getSourceUrl: ({ x, y, z }: { x: number; y: number; z: number }) =>
-            `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`,
-          getElevation: ({ r, g, b }: { r: number; g: number; b: number; a: number }) =>
-            r * 256 + g + b / 256 - 32768,
-        },
-        getFeatures: async () => {
-          if (map.getZoom() < 12) return [];
-          await waitForMapLoad(map);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const features: any[] = map.querySourceFeatures("maptiler_planet", { sourceLayer: "building" });
-          features.forEach((f) => {
-            if (f.properties && !f.properties.height)
-              f.properties.height = f.properties.render_height ?? 3.1;
-          });
-          features.sort((a, b) => (a.properties?.height ?? 0) - (b.properties?.height ?? 0));
-          return features;
-        },
       });
 
       shadeRef.current = shadowLayer;
@@ -820,71 +792,6 @@ export default function MapView({
       shadeRef.current.setSunExposure(false);
     }
   }, [accumulation]);
-
-  // -------------------------------------------------------------------------
-  // Shadow mode switching (API ↔ local renderer)
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    shadowModeRef.current = shadowMode;
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-
-    // Remove current shadow layer
-    if (shadeRef.current) {
-      shadeRef.current.remove();
-      shadeRef.current = null;
-    }
-
-    (async () => {
-      const shadowLayer = await createShadowLayer(map, {
-        date: dateRef.current,
-        apiKey: SHADEMAP_KEY,
-        mode: shadowMode,
-        color: "#01112f",
-        opacity: 0.7,
-        terrainSource: {
-          tileSize: 256,
-          maxZoom: 15,
-          getSourceUrl: ({ x, y, z }: { x: number; y: number; z: number }) =>
-            `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`,
-          getElevation: ({ r, g, b }: { r: number; g: number; b: number; a: number }) =>
-            r * 256 + g + b / 256 - 32768,
-        },
-        getFeatures: async () => {
-          if (map.getZoom() < 12) return [];
-          await waitForMapLoad(map);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const features: any[] = map.querySourceFeatures("maptiler_planet", { sourceLayer: "building" });
-          features.forEach((f) => {
-            if (f.properties && !f.properties.height)
-              f.properties.height = f.properties.render_height ?? 3.1;
-          });
-          features.sort((a, b) => (a.properties?.height ?? 0) - (b.properties?.height ?? 0));
-          return features;
-        },
-      });
-
-      shadeRef.current = shadowLayer;
-
-      const maybeCustom = shadowLayer as unknown as maplibregl.CustomLayerInterface;
-      if (maybeCustom?.type === 'custom' && typeof maybeCustom?.render === 'function') {
-        if (!map.getLayer(maybeCustom.id)) map.addLayer(maybeCustom);
-      }
-
-      shadowLayer.on('idle', () => bringNavOverlaysToFront(map));
-      bringNavOverlaysToFront(map);
-
-      // Restore accumulation state if active
-      if (accumulation.enabled) {
-        shadowLayer.setSunExposure(true, {
-          startDate: accumulation.startDate,
-          endDate: accumulation.endDate,
-          iterations: accumulation.iterations,
-        });
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shadowMode]);
 
   // -------------------------------------------------------------------------
   // Navigation waypoint markers — reuse existing markers via setLngLat

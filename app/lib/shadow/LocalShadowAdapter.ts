@@ -2,6 +2,7 @@ import type maplibregl from 'maplibre-gl';
 import SunCalc from 'suncalc';
 import earcut from 'earcut';
 import type { IShadowLayer } from './IShadowLayer';
+import SunWorker from '../../workers/sunPosition.worker?worker';
 
 interface ShadowGeometry {
   shadowVerts: Float32Array;    // Mercator (x,y) shadow triangles
@@ -9,6 +10,18 @@ interface ShadowGeometry {
   roofVerts: Float32Array;      // Mercator (x,y) building footprint triangles (un-offset)
   roofHeights: Float32Array;    // normalized height per roof vertex (h/maxH)
   sunBelowHorizon: boolean;
+}
+
+interface CachedBuildingGeometry {
+  buildings: Array<{
+    heightM: number;
+    normalizedH: number;
+    rings: Array<{
+      coords: [number, number][];
+      mercatorRoofVerts: Float32Array;
+    }>;
+  }>;
+  maxH: number;
 }
 
 /**
@@ -49,6 +62,20 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     sunBelowHorizon: false,
   };
 
+  // Phase 2: Building geometry cache — invalidated on sourcedata/moveend/zoomend
+  private buildingCache: CachedBuildingGeometry | null = null;
+
+  // Phase 3: Buffer upload versioning — skip re-upload when geometry unchanged
+  private geomVersion = 0;
+  private lastUploadedVersion = -1;
+
+  // Phase 1 + 4: Sun position tracking
+  private lastSunAzDeg: number | null = null;
+  private lastSunAltDeg: number | null = null;
+  private lastSunAzRad: number | null = null;
+  private lastSunAltRad: number | null = null;
+  private sunWorker: Worker | null = null;
+
   // Offscreen FBO for single-write shadow compositing
   private fbo: WebGLFramebuffer | null = null;
   private fboTexture: WebGLTexture | null = null;
@@ -87,6 +114,9 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // This fires during pan/zoom as vector tiles stream in.
     if (!this.map) return;
     if (e?.sourceId === 'maptiler_planet') {
+      this.buildingCache = null;
+      this.lastSunAzDeg = null;
+      this.lastSunAltDeg = null;
       this.dirty = true;
       this.map.triggerRepaint();
     }
@@ -94,30 +124,87 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
   private onZoomEnd = () => {
     if (!this.map) return;
+    this.buildingCache = null;
+    this.lastSunAzDeg = null;
+    this.lastSunAltDeg = null;
     this.dirty = true;
     this.map.triggerRepaint();
   };
 
-  // Must match the existing shade-sampling heuristic in page.tsx:
-  // sampleBothSidewalks checks B/R > 1.8 — #01112f has R=1, B=47, ratio=47 ✓
+  private onMoveEnd = () => {
+    if (!this.map) return;
+    this.buildingCache = null;
+    this.lastSunAzDeg = null;
+    this.lastSunAltDeg = null;
+    this.dirty = true;
+    this.map.triggerRepaint();
+  };
+
   // MapLibre expects premultiplied alpha for custom layers by default.
+  // Shadow color interpolates from BASE_RGB (night/sunrise/sunset) to NOON_RGB (12:00 noon)
+  // based on current sun altitude relative to its altitude at 12:00.
   private static readonly SHADOW_ALPHA = 0.7;
-  private static readonly SHADOW_PREMULT_RGBA: [number, number, number, number] = [
-    (1 / 255) * LocalShadowAdapter.SHADOW_ALPHA,
-    (17 / 255) * LocalShadowAdapter.SHADOW_ALPHA,
-    (47 / 255) * LocalShadowAdapter.SHADOW_ALPHA,
-    LocalShadowAdapter.SHADOW_ALPHA,
-  ];
+  //private static readonly BASE_RGB: [number, number, number] = [1 / 255, 17 / 255, 47 / 255]; // #01112f
+  private static readonly BASE_RGB: [number, number, number] = [107 / 255, 107 / 255, 107 / 255]; // #6b6b6b - slightly lighter base color for better visibility of shadows at night
+  //private static readonly NOON_RGB: [number, number, number] = [0x8f / 255, 0x8f / 255, 0x8f / 255]; // #8f8f8f
+  private static readonly NOON_RGB: [number, number, number] = [0xbf / 255, 0xbf / 255, 0xbf / 255]; // #bfbfbf
 
   constructor(opts?: { date?: Date; id?: string }) {
     this.currentDate = opts?.date ?? new Date();
     if (opts?.id) this.id = opts.id;
+
+    // Phase 4: Spawn sun position worker
+    try {
+      this.sunWorker = new SunWorker();
+      this.sunWorker.onmessage = (e: MessageEvent<{
+        azimuthDeg: number; altitudeDeg: number;
+        azimuthRad: number; altitudeRad: number;
+      }>) => {
+        const { azimuthDeg, altitudeDeg, azimuthRad, altitudeRad } = e.data;
+        // Phase 1: sun angle dirty check
+        if (this.lastSunAzDeg != null && this.lastSunAltDeg != null
+            && Math.abs(azimuthDeg - this.lastSunAzDeg) < 0.15
+            && Math.abs(altitudeDeg - this.lastSunAltDeg) < 0.15) {
+          return; // sun barely moved
+        }
+        this.lastSunAzDeg = azimuthDeg;
+        this.lastSunAltDeg = altitudeDeg;
+        this.lastSunAzRad = azimuthRad;
+        this.lastSunAltRad = altitudeRad;
+        this.dirty = true;
+        this.map?.triggerRepaint();
+      };
+    } catch {
+      // Worker unavailable (e.g. SSR) — will fall back to sync computation
+      this.sunWorker = null;
+    }
   }
 
   // ─── IShadowLayer ──────────────────────────────────────────────────────────
 
   setDate(date: Date) {
     this.currentDate = date;
+
+    if (this.map && this.sunWorker) {
+      // Phase 4: Delegate sun computation to worker — dirty check happens in onmessage
+      const center = this.map.getCenter();
+      this.sunWorker.postMessage({ lat: center.lat, lon: center.lng, timestamp: date.getTime() });
+      return;
+    }
+
+    // Fallback: synchronous sun dirty check (Phase 1)
+    if (this.map) {
+      const center = this.map.getCenter();
+      const sun = SunCalc.getPosition(date, center.lat, center.lng);
+      const azDeg = sun.azimuth * 180 / Math.PI;
+      const altDeg = sun.altitude * 180 / Math.PI;
+      if (this.lastSunAzDeg != null && this.lastSunAltDeg != null
+          && Math.abs(azDeg - this.lastSunAzDeg) < 0.15
+          && Math.abs(altDeg - this.lastSunAltDeg) < 0.15) {
+        return; // sun barely moved
+      }
+    }
+
     this.dirty = true;
     this.map?.triggerRepaint();
   }
@@ -158,6 +245,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // Keep geometry cache in sync with streaming vector tiles.
     map.on('sourcedata', this.onSourceData);
     map.on('zoomend', this.onZoomEnd);
+    map.on('moveend', this.onMoveEnd);
 
     // Compile minimal shader program
     const vsSrc = `
@@ -276,7 +364,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const gl2 = gl as WebGL2RenderingContext;
 
     if (this.dirty) {
-      this.cachedGeometry = this.computeShadowGeometry();
+      // Phase 2: Rebuild building cache only when map view changed
+      if (!this.buildingCache) {
+        this.buildingCache = this.buildBuildingGeometryCache();
+      }
+      this.cachedGeometry = this.extrudeShadows(this.buildingCache);
+      this.geomVersion++;
       this.dirty = false;
       this.emit('idle');
     }
@@ -289,10 +382,26 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.ensureFBO(gl, w, h);
     if (!this.fbo) return;
 
-    // Upload shadow geometry
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, geo.shadowVerts, gl.DYNAMIC_DRAW);
-    this.vertexCount = geo.shadowVerts.length / 2;
+    // Phase 3: Only re-upload buffers when geometry actually changed
+    if (this.geomVersion !== this.lastUploadedVersion) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geo.shadowVerts, gl.DYNAMIC_DRAW);
+      this.vertexCount = geo.shadowVerts.length / 2;
+
+      if (this.shadowHeightBuffer) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.shadowHeightBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.shadowHeights, gl.DYNAMIC_DRAW);
+      }
+      if (this.roofPosBuffer) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.roofPosBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.roofVerts, gl.DYNAMIC_DRAW);
+      }
+      if (this.roofHeightBuffer) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.roofHeightBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, geo.roofHeights, gl.DYNAMIC_DRAW);
+      }
+      this.lastUploadedVersion = this.geomVersion;
+    }
 
     // ── Save GL state ──
     const prevFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
@@ -318,7 +427,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
     gl2.useProgram(this.program);
     gl2.uniformMatrix4fv(this.u_matrix, false, matrix as unknown as Float32List);
-    const [r, g, b, a] = LocalShadowAdapter.SHADOW_PREMULT_RGBA;
+    const [r, g, b, a] = this.computeShadowColor(geo.sunBelowHorizon);
     gl2.uniform4f(this.u_color, r, g, b, a);
 
     gl2.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -356,7 +465,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
       // Bind shadow height buffer
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.shadowHeightBuffer);
-      gl2.bufferData(gl.ARRAY_BUFFER, geo.shadowHeights, gl.DYNAMIC_DRAW);
       gl2.enableVertexAttribArray(this.heightAttrH);
       gl2.vertexAttribPointer(this.heightAttrH, 1, gl.FLOAT, false, 0, 0);
 
@@ -383,13 +491,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
       // Bind roof position buffer
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.roofPosBuffer);
-      gl2.bufferData(gl.ARRAY_BUFFER, geo.roofVerts, gl.DYNAMIC_DRAW);
       gl2.enableVertexAttribArray(this.roofAttrPos);
       gl2.vertexAttribPointer(this.roofAttrPos, 2, gl.FLOAT, false, 0, 0);
 
       // Bind roof height buffer
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.roofHeightBuffer);
-      gl2.bufferData(gl.ARRAY_BUFFER, geo.roofHeights, gl.DYNAMIC_DRAW);
       gl2.enableVertexAttribArray(this.roofAttrH);
       gl2.vertexAttribPointer(this.roofAttrH, 1, gl.FLOAT, false, 0, 0);
 
@@ -432,6 +538,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (this.map) {
       this.map.off('sourcedata', this.onSourceData);
       this.map.off('zoomend', this.onZoomEnd);
+      this.map.off('moveend', this.onMoveEnd);
+    }
+
+    // Phase 4: Terminate sun worker
+    if (this.sunWorker) {
+      this.sunWorker.terminate();
+      this.sunWorker = null;
     }
 
     if (this.program) gl.deleteProgram(this.program);
@@ -460,11 +573,45 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.roofHeightBuffer = null;
     this.quadProgram = null;
     this.quadBuffer = null;
+    this.buildingCache = null;
     this.map = null;
     this.gl = null;
   }
 
   // ─── Internal ──────────────────────────────────────────────────────────────
+
+  /**
+   * Compute the premultiplied shadow color based on sun altitude.
+   * At sunrise/sunset (altitude ≈ 0): base color #01112f
+   * At 12:00 noon (altitude = noon peak): #8f8f8f
+   * Night (sun below horizon): base color unchanged
+   */
+  private computeShadowColor(sunBelowHorizon: boolean): [number, number, number, number] {
+    const a = LocalShadowAdapter.SHADOW_ALPHA;
+    const [br, bg, bb] = LocalShadowAdapter.BASE_RGB;
+
+    if (sunBelowHorizon) {
+      return [br * a, bg * a, bb * a, a];
+    }
+
+    let t = 0;
+    if (this.map && this.lastSunAltRad != null && this.lastSunAltRad > 0) {
+      const center = this.map.getCenter();
+      const { solarNoon } = SunCalc.getTimes(this.currentDate, center.lat, center.lng);
+      const noonAlt = SunCalc.getPosition(solarNoon, center.lat, center.lng).altitude;
+      if (noonAlt > 0) {
+        t = Math.min(1, this.lastSunAltRad / noonAlt);
+      }
+    }
+
+    const [nr, ng, nb] = LocalShadowAdapter.NOON_RGB;
+    return [
+      (br + t * (nr - br)) * a,
+      (bg + t * (ng - bg)) * a,
+      (bb + t * (nb - bb)) * a,
+      a,
+    ];
+  }
 
   private ensureFBO(gl: WebGL2RenderingContext | WebGLRenderingContext, w: number, h: number) {
     if (this.fbo && this.fboWidth === w && this.fboHeight === h) return;
@@ -508,44 +655,17 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.fboHeight = h;
   }
 
-  private computeShadowGeometry(): ShadowGeometry {
-    const empty: ShadowGeometry = {
-      shadowVerts: new Float32Array(),
-      shadowHeights: new Float32Array(),
-      roofVerts: new Float32Array(),
-      roofHeights: new Float32Array(),
-      sunBelowHorizon: false,
-    };
-    if (!this.map) return empty;
+  /**
+   * Phase 2: Build and cache building geometry (footprints + roof triangulations).
+   * This is the expensive part — querying source features, earcut triangulations,
+   * Mercator conversions. Cached and reused across setDate() calls since building
+   * shapes don't change with time.
+   */
+  private buildBuildingGeometryCache(): CachedBuildingGeometry {
+    const emptyCache: CachedBuildingGeometry = { buildings: [], maxH: 1 };
+    if (!this.map) return emptyCache;
+    if (this.map.getZoom() < 12) return emptyCache;
 
-    const center = this.map.getCenter();
-    const sun = SunCalc.getPosition(this.currentDate, center.lat, center.lng);
-
-    // Sun below horizon → full dark overlay (world quad)
-    if (sun.altitude <= 0) {
-      return {
-        shadowVerts: new Float32Array([
-          0, 0,  1, 0,  1, 1,
-          0, 0,  1, 1,  0, 1,
-        ]),
-        shadowHeights: new Float32Array(),
-        roofVerts: new Float32Array(),
-        roofHeights: new Float32Array(),
-        sunBelowHorizon: true,
-      };
-    }
-
-    if (this.map.getZoom() < 12) return empty;
-
-    const lat0 = center.lat * Math.PI / 180;
-    const mPerLat = 111320;
-    const mPerLng = 111320 * Math.cos(lat0);
-
-    // PROBLEMS.md compliance:
-    // - building_part substitution only for tall buildings (>100m)
-    // - height fallback: render_height ?? height ?? building:levels*3.1 ?? 3.1
-    // - only skip a tall parent building if we actually found matching parts;
-    //   otherwise keep the parent so we never “lose” a tall building.
     const TALL_THRESHOLD = 100;
 
     const heightMFor = (props: Record<string, unknown> | null | undefined): number => {
@@ -566,8 +686,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       f.properties.underground !== 'true'
     );
 
-    // Filter out parent outlines of tall buildings whose parts are separate features.
-    // MapTiler tiles set hide_3d: true on parent outlines that have building:part sub-features.
     const buildings = rawBuildings.filter(b => {
       if (heightMFor(b.properties as any) > TALL_THRESHOLD && (b.properties as any)?.hide_3d) {
         return false;
@@ -575,56 +693,135 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       return true;
     });
 
-    // Sort shortest → tallest (matches existing ShadeMap rasterization order)
     buildings.sort((a, b) => heightMFor(a.properties as any) - heightMFor(b.properties as any));
 
-    // First pass: find maxH for normalization
     let maxH = 0;
     for (const b of buildings) {
       const h = heightMFor(b.properties as any);
       if (h > maxH) maxH = h;
     }
-    if (maxH === 0) maxH = 1; // prevent division by zero
+    if (maxH === 0) maxH = 1;
 
-    const shadowVertsList: number[] = [];
-    const shadowHeightsList: number[] = [];
-    const roofVertsList: number[] = [];
-    const roofHeightsList: number[] = [];
+    const cached: CachedBuildingGeometry = { buildings: [], maxH };
 
     for (const b of buildings) {
       if (b.geometry.type !== 'Polygon' && b.geometry.type !== 'MultiPolygon') continue;
       const heightM = heightMFor(b.properties as any);
       const normalizedH = heightM / maxH;
 
-      const rings =
+      const rawRings =
         b.geometry.type === 'Polygon'
           ? b.geometry.coordinates
           : b.geometry.coordinates.flat(1);
 
-      for (const ring of rings) {
+      const cachedRings: CachedBuildingGeometry['buildings'][number]['rings'] = [];
+
+      for (const ring of rawRings) {
         const coords = ring as [number, number][];
 
-        // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
-        const shadowTris = buildShadowTriangles(coords, heightM, sun.azimuth, sun.altitude, mPerLat, mPerLng);
-        for (const [lng, lat] of shadowTris) {
-          const [x, y] = lngLatToMercator(lng, lat);
-          shadowVertsList.push(x, y);
-          shadowHeightsList.push(normalizedH);
-        }
-
-        // Earcut triangulation for true concave footprint (Pass C roof exclusion)
+        // Earcut triangulation for roof footprint (reused in Pass C)
         const flatCoords: number[] = [];
         for (const [lng, lat] of coords) {
           flatCoords.push(lng, lat);
         }
         const indices = earcut(flatCoords, [], 2);
+        const roofVerts: number[] = [];
         for (let i = 0; i < indices.length; i += 3) {
-          const a = indices[i], b = indices[i + 1], c = indices[i + 2];
-          const [x0, y0] = lngLatToMercator(flatCoords[a * 2], flatCoords[a * 2 + 1]);
-          const [x1, y1] = lngLatToMercator(flatCoords[b * 2], flatCoords[b * 2 + 1]);
-          const [x2, y2] = lngLatToMercator(flatCoords[c * 2], flatCoords[c * 2 + 1]);
-          roofVertsList.push(x0, y0, x1, y1, x2, y2);
-          roofHeightsList.push(normalizedH, normalizedH, normalizedH);
+          const ai = indices[i], bi = indices[i + 1], ci = indices[i + 2];
+          const [x0, y0] = lngLatToMercator(flatCoords[ai * 2], flatCoords[ai * 2 + 1]);
+          const [x1, y1] = lngLatToMercator(flatCoords[bi * 2], flatCoords[bi * 2 + 1]);
+          const [x2, y2] = lngLatToMercator(flatCoords[ci * 2], flatCoords[ci * 2 + 1]);
+          roofVerts.push(x0, y0, x1, y1, x2, y2);
+        }
+
+        cachedRings.push({
+          coords,
+          mercatorRoofVerts: new Float32Array(roofVerts),
+        });
+      }
+
+      cached.buildings.push({ heightM, normalizedH, rings: cachedRings });
+    }
+
+    return cached;
+  }
+
+  /**
+   * Phase 2: Extrude shadows from cached building geometry using current sun position.
+   * This is the fast path — no querySourceFeatures, no earcut, just shadow offset math.
+   */
+  private extrudeShadows(cache: CachedBuildingGeometry): ShadowGeometry {
+    const empty: ShadowGeometry = {
+      shadowVerts: new Float32Array(),
+      shadowHeights: new Float32Array(),
+      roofVerts: new Float32Array(),
+      roofHeights: new Float32Array(),
+      sunBelowHorizon: false,
+    };
+    if (!this.map) return empty;
+
+    // Phase 4: Use worker-provided sun position if available, else compute synchronously
+    let sunAzimuth: number;
+    let sunAltitude: number;
+    if (this.lastSunAzRad != null && this.lastSunAltRad != null) {
+      sunAzimuth = this.lastSunAzRad;
+      sunAltitude = this.lastSunAltRad;
+    } else {
+      const center = this.map.getCenter();
+      const sun = SunCalc.getPosition(this.currentDate, center.lat, center.lng);
+      sunAzimuth = sun.azimuth;
+      sunAltitude = sun.altitude;
+      // Store for dirty-check
+      this.lastSunAzDeg = sunAzimuth * 180 / Math.PI;
+      this.lastSunAltDeg = sunAltitude * 180 / Math.PI;
+      this.lastSunAzRad = sunAzimuth;
+      this.lastSunAltRad = sunAltitude;
+    }
+
+    // Sun below horizon → full dark overlay (world quad)
+    if (sunAltitude <= 0) {
+      return {
+        shadowVerts: new Float32Array([
+          0, 0,  1, 0,  1, 1,
+          0, 0,  1, 1,  0, 1,
+        ]),
+        shadowHeights: new Float32Array(),
+        roofVerts: new Float32Array(),
+        roofHeights: new Float32Array(),
+        sunBelowHorizon: true,
+      };
+    }
+
+    if (cache.buildings.length === 0) return empty;
+
+    const center = this.map.getCenter();
+    const lat0 = center.lat * Math.PI / 180;
+    const mPerLat = 111320;
+    const mPerLng = 111320 * Math.cos(lat0);
+
+    const shadowVertsList: number[] = [];
+    const shadowHeightsList: number[] = [];
+    const roofVertsList: number[] = [];
+    const roofHeightsList: number[] = [];
+
+    for (const bldg of cache.buildings) {
+      for (const ring of bldg.rings) {
+        // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
+        const shadowTris = buildShadowTriangles(ring.coords, bldg.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng);
+        for (const [lng, lat] of shadowTris) {
+          const [x, y] = lngLatToMercator(lng, lat);
+          shadowVertsList.push(x, y);
+          shadowHeightsList.push(bldg.normalizedH);
+        }
+
+        // Roof verts from cache (already triangulated and in Mercator)
+        const rv = ring.mercatorRoofVerts;
+        for (let i = 0; i < rv.length; i++) {
+          roofVertsList.push(rv[i]);
+        }
+        const roofTriCount = rv.length / 2; // number of xy pairs = vertex count
+        for (let i = 0; i < roofTriCount; i++) {
+          roofHeightsList.push(bldg.normalizedH);
         }
       }
     }
@@ -804,5 +1001,3 @@ function convexHull(pts: [number, number][]): [number, number][] {
   lower.pop();
   return [...lower, ...upper];
 }
-
-

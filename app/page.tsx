@@ -12,7 +12,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import DateInput from "./components/DateInput";
 import DaySlider from "./components/DaySlider";
 import type { AccumulationOptions } from "./components/MapView";
-import type { ShadowMode } from "./lib/shadow/createShadowLayer";
+
 import { fetchRoutingGraph, fetchStationEntrances } from "./lib/overpass";
 import { geocodeReverse } from "./lib/nominatim";
 import { snapToEdge, dijkstra, snapToGraph, paretoRoutes, graphToGeoJSON, haversineMeters, bfsReachable, snapToReachableEdge, RouteOption, SpatialGrid, simplifyPolyline, sketchBoundingBox, findSketchGaps } from "./lib/routing";
@@ -281,9 +281,6 @@ export default function Home() {
   const [drawMode, setDrawMode] = useState(false);
   const [navWarning, setNavWarning] = useState<string | null>(null);
   const [simplifiedWaypoints, setSimplifiedWaypoints] = useState<LatLng[] | null>(null);
-
-  // Shadow renderer mode
-  const [shadowMode, setShadowMode] = useState<ShadowMode>('api');
 
   // Debug / log state
   const [mapZoom, setMapZoom] = useState(2);
@@ -1733,7 +1730,6 @@ export default function Home() {
           onSketchPointClick={handleSketchPointClick}
           onSketchFinish={handleSketchFinish}
           simplifiedWaypoints={simplifiedWaypoints}
-          shadowMode={shadowMode}
         />
       </Suspense>
 
@@ -1910,15 +1906,6 @@ export default function Home() {
             About / API
           </a>
 
-          {/* Shadow mode toggle */}
-          <button
-            onClick={() => setShadowMode(m => m === 'api' ? 'local' : 'api')}
-            className="flex items-center gap-1.5 text-[10px] text-white/30 hover:text-white/60 transition-colors px-1.5 py-0.5"
-            title={shadowMode === 'api' ? 'Using ShadeMap API' : 'Using local renderer'}
-          >
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${shadowMode === 'api' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            {shadowMode === 'api' ? 'API shadows' : 'Local shadows'}
-          </button>
 
           {/* Divider */}
           <div className="h-px bg-white/[0.06] mx-1" />
