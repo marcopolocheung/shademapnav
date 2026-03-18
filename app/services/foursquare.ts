@@ -146,9 +146,8 @@ const DEFAULT_DETAILS_API_KEY = DEFAULT_SEARCH_API_KEY;
 
 // The Places API is not CORS-enabled for browser use from arbitrary origins.
 // In dev, we route through Vite's proxy (see `vite.config.ts`).
-// In production, this should be a same-origin backend proxy.
-const BASE_URL = "https://places-api.foursquare.com";
-const FSQ_BASE_URL = import.meta.env.DEV ? "/__fsq" : BASE_URL;
+// In production, we route through a Vercel serverless proxy at /api/fsq.
+const FSQ_BASE_URL = import.meta.env.DEV ? "/__fsq" : "/api/fsq";
 
 function keySignature(key: string | null): string {
   if (!key) return "";

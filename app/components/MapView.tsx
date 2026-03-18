@@ -32,6 +32,7 @@ interface MapViewProps {
   drawMode?: boolean;
   sketchPoints?: SketchPoint[];
   onSketchPointClick?: (coord: LatLng) => void;
+  onSketchPointDrag?: (index: number, coord: LatLng) => void;
   onSketchFinish?: () => void;
   simplifiedWaypoints?: LatLng[] | null;
 }
@@ -307,6 +308,7 @@ export default function MapView({
   drawMode = false,
   sketchPoints = [],
   onSketchPointClick,
+  onSketchPointDrag,
   onSketchFinish,
   simplifiedWaypoints,
 }: MapViewProps) {
@@ -328,6 +330,7 @@ export default function MapView({
   const drawModeRef             = useRef(drawMode);
   const sketchPointsRef         = useRef<SketchPoint[]>([]);
   const onSketchPointClickRef   = useRef(onSketchPointClick);
+  const onSketchPointDragRef    = useRef(onSketchPointDrag);
   const onSketchFinishRef       = useRef(onSketchFinish);
   const sketchMarkerRefs        = useRef<maplibregl.Marker[]>([]);
   const sketchPinnedPopupRef    = useRef<maplibregl.Popup | null>(null);
@@ -351,6 +354,7 @@ export default function MapView({
 
   useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
   useEffect(() => { onSketchPointClickRef.current = onSketchPointClick; }, [onSketchPointClick]);
+  useEffect(() => { onSketchPointDragRef.current = onSketchPointDrag; }, [onSketchPointDrag]);
   useEffect(() => { onSketchFinishRef.current = onSketchFinish; }, [onSketchFinish]);
   useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
   useEffect(() => { onMarkerDragEndRef.current = onMarkerDragEnd; }, [onMarkerDragEnd]);
@@ -493,7 +497,7 @@ export default function MapView({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: `https://api.maptiler.com/maps/dataviz/style.json?key=${MAPTILER_KEY}`,
+      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`,
       center: [0, 20],
       zoom: 2,
       maxTileCacheSize: 50,
@@ -975,52 +979,87 @@ export default function MapView({
     const map = mapRef.current;
     if (!map) return;
 
-    // Clear existing markers
-    sketchMarkerRefs.current.forEach((m) => m.remove());
-    sketchMarkerRefs.current = [];
+    // When simplified waypoints are shown, remove all sketch markers
+    if (simplifiedWaypoints && simplifiedWaypoints.length > 0) {
+      sketchMarkerRefs.current.forEach((m) => m.remove());
+      sketchMarkerRefs.current = [];
+      return;
+    }
 
-    if (simplifiedWaypoints && simplifiedWaypoints.length > 0) return;
-    
-    if (sketchPoints.length === 0) return;
+    const existing = sketchMarkerRefs.current;
+    const newCount = sketchPoints.length;
 
-    for (const p of sketchPoints) {
-      // While *drawing*, we must not block map clicks except when a point has
-      // an address (then it becomes interactive for tooltip/pin).
-      const interactive = Boolean(p.address);
+    // Reuse existing markers — just update position (no destroy/recreate)
+    for (let i = 0; i < Math.min(existing.length, newCount); i++) {
+      const cur = existing[i].getLngLat();
+      const target = sketchPoints[i].coord;
+      if (cur.lng !== target[0] || cur.lat !== target[1]) {
+        existing[i].setLngLat(target);
+      }
+    }
 
-      // Use the built-in MapLibre marker (same as waypoint A/B), but in yellow.
+    // Create new markers only for newly added points
+    for (let i = existing.length; i < newCount; i++) {
       const marker = new maplibregl.Marker({ color: "#facc15" })
-        .setLngLat(p.coord)
+        .setLngLat(sketchPoints[i].coord)
         .addTo(map);
 
+      const idx = i;
       const el = marker.getElement();
-      if (!interactive) {
-        // Let map clicks pass through non-interactive points while drawing.
-        el.style.pointerEvents = "none";
-      } else {
-        el.style.cursor = "pointer";
+      el.style.cursor = "grab";
 
-        // Click-to-pin: fetch Foursquare details for this building address and
-        // render the result in a popup.
-        el.addEventListener("click", (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
+      // Custom DOM-level drag handling via pointer events.
+      // We use stopPropagation on pointerdown to prevent the map click handler
+      // from adding a duplicate point AND to prevent map panning during drag.
+      let isDragging = false;
+      let skipNextClick = false;
 
-          const address = p.address ?? "";
-          if (!address.trim()) return;
+      el.addEventListener("pointerdown", (ev) => {
+        ev.stopPropagation();
+        el.setPointerCapture(ev.pointerId);
+        isDragging = false;
+        map.dragPan.disable();
+      });
 
-          closeDrawAddressPopups();
+      el.addEventListener("pointermove", (ev) => {
+        if (!el.hasPointerCapture(ev.pointerId)) return;
+        isDragging = true;
+        const rect = map.getContainer().getBoundingClientRect();
+        const lngLat = map.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
+        marker.setLngLat(lngLat);
+      });
 
-          openPlacePopupForAddress(map, el, p.coord, address);
-        });
+      el.addEventListener("pointerup", (ev) => {
+        if (el.hasPointerCapture(ev.pointerId)) {
+          el.releasePointerCapture(ev.pointerId);
+        }
+        map.dragPan.enable();
+        if (isDragging) {
+          skipNextClick = true;
+          const lngLat = marker.getLngLat();
+          onSketchPointDragRef.current?.(idx, [lngLat.lng, lngLat.lat]);
+          isDragging = false;
+        }
+      });
 
-        // Prevent starting a map drag / draw click when interacting with marker.
-        el.addEventListener("pointerdown", (ev) => {
-          ev.stopPropagation();
-        });
-      }
+      // Foursquare click — reads address from ref at click time (always current)
+      el.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (skipNextClick) { skipNextClick = false; return; }
+        const pt = sketchPointsRef.current[idx];
+        const address = pt?.address ?? "";
+        if (!address.trim()) return;
+        closeDrawAddressPopups();
+        openPlacePopupForAddress(map, el, pt.coord, address);
+      });
 
-      sketchMarkerRefs.current.push(marker);
+      existing.push(marker);
+    }
+
+    // Remove excess markers if points were deleted
+    while (existing.length > newCount) {
+      existing.pop()!.remove();
     }
   }, [sketchPoints, simplifiedWaypoints]);
 

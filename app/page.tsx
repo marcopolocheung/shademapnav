@@ -442,8 +442,8 @@ export default function Home() {
     });
   }, []);
 
-  const flyTo = useCallback((center: [number, number], zoom: number) => {
-    mapRef.current?.flyTo({ center, zoom });
+  const jumpTo = useCallback((center: [number, number], zoom: number) => {
+    mapRef.current?.jumpTo({ center, zoom });
     // center is [lng, lat]
     const newOffset = longitudeToUtcOffsetMin(center[0]);
     setMapUtcOffsetMin(newOffset);
@@ -589,7 +589,7 @@ export default function Home() {
         const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
         setUserLocation(coords);
         setIsLocating(false);
-        mapRef.current?.flyTo({ center: coords, zoom: 15, speed: 1.4 });
+        mapRef.current?.jumpTo({ center: coords, zoom: 15});
       },
       () => {
         setNavError("Unable to get your location. Check browser permissions.");
@@ -669,6 +669,32 @@ export default function Home() {
             next[i] = { coord: p.coord, address: label };
             break;
           }
+        }
+        return next;
+      });
+    });
+  }, []);
+
+  const handleSketchPointDrag = useCallback((index: number, coord: LatLng) => {
+    setSketchPoints((prev) => {
+      const next = [...prev];
+      if (index < 0 || index >= next.length) return prev;
+      next[index] = { coord, address: null };
+      return next;
+    });
+
+    const map = mapRef.current;
+    const centroid = map ? buildingCentroidAt(coord, map as unknown as MapBuildingQuery) : null;
+    const target = centroid ?? coord;
+
+    geocodeReverse(target[1], target[0]).then((label) => {
+      if (!label) return;
+      setSketchPoints((prev) => {
+        const next = [...prev];
+        if (index >= next.length) return prev;
+        const p = next[index];
+        if (p.coord[0] === coord[0] && p.coord[1] === coord[1] && p.address == null) {
+          next[index] = { coord, address: label };
         }
         return next;
       });
@@ -929,7 +955,7 @@ export default function Home() {
     setNavRoutes([]);
     setSelectedRouteIndex(0);
     const map = mapRef.current;
-    if (map) map.flyTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
+    if (map) map.jumpTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
   }, []);
 
   const handleSetWaypointB = useCallback((coord: [number, number], label: string) => {
@@ -938,7 +964,7 @@ export default function Home() {
     setNavRoutes([]);
     setSelectedRouteIndex(0);
     const map = mapRef.current;
-    if (map) map.flyTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
+    if (map) map.jumpTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
   }, []);
 
   const handleUseLocationAsA = useCallback((coord: [number, number]) => {
@@ -1728,6 +1754,7 @@ export default function Home() {
           drawMode={drawMode}
           sketchPoints={sketchPoints}
           onSketchPointClick={handleSketchPointClick}
+          onSketchPointDrag={handleSketchPointDrag}
           onSketchFinish={handleSketchFinish}
           simplifiedWaypoints={simplifiedWaypoints}
         />
@@ -1748,7 +1775,7 @@ export default function Home() {
       {/* Top-left overlay: search — hidden when nav sidebar is active (it moves inside sidebar) */}
       {!navMode && (
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-          <LocationSearch onSelect={flyTo} />
+          <LocationSearch onSelect={jumpTo} />
         </div>
       )}
 
@@ -1939,7 +1966,7 @@ export default function Home() {
         solarIntensity={routeSolarIntensity}
         pendingSlot={pendingSlot}
         onSetPendingSlot={setPendingSlot}
-        locationSearchSlot={navMode ? <LocationSearch onSelect={flyTo} /> : undefined}
+        locationSearchSlot={navMode ? <LocationSearch onSelect={jumpTo} /> : undefined}
         onSaveRoute={handleOpenSaveModal}
         savedRoutes={savedRoutes}
         savedFolders={savedFolders}
