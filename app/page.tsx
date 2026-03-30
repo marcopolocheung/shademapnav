@@ -1774,7 +1774,7 @@ export default function Home() {
 
       {/* Top-left overlay: search — hidden when nav sidebar is active (it moves inside sidebar) */}
       {!navMode && (
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
           <LocationSearch onSelect={jumpTo} />
         </div>
       )}

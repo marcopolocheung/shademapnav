@@ -22,6 +22,7 @@ interface CachedBuildingGeometry {
     }>;
   }>;
   maxH: number;
+  centerMerc: [number, number];
 }
 
 /**
@@ -110,13 +111,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   // Map event handlers (bound so we can unregister)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onSourceData = (e: any) => {
-    // Recompute whenever building source tiles change.
-    // This fires during pan/zoom as vector tiles stream in.
+    // Rebuild only when all tiles for the source have finished loading,
+    // not on every intermediate tile update (prevents flickering).
     if (!this.map) return;
-    if (e?.sourceId === 'maptiler_planet') {
+    if (e?.sourceId === 'maptiler_planet' && this.map.isSourceLoaded('maptiler_planet')) {
       this.buildingCache = null;
-      this.lastSunAzDeg = null;
-      this.lastSunAltDeg = null;
       this.dirty = true;
       this.map.triggerRepaint();
     }
@@ -125,8 +124,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private onZoomEnd = () => {
     if (!this.map) return;
     this.buildingCache = null;
-    this.lastSunAzDeg = null;
-    this.lastSunAltDeg = null;
     this.dirty = true;
     this.map.triggerRepaint();
   };
@@ -417,7 +414,19 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const prevActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
     const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
 
-    const matrix = options.defaultProjectionData.mainMatrix;
+    // Compute adjusted projection matrix in Float64 to account for center offset.
+    // Vertices are stored relative to centerMerc, so we pre-multiply a translation
+    // by (cx, cy) into the matrix — done in Float64 on CPU before converting to
+    // Float32 for the GPU, preserving sub-pixel precision.
+    const mainMat = options.defaultProjectionData.mainMatrix;
+    const [cx, cy] = this.buildingCache?.centerMerc ?? [0, 0];
+    const m = new Float64Array(16);
+    for (let i = 0; i < 16; i++) m[i] = Number(mainMat[i]);
+    m[12] += m[0] * cx + m[4] * cy;
+    m[13] += m[1] * cx + m[5] * cy;
+    m[14] += m[2] * cx + m[6] * cy;
+    m[15] += m[3] * cx + m[7] * cy;
+    const matrix = new Float32Array(m);
 
     // ── Pass A: Render shadows into FBO with MAX blending ──
     gl2.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
@@ -426,7 +435,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     gl2.clear(gl.COLOR_BUFFER_BIT);
 
     gl2.useProgram(this.program);
-    gl2.uniformMatrix4fv(this.u_matrix, false, matrix as unknown as Float32List);
+    gl2.uniformMatrix4fv(this.u_matrix, false, matrix);
     const [r, g, b, a] = this.computeShadowColor(geo.sunBelowHorizon);
     gl2.uniform4f(this.u_color, r, g, b, a);
 
@@ -456,7 +465,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.clear(gl.COLOR_BUFFER_BIT);
 
       gl2.useProgram(this.heightProgram);
-      gl2.uniformMatrix4fv(this.heightUMatrix, false, matrix as unknown as Float32List);
+      gl2.uniformMatrix4fv(this.heightUMatrix, false, matrix);
 
       // Bind shadow position buffer (same geometry as Pass A)
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -481,7 +490,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       // Do NOT clear — we want to selectively erase from existing shadow
 
       gl2.useProgram(this.roofProgram);
-      gl2.uniformMatrix4fv(this.roofUMatrix, false, matrix as unknown as Float32List);
+      gl2.uniformMatrix4fv(this.roofUMatrix, false, matrix);
 
       // Bind height FBO texture for sampling
       gl2.activeTexture(gl.TEXTURE0);
@@ -662,9 +671,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
    * shapes don't change with time.
    */
   private buildBuildingGeometryCache(): CachedBuildingGeometry {
-    const emptyCache: CachedBuildingGeometry = { buildings: [], maxH: 1 };
+    const emptyCache: CachedBuildingGeometry = { buildings: [], maxH: 1, centerMerc: [0, 0] };
     if (!this.map) return emptyCache;
     if (this.map.getZoom() < 12) return emptyCache;
+
+    const center = this.map.getCenter();
+    const [cx, cy] = lngLatToMercator(center.lng, center.lat);
 
     const TALL_THRESHOLD = 100;
 
@@ -702,7 +714,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     }
     if (maxH === 0) maxH = 1;
 
-    const cached: CachedBuildingGeometry = { buildings: [], maxH };
+    const cached: CachedBuildingGeometry = { buildings: [], maxH, centerMerc: [cx, cy] };
 
     for (const b of buildings) {
       if (b.geometry.type !== 'Polygon' && b.geometry.type !== 'MultiPolygon') continue;
@@ -731,7 +743,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
           const [x0, y0] = lngLatToMercator(flatCoords[ai * 2], flatCoords[ai * 2 + 1]);
           const [x1, y1] = lngLatToMercator(flatCoords[bi * 2], flatCoords[bi * 2 + 1]);
           const [x2, y2] = lngLatToMercator(flatCoords[ci * 2], flatCoords[ci * 2 + 1]);
-          roofVerts.push(x0, y0, x1, y1, x2, y2);
+          roofVerts.push(x0 - cx, y0 - cy, x1 - cx, y1 - cy, x2 - cx, y2 - cy);
         }
 
         cachedRings.push({
@@ -804,13 +816,15 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const roofVertsList: number[] = [];
     const roofHeightsList: number[] = [];
 
+    const [cx, cy] = cache.centerMerc;
+
     for (const bldg of cache.buildings) {
       for (const ring of bldg.rings) {
         // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
         const shadowTris = buildShadowTriangles(ring.coords, bldg.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng);
         for (const [lng, lat] of shadowTris) {
           const [x, y] = lngLatToMercator(lng, lat);
-          shadowVertsList.push(x, y);
+          shadowVertsList.push(x - cx, y - cy);
           shadowHeightsList.push(bldg.normalizedH);
         }
 

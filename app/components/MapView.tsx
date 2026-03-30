@@ -497,7 +497,7 @@ export default function MapView({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`,
+      style: `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`,
       center: [0, 20],
       zoom: 2,
       maxTileCacheSize: 50,
@@ -506,7 +506,6 @@ export default function MapView({
       canvasContextAttributes: { preserveDrawingBuffer: true },
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
     mapRef.current = map;
