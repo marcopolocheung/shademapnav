@@ -17,8 +17,6 @@ interface SearchBarProps {
   }) => void;
   /** Map center used to compute distances for dropdown rows. [lng, lat] */
   mapCenter?: [number, number] | null;
-  /** Called when the left menu button is clicked (mobile) */
-  onMenu?: () => void;
   /** Optional: also close the panel when user clears the search */
   onClearPanel?: () => void;
   /** Called when the hamburger button is clicked (desktop sidebar toggle) */
@@ -113,7 +111,7 @@ function computeZoomFromBbox(bb: [string, string, string, string]): number {
   return Math.min(16, Math.max(2, Math.round(8 - Math.log2(latSpan))));
 }
 
-export default function SearchBar({ onSelect, mapCenter, onMenu, onClearPanel, onMenuToggle, onDirections }: SearchBarProps) {
+export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuToggle, onDirections }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -150,31 +148,7 @@ export default function SearchBar({ onSelect, mapCenter, onMenu, onClearPanel, o
     }
   }, []);
 
-  const runSearchNow = useCallback(
-    async (opts?: { minChars?: number; selectTop?: boolean }) => {
-      const q = query.trim();
-      if (!q) {
-        inputRef.current?.focus();
-        return;
-      }
-      const data = await search(q, { minChars: opts?.minChars });
-      if (opts?.selectTop && data[0]) handleSelect(data[0]);
-    },
-    [query, search]
-  );
-
-  const handleMagnifierClick = useCallback(async () => {
-    await runSearchNow({ minChars: 1, selectTop: true });
-  }, [runSearchNow]);
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    setQuery(value);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => search(value, { minChars: 3 }), 400);
-  }
-
-  function handleSelect(r: NominatimResult) {
+  const handleSelect = useCallback(function handleSelect(r: NominatimResult) {
     const name = primaryName(r.display_name);
     setQuery(name);
     setResults([]);
@@ -195,7 +169,32 @@ export default function SearchBar({ onSelect, mapCenter, onMenu, onClearPanel, o
       center,
       zoom,
     });
+  }, [onSelect]);
+
+  const runSearchNow = useCallback(
+    async (opts?: { minChars?: number; selectTop?: boolean }) => {
+      const q = query.trim();
+      if (!q) {
+        inputRef.current?.focus();
+        return;
+      }
+      const data = await search(q, { minChars: opts?.minChars });
+      if (opts?.selectTop && data[0]) handleSelect(data[0]);
+    },
+    [query, search, handleSelect]
+  );
+
+  const handleMagnifierClick = useCallback(async () => {
+    await runSearchNow({ minChars: 1, selectTop: true });
+  }, [runSearchNow]);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setQuery(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => search(value, { minChars: 3 }), 400);
   }
+
 
   function handleSelectSaved(item: SavedItem) {
     setQuery(item.label);
