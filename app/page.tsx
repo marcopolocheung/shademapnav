@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import TimelineSlider from "./components/TimelineSlider";
 import AccumulationPanel from "./components/AccumulationPanel";
 import SaveRouteModal from "./components/SaveRouteModal";
@@ -25,7 +25,7 @@ const MapView = lazy(() => import("./components/MapView"));
 function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
-  const shouldCommitRef = useState({ current: true })[0];
+  const shouldCommitRef = useRef(true);
 
   function startEdit() {
     shouldCommitRef.current = true;
@@ -117,7 +117,6 @@ export default function Home() {
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
     handleSketchPointClick, handleSketchPointDrag, handleSketchFinish,
     handleSetWaypointA, handleSetWaypointB,
-    handleUseLocationAsA, handleUseLocationAsB,
     handleSwapWaypoints,
     handleClearWaypointA, handleClearWaypointB,
     handleMarkerDragEnd, handlePinDragStart,
