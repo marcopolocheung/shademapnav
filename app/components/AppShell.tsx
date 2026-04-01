@@ -49,7 +49,7 @@ export default function AppShell({
     <div className="relative flex h-screen w-screen overflow-hidden" style={{ background: "var(--md-surface)" }}>
       {/* Collapsible sidebar — desktop only */}
       <aside
-        className="hidden md:flex flex-col fixed left-0 top-0 h-full z-40 w-[331px] overflow-hidden"
+        className="hidden md:flex flex-col fixed left-0 top-0 h-full z-40 w-[331px]"
         style={{
           background: "rgba(248,249,250,0.70)",
           backdropFilter: "blur(24px)",
@@ -59,9 +59,12 @@ export default function AppShell({
           transition: "transform 300ms ease-in-out",
         }}
       >
-        {sidebar}
+        {/* Inner wrapper clips sidebar content without clipping the pull-tab */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {sidebar}
+        </div>
 
-        {/* Pull-tab — always visible, rides with panel edge */}
+        {/* Pull-tab — outside overflow-hidden wrapper so it isn't clipped */}
         <button
           onClick={onSidebarToggle}
           className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-full w-8 h-16 rounded-r-xl flex items-center justify-center hover:brightness-95 transition-[filter]"
@@ -82,12 +85,12 @@ export default function AppShell({
         </button>
       </aside>
 
-      {/* Map area — margin shifts when sidebar opens */}
+      {/* Map area — padding shifts content right when sidebar opens */}
       <div
-        className="relative flex-1 min-h-0"
+        className="relative flex-1 min-h-0 overflow-hidden"
         style={{
-          marginLeft: sidebarOpen ? "331px" : "0",
-          transition: "margin-left 300ms ease-in-out",
+          paddingLeft: sidebarOpen ? "331px" : "0",
+          transition: "padding-left 300ms ease-in-out",
         }}
       >
         <div ref={mapContainerRef} className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
