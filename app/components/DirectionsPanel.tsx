@@ -1,0 +1,358 @@
+import { memo } from "react";
+import type { RouteOption } from "../lib/routing";
+import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
+import WaypointInput from "./WaypointInput";
+import RouteCard from "./RouteCard";
+import SavedRoutesSection from "./SavedRoutesSection";
+
+const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) {
+  if (intensity < 0.15) {
+    return (
+      <div
+        className="text-xs px-2.5 py-1 rounded-full self-start"
+        style={{ background: "rgba(100,116,139,0.1)", color: "var(--md-on-surface-variant)" }}
+      >
+        Low sun — shade routing minimal
+      </div>
+    );
+  }
+  if (intensity <= 0.6) {
+    return (
+      <div
+        className="text-xs px-2.5 py-1 rounded-full self-start"
+        style={{ background: "rgba(255,171,0,0.12)", color: "#92400e" }}
+      >
+        Moderate solar load
+      </div>
+    );
+  }
+  return (
+    <div
+      className="text-xs px-2.5 py-1 rounded-full self-start"
+      style={{ background: "var(--md-primary-container)", color: "var(--md-on-primary-container)" }}
+    >
+      High solar load — shade matters
+    </div>
+  );
+});
+
+export interface DirectionsPanelProps {
+  waypointA: [number, number] | null;
+  waypointB: [number, number] | null;
+  waypointALabel: string | null;
+  waypointBLabel: string | null;
+  onSetWaypointA: (coord: [number, number], label: string) => void;
+  onSetWaypointB: (coord: [number, number], label: string) => void;
+  onSwapWaypoints: () => void;
+  onClearWaypointA: () => void;
+  onClearWaypointB: () => void;
+  onClear: () => void;
+  onCalculate: () => void;
+  isCalculating: boolean;
+  routes: RouteOption[];
+  selectedRouteIndex: number;
+  onSelectRoute: (i: number) => void;
+  error: string | null;
+  solarIntensity?: number | null;
+  pendingSlot: 'A' | 'B' | null;
+  onSetPendingSlot: (slot: 'A' | 'B' | null) => void;
+  onSaveRoute?: (routeIndex: number) => void;
+  savedRoutes?: SavedRoute[];
+  savedFolders?: SavedFolder[];
+  onLoadRoute?: (route: SavedRoute) => void;
+  onDeleteSavedRoute?: (id: string) => void;
+  onRenameSavedRoute?: (id: string, name: string) => void;
+  additionalWaypoints?: [number, number][];
+  onRemoveAdditionalWaypoint?: (index: number) => void;
+  onExportRoute?: (routeIndex: number, format: "gpx" | "geojson") => void;
+  onPinDragStart?: (slot: 'A' | 'B') => void;
+  drawMode?: boolean;
+  onDrawModeToggle?: () => void;
+  onClearSketch?: () => void;
+  sketchPointCount?: number;
+  warning?: string | null;
+  onBack: () => void;
+  onStartNavigation?: () => void;
+  hideRouteCards?: boolean;
+  routeMode?: 'walk' | 'transit';
+  onRouteModeChange?: (mode: 'walk' | 'transit') => void;
+  canTransit?: boolean;
+  shadePreference?: number;
+  onShadePreferenceChange?: (v: number) => void;
+}
+
+export default function DirectionsPanel({
+  waypointA, waypointB,
+  waypointALabel, waypointBLabel,
+  onSetWaypointA, onSetWaypointB,
+  onSwapWaypoints, onClearWaypointA, onClearWaypointB,
+  onClear, onCalculate, isCalculating,
+  routes, selectedRouteIndex, onSelectRoute,
+  error, solarIntensity,
+  pendingSlot, onSetPendingSlot,
+  onSaveRoute,
+  savedRoutes, savedFolders,
+  onLoadRoute, onDeleteSavedRoute, onRenameSavedRoute,
+  additionalWaypoints, onRemoveAdditionalWaypoint,
+  onExportRoute,
+  onPinDragStart,
+  drawMode = false, onDrawModeToggle, onClearSketch,
+  sketchPointCount = 0,
+  warning,
+  onBack,
+  onStartNavigation,
+  hideRouteCards = false,
+  routeMode = 'walk', onRouteModeChange,
+  canTransit = true,
+  shadePreference = 0.5, onShadePreferenceChange,
+}: DirectionsPanelProps) {
+  const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
+  return (
+    <div className="flex flex-col gap-3 p-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="flex items-center justify-center w-7 h-7 rounded-full transition-colors hover:bg-amber-50"
+          style={{ background: "var(--md-surface-container-low)", color: "var(--md-on-surface-variant)" }}
+          title="Back"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+        </button>
+        <h2 className="text-[13px] font-medium" style={{ color: "var(--md-on-surface)" }}>Directions</h2>
+        {/* Walk / Transit tabs */}
+        <div
+          className="flex rounded-lg overflow-hidden border"
+          style={{ borderColor: "var(--md-outline-variant)" }}
+        >
+          {(['walk', 'transit'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => onRouteModeChange?.(mode)}
+              disabled={mode === 'transit' && !canTransit}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                routeMode === mode
+                  ? 'text-amber-900 bg-amber-50'
+                  : 'hover:bg-slate-50'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+              style={routeMode !== mode ? { color: "var(--md-on-surface-variant)" } : undefined}
+              title={mode === 'transit' && !canTransit ? 'Too close for transit' : undefined}
+            >
+              {mode === 'walk' ? 'Walk' : 'Transit'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Saved routes */}
+      {savedRoutes && savedRoutes.length > 0 && savedFolders && onLoadRoute && onDeleteSavedRoute && onRenameSavedRoute && (
+        <SavedRoutesSection
+          routes={savedRoutes}
+          folders={savedFolders}
+          onLoad={onLoadRoute}
+          onDelete={onDeleteSavedRoute}
+          onRename={onRenameSavedRoute}
+        />
+      )}
+
+      {/* Waypoint inputs */}
+      <div
+        className="rounded-xl p-4 flex flex-col gap-2"
+        style={{ background: "var(--md-surface-container-low)" }}
+      >
+        <div
+          onPointerDown={() => onPinDragStart?.('A')}
+          onClick={() => onSetPendingSlot(pendingSlot === 'A' ? null : 'A')}
+          className="cursor-pointer"
+        >
+          <WaypointInput
+            label={waypointALabel}
+            placeholder="Start — type or click map"
+            dotColor="green"
+            onSet={onSetWaypointA}
+            onClear={onClearWaypointA}
+          />
+        </div>
+
+        {/* Swap button */}
+        <div className="flex justify-center">
+          <button
+            onClick={onSwapWaypoints}
+            className="text-slate-400 hover:text-amber-700 transition-colors p-1 hover:bg-amber-50 rounded-lg"
+            title="Swap waypoints"
+          >
+            <span className="material-symbols-outlined text-lg">swap_vert</span>
+          </button>
+        </div>
+
+        <div
+          onPointerDown={() => !drawMode && onPinDragStart?.('B')}
+          onClick={() => !drawMode && onSetPendingSlot(pendingSlot === 'B' ? null : 'B')}
+          className="cursor-pointer transition-opacity"
+          style={drawMode ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+        >
+          <WaypointInput
+            label={waypointBLabel}
+            placeholder={drawMode ? "Tap map to sketch route" : "End — type or click map"}
+            dotColor="red"
+            onSet={onSetWaypointB}
+            onClear={onClearWaypointB}
+          />
+        </div>
+      </div>
+
+      {/* Additional waypoints */}
+      {(additionalWaypoints ?? []).length > 0 && (
+        <div className="pl-4 flex flex-col gap-0.5 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
+          <span className="text-[10px] mb-0.5" style={{ opacity: 0.6 }}>Waypoints (Alt+click on map)</span>
+          {(additionalWaypoints ?? []).map((wp, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center shrink-0" style={{ background: "var(--md-primary)" }}>{i + 1}</span>
+              <span className="flex-1 tabular-nums truncate" style={{ color: "var(--md-on-surface)" }}>{wp[1].toFixed(5)}, {wp[0].toFixed(5)}</span>
+              <button
+                onClick={() => onRemoveAdditionalWaypoint?.(i)}
+                className="text-slate-300 hover:text-red-500 transition-colors px-0.5"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Route input — Search / Draw segmented control */}
+      <div className="border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Route input</span>
+          <div
+            className="flex rounded-lg overflow-hidden border"
+            style={{ borderColor: "var(--md-outline-variant)" }}
+          >
+            <button
+              onClick={() => drawMode && onDrawModeToggle?.()}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                !drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
+              }`}
+              style={drawMode ? { color: "var(--md-on-surface-variant)" } : undefined}
+            >
+              Search
+            </button>
+            <button
+              onClick={() => !drawMode && onDrawModeToggle?.()}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
+              }`}
+              style={!drawMode ? { color: "var(--md-on-surface-variant)" } : undefined}
+            >
+              Draw
+            </button>
+          </div>
+        </div>
+        {drawMode && (
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>
+              {sketchPointCount > 0 ? (
+                <span className="tabular-nums" style={{ color: "var(--md-primary)" }}>
+                  {sketchPointCount} point{sketchPointCount !== 1 ? "s" : ""} drawn
+                </span>
+              ) : (
+                "Tap map to sketch route"
+              )}
+            </p>
+            {sketchPointCount > 0 && onClearSketch && (
+              <button
+                onClick={onClearSketch}
+                className="text-[11px] transition-colors hover:text-amber-700"
+                style={{ color: "var(--md-on-surface-variant)" }}
+              >
+                Clear sketch
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Shade preference slider */}
+      <div className="border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Shade preference</span>
+          <span className="text-[11px] font-medium" style={{ color: "var(--md-on-surface)" }}>{shadeLabel}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={shadePreference}
+          onChange={(e) => onShadePreferenceChange?.(parseFloat(e.target.value))}
+          className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-700"
+          style={{ background: "var(--md-surface-container-low)" }}
+        />
+        <div className="flex justify-between mt-1">
+          <span className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>Fastest</span>
+          <span className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>Most shaded</span>
+        </div>
+      </div>
+
+      {/* Calculate button */}
+      <div className="flex gap-2 shrink-0">
+        <button
+          onClick={onCalculate}
+          disabled={drawMode ? sketchPointCount < 2 || isCalculating : !waypointA || !waypointB || isCalculating}
+          className="flex-1 px-2 py-2 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}
+        >
+          {isCalculating && (
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+          )}
+          {isCalculating ? 'Calculating...' : 'Find Shaded Route'}
+        </button>
+      </div>
+
+      {/* Route cards — hidden on desktop when FloatingRouteCards is used */}
+      {!hideRouteCards && routes.length > 0 && (
+        <div className="flex flex-col gap-1.5 border-t pt-2" role="radiogroup" aria-label="Route options" style={{ borderColor: "var(--md-outline-variant)" }}>
+          {solarIntensity != null && <SolarPill intensity={solarIntensity} />}
+          {routes.map((r, i) => (
+            <RouteCard
+              key={i}
+              route={r}
+              selected={i === selectedRouteIndex}
+              onSelect={() => onSelectRoute(i)}
+              onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
+              onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
+              recommended={r.label === "Balanced"}
+            />
+          ))}
+
+          {onStartNavigation && routes.length > 0 && (
+            <button
+              onClick={onStartNavigation}
+              className="mt-2 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-colors"
+              style={{ background: "#22c55e", color: "white" }}
+            >
+              START NAVIGATING
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Warning */}
+      {warning && (
+        <div className="text-xs border-t pt-2 shrink-0" style={{ color: "#a16207", borderColor: "var(--md-outline-variant)" }}>
+          {warning}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="text-xs border-t pt-2 shrink-0" style={{ color: "var(--md-error)", borderColor: "var(--md-outline-variant)" }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}

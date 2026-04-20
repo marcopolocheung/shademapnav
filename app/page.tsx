@@ -108,6 +108,7 @@ export default function Home() {
     savedRoutes, savedFolders,
     userLocation, isLocating,
     sketchPoints, drawMode, navWarning, simplifiedWaypoints,
+    routeMode, shadePreference,
     setPendingSlot, setSelectedRouteIndex, setSaveModalRouteIndex,
     handleMapClick, handleClear,
     handleOpenSaveModal, handleConfirmSave,
@@ -115,6 +116,7 @@ export default function Home() {
     handleRemoveAdditionalWaypoint,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
+    handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,
     handleSketchPointClick, handleSketchPointDrag, handleSketchFinish,
     handleSetWaypointA, handleSetWaypointB,
     handleSwapWaypoints,
@@ -122,6 +124,7 @@ export default function Home() {
     handleMarkerDragEnd, handlePinDragStart,
     handleCalculateRoute,
     selectedNavRoute, navTrainDrawData, navMrtEntrances,
+    filteredRoutes, canTransit,
   } = nav;
 
   const { phase, selectedPlace, dispatch } = useAppState();
@@ -357,7 +360,7 @@ export default function Home() {
             onClear={handleClear}
             onCalculate={handleCalculateRoute}
             isCalculating={isCalculating}
-            routes={navRoutes}
+            routes={filteredRoutes}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
             error={navError}
@@ -376,11 +379,17 @@ export default function Home() {
             onPinDragStart={handlePinDragStart}
             drawMode={drawMode}
             onDrawModeToggle={handleDrawModeToggle}
+            onClearSketch={handleClearSketch}
             sketchPointCount={sketchPoints.length}
             warning={navWarning}
             onBack={() => dispatch({ type: "BACK" })}
             onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
             hideRouteCards
+            routeMode={routeMode}
+            onRouteModeChange={handleRouteModeChange}
+            canTransit={canTransit}
+            shadePreference={shadePreference}
+            onShadePreferenceChange={handleShadePreferenceChange}
           />
         );
 
@@ -410,19 +419,6 @@ export default function Home() {
   // -- Map overlays --
   const mapOverlays = (
     <>
-      {/* Fixed top-left search pill — desktop */}
-      <div
-        className="hidden md:block fixed top-4 left-4 z-50"
-        style={{ width: "min(480px, calc(100vw - 2rem))" }}
-      >
-        <SearchBar
-          onSelect={handleSearchSelect}
-          mapCenter={mapCenter}
-          onMenuToggle={handleSidebarToggle}
-          onDirections={handleOpenDirections}
-        />
-      </div>
-
       {/* Mobile floating search */}
       <div
         className="absolute top-4 left-4 z-30 md:hidden"
@@ -451,9 +447,9 @@ export default function Home() {
       )}
 
       {/* Floating route cards — desktop only, during DIRECTIONS phase */}
-      {(phase === "DIRECTIONS" || phase === "NAVIGATING") && navRoutes.length > 0 && (
+      {(phase === "DIRECTIONS" || phase === "NAVIGATING") && filteredRoutes.length > 0 && (
         <FloatingRouteCards
-          routes={navRoutes}
+          routes={filteredRoutes}
           selectedRouteIndex={selectedRouteIndex}
           onSelectRoute={setSelectedRouteIndex}
           onSaveRoute={handleOpenSaveModal}
@@ -507,7 +503,7 @@ export default function Home() {
               onClear={handleClear}
               onCalculate={handleCalculateRoute}
               isCalculating={isCalculating}
-              routes={navRoutes}
+              routes={filteredRoutes}
               selectedRouteIndex={selectedRouteIndex}
               onSelectRoute={setSelectedRouteIndex}
               error={navError}
@@ -526,10 +522,16 @@ export default function Home() {
               onPinDragStart={handlePinDragStart}
               drawMode={drawMode}
               onDrawModeToggle={handleDrawModeToggle}
+              onClearSketch={handleClearSketch}
               sketchPointCount={sketchPoints.length}
               warning={navWarning}
               onBack={() => dispatch({ type: "BACK" })}
               onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
+              routeMode={routeMode}
+              onRouteModeChange={handleRouteModeChange}
+              canTransit={canTransit}
+              shadePreference={shadePreference}
+              onShadePreferenceChange={handleShadePreferenceChange}
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -565,37 +567,52 @@ export default function Home() {
   );
 
   return (
-    <AppShell
-      mapRef={mapRef}
-      sidebar={desktopSidebar}
-      sidebarOpen={sidebarOpen}
-      onSidebarToggle={handleSidebarToggle}
-      map={
-        <Suspense fallback={null}>
-          <MapView
-            date={date}
-            accumulation={accumulation}
-            onMapReady={handleMapReady}
-            onMapClick={handleMapClick}
-            navWaypoints={{ a: waypointA ?? undefined, b: waypointB ?? undefined }}
-            navRoute={selectedNavRoute}
-            showSunLines={showSunLines}
-            mapClickActive={pendingSlot !== null}
-            onMarkerDragEnd={handleMarkerDragEnd}
-            navTrainDrawData={navTrainDrawData}
-            navMrtEntrances={navMrtEntrances}
-            additionalWaypoints={additionalWaypoints}
-            userLocation={userLocation}
-            drawMode={drawMode}
-            sketchPoints={sketchPoints}
-            onSketchPointClick={handleSketchPointClick}
-            onSketchPointDrag={handleSketchPointDrag}
-            onSketchFinish={handleSketchFinish}
-            simplifiedWaypoints={simplifiedWaypoints}
-          />
-        </Suspense>
-      }
-      mapOverlays={mapOverlays}
-    />
+    <>
+      <AppShell
+        mapRef={mapRef}
+        sidebar={desktopSidebar}
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={handleSidebarToggle}
+        map={
+          <Suspense fallback={null}>
+            <MapView
+              date={date}
+              accumulation={accumulation}
+              onMapReady={handleMapReady}
+              onMapClick={handleMapClick}
+              navWaypoints={{ a: waypointA ?? undefined, b: waypointB ?? undefined }}
+              navRoute={selectedNavRoute}
+              showSunLines={showSunLines}
+              mapClickActive={pendingSlot !== null}
+              onMarkerDragEnd={handleMarkerDragEnd}
+              navTrainDrawData={navTrainDrawData}
+              navMrtEntrances={navMrtEntrances}
+              additionalWaypoints={additionalWaypoints}
+              userLocation={userLocation}
+              drawMode={drawMode}
+              sketchPoints={sketchPoints}
+              onSketchPointClick={handleSketchPointClick}
+              onSketchPointDrag={handleSketchPointDrag}
+              onSketchFinish={handleSketchFinish}
+              simplifiedWaypoints={simplifiedWaypoints}
+            />
+          </Suspense>
+        }
+        mapOverlays={mapOverlays}
+      />
+
+      {/* Desktop search bar — rendered outside AppShell so it layers above the sidebar */}
+      <div
+        className="hidden md:block fixed top-4 left-4 z-50"
+        style={{ width: "376px" }}
+      >
+        <SearchBar
+          onSelect={handleSearchSelect}
+          mapCenter={mapCenter}
+          onMenuToggle={handleSidebarToggle}
+          onDirections={handleOpenDirections}
+        />
+      </div>
+    </>
   );
 }

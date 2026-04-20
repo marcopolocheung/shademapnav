@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ShadeMap Navigator - Draw Route Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface": "#191c1d",
+              "on-tertiary-container": "#00499c",
+              "tertiary-container": "#9cbcff",
+              "on-tertiary-fixed": "#001a41",
+              "on-secondary-fixed": "#221b00",
+              "secondary": "#705d00",
+              "on-error-container": "#93000a",
+              "surface-dim": "#d9dadb",
+              "primary-fixed-dim": "#ffb950",
+              "inverse-on-surface": "#f0f1f2",
+              "outline": "#857460",
+              "error": "#ba1a1a",
+              "surface": "#f8f9fa",
+              "on-primary-fixed": "#291800",
+              "inverse-surface": "#2e3132",
+              "surface-container-highest": "#e1e3e4",
+              "tertiary-fixed-dim": "#adc7ff",
+              "secondary-fixed": "#ffe170",
+              "on-tertiary-fixed-variant": "#004493",
+              "on-background": "#191c1d",
+              "on-tertiary": "#ffffff",
+              "secondary-container": "#fdd400",
+              "tertiary-fixed": "#d8e2ff",
+              "surface-bright": "#f8f9fa",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#e9c400",
+              "surface-container-high": "#e7e8e9",
+              "surface-container": "#edeeef",
+              "inverse-primary": "#ffb950",
+              "primary": "#825500",
+              "tertiary": "#005bc0",
+              "on-primary": "#ffffff",
+              "on-secondary-container": "#6f5c00",
+              "on-error": "#ffffff",
+              "on-secondary": "#ffffff",
+              "background": "#f8f9fa",
+              "surface-container-low": "#f3f4f5",
+              "on-primary-container": "#694400",
+              "outline-variant": "#d7c3ac",
+              "surface-tint": "#825500",
+              "primary-container": "#ffab00",
+              "primary-fixed": "#ffddb3",
+              "surface-variant": "#e1e3e4",
+              "on-surface-variant": "#524433",
+              "on-primary-fixed-variant": "#624000",
+              "on-secondary-fixed-variant": "#544600",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .drawing-cursor {
+            cursor: crosshair;
+        }
+        .glass-panel {
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface overflow-hidden">
+<!-- Base Layer: Map -->
+<div class="fixed inset-0 z-0 drawing-cursor">
+<img class="w-full h-full object-cover grayscale-[20%] opacity-90" data-alt="Detailed urban city map from aerial perspective with long afternoon shadows stretching across streets and parks" data-location="Paris" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0zdAxHZCNJZKkoiu4DAUOGnyUbxkTQ1DhRvnh6k_nhe2e0uHu0-lxfG98CCgjp7HyqnFtwpt302RbY8raBANyvzqPQasdJjYLjTOO4jsGbKemh8Ifj6e147TJyIM7zU5gvOFNaEv7g8w9Msv2FUZkYf5148N90hwF-ARHJ2SRlckZ38jhWqboAxB45YdVX2QfSnnOplvXubyMsA9PqHRFwlqC9sOa4S9mx7Pj2ZSOIs4ldGO3CloLMr3bA1RcrOfqiJ8YbWlpqaw"/>
+<!-- SVG Overlay for Sketching -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none">
+<!-- Drawn Path -->
+<polyline fill="none" points="400,300 550,450 700,400" stroke="#705d00" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"></polyline>
+<polyline fill="none" points="400,300 550,450 700,400" stroke="#ffe170" stroke-dasharray="8,8" stroke-width="4"></polyline>
+<!-- Rubber-band Preview -->
+<line opacity="0.6" stroke="#705d00" stroke-dasharray="4,4" stroke-width="2" x1="700" x2="850" y1="400" y2="520"></line>
+<!-- Nodes -->
+<circle cx="400" cy="300" fill="#fdd400" r="6" stroke="#825500" stroke-width="2"></circle>
+<circle cx="550" cy="450" fill="#fdd400" r="6" stroke="#825500" stroke-width="2"></circle>
+<circle cx="700" cy="400" fill="#fdd400" r="8" stroke="#825500" stroke-width="3"></circle>
+<!-- Active Cursor Marker -->
+<circle cx="850" cy="520" fill="#825500" r="4"></circle>
+</svg>
+</div>
+<!-- Top Banner (High Contrast) -->
+<div class="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4">
+<div class="bg-primary text-on-primary px-8 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-pulse-slow">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">edit_road</span>
+<span class="font-headline font-bold text-sm tracking-tight">Draw Mode Active: Click map to sketch your path — ESC to cancel</span>
+</div>
+</div>
+<!-- SideNavBar (Drawing State) -->
+<aside class="fixed left-0 top-0 h-full w-72 z-40 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl shadow-amber-900/5 flex flex-col border-r-0">
+<!-- Brand Header -->
+<div class="p-8 pb-4">
+<div class="text-xl font-bold tracking-tighter text-amber-900 dark:text-amber-100 mb-1">Luminous Navigator</div>
+<div class="text-xs font-medium text-on-surface-variant uppercase tracking-widest opacity-60">Shade-Aware Explorer</div>
+</div>
+<!-- Drawing State Context -->
+<div class="px-6 py-4 mx-4 my-2 rounded-xl bg-primary-container/30 border border-primary/10">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-2 h-2 rounded-full bg-primary animate-ping"></div>
+<span class="text-xs font-bold text-primary tracking-widest uppercase">DRAWING</span>
+</div>
+<p class="text-sm text-on-primary-container leading-relaxed font-medium">
+                Sketch your ideal route by clicking along the streets. We'll calculate the shadow coverage in real-time.
+            </p>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex-1 mt-6 px-4 space-y-1 font-inter text-sm font-medium tracking-tight">
+<!-- Active Tab: Directions (Closest intent to Draw Route) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl transition-colors text-amber-900 dark:text-amber-400 font-bold border-r-4 border-amber-600 bg-amber-50 dark:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="directions">directions</span>
+<span>Directions</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span>Map</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span>Shadow History</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+<span>Saved Routes</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<!-- CTA & Profile -->
+<div class="p-6 mt-auto">
+<button class="w-full py-4 bg-primary text-on-primary font-bold rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 mb-6">
+                Find Shaded Route
+            </button>
+<div class="flex items-center gap-4 p-2 rounded-2xl bg-surface-container-low">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200">
+<img alt="User Profile" data-alt="Close-up portrait of a professional man in a tech environment with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8QgmeUp-ghUB8mPGqrh2JCtJhEfuSVPKoy-Db7fnOv3QDY3kCT1oCFpjlD3IbKiwkgFXxqcLwNm2hn2f7XT4MZpNCnKb70Eir_HJYybHVw06hM60Pg4V9lf_zXRrANDZQyLIacm4m1zApNwRh07po8VqHBfiP8OwwF8vIp1dqJxTR-vWQPvTkLP6rYz9CdjKwJQAJeygAFTfqmQ8uvRCIQ6ORY2hsCDkzb-j-VYdP2FXJ7j9DOaZvV0D94gDzVMvSOM7CXJvfuIs"/>
+</div>
+<div>
+<div class="text-sm font-bold text-on-surface leading-none">Alex Rivera</div>
+<div class="text-xs text-on-surface-variant opacity-70">Pro Member</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top Floating Search/Utility (TopNavBar Equivalent) -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4">
+<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full p-2 flex items-center gap-4">
+<div class="flex-1 flex items-center px-4 gap-3">
+<span class="material-symbols-outlined text-slate-400" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" placeholder="Add destination via sketch..." type="text"/>
+</div>
+<div class="flex items-center gap-2 pr-2">
+<button class="p-2 text-slate-400 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-2 text-amber-700 dark:text-amber-500 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="wb_sunny">wb_sunny</span>
+</button>
+<button class="bg-primary px-6 py-2 rounded-full text-on-primary text-sm font-bold hover:opacity-90 focus:ring-2 ring-amber-500 ring-offset-2 transition-all">
+                    Go
+                </button>
+</div>
+</div>
+</div>
+<!-- Right Side Map Controls -->
+<div class="fixed right-8 bottom-8 z-30 flex flex-col gap-4">
+<div class="flex flex-col bg-surface-container-lowest/80 backdrop-blur-lg rounded-2xl shadow-xl overflow-hidden">
+<button class="p-4 hover:bg-amber-50 transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">add</span>
+</button>
+<div class="h-[1px] bg-outline-variant/15"></div>
+<button class="p-4 hover:bg-amber-50 transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+<button class="w-14 h-14 bg-secondary-fixed text-on-secondary-fixed rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">my_location</span>
+</button>
+</div>
+<!-- Floating Stats Card (Editorial Design) -->
+<div class="fixed bottom-8 left-80 z-30">
+<div class="bg-surface-container-lowest/80 backdrop-blur-xl p-6 rounded-lg shadow-2xl max-w-sm border border-white/20">
+<div class="flex items-end justify-between gap-8 mb-4">
+<div>
+<div class="text-[0.7rem] font-bold text-on-surface-variant tracking-[0.1em] uppercase mb-1">Sketch Distance</div>
+<div class="text-4xl font-extrabold tracking-tighter text-on-surface">1.4<span class="text-xl ml-1 text-on-surface-variant font-normal">km</span></div>
+</div>
+<div class="text-right">
+<div class="text-[0.7rem] font-bold text-tertiary tracking-[0.1em] uppercase mb-1">Shadow Coverage</div>
+<div class="text-4xl font-extrabold tracking-tighter text-tertiary">82<span class="text-xl ml-1 font-normal">%</span></div>
+</div>
+</div>
+<div class="h-1.5 w-full bg-tertiary-fixed-dim/40 rounded-full overflow-hidden mb-2">
+<div class="h-full bg-gradient-to-r from-primary to-primary-container" style="width: 82%;"></div>
+</div>
+<div class="flex justify-between text-[0.65rem] font-bold text-on-surface-variant/60 tracking-wider">
+<span>SUN EXPOSURE: LOW</span>
+<span>OPTIMIZED FOR 14:30 PM</span>
+</div>
+</div>
+</div>
+</body></html>

@@ -18,18 +18,18 @@ const tabs: { id: SideNavTab; icon: string; label: string }[] = [
 
 export default function SideNav({ activeTab, onTabChange, children }: SideNavProps) {
   return (
-    <div className="flex flex-col h-full p-6">
-      {/* Navigation tabs */}
-      <nav className="space-y-1">
+    <div className="flex flex-col h-full pt-20 px-4 pb-4">
+      {/* Navigation tabs — horizontal row */}
+      <nav className="flex gap-1">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm tracking-tight w-full text-left transition-all duration-150 active:scale-95 ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl text-[11px] tracking-tight flex-1 transition-all duration-150 active:scale-95 ${
                 active
-                  ? "text-amber-900 font-bold border-r-4 border-amber-600 bg-amber-50/50"
+                  ? "text-amber-900 font-bold bg-amber-50/50"
                   : "text-slate-500 font-medium hover:bg-amber-50 hover:text-amber-700"
               }`}
             >
@@ -39,7 +39,7 @@ export default function SideNav({ activeTab, onTabChange, children }: SideNavPro
               >
                 {tab.icon}
               </span>
-              <span>{tab.label}</span>
+              <span className="leading-tight">{tab.label}</span>
             </button>
           );
         })}

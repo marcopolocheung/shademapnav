@@ -8,18 +8,10 @@ function formatDateDisplay(d: Date, utcOffsetMin: number): string {
   return `${MONTHS[month]} ${day}, ${year}`;
 }
 
-/**
- * Parse a user-typed date string. Accepts:
- *   "Mar 3" | "March 3" | "3/3" | "3/3/2026" | "2026-03-03"
- * Preserves the map-local hours/minutes of the base date.
- * Returns a new Date, or null if unparseable.
- */
 function parseDateText(s: string, base: Date, utcOffsetMin: number): Date | null {
   s = s.trim();
   const { hours, minutes } = toMapLocal(base, utcOffsetMin);
 
-  // Helper: produce a Date where the map-local date is year/month/day and
-  // the map-local time is preserved from `base`.
   const makeDate = (year: number, month: number, day: number): Date | null => {
     const d = new Date(
       Date.UTC(year, month, day) - utcOffsetMin * 60000 + (hours * 60 + minutes) * 60000
@@ -27,11 +19,9 @@ function parseDateText(s: string, base: Date, utcOffsetMin: number): Date | null
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // ISO: 2026-03-03
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
   if (iso) return makeDate(+iso[1], +iso[2] - 1, +iso[3]);
 
-  // MM/DD or MM/DD/YY or MM/DD/YYYY
   const mdy = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/.exec(s);
   if (mdy) {
     const { year: baseYear } = toMapLocal(base, utcOffsetMin);
@@ -40,7 +30,6 @@ function parseDateText(s: string, base: Date, utcOffsetMin: number): Date | null
     return makeDate(year, +mdy[1] - 1, +mdy[2]);
   }
 
-  // Natural: "Mar 3", "March 3", "3 Mar" etc. — try parsing with current map-local year appended
   const { year: baseYear } = toMapLocal(base, utcOffsetMin);
   const attempt = new Date(`${s} ${baseYear}`);
   if (!isNaN(attempt.getTime())) {
@@ -53,7 +42,7 @@ function parseDateText(s: string, base: Date, utcOffsetMin: number): Date | null
 interface DateInputProps {
   date: Date;
   onChange: (d: Date) => void;
-  utcOffsetMin?: number; // defaults to browser's own timezone if not provided
+  utcOffsetMin?: number;
 }
 
 const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOffsetMinProp }: DateInputProps) {
@@ -92,7 +81,12 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
           }
         }}
         className="rounded px-2 py-1 text-xs border focus:outline-none w-32 text-center"
-        style={{ background: 'rgba(200,175,110,0.1)', color: 'rgba(200,175,110,0.65)', borderColor: 'rgba(200,175,110,0.45)', fontFamily: "'Crimson Pro', serif", fontStyle: 'italic' }}
+        style={{
+          background: "var(--md-surface-container-low)",
+          color: "var(--md-on-surface)",
+          borderColor: "var(--md-outline-variant)",
+          fontFamily: "var(--md-font)",
+        }}
         autoFocus
       />
     );
@@ -101,8 +95,11 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   return (
     <button
       onClick={startEdit}
-      className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-white/10 transition-colors"
-      style={{ color: 'rgba(200,175,110,0.65)', fontFamily: "'Crimson Pro', serif", fontStyle: 'italic' }}
+      className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
+      style={{
+        color: "var(--md-on-surface-variant)",
+        fontFamily: "var(--md-font)",
+      }}
       title="Click to set date (e.g. Mar 3, 3/3/2026)"
     >
       {formatDateDisplay(date, utcOffsetMin)}

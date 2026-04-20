@@ -49,7 +49,7 @@ export default function AppShell({
     <div className="relative flex h-screen w-screen overflow-hidden" style={{ background: "var(--md-surface)" }}>
       {/* Collapsible sidebar — desktop only */}
       <aside
-        className="hidden md:flex flex-col fixed left-0 top-0 h-full z-40 w-[331px]"
+        className="hidden md:flex flex-col fixed left-0 top-0 h-full z-40 w-[408px]"
         style={{
           background: "rgba(248,249,250,0.70)",
           backdropFilter: "blur(24px)",
@@ -89,7 +89,7 @@ export default function AppShell({
       <div
         className="relative flex-1 min-h-0 overflow-hidden"
         style={{
-          paddingLeft: sidebarOpen ? "331px" : "0",
+          paddingLeft: sidebarOpen ? "408px" : "0",
           transition: "padding-left 300ms ease-in-out",
         }}
       >

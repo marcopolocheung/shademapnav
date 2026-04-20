@@ -66,14 +66,14 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
         value={query}
         onChange={handleChange}
         placeholder="Search location…"
-        className="w-full glass-panel placeholder-[rgba(244,237,212,0.45)] text-sm rounded-lg pl-9 pr-8 py-2 border focus:outline-none focus:border-[rgba(200,175,110,0.4)]"
+        className="w-full h-14 glass-panel placeholder-[rgba(244,237,212,0.45)] text-[18px] leading-6 rounded-lg pl-9 pr-12 border focus:outline-none focus:border-[rgba(200,175,110,0.4)]"
         style={{ color: 'var(--parchment)', fontFamily: 'var(--font-serif)' }}
       />
       {/* Clear button — only when there is text */}
       {query.length > 0 && (
         <button
           onClick={() => { setQuery(""); setResults([]); }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors cursor-pointer"
           aria-label="Clear search"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

@@ -381,7 +381,9 @@ export async function getPlaceDetails(
       return result;
     }
 
-    const url = `${FSQ_BASE_URL}/places/${encodeURIComponent(safeId)}`;//?fields=${encodeURIComponent(FIELDS)}`;
+    const url = `${FSQ_BASE_URL}/places/${encodeURIComponent(
+      safeId
+    )}?fields=${encodeURIComponent(FIELDS)}`;
 
     try {
       const response = await fetchWithRetry(url, {
@@ -558,7 +560,9 @@ export async function getPlaceInfoFromAddress(
     return null;
   }
 
-  const detailsUrl = `${FSQ_BASE_URL}/places/${encodeURIComponent(fsqId)}/photos`; //IMPORTANT DO NOT ADD THIS HERE }?fields=${encodeURIComponent(FIELDS)}`;
+  const detailsUrl = `${FSQ_BASE_URL}/places/${encodeURIComponent(
+    fsqId
+  )}?fields=${encodeURIComponent(FIELDS)}`;
 
   if (FSQ_DEBUG) {
     console.log("Foursquare DETAILS", {

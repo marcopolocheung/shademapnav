@@ -26,31 +26,48 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel border rounded-xl shadow-2xl w-80 p-5 flex flex-col gap-4">
-        <h2 className="panel-heading text-sm">Save Route</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div
+        className="rounded-2xl shadow-2xl w-80 p-5 flex flex-col gap-4 border"
+        style={{
+          background: "white",
+          borderColor: "var(--md-outline-variant)",
+          fontFamily: "var(--md-font)",
+        }}
+      >
+        <h2 className="text-sm font-bold" style={{ color: "var(--md-on-surface)" }}>Save Route</h2>
 
         {/* Name */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-white/50">Name</label>
+          <label className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Name</label>
           <input
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
             className="border rounded px-2 py-1.5 text-xs focus:outline-none"
-            style={{ background: 'transparent', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
+            style={{
+              background: "var(--md-surface-container-low)",
+              color: "var(--md-on-surface)",
+              borderColor: "var(--md-outline-variant)",
+              fontFamily: "var(--md-font)",
+            }}
             placeholder="Route name"
           />
         </div>
 
         {/* Folder */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-white/50">Folder</label>
+          <label className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Folder</label>
           <select
             value={folderId ?? ""}
             onChange={e => setFolderId(e.target.value || null)}
             className="border rounded px-2 py-1.5 text-xs focus:outline-none"
-            style={{ background: 'var(--glass-bg)', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
+            style={{
+              background: "white",
+              color: "var(--md-on-surface)",
+              borderColor: "var(--md-outline-variant)",
+              fontFamily: "var(--md-font)",
+            }}
           >
             <option value="">None</option>
             {folders.map(f => (
@@ -67,20 +84,30 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleAddFolder(); if (e.key === "Escape") setShowNewFolder(false); }}
-              className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white/80 focus:outline-none focus:border-white/25"
+              className="flex-1 border rounded px-2 py-1 text-xs focus:outline-none"
+              style={{
+                background: "var(--md-surface-container-low)",
+                color: "var(--md-on-surface)",
+                borderColor: "var(--md-outline-variant)",
+              }}
               placeholder="Folder name"
             />
-            <button onClick={handleAddFolder} className="text-xs px-2 py-1 rounded bg-amber-500 text-black font-medium hover:bg-amber-400 transition-colors">
+            <button
+              onClick={handleAddFolder}
+              className="text-xs px-2 py-1 rounded font-medium transition-colors"
+              style={{ background: "var(--md-primary-container)", color: "var(--md-on-surface)" }}
+            >
               Add
             </button>
-            <button onClick={() => setShowNewFolder(false)} className="text-xs px-2 py-1 text-white/40 hover:text-white/70 transition-colors">
-              ✕
+            <button onClick={() => setShowNewFolder(false)} className="text-xs px-2 py-1 text-slate-400 hover:text-slate-700 transition-colors">
+              <span className="material-symbols-outlined text-sm">close</span>
             </button>
           </div>
         ) : (
           <button
             onClick={() => setShowNewFolder(true)}
-            className="text-[11px] text-amber-400/70 hover:text-amber-300 self-start transition-colors"
+            className="text-[11px] hover:text-amber-700 self-start transition-colors"
+            style={{ color: "var(--md-primary)" }}
           >
             + New folder
           </button>
@@ -92,13 +119,14 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
             onClick={() => onSave(name.trim() || defaultName, folderId)}
             disabled={!name.trim()}
             className="flex-1 py-1.5 rounded text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            style={{ background: 'var(--brass)', color: 'var(--ink)', fontFamily: 'var(--font-display)' }}
+            style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}
           >
             Save
           </button>
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 rounded text-xs text-white/60 hover:text-white/90 border border-white/10 transition-colors"
+            className="px-3 py-1.5 rounded text-xs text-slate-600 hover:text-slate-900 border transition-colors"
+            style={{ borderColor: "var(--md-outline-variant)" }}
           >
             Cancel
           </button>

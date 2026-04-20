@@ -1,3 +1,4 @@
+// @deprecated — replaced by DirectionsPanel
 import { useState, useRef, useEffect, memo } from "react";
 import type { RouteOption, RouteLeg } from "../lib/routing";
 import { geocodeForward, type NominatimResult } from "../lib/nominatim";

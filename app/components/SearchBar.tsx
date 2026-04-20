@@ -120,11 +120,23 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
   const [saved, setSaved] = useState<SavedItem[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const listId = useRef(`search-results-${Math.random().toString(36).slice(2, 8)}`).current;
 
   useEffect(() => {
     setRecent(loadRecent());
     setSaved(loadSaved());
+  }, []);
+
+  // Close recent/saved dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsActive(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const search = useCallback(async (q: string, opts?: { minChars?: number }): Promise<NominatimResult[]> => {
@@ -249,7 +261,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
   const showSections = isActive && (query.trim().length < 3) && (recent.length > 0 || saved.length > 0);
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       {/* MD3 floating pill */}
       <div
         className="w-full flex items-center rounded-full bg-white/80 backdrop-blur-md h-14 px-4 gap-3"

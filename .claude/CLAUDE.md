@@ -7,8 +7,9 @@ Browser-based sun shadow simulation app built with React + Vite. Shadows render 
 ## Running the App
 
 ```bash
-cp .env.local.example .env.local   # add API keys (see below)
-npm run dev                         # http://localhost:5173
+# Create / edit .env.local with keys below
+npm install
+npm run dev # http://localhost:5173
 ```
 
 ---
@@ -18,8 +19,11 @@ npm run dev                         # http://localhost:5173
 | Variable | Where to get it | Cost |
 |---|---|---|
 | `VITE_MAPTILER_API_KEY` | https://maptiler.com/ | Free (100k tiles/month) |
-| `VITE_TRANSITLAND_API_KEY` | https://www.transit.land/ | Free tier |
 | `VITE_FOURSQUARE_API_KEY` | https://foursquare.com/developers/ | Free tier |
+
+Notes:
+- `VITE_TRANSITLAND_API_KEY` exists in some local setups but is **not used by the current app code**.
+- `VITE_SHADEMAP_API_KEY` exists in some local setups but is **not used** (the app currently renders shadows locally).
 
 ---
 
@@ -27,10 +31,11 @@ npm run dev                         # http://localhost:5173
 
 - **Vite 5** + React 19, TypeScript, Tailwind CSS v4, `react-router-dom` for client routing
 - **`maplibre-gl` pinned to `5.9.0`** — see critical note below, do NOT upgrade
-- **`mapbox-gl-shadow-simulator` ^0.68.1** — shadow rendering library
+- **Local WebGL shadow renderer** (`app/lib/shadow/LocalShadowAdapter.ts`) registered as a MapLibre `CustomLayerInterface` (current default)
+- **`mapbox-gl-shadow-simulator` ^0.68.1** — installed; legacy adapter exists (`ShadeMapAdapter.ts`) but is not currently used
 - **`vitest`** — unit tests (`npm test`)
 - No extra packages for GeoTIFF — custom binary TIFF writer inline in `AccumulationPanel.tsx`
-- **Foursquare Places API** — building/POI info for draw-mode popups; CORS-proxied in dev via `/__fsq` rewrite in `vite.config.ts` (production needs a reverse proxy or serverless function)
+- **Foursquare Places API** — building/POI info for draw-mode popups; proxied in dev via `/__fsq` (Vite) and in prod via `/api/fsq/*` (Vercel serverless function in `api/fsq.js`)
 
 ### ⚠ maplibre-gl Must Stay at 5.9.0
 
@@ -38,6 +43,8 @@ npm run dev                         # http://localhost:5173
 
 - **v5.9.0**: routes `{width, height}` (no DOM image, no `data`) to the 9-arg `texImage2D(target, 0, fmt, w, h, 0, fmt, UNSIGNED_BYTE, null)` → creates an empty-sized texture correctly ✓
 - **v5.10.0+**: refactored `hasDataProperty` check routes same object to `_uploadDomImage` → `texImage2D(..., {width, height})` → WebGL2 rejects plain object → `"Overload resolution failed"` crash ✗
+
+This primarily matters if re-enabling the legacy `ShadeMapAdapter` path; the current build uses the local custom layer.
 
 ---
 
@@ -51,14 +58,21 @@ app/
   about/
     page.tsx              # API docs, npm packages, pricing tier table
   components/
-    MapView.tsx           # MapLibre map + ShadeMap shadow layer (lazy-loaded)
+    AppShell.tsx          # Responsive shell: desktop sidebar overlay + mobile map overlays + bottom timeline
+    MapView.tsx           # MapLibre map + local shadow layer (lazy-loaded)
     TimelineSlider.tsx    # Custom scrollable 24-h ruler; inertial drag; fixed red center cursor
-    LocationSearch.tsx    # Nominatim geocoding, 400ms debounce
+    DaySlider.tsx         # Day-of-year slider for day-mode
+    SearchBar.tsx         # Search UI shown in sidebar/overlays
+    DirectionsPanel.tsx   # Routing UI (waypoints, routes, saved routes, draw mode)
+    PlaceDetail.tsx       # Place details screen (selected search result)
+    BottomSheet.tsx       # Mobile bottom sheet
+    FloatingMapControls.tsx # Locate-me + map controls (mobile/desktop overlay)
+    QuickActions.tsx      # Mobile quick actions
+    LocationSearch.tsx    # (older) Nominatim search component; not the primary UI in current build
     AccumulationPanel.tsx # Sun exposure mode toggle + date range + quality slider + GeoTIFF export
-    NavigationPanel.tsx   # Shade-aware routing UI: waypoints, route cards, draw mode toggle, geolocation
+    NavigationPanel.tsx   # Older routing panel; not the primary UI in current build
     SaveRouteModal.tsx    # Modal for naming/saving routes to localStorage folders
     SettingsPanel.tsx     # App settings
-    DaySlider.tsx         # Day-of-year slider for accumulation mode
     DateInput.tsx         # Styled date input wrapper
   lib/
     overpass.ts           # Fetches walkable road graph from Overpass API; LRU bbox-containment cache
@@ -70,35 +84,29 @@ app/
     nominatim.ts          # Nominatim geocoding helpers
     timezone.ts           # Auto-resolves local timezone from map center
     metrics.ts            # Route distance/shade percentage calculations
+    shadeSampling.ts      # Pure functions for shade sampling + solar intensity
   services/
     foursquare.ts         # Foursquare Places API v2 wrapper; TTL cache (1 hr); CORS-proxied via /__fsq
   lib/shadow/
     IShadowLayer.ts       # Interface: setDate, resize, remove, setSunExposure, on
     ShadeMapAdapter.ts    # Wraps the external mapbox-gl-shadow-simulator library
     LocalShadowAdapter.ts # Custom WebGL CustomLayer shadow renderer (4-pass pipeline)
-    createShadowLayer.ts  # Factory: returns ShadeMapAdapter or LocalShadowAdapter based on env
+    createShadowLayer.ts  # Factory: currently always returns LocalShadowAdapter
+
+api/
+  fsq.js                  # Vercel serverless proxy for Foursquare Places API (production)
 ```
 
 ### `page.tsx` layout (overlay structure)
 
-```
-┌──────────────────────────────────────────────────────┐
-│ [LocationSearch]               [MapLibre zoom ctrl]   │  ← top-3 left-3 / top-right (native)
-│                                                       │
-│              MapView (full screen)                    │
-│                                                       │
-│ [AccumulationPanel]                                   │  ← absolute bottom-20 left-3
-│ [NavigationPanel]  (collapsible)                      │
-│ [About / API link]                                    │
-├──────────────────────────────────────────────────────┤
-│  [════════ TimelineSlider ruler (scrollable) ══════]  │  ← absolute bottom-0, full width
-│    [⏸]  [🕐/📅 mode toggle]  [date]  [6:30 AM]       │  ← centered controls row
-└──────────────────────────────────────────────────────┘
-```
+Current layout is driven by `AppShell.tsx`:
+
+- **Desktop:** full-screen map with a left **overlay sidebar** (SearchBar + panels) and a full-width **bottom timeline**.
+- **Mobile:** full-screen map with overlays + a **BottomSheet** when the menu is open; timeline controls are rendered as a bottom overlay.
 
 The timeline ruler and controls row are hidden when Sun Exposure (accumulation) mode is active. The mode-toggle button switches between time-of-day (clock icon) and day-of-year (calendar icon) slider modes; in day-of-year mode, ± year buttons replace the date/time inputs.
 
-`page.tsx` also defines module-level helpers: `formatTime12h`, `toDateInput`, `parseTime`, and the `TimeInput` component (clickable time label that becomes a text input).
+`page.tsx` defines UI helpers like `TimeInput` and relies on `useShadowTime` for `formatTime12h`/`parseTime`.
 
 ---
 
@@ -123,8 +131,8 @@ The timeline ruler and controls row are hidden when Sun Exposure (accumulation) 
 **On `map.on("load")`:**
 1. Add `fill-extrusion` layer (`buildings-3d`) on `maptiler_planet` / `building` source (hidden by default via `ENABLE_3D = false`)
 2. Register `pitchend` handler to lazily add/remove terrain source and toggle 3D visibility (only active if `ENABLE_3D = true`)
-3. Dynamically import and construct `ShadeMap` with terrain + building config
-4. Register `map.on("resize")` → calls `shadeRef.current.setDate(dateRef.current)` to resize the shadow overlay texture
+3. Construct the shadow layer via `createShadowLayer()` (currently `LocalShadowAdapter`) and register it if it implements `CustomLayerInterface`
+4. Register `map.on("resize")` → calls `shadeRef.current.setDate(dateRef.current)` to force shadow buffer resize
 
 **`ENABLE_3D` flag (`MapView.tsx` line 26):**
 Set to `false` by default. When false, the `buildings-3d` layer is hidden and the `pitchend` handler no-ops — no elevation tiles are fetched, no terrain mesh rendered. Set to `true` to restore 3D buildings and terrain mesh on map tilt.
@@ -150,7 +158,9 @@ Helper called after any layer add to defensively `moveLayer` nav-related layers 
 
 **Foursquare integration:**
 - `MapView.tsx` imports `getPlaceDetails`, `getPlaceInfoFromAddress`, `isFoursquareRateLimited`, `getFoursquareApiStatus` from `services/foursquare.ts`
-- When the user clicks the map in draw mode, MapView fetches the building address and Foursquare place info and displays it in a popup
+- When the user clicks sketch/simplified draw markers, MapView fetches Foursquare place info and displays it in a popup
+- **Dev:** proxied via Vite `/__fsq` (see `vite.config.ts`)  
+  **Prod:** proxied via Vercel serverless function `/api/fsq/*` (see `api/fsq.js`)
 
 ---
 
@@ -276,13 +286,12 @@ Fetches complete route relations that have at least one stop in the bbox, then a
 
 | Purpose | Source | API Key? |
 |---|---|---|
-| Basemap + vector buildings | MapTiler `dataviz-dark` style | Yes (`VITE_MAPTILER_API_KEY`) |
+| Basemap + vector buildings | MapTiler `outdoor-v2` style | Yes (`VITE_MAPTILER_API_KEY`) |
 | Shadow building data | `maptiler_planet` source, `building` layer (inside MapTiler style) | Same key |
 | Terrain (shadows) | AWS Terrarium `s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png` | No |
 | 3D terrain mesh | Same AWS Terrarium tiles, `encoding: "terrarium"`, `raster-dem` type (lazy, only when tilted and `ENABLE_3D=true`) | No |
 | Geocoding | Nominatim (`nominatim.openstreetmap.org/search`) — requires `User-Agent` header | No |
 | Routing graph | Overpass API (`overpass-api.de`) — requires `User-Agent` header | No |
-| Transit stops | Transitland REST v2 (`transit.land/api/v2/rest/stops`) | Yes (`VITE_TRANSITLAND_API_KEY`) |
 | POI / building info | Foursquare Places API v2 — CORS-proxied in dev via `/__fsq` in `vite.config.ts` | Yes (`VITE_FOURSQUARE_API_KEY`) |
 
 **Building query (`getFeatures`):**
@@ -350,9 +359,9 @@ Replaces the native `<input type="range">`. The ruler is a fixed-width overflow-
 - ✅ Height-aware roof exclusion — building rooftops not self-shadowed; only taller buildings' shadows fall on shorter rooftops
 - ✅ 3D extruded buildings + terrain mesh when map is tilted (`ENABLE_3D=true` required; currently `false`)
 - ✅ Location search (Nominatim)
-- ✅ Shadow accumulation map with configurable date range and quality (iterations 8–64)
+- ⚠️ Sun exposure (accumulation) UI is present, but the **local renderer currently no-ops `setSunExposure()`** (accumulation rendering not implemented in `LocalShadowAdapter`)
 - ✅ Sun exposure legend bar in AccumulationPanel (blue → cyan → green → yellow → red, 0 h → 12 h+)
-- ✅ GeoTIFF export of accumulation map
+- ✅ GeoTIFF export of the current map canvas
 - ✅ Shadow overlay correctly resizes when browser window is resized
 - ✅ Shade-aware pedestrian routing — Pareto bi-criteria algorithm returning Shortest / Balanced / Most shaded routes
 - ✅ Sketch-guided routing — freehand draw mode with RDP simplification, gap detection, multi-leg Dijkstra, auto-clear after route calculates

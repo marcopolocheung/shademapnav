@@ -256,7 +256,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
               left: 0,
               width: sunriseMin! * PX_PER_MIN,
               top: 0, bottom: 0,
-              backgroundColor: "rgba(55, 65, 81, 0.45)",
+              backgroundColor: "rgba(25,28,29,0.08)",
             }}
           />
         )}
@@ -269,7 +269,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
               left: sunriseMin! * PX_PER_MIN,
               width: (sunsetMin! - sunriseMin!) * PX_PER_MIN,
               top: 0, bottom: 0,
-              background: "linear-gradient(to right, rgba(194,65,12,0.32), rgba(251,191,36,0.08) 50%, rgba(30,64,175,0.32))",
+              background: "linear-gradient(to right, rgba(255,171,0,0.12), rgba(255,171,0,0.06) 50%, rgba(0,91,192,0.12))",
             }}
           />
         )}
@@ -282,7 +282,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
               left: sunsetMin! * PX_PER_MIN,
               width: TOTAL_PX - sunsetMin! * PX_PER_MIN,
               top: 0, bottom: 0,
-              backgroundColor: "rgba(55, 65, 81, 0.45)",
+              backgroundColor: "rgba(25,28,29,0.08)",
             }}
           />
         )}
@@ -313,11 +313,11 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                 left: 5,
                 fontSize: 10,
                 lineHeight: 1.2,
-                color: "#fb923c",
+                color: "#c2410c",
                 whiteSpace: "nowrap",
                 userSelect: "none",
                 pointerEvents: "none",
-                backgroundColor: "rgba(0,0,0,0.55)",
+                backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: 3,
                 padding: "1px 4px",
               }}
@@ -353,11 +353,11 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                 left: 5,
                 fontSize: 10,
                 lineHeight: 1.2,
-                color: "#93c5fd",
+                color: "#1e40af",
                 whiteSpace: "nowrap",
                 userSelect: "none",
                 pointerEvents: "none",
-                backgroundColor: "rgba(0,0,0,0.55)",
+                backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: 3,
                 padding: "1px 4px",
               }}
@@ -381,10 +381,10 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                 width: 1,
                 height: h,
                 backgroundColor: label
-                  ? "rgba(200,175,110,0.75)"
+                  ? "rgba(25,28,29,0.35)"
                   : h === 12
-                  ? "rgba(200,175,110,0.35)"
-                  : "rgba(200,175,110,0.18)",
+                  ? "rgba(25,28,29,0.18)"
+                  : "rgba(25,28,29,0.08)",
               }}
             />
             {label && (
@@ -397,8 +397,8 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
                   whiteSpace: "nowrap",
                   fontSize: 9,
                   lineHeight: 1,
-                  color: "rgba(200,175,110,0.75)",
-                  fontFamily: "'Special Elite', monospace",
+                  color: "var(--md-on-surface-variant)",
+                  fontFamily: "var(--md-font)",
                   fontVariantNumeric: "tabular-nums",
                   userSelect: "none",
                   pointerEvents: "none",
@@ -420,9 +420,9 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
           transform: "translateX(-4px)",
           width: 8,
           height: 8,
-          backgroundColor: "#c8390a",
+          backgroundColor: "var(--md-error)",
           rotate: "45deg",
-          boxShadow: "0 0 6px 2px rgba(200,57,10,0.55)",
+          boxShadow: "0 0 6px 2px rgba(186,26,26,0.5)",
         }}
       />
       <div
@@ -433,8 +433,8 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
           bottom: 0,
           width: 2,
           transform: "translateX(-1px)",
-          background: "linear-gradient(to bottom, #c8390a, rgba(200,57,10,0.35))",
-          boxShadow: "0 0 4px 1px rgba(200,57,10,0.4)",
+          background: "linear-gradient(to bottom, var(--md-error), rgba(186,26,26,0.3))",
+          boxShadow: "0 0 4px 1px rgba(186,26,26,0.35)",
         }}
       />
     </div>

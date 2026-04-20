@@ -1,0 +1,123 @@
+/**
+ * Pure functions for sampling shade from the map canvas and computing solar intensity.
+ * Extracted from page.tsx — no React dependency.
+ */
+
+/**
+ * Sample shade independently for the left and right sidewalks of an edge.
+ * ShadeMap overlay color is #01112f (R:1, G:17, B:47); shaded pixels have
+ * heavy blue dominance (B/R > 1.8).
+ *
+ * `from`/`to` are [lng, lat] in the CANONICAL direction (used to define left/right
+ * consistently). The caller is responsible for passing a canonical (low→high nodeId)
+ * direction so that left/right are stable across bidirectional edge pairs.
+ *
+ * Returns { left, right } shade fractions (0–1), sampled at ±4 m perpendicular
+ * offsets. These are assigned to separate parallel edges in the routing graph so
+ * Dijkstra can pick the shaded sidewalk without any change to the core algorithm.
+ */
+export function sampleBothSidewalks(
+  projectFn: (lng: number, lat: number) => [number, number],
+  imageData: ImageData,
+  dpr: number,
+  from: [number, number], // [lng, lat], canonical direction
+  to: [number, number],
+  samples = 5
+): { left: number; right: number } {
+  const { data, width, height } = imageData;
+
+  const sampleLine = (oLng: number, oLat: number): number => {
+    let shadeSum = 0;
+    let count = 0;
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples;
+      const lng = from[0] + t * (to[0] - from[0]) + oLng;
+      const lat = from[1] + t * (to[1] - from[1]) + oLat;
+      const [px, py] = projectFn(lng, lat);
+      const x = Math.round(px * dpr);
+      const y = Math.round(py * dpr);
+      if (x < 0 || y < 0 || x >= width || y >= height) continue;
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      // ShadeMap overlay #01112f: very dark (r+g+b~65), heavy blue (b/r>>1.8), b>>g.
+      // Combined check rejects water, blue labels, and light basemap features.
+      const isShaded =
+        r + g + b < 200 &&
+        (r === 0 ? b > 30 : b / r > 1.8) &&
+        b > g * 1.5;
+      shadeSum += isShaded ? 1 : 0;
+      count++;
+    }
+    return count === 0 ? 0 : shadeSum / count;
+  };
+
+  const SIDEWALK_OFFSET_M = 4.0;
+  const latMid = (from[1] + to[1]) / 2;
+  const cosLat = Math.max(1e-10, Math.cos(latMid * Math.PI / 180));
+  const dx = (to[0] - from[0]) * cosLat;
+  const dy = to[1] - from[1];
+  const len = Math.sqrt(dx * dx + dy * dy);
+
+  let perpLng = 0, perpLat = 0;
+  if (len > 1e-10) {
+    perpLng = (-dy / len) * (SIDEWALK_OFFSET_M / (111195 * cosLat));
+    perpLat = ( dx / len) * (SIDEWALK_OFFSET_M / 111195);
+  }
+
+  return {
+    left:  sampleLine( perpLng,  perpLat),   // left  sidewalk of canonical direction
+    right: sampleLine(-perpLng, -perpLat),   // right sidewalk of canonical direction
+  };
+}
+
+/**
+ * Computes solar intensity (0–1) proportional to sin(solar elevation angle).
+ * Returns 0 at/below the horizon, ~1 at solar noon zenith.
+ * Uses low-precision orbital mechanics accurate to ~1° — sufficient for
+ * shade-routing weighting purposes.
+ */
+export function computeSolarIntensity(date: Date, latDeg: number, lngDeg: number): number {
+  const n = date.getTime() / 86400000 + 2440587.5 - 2451545.0; // days since J2000
+  const L = (280.46 + 0.9856474 * n) % 360;
+  const g = ((357.528 + 0.9856003 * n) % 360) * (Math.PI / 180);
+  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * (Math.PI / 180);
+  const epsilon = (23.439 - 0.0000004 * n) * (Math.PI / 180);
+  const declination = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
+  const GMST = (280.46061837 + 360.98564736629 * n) % 360;
+  const HA = ((GMST + lngDeg - Math.atan2(
+    Math.cos(epsilon) * Math.sin(lambda), Math.cos(lambda)
+  ) * (180 / Math.PI)) % 360) * (Math.PI / 180);
+  const latRad = latDeg * (Math.PI / 180);
+  const sinElev = Math.sin(latRad) * Math.sin(declination)
+                + Math.cos(latRad) * Math.cos(declination) * Math.cos(HA);
+  return Math.max(0, sinElev);
+}
+
+/**
+ * Pick the closest entrance from a list of candidates to a given point.
+ * Prefers actual entrance nodes (kind === "entrance") over station centroids.
+ */
+export function pickClosestEntrance(
+  from: [number, number], // [lng, lat]
+  candidates: Array<{ lat: number; lon: number; kind?: string }>,
+  haversineMeters: (a: [number, number], b: [number, number]) => number
+): { lat: number; lon: number } {
+  if (candidates.length === 0) throw new Error("pickClosestEntrance: empty candidates");
+
+  // Prefer actual entrance nodes when present, otherwise fall back to stations.
+  const entrances = candidates.filter((c) => c.kind === "entrance");
+  const pool = entrances.length > 0 ? entrances : candidates;
+
+  let best = pool[0];
+  let bestDist = Infinity;
+  for (const c of pool) {
+    const d = haversineMeters(from, [c.lon, c.lat]);
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return { lat: best.lat, lon: best.lon };
+}

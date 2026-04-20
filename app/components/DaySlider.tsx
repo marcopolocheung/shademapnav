@@ -8,18 +8,18 @@ const MONTH_NAMES = [
 ];
 
 const MONTH_TINTS = [
-  "rgba(59,130,246,0.15)",  // Jan — winter
-  "rgba(59,130,246,0.12)",  // Feb
-  "rgba(134,239,172,0.10)", // Mar — spring
-  "rgba(134,239,172,0.12)", // Apr
-  "rgba(134,239,172,0.10)", // May
-  "rgba(251,191,36,0.14)",  // Jun — summer
-  "rgba(251,191,36,0.16)",  // Jul
-  "rgba(251,191,36,0.14)",  // Aug
-  "rgba(249,115,22,0.12)",  // Sep — fall
-  "rgba(249,115,22,0.14)",  // Oct
-  "rgba(249,115,22,0.12)",  // Nov
-  "rgba(59,130,246,0.15)",  // Dec — winter
+  "rgba(59,130,246,0.08)",  // Jan — winter
+  "rgba(59,130,246,0.06)",  // Feb
+  "rgba(134,239,172,0.06)", // Mar — spring
+  "rgba(134,239,172,0.08)", // Apr
+  "rgba(134,239,172,0.06)", // May
+  "rgba(251,191,36,0.08)",  // Jun — summer
+  "rgba(251,191,36,0.10)",  // Jul
+  "rgba(251,191,36,0.08)",  // Aug
+  "rgba(249,115,22,0.06)",  // Sep — fall
+  "rgba(249,115,22,0.08)",  // Oct
+  "rgba(249,115,22,0.06)",  // Nov
+  "rgba(59,130,246,0.08)",  // Dec — winter
 ];
 
 interface Props {
@@ -54,14 +54,14 @@ const DaySlider = memo(function DaySlider({ dayOfYear, year, onChange }: Props) 
     for (let m = 0; m < 12; m++) {
       const s = monthStarts[m];
       const e = monthStarts[m + 1];
-      r.push({ day: s, height: 20, color: "rgba(255,255,255,0.40)", label: MONTH_NAMES[m] });
+      r.push({ day: s, height: 20, color: "rgba(25,28,29,0.35)", label: MONTH_NAMES[m] });
       for (let d = s + 1; d < e; d++) {
         const inM = d - s;
         const isWeek = inM % 7 === 0;
         r.push({
           day: d,
           height: isWeek ? 12 : 5,
-          color: isWeek ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.10)",
+          color: isWeek ? "rgba(25,28,29,0.18)" : "rgba(25,28,29,0.08)",
         });
       }
     }
@@ -177,8 +177,8 @@ const DaySlider = memo(function DaySlider({ dayOfYear, year, onChange }: Props) 
     >
       {/* Fixed red center cursor */}
       <div
-        className="absolute inset-y-0 w-px bg-red-500/80 z-10 pointer-events-none"
-        style={{ left: "50%" }}
+        className="absolute inset-y-0 w-px z-10 pointer-events-none"
+        style={{ left: "50%", backgroundColor: "var(--md-error)" }}
       />
 
       {/* Scrollable content */}
@@ -205,8 +205,8 @@ const DaySlider = memo(function DaySlider({ dayOfYear, year, onChange }: Props) 
           <div key={day} className="absolute bottom-0" style={{ left: day * PX_PER_DAY }}>
             {label && (
               <span
-                className="absolute text-[9px] text-white/50 whitespace-nowrap select-none"
-                style={{ bottom: height + 2, left: 2 }}
+                className="absolute text-[9px] whitespace-nowrap select-none"
+                style={{ bottom: height + 2, left: 2, color: "var(--md-on-surface-variant)", fontFamily: "var(--md-font)" }}
               >
                 {label}
               </span>

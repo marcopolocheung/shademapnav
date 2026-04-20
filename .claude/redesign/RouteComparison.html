@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ShadeMap Navigator | Directions &amp; Route Comparison</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface": "#191c1d",
+              "on-tertiary-container": "#00499c",
+              "tertiary-container": "#9cbcff",
+              "on-tertiary-fixed": "#001a41",
+              "on-secondary-fixed": "#221b00",
+              "secondary": "#705d00",
+              "on-error-container": "#93000a",
+              "surface-dim": "#d9dadb",
+              "primary-fixed-dim": "#ffb950",
+              "inverse-on-surface": "#f0f1f2",
+              "outline": "#857460",
+              "error": "#ba1a1a",
+              "surface": "#f8f9fa",
+              "on-primary-fixed": "#291800",
+              "inverse-surface": "#2e3132",
+              "surface-container-highest": "#e1e3e4",
+              "tertiary-fixed-dim": "#adc7ff",
+              "secondary-fixed": "#ffe170",
+              "on-tertiary-fixed-variant": "#004493",
+              "on-background": "#191c1d",
+              "on-tertiary": "#ffffff",
+              "secondary-container": "#fdd400",
+              "tertiary-fixed": "#d8e2ff",
+              "surface-bright": "#f8f9fa",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#e9c400",
+              "surface-container-high": "#e7e8e9",
+              "surface-container": "#edeeef",
+              "inverse-primary": "#ffb950",
+              "primary": "#825500",
+              "tertiary": "#005bc0",
+              "on-primary": "#ffffff",
+              "on-secondary-container": "#6f5c00",
+              "on-error": "#ffffff",
+              "on-secondary": "#ffffff",
+              "background": "#f8f9fa",
+              "surface-container-low": "#f3f4f5",
+              "on-primary-container": "#694400",
+              "outline-variant": "#d7c3ac",
+              "surface-tint": "#825500",
+              "primary-container": "#ffab00",
+              "primary-fixed": "#ffddb3",
+              "surface-variant": "#e1e3e4",
+              "on-surface-variant": "#524433",
+              "on-primary-fixed-variant": "#624000",
+              "on-secondary-fixed-variant": "#544600",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background font-body text-on-background overflow-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 left-0 right-0 z-50 px-4 flex justify-center w-full">
+<nav class="rounded-full mt-4 mx-auto max-w-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-xl shadow-slate-200/50 dark:shadow-black/50 px-6 py-2 flex items-center gap-4 w-full">
+<div class="flex items-center gap-2 flex-1">
+<span class="material-symbols-outlined text-amber-700 dark:text-amber-500">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm font-inter w-full text-on-surface placeholder:text-slate-400" placeholder="Search destinations..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="material-symbols-outlined text-slate-400 hover:opacity-80 transition-opacity">filter_list</button>
+<button class="material-symbols-outlined text-amber-700 dark:text-amber-500 hover:opacity-80 transition-opacity">wb_sunny</button>
+<button class="bg-primary text-on-primary px-5 py-1.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity">Go</button>
+</div>
+</nav>
+</header>
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full z-40 h-screen w-72 border-r-0 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl shadow-amber-900/5 flex flex-col">
+<div class="p-8">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tighter text-amber-900 dark:text-amber-100">Luminous Navigator</h1>
+<p class="text-[10px] font-label tracking-widest uppercase text-slate-400">Shade-Aware Explorer</p>
+</div>
+</div>
+<nav class="space-y-1">
+<!-- Map (Inactive) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl font-inter text-sm font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">map</span>
+<span>Map</span>
+</a>
+<!-- Directions (Active) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl font-inter text-sm tracking-tight text-amber-900 dark:text-amber-400 font-bold border-r-4 border-amber-600 bg-amber-50 dark:bg-amber-900/20 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">directions</span>
+<span>Directions</span>
+</a>
+<!-- Shadow History (Inactive) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl font-inter text-sm font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>Shadow History</span>
+</a>
+<!-- Saved Routes (Inactive) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl font-inter text-sm font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">bookmark</span>
+<span>Saved Routes</span>
+</a>
+<!-- Settings (Inactive) -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl font-inter text-sm font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<!-- Waypoint Inputs (Bento Style Sidebar Context) -->
+<div class="mt-8 space-y-4">
+<div class="bg-surface-container-low rounded-xl p-4 space-y-3 relative overflow-hidden">
+<div class="absolute left-6 top-10 bottom-10 w-0.5 bg-outline-variant opacity-30"></div>
+<div class="flex items-center gap-3 relative z-10">
+<span class="material-symbols-outlined text-green-600 bg-green-50 rounded-full p-1 text-xs">radio_button_checked</span>
+<div class="flex-1">
+<p class="text-[10px] font-label text-on-surface-variant mb-0.5 tracking-wider">START POINT</p>
+<input class="bg-transparent border-none p-0 text-xs font-semibold w-full focus:ring-0" type="text" value="San Francisco Ferry Building"/>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-sm cursor-grab">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 relative z-10">
+<span class="material-symbols-outlined text-red-600 bg-red-50 rounded-full p-1 text-xs">location_on</span>
+<div class="flex-1">
+<p class="text-[10px] font-label text-on-surface-variant mb-0.5 tracking-wider">DESTINATION</p>
+<input class="bg-transparent border-none p-0 text-xs font-semibold w-full focus:ring-0" type="text" value="Dolores Park, Mission District"/>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-sm cursor-grab">drag_indicator</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto p-8">
+<button class="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold shadow-lg shadow-amber-900/20 hover:scale-[1.02] transition-transform active:scale-95">Upgrade to Pro</button>
+<div class="mt-6 flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait of a young man with a friendly expression in soft outdoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfZNxX7gbPSXkH1p8QqgSeJw_zuxr16Wh3np-y5XP3qwZod7ZwLO1fISTAUrLjaPdA3re9fBOqH4V5nNmTAfctmLhFEomn7bV9AeK1jD-u2rZMKWOiIQcxDWVqIThgKqQdR4q6aZwn51-pftxYB1Ox950BpqmylQ-l8-KnqE_RIuI_lb7VCozNf7SPkj77I1uPlH-vxq6XoHkZHGOCQ86nnwp5IMKDek5Uk443SB-RGeSzOpWD_pZyIH3d1kRYZrjFy3dNgxtfpbo"/>
+<div>
+<p class="text-sm font-bold text-on-surface">Julian Thorne</p>
+<p class="text-[10px] text-on-surface-variant">Member since 2022</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas (The Map) -->
+<main class="ml-72 h-screen relative bg-surface-dim">
+<!-- Interactive Map Mockup -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover filter contrast-[0.85] brightness-[1.05]" data-alt="Minimalist top-down perspective of an urban city map with detailed streets, parks, and building footprints in soft grayscale and gold tones" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjuKaaC5T0zjq2BhHvhljZ263A1mbj7agEtO-pI0XZk7YP62VXsRt84vDJojpxHgE2VRKMuNlXyFn7hSb7uIENYBYyq9zjdTEkpKFzOjCUh6cLzE2i_sXs6uJqj4KZ0j4MVHHZ65qdvcYLGFGQiFsWEuVj36u63oabS_6yxv2TefRe03MqMQUxtJ9XaWgsHaB9jvzI4ANXLZpuLtl79-EW0jz2RzP7jXL7HSZLxal-uZ1o5ANOjoRXB6zapvFnRdgnnGOztq3KCY4"/>
+<!-- SVG Overlay for Routes -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" viewbox="0 0 1000 1000">
+<!-- Shortest Route (Gray) -->
+<path d="M 300 700 L 450 600 L 550 500 L 600 350 L 700 200" fill="none" opacity="0.6" stroke="#94a3b8" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"></path>
+<!-- Most Shaded Route (Amber/Gold) -->
+<path d="M 300 700 L 320 620 L 400 580 L 420 480 L 520 420 L 620 380 L 700 200" fill="none" stroke="#825500" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"></path>
+<!-- Animated Dash for Active Route -->
+<path d="M 300 700 L 320 620 L 400 580 L 420 480 L 520 420 L 620 380 L 700 200" fill="none" stroke="#ffab00" stroke-dasharray="10,20" stroke-width="2"></path>
+</svg>
+<!-- Markers -->
+<div class="absolute top-[70%] left-[30%] -translate-x-1/2 -translate-y-full flex flex-col items-center">
+<div class="bg-white px-2 py-1 rounded shadow-md mb-1 text-[10px] font-bold">Start: Ferry Bldg</div>
+<span class="material-symbols-outlined text-green-600 text-4xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="absolute top-[20%] left-[70%] -translate-x-1/2 -translate-y-full flex flex-col items-center">
+<div class="bg-white px-2 py-1 rounded shadow-md mb-1 text-[10px] font-bold">End: Dolores Park</div>
+<span class="material-symbols-outlined text-red-600 text-4xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+</div>
+<!-- Solar Intensity Banner -->
+<div class="absolute top-20 left-1/2 -translate-x-1/2 z-30 w-[400px]">
+<div class="bg-primary text-on-primary rounded-full px-6 py-2 shadow-2xl flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span class="text-xs font-bold tracking-tight uppercase">High Solar Intensity (UV 9)</span>
+</div>
+<span class="text-[10px] font-medium opacity-80">12:45 PM Peak</span>
+</div>
+</div>
+<!-- Floating Route Comparison Cards -->
+<div class="absolute right-8 top-24 bottom-24 w-80 z-30 flex flex-col gap-4">
+<!-- Recommendation Badge -->
+<div class="bg-secondary-fixed text-on-secondary-fixed py-2 px-4 rounded-full flex items-center gap-2 self-end shadow-lg animate-pulse">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">recommend</span>
+<span class="text-[11px] font-bold uppercase tracking-wider">Recommended Option</span>
+</div>
+<!-- Card: Most Shaded (Amber) -->
+<div class="bg-surface-container-lowest/80 backdrop-blur-xl rounded-lg p-6 shadow-xl border-l-8 border-primary relative overflow-hidden flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-lg font-bold text-primary">Most Shaded</h3>
+<p class="text-xs text-on-surface-variant font-medium">The "Cool" Path</p>
+</div>
+<div class="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded-md font-bold">
+                        92% SHADE
+                    </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-surface-container-low p-3 rounded-xl">
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-1">Distance</p>
+<p class="text-lg font-bold text-on-surface">4.8 km</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-xl">
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-1">Max Exposure</p>
+<p class="text-lg font-bold text-on-surface">12 m</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-xl">
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-1">Detour Ratio</p>
+<p class="text-lg font-bold text-on-surface">1.2x</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-xl">
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-1">Cont. Shade</p>
+<p class="text-lg font-bold text-on-surface">850 m</p>
+</div>
+</div>
+<!-- Mini Timeline -->
+<div class="mt-auto">
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-3">Shade Distribution Timeline</p>
+<div class="h-2 w-full bg-tertiary-fixed-dim/40 rounded-full flex overflow-hidden">
+<div class="h-full bg-primary w-[40%]"></div>
+<div class="h-full bg-primary-container w-[10%] opacity-50"></div>
+<div class="h-full bg-primary w-[50%]"></div>
+</div>
+<div class="flex justify-between mt-1 text-[8px] font-bold text-on-surface-variant">
+<span>A</span>
+<span>B</span>
+</div>
+</div>
+</div>
+<!-- Card: Shortest (Gray) -->
+<div class="bg-surface-container-lowest/60 backdrop-blur-md rounded-lg p-6 shadow-xl border-l-8 border-slate-300">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-lg font-bold text-slate-600">Shortest</h3>
+<p class="text-xs text-on-surface-variant font-medium">Standard Route</p>
+</div>
+<div class="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">
+                        14% SHADE
+                    </div>
+</div>
+<div class="flex items-center gap-6">
+<div>
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-0.5">Distance</p>
+<p class="text-base font-bold text-on-surface">3.2 km</p>
+</div>
+<div class="h-8 w-px bg-outline-variant/30"></div>
+<div>
+<p class="text-[9px] font-label text-on-surface-variant uppercase mb-0.5">Max Exposure</p>
+<p class="text-base font-bold text-red-600">620 m</p>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-4 rounded-xl font-extrabold text-sm tracking-widest shadow-2xl hover:bg-primary-fixed-variant transition-colors flex items-center justify-center gap-2">
+                START NAVIGATING
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<!-- Compass & Controls -->
+<div class="absolute bottom-10 left-10 z-30 flex flex-col gap-3">
+<button class="w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+<div class="flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden">
+<button class="w-12 h-12 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors border-b border-outline-variant/10">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+</div>
+<!-- Map Layer Switcher (Glassmatic Card) -->
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 bg-surface-container-lowest/80 backdrop-blur-md rounded-full px-4 py-2 shadow-2xl flex items-center gap-6">
+<button class="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-tighter">
+<span class="material-symbols-outlined text-base">wb_sunny</span>
+                Real-Time Shadows
+            </button>
+<div class="h-4 w-px bg-outline-variant/30"></div>
+<button class="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter opacity-60">
+<span class="material-symbols-outlined text-base">layers</span>
+                Satellite
+            </button>
+<div class="h-4 w-px bg-outline-variant/30"></div>
+<button class="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter opacity-60">
+<span class="material-symbols-outlined text-base">thermometer</span>
+                Heat Map
+            </button>
+</div>
+</main>
+</body></html>
