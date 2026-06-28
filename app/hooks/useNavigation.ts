@@ -5,7 +5,7 @@ import { fetchRoutingGraph, fetchStationEntrances } from "../lib/overpass";
 import {
   snapToEdge, dijkstra, snapToGraph, paretoRoutes, graphToGeoJSON,
   haversineMeters, bfsReachable, snapToReachableEdge, SpatialGrid,
-  simplifyPolyline, sketchBoundingBox, findSketchGaps,
+  simplifyPolyline, sketchBoundingBox, findSketchGaps, connectRouteEndpoints,
 } from "../lib/routing";
 import type { GraphEdge, RoutingGraph, RouteLeg, LatLng, SketchPoint, RouteOption } from "../lib/routing";
 import { recordRoutingRun, computeDerivedKpis } from "../lib/metrics";
@@ -499,21 +499,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
       const dpr = window.devicePixelRatio || 1;
 
-      const _mX = (lng: number) => (lng + 180) / 360;
-      const _mY = (lat: number) => {
-        const s = Math.sin(lat * Math.PI / 180);
-        return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI);
+      // MapLibre transform — correct under rotation/tilt (see calculateRoute).
+      const projectToScreen = (lng: number, lat: number): [number, number] => {
+        const p = map.project([lng, lat]);
+        return [p.x, p.y];
       };
-      const _scale = Math.pow(2, map.getZoom()) * 512;
-      const _mc = map.getCenter();
-      const _cx = _mX(_mc.lng) * _scale;
-      const _cy = _mY(_mc.lat) * _scale;
-      const _W2 = canvas.width / dpr / 2;
-      const _H2 = canvas.height / dpr / 2;
-      const projectFast = (lng: number, lat: number): [number, number] => [
-        _mX(lng) * _scale - _cx + _W2,
-        _mY(lat) * _scale - _cy + _H2,
-      ];
 
       for (const [fromId, edges] of graph.adj) {
         const fromNode = graph.nodes.get(fromId);
@@ -523,7 +513,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           if (!toNode) continue;
           const samples = Math.max(3, Math.ceil(edge.distanceM / 25));
           const shade = sampleBothSidewalks(
-            projectFast, imageData, dpr,
+            projectToScreen, imageData, dpr,
             [fromNode.lon, fromNode.lat], [toNode.lon, toNode.lat], samples
           );
           edge.shadeFactor = Math.max(shade.left, shade.right);
@@ -561,7 +551,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const geojson = graphToGeoJSON(fullPath, sketchGraph);
+        const geojson = connectRouteEndpoints(
+          graphToGeoJSON(fullPath, sketchGraph),
+          simplified[0],
+          simplified[simplified.length - 1],
+        );
         const shadeCoverage = totalShadeDist / totalDist;
         options.push({
           label: v.label,
@@ -822,21 +816,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const dpr = window.devicePixelRatio || 1;
       canvasReadMs = performance.now() - tCanvas;
 
-      const _mX = (lng: number) => (lng + 180) / 360;
-      const _mY = (lat: number) => {
-        const s = Math.sin(lat * Math.PI / 180);
-        return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI);
+      // Project lng/lat → CSS pixels with MapLibre's transform so shade sampling
+      // stays correct under any camera orientation. A hand-rolled web-mercator
+      // formula is only valid at bearing 0 / pitch 0; the moment the user rotates
+      // or tilts the map it samples the wrong pixels and the shade % is garbage.
+      const projectToScreen = (lng: number, lat: number): [number, number] => {
+        const p = map.project([lng, lat]);
+        return [p.x, p.y];
       };
-      const _scale = Math.pow(2, map.getZoom()) * 512;
-      const _mc = map.getCenter();
-      const _cx = _mX(_mc.lng) * _scale;
-      const _cy = _mY(_mc.lat) * _scale;
-      const _W2 = canvas.width / dpr / 2;
-      const _H2 = canvas.height / dpr / 2;
-      const projectFast = (lng: number, lat: number): [number, number] => [
-        _mX(lng) * _scale - _cx + _W2,
-        _mY(lat) * _scale - _cy + _H2,
-      ];
 
       for (const vid of [-1, -2]) {
         const vidEdges = graph.adj.get(vid);
@@ -877,7 +864,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             ? [fromNode.lon, fromNode.lat] : [toNode.lon, toNode.lat];
           const canonTo: [number, number] = fromId < edge.toId
             ? [toNode.lon, toNode.lat] : [fromNode.lon, fromNode.lat];
-          edgeShadeCache.set(key, sampleBothSidewalks(projectFast, imageData, dpr, canonFrom, canonTo, samples));
+          edgeShadeCache.set(key, sampleBothSidewalks(projectToScreen, imageData, dpr, canonFrom, canonTo, samples));
         }
       }
       shadeSampleMs = performance.now() - tShade;
@@ -989,10 +976,16 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         const paretoResults = paretoRoutes(routingGraph, effectiveStartId, effectiveEndId, opts);
         dijkstraMs = performance.now() - tDijkstra;
 
-        const ROUTE_LABELS = ["Shortest", "Balanced", "Most shaded"] as const;
+        // Results are ordered [shortest, balanced, most shaded] with duplicate
+        // paths removed — when only 2 remain, the second is always the shaded
+        // end of the Pareto front, not "Balanced".
+        const ROUTE_LABELS =
+          paretoResults.length === 2
+            ? ["Shortest", "Most shaded"]
+            : ["Shortest", "Balanced", "Most shaded"];
         options = paretoResults.map((result, i) => ({
           label: ROUTE_LABELS[i] ?? "Route",
-          geojson: graphToGeoJSON(result.nodeIds, routingGraph),
+          geojson: connectRouteEndpoints(graphToGeoJSON(result.nodeIds, routingGraph), a, b),
           distanceM: result.distanceM,
           shadeCoverage: result.shadeCoverage,
           longestContinuousShadeM: result.longestContinuousShadeM,
@@ -1032,11 +1025,15 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           const shadeCov = totalDist > 0 ? totalShadeDist / totalDist : 0;
           options.push({
             label: MULTI_LABELS[si] ?? "Route",
-            geojson: {
-              type: "Feature",
-              properties: {},
-              geometry: { type: "LineString", coordinates: allCoords },
-            },
+            geojson: connectRouteEndpoints(
+              {
+                type: "Feature",
+                properties: {},
+                geometry: { type: "LineString", coordinates: allCoords },
+              },
+              a,
+              b,
+            ),
             distanceM: totalDist,
             shadeCoverage: shadeCov,
             longestContinuousShadeM: 0,

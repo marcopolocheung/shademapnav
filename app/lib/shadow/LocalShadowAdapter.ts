@@ -4,6 +4,14 @@ import earcut from 'earcut';
 import type { IShadowLayer } from './IShadowLayer';
 import SunWorker from '../../workers/sunPosition.worker?worker';
 
+// Shadow-edge antialiasing via supersampling: the shadow FBO is rendered at
+// SHADOW_SUPERSAMPLE× the canvas resolution, then box-downsampled by the LINEAR
+// composite quad (Pass D). 2 = 4 samples/pixel. Cost is ~4× shadow fragment work
+// and FBO memory, so the supersampled dimension is capped at SHADOW_FBO_MAX_DIM
+// (per-axis) to avoid blowing past GPU limits / memory on hi-DPR displays.
+const SHADOW_SUPERSAMPLE = 2;
+const SHADOW_FBO_MAX_DIM = 4096;
+
 interface ShadowGeometry {
   shadowVerts: Float32Array;    // Mercator (x,y) shadow triangles
   shadowHeights: Float32Array;  // normalized height per shadow vertex (h/maxH)
@@ -141,10 +149,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   // Shadow color interpolates from BASE_RGB (night/sunrise/sunset) to NOON_RGB (12:00 noon)
   // based on current sun altitude relative to its altitude at 12:00.
   private static readonly SHADOW_ALPHA = 0.7;
-  //private static readonly BASE_RGB: [number, number, number] = [1 / 255, 17 / 255, 47 / 255]; // #01112f
-  private static readonly BASE_RGB: [number, number, number] = [107 / 255, 107 / 255, 107 / 255]; // #6b6b6b - slightly lighter base color for better visibility of shadows at night
-  //private static readonly NOON_RGB: [number, number, number] = [0x8f / 255, 0x8f / 255, 0x8f / 255]; // #8f8f8f
-  private static readonly NOON_RGB: [number, number, number] = [0xbf / 255, 0xbf / 255, 0xbf / 255]; // #bfbfbf
+  // IMPORTANT: shadows MUST stay blue-dominant at every sun altitude — shade
+  // routing detects them by blue dominance (app/lib/shadeSampling.ts). A neutral
+  // gray shadow is invisible to the sampler (r≈g≈b → 0% coverage, single route).
+  // So BOTH endpoints below are blue. NOON is a lighter blue for midday
+  // visibility, not gray. (CLAUDE.md invariant #5: change one → change both.)
+  private static readonly BASE_RGB: [number, number, number] = [1 / 255, 17 / 255, 47 / 255]; // #01112f
+  private static readonly NOON_RGB: [number, number, number] = [0x22 / 255, 0x46 / 255, 0x7f / 255]; // #22467f (lighter blue)
 
   constructor(opts?: { date?: Date; id?: string }) {
     this.currentDate = opts?.date ?? new Date();
@@ -374,8 +385,16 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const geo = this.cachedGeometry;
     if (geo.shadowVerts.length === 0) return;
 
-    const w = gl.canvas.width;
-    const h = gl.canvas.height;
+    // FBO passes (A/B/C) render at supersampled resolution for shadow-edge AA;
+    // the final composite (Pass D) draws at the real canvas viewport, box-
+    // downsampling via the LINEAR-filtered fboTexture. Cap each axis so the
+    // supersampled buffer can't exceed GPU/memory limits.
+    const cw = gl.canvas.width;
+    const ch = gl.canvas.height;
+    const ssW = Math.min(cw * SHADOW_SUPERSAMPLE, SHADOW_FBO_MAX_DIM);
+    const ssH = Math.min(ch * SHADOW_SUPERSAMPLE, SHADOW_FBO_MAX_DIM);
+    const w = ssW;
+    const h = ssH;
     this.ensureFBO(gl, w, h);
     if (!this.fbo) return;
 
@@ -592,7 +611,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   /**
    * Compute the premultiplied shadow color based on sun altitude.
    * At sunrise/sunset (altitude ≈ 0): base color #01112f
-   * At 12:00 noon (altitude = noon peak): #8f8f8f
+   * At 12:00 noon (altitude = noon peak): lighter blue #22467f
    * Night (sun below horizon): base color unchanged
    */
   private computeShadowColor(sunBelowHorizon: boolean): [number, number, number, number] {
@@ -638,8 +657,9 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.fboTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.fboTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    // LINEAR so Pass D box-downsamples the supersampled shadow → antialiased edges.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fboTexture, 0);

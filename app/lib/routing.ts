@@ -72,6 +72,8 @@ export interface DijkstraOptions {
   crossingPenaltyM?: number;  // default 0; extra meters cost per intersection traversal
   solarIntensity?: number;    // 0–1; scales MAX_SHADE_SAVING; default 1.0
   straightLineDistM?: number; // for detourRatio; defaults to 0 → ratio = 1.0
+  maxDetourFactor?: number;   // paretoRoutes only: search budget = shortest distance
+                              // × this factor + 250 m flat; default 2.0
 }
 
 /** Haversine distance in meters. a/b are [lng, lat]. */
@@ -432,6 +434,10 @@ export function dijkstra(
 
 // ─── Bi-criteria Pareto routing ──────────────────────────────────────────────
 
+/** Flat allowance added to the Pareto detour budget so very short routes can
+ *  still take a meaningfully shadier parallel street. */
+const DETOUR_FLAT_M = 250;
+
 /**
  * Bi-criteria Pareto routing (NAMOA*-inspired label-setting).
  *
@@ -441,9 +447,21 @@ export function dijkstra(
  *   - Most shaded (max shadeM)
  *   - Balanced (knee of Pareto front — closest to ideal point in normalized space)
  *
+ * The search is bounded — in raw (distance, shaded-meters) space any walk that
+ * adds shaded meters is Pareto-optimal, including pacing back and forth on one
+ * shaded edge, so an unbounded search both explodes and returns degenerate
+ * "routes". Three guards keep it sane:
+ *   1. Detour budget: labels whose optimistic total length exceeds
+ *      shortestDist × maxDetourFactor + DETOUR_FLAT_M are pruned (a plain
+ *      distance Dijkstra runs first; also gives a fast unreachable exit).
+ *   2. No U-turns: an edge straight back to the node we just came from can
+ *      never extend a simple path — it only ever pumps shade.
+ *   3. Returned routes are simple paths: representatives are selected only
+ *      from destination labels whose path never revisits a node (loops around
+ *      a shaded block survive guards 1–2).
+ *
  * Labels use integer back-pointer IDs (not embedded path arrays) so memory is
  * O(nodes × MAX_LABELS_PER_NODE) rather than O(nodes × labels × pathLength).
- * Paths are reconstructed lazily only for the 2–3 selected representatives.
  */
 export function paretoRoutes(
   graph: RoutingGraph,
@@ -451,8 +469,12 @@ export function paretoRoutes(
   endId: number,
   options: DijkstraOptions = {}
 ): RouteResult[] {
-  const { crossingPenaltyM = 0, solarIntensity = 1.0, straightLineDistM = 0 } = options;
-  const effectiveSaving = MAX_SHADE_SAVING * solarIntensity;
+  const { crossingPenaltyM = 0, straightLineDistM = 0, maxDetourFactor = 2.0 } = options;
+
+  // Distance-only Dijkstra: budget baseline + fast exit when unreachable.
+  const shortestRun = dijkstra(graph, startId, endId, 0);
+  if (!shortestRun) return [];
+  const budgetM = shortestRun.distanceM * maxDetourFactor + DETOUR_FLAT_M;
 
   // Each label is stored by index in allLabels; back-pointer is parent index (-1 = start).
   interface PLabel {
@@ -477,7 +499,8 @@ export function paretoRoutes(
 
   const MAX_LABELS_PER_NODE = 20;
 
-  // Per-node Pareto set: array of label IDs, sorted distM asc (→ shadeM necessarily desc).
+  // Per-node Pareto set: array of label IDs, sorted distM asc (→ shadeM necessarily
+  // asc too — a later label with less shade would be dominated by an earlier one).
   const paretoSets = new Map<number, number[]>();
   const getSet = (id: number): number[] => {
     if (!paretoSets.has(id)) paretoSets.set(id, []);
@@ -520,19 +543,31 @@ export function paretoRoutes(
     return true;
   };
 
+  // Admissible lower bound on remaining walking distance to the destination,
+  // cached per node — each node is touched once per surviving label (up to the
+  // cap), and haversine is trig-heavy. Used both for A* ordering and for the
+  // detour-budget prune. Note label distM includes crossing penalties while
+  // the budget comes from pure meters — that only makes the prune marginally
+  // tighter, never looser.
   const destNode = graph.nodes.get(endId);
-  const heuristic = (nodeId: number): number => {
-    if (!destNode) return 0;
-    const n = graph.nodes.get(nodeId);
-    if (!n) return 0;
-    return haversineMeters([n.lon, n.lat], [destNode.lon, destNode.lat]) * (1 - effectiveSaving);
+  const hCache = new Map<number, number>();
+  const hRemaining = (nodeId: number): number => {
+    let h = hCache.get(nodeId);
+    if (h === undefined) {
+      const n = graph.nodes.get(nodeId);
+      h = destNode && n
+        ? haversineMeters([n.lon, n.lat], [destNode.lon, destNode.lat])
+        : 0;
+      hCache.set(nodeId, h);
+    }
+    return h;
   };
 
   const startLabel = mkLabel(0, 0, startId, -1, null);
   insertPareto(startLabel);
 
   const heap = new MinHeap<{ labelId: number; f: number }>((a, b) => a.f - b.f);
-  heap.push({ labelId: startLabel.id, f: heuristic(startId) });
+  heap.push({ labelId: startLabel.id, f: hRemaining(startId) });
 
   while (heap.size > 0) {
     const { labelId } = heap.pop()!;
@@ -541,7 +576,33 @@ export function paretoRoutes(
     // Skip if this label was evicted from its node's Pareto set since being pushed
     if (label.evicted) continue;
 
+    // A walk that leaves the destination is only readable again at the
+    // destination — i.e. it revisits endId and gets dropped at selection.
+    // Expanding destination labels is therefore pure waste.
+    if (label.nodeId === endId) continue;
+
+    // Destination-front pruning: the best this label can still become is
+    // (distM + straight-line remainder, shadeM + whole remaining budget walked
+    // fully shaded). If an already-found destination label dominates even that
+    // optimistic completion, the label can't contribute to the front.
+    const destSet = paretoSets.get(endId);
+    if (destSet && destSet.length > 0 && label.nodeId !== endId) {
+      const optDistM  = label.distM + hRemaining(label.nodeId);
+      const optShadeM = label.shadeM + (budgetM - label.distM);
+      let prunedByDest = false;
+      for (const id of destSet) {
+        const d = allLabels[id];
+        if (d.distM <= optDistM && d.shadeM >= optShadeM) { prunedByDest = true; break; }
+      }
+      if (prunedByDest) continue;
+    }
+
+    const cameFromId = label.parentId >= 0 ? allLabels[label.parentId].nodeId : Number.NaN;
+
     for (const edge of graph.adj.get(label.nodeId) ?? []) {
+      // U-turns never extend a simple path; they only pump shade meters.
+      if (edge.toId === cameFromId) continue;
+
       const toNode = graph.nodes.get(edge.toId);
       const crossing =
         crossingPenaltyM > 0 && toNode?.isIntersection && edge.toId !== endId
@@ -549,6 +610,10 @@ export function paretoRoutes(
 
       const newDistM  = label.distM  + edge.distanceM + crossing;
       const newShadeM = label.shadeM + edge.distanceM * edge.shadeFactor;
+
+      // Detour budget: prune anything that can no longer finish within budget
+      const hTo = hRemaining(edge.toId);
+      if (newDistM + hTo > budgetM) continue;
 
       // Pre-check dominance before allocating a label object
       const candidateSet = getSet(edge.toId);
@@ -561,7 +626,7 @@ export function paretoRoutes(
 
       const newLabel = mkLabel(newDistM, newShadeM, edge.toId, labelId, edge);
       if (insertPareto(newLabel)) {
-        heap.push({ labelId: newLabel.id, f: newDistM + heuristic(edge.toId) });
+        heap.push({ labelId: newLabel.id, f: newDistM + hTo });
       }
     }
   }
@@ -631,41 +696,48 @@ export function paretoRoutes(
     };
   };
 
-  // Select representatives: shortest (min distM), most shaded (max shadeM), knee
-  // destFront is sorted distM asc → shadeM desc
-  const shortest   = destFront[0];
-  const mostShaded = destFront[destFront.length - 1];
+  // Keep only labels whose path is a simple path — loops around shaded blocks
+  // survive the U-turn ban but are useless as navigation routes. The shortest
+  // path is always simple and within budget, so this never empties the front.
+  const candidates = destFront
+    .map((lbl) => ({ lbl, res: buildResult(lbl) }))
+    .filter(({ res }) => new Set(res.nodeIds).size === res.nodeIds.length);
+  if (candidates.length === 0) return [];
 
-  const minDist  = destFront[0].distM;
-  const maxDist  = destFront[destFront.length - 1].distM;
-  const minShade = destFront[0].shadeM;
-  const maxShade = destFront[destFront.length - 1].shadeM;
+  // Select representatives: shortest (min distM), most shaded (max shadeM), knee.
+  // candidates inherit destFront's order: distM asc → shadeM asc.
+  const shortest   = candidates[0];
+  const mostShaded = candidates[candidates.length - 1];
+
+  const minDist  = candidates[0].lbl.distM;
+  const maxDist  = candidates[candidates.length - 1].lbl.distM;
+  const minShade = candidates[0].lbl.shadeM;
+  const maxShade = candidates[candidates.length - 1].lbl.shadeM;
   const distRange  = maxDist  - minDist  || 1;
   const shadeRange = maxShade - minShade || 1;
 
-  let kneeLabel = destFront[0];
+  let knee = candidates[0];
   let kneeScore = Infinity;
-  for (const lbl of destFront) {
-    const nd = (lbl.distM  - minDist)  / distRange;
-    const ns = (lbl.shadeM - minShade) / shadeRange;
+  for (const c of candidates) {
+    const nd = (c.lbl.distM  - minDist)  / distRange;
+    const ns = (c.lbl.shadeM - minShade) / shadeRange;
     const score = Math.sqrt(nd * nd + (1 - ns) * (1 - ns));
-    if (score < kneeScore) { kneeScore = score; kneeLabel = lbl; }
+    if (score < kneeScore) { kneeScore = score; knee = c; }
   }
 
   // Build results, deduplicating by node-path key
   const seen = new Set<string>();
   const results: RouteResult[] = [];
-  const tryAdd = (lbl: PLabel) => {
-    const r = buildResult(lbl);
-    if (seen.has(r._key)) return;
-    seen.add(r._key);
-    const { _key: _unused, ...result } = r;
+  const tryAdd = (c: { res: RouteResult & { _key: string } }) => {
+    if (seen.has(c.res._key)) return;
+    seen.add(c.res._key);
+    const { _key: _unused, ...result } = c.res;
     void _unused;
     results.push(result);
   };
 
   tryAdd(shortest);
-  tryAdd(kneeLabel);
+  tryAdd(knee);
   tryAdd(mostShaded);
 
   return results;
@@ -788,6 +860,30 @@ export function snapToReachableEdge(
   if (toAdj) toAdj.push({ toId: virtualId, distanceM: distToTo, shadeFactor });
 
   return { id: virtualId, distM: bestDist };
+}
+
+/**
+ * Connects a road-network route's geometry back to the actual requested
+ * endpoints. Routing snaps the start/end onto the nearest walkable road, so the
+ * raw route LineString begins and ends *on the road* — not at the coordinate the
+ * user actually picked. Without this, every route visibly stops short of its
+ * pins ("approximates a path close enough"). Prepends `start` and appends `end`
+ * (skipping when already coincident) so the rendered route reaches the points.
+ */
+export function connectRouteEndpoints(
+  feature: GeoJSON.Feature<GeoJSON.LineString>,
+  start: [number, number],
+  end: [number, number]
+): GeoJSON.Feature<GeoJSON.LineString> {
+  const coords = (feature.geometry.coordinates as [number, number][]).slice();
+  const same = (p: [number, number], q: [number, number]) =>
+    p[0] === q[0] && p[1] === q[1];
+  if (coords.length === 0) {
+    return { ...feature, geometry: { ...feature.geometry, coordinates: [start, end] } };
+  }
+  if (!same(coords[0], start)) coords.unshift(start);
+  if (!same(coords[coords.length - 1], end)) coords.push(end);
+  return { ...feature, geometry: { ...feature.geometry, coordinates: coords } };
 }
 
 /** Converts a node ID path → GeoJSON LineString feature. */

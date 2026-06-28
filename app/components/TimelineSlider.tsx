@@ -154,7 +154,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
 
         fracMin.current = next;
         applyTranslate(next);
-        if (now - lastOnChangeMs.current >= 16) {
+        if (now - lastOnChangeMs.current >= 30) {
           lastOnChangeMs.current = now;
           onChange(Math.round(next));
         }
@@ -211,7 +211,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
 
       fracMin.current = Math.max(0, Math.min(1439, fracMin.current - dx / PX_PER_MIN));
       applyTranslate(fracMin.current);
-      if (now - lastOnChangeMs.current >= 16) {
+      if (now - lastOnChangeMs.current >= 30) {
         lastOnChangeMs.current = now;
         onChange(Math.round(fracMin.current));
       }

@@ -5,8 +5,9 @@
 
 /**
  * Sample shade independently for the left and right sidewalks of an edge.
- * ShadeMap overlay color is #01112f (R:1, G:17, B:47); shaded pixels have
- * heavy blue dominance (B/R > 1.8).
+ * The shadow overlay is a semi-transparent blue wash; shaded pixels read as
+ * blue-dominant (blue channel above the red/green average) regardless of how
+ * light or dark the underlying basemap is.
  *
  * `from`/`to` are [lng, lat] in the CANONICAL direction (used to define left/right
  * consistently). The caller is responsible for passing a canonical (low→high nodeId)
@@ -41,12 +42,18 @@ export function sampleBothSidewalks(
       const r = data[idx];
       const g = data[idx + 1];
       const b = data[idx + 2];
-      // ShadeMap overlay #01112f: very dark (r+g+b~65), heavy blue (b/r>>1.8), b>>g.
-      // Combined check rejects water, blue labels, and light basemap features.
+      // The shadow overlay is a semi-transparent BLUE wash (LocalShadowAdapter
+      // BASE/NOON_RGB) composited over the basemap. Its signature — independent
+      // of basemap brightness — is that blue exceeds the red/green average.
+      // (An absolute `r+g+b<200` dark gate breaks over the light outdoor-v2
+      // basemap, where a blended shadow pixel is ~ (70,81,102): blue-dominant
+      // but not dark.) Reject very bright pixels (sky/labels) and keep a strong
+      // blue margin so green parkland and neutral roads stay unshaded.
+      const avgRG = (r + g) / 2;
       const isShaded =
-        r + g + b < 200 &&
-        (r === 0 ? b > 30 : b / r > 1.8) &&
-        b > g * 1.5;
+        r + g + b < 600 &&
+        b - avgRG > 18 &&
+        b > avgRG * 1.15;
       shadeSum += isShaded ? 1 : 0;
       count++;
     }

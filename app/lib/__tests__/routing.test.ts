@@ -17,9 +17,11 @@ import {
   snapToGraph,
   snapToEdge,
   dijkstra,
+  paretoRoutes,
   graphToGeoJSON,
   bfsReachable,
   snapToReachableEdge,
+  connectRouteEndpoints,
   type RoutingGraph,
   type OsmNode,
   type GraphEdge,
@@ -322,6 +324,41 @@ describe("graphToGeoJSON", () => {
     const g = makeLinearGraph();
     const feat = graphToGeoJSON([1, 999, 3], g);
     expect(feat.geometry.coordinates).toHaveLength(2);
+  });
+});
+
+// ── connectRouteEndpoints — route geometry reaches the requested points ───────
+
+describe("connectRouteEndpoints", () => {
+  const line = (coords: [number, number][]): GeoJSON.Feature<GeoJSON.LineString> => ({
+    type: "Feature",
+    properties: {},
+    geometry: { type: "LineString", coordinates: coords },
+  });
+
+  it("prepends start and appends end when the route is snapped onto the road", () => {
+    // Route runs along a road; the user's actual pins are off to the side.
+    const start: [number, number] = [0.0, 0.0];
+    const end: [number, number] = [0.003, 0.0];
+    const snapped = line([[0.001, 0.0], [0.002, 0.0]]);
+    const out = connectRouteEndpoints(snapped, start, end);
+    const c = out.geometry.coordinates;
+    expect(c[0]).toEqual(start); // visibly reaches the start pin
+    expect(c[c.length - 1]).toEqual(end); // and the end pin
+    expect(c).toHaveLength(4);
+  });
+
+  it("does not duplicate an endpoint that already coincides with the pin", () => {
+    const start: [number, number] = [0.001, 0.0];
+    const end: [number, number] = [0.002, 0.0];
+    const snapped = line([[0.001, 0.0], [0.0015, 0.0], [0.002, 0.0]]);
+    const out = connectRouteEndpoints(snapped, start, end);
+    expect(out.geometry.coordinates).toHaveLength(3); // unchanged
+  });
+
+  it("handles an empty geometry by returning a direct start→end segment", () => {
+    const out = connectRouteEndpoints(line([]), [0, 0], [1, 1]);
+    expect(out.geometry.coordinates).toEqual([[0, 0], [1, 1]]);
   });
 });
 
@@ -667,5 +704,216 @@ describe("snapToReachableEdge", () => {
     const vAdj = graph.adj.get(-1)!;
     const toIds = vAdj.map((e) => e.toId).sort((a, b) => a - b);
     expect(toIds).toEqual([1, 2]); // wired bidirectionally to 1 and 2
+  });
+});
+
+// ── Tests: paretoRoutes ───────────────────────────────────────────────────────
+//
+// Graph coordinates are placed so haversine distances roughly match the stated
+// edge distanceM values (0.001° ≈ 111 m at the equator) — paretoRoutes uses a
+// straight-line heuristic, which must stay a lower bound on remaining distance.
+
+/** Asserts a route never visits the same node twice (no loops / back-and-forth). */
+function expectSimplePath(nodeIds: number[]) {
+  expect(new Set(nodeIds).size).toBe(nodeIds.length);
+}
+
+/**
+ * Shaded dead-end spur:
+ *   1 --[111m, shade 0]-- 2 --[111m, shade 0]-- 3
+ *                         |
+ *                       [55m, shade 1.0]
+ *                         |
+ *                         5   (cul-de-sac)
+ *
+ * The only simple path 1→3 is [1,2,3]. Walking the spur (2→5→2) adds shaded
+ * meters at the cost of distance, so "pump" walks like [1,2,5,2,3] are
+ * Pareto-optimal in (distance, shade-meters) space — but useless as routes.
+ */
+function makeShadeSpurGraph(): RoutingGraph {
+  const d = 111, s = 55;
+  const nodes = new Map<number, OsmNode>([
+    [1, { id: 1, lat: 0.0,    lon: 0.000 }],
+    [2, { id: 2, lat: 0.0,    lon: 0.001 }],
+    [3, { id: 3, lat: 0.0,    lon: 0.002 }],
+    [5, { id: 5, lat: 0.0005, lon: 0.001 }],
+  ]);
+  const adj = new Map<number, GraphEdge[]>([
+    [1, [{ toId: 2, distanceM: d, shadeFactor: 0 }]],
+    [2, [{ toId: 1, distanceM: d, shadeFactor: 0 },
+         { toId: 3, distanceM: d, shadeFactor: 0 },
+         { toId: 5, distanceM: s, shadeFactor: 1.0 }]],
+    [3, [{ toId: 2, distanceM: d, shadeFactor: 0 }]],
+    [5, [{ toId: 2, distanceM: s, shadeFactor: 1.0 }]],
+  ]);
+  return { nodes, adj };
+}
+
+/**
+ * Shaded triangle block hanging off the only path — loopable WITHOUT U-turns:
+ *   1 --[111m, shade 0]-- A --[111m, shade 0]-- 3
+ *   A — B — C — A: fully shaded triangle (111 m + 111 m + ~166 m)
+ *
+ * [1, A, B, C, A, 3] never immediately backtracks, yet revisits A.
+ */
+function makeShadedBlockGraph(): RoutingGraph {
+  const A = 10, B = 11, C = 12;
+  const nodes = new Map<number, OsmNode>([
+    [1, { id: 1, lat: 0.0,     lon: 0.000 }],
+    [A, { id: A, lat: 0.0,     lon: 0.001 }],
+    [3, { id: 3, lat: 0.0,     lon: 0.002 }],
+    [B, { id: B, lat: -0.001,  lon: 0.001 }],
+    [C, { id: C, lat: -0.001,  lon: 0.002 }],
+  ]);
+  const dAB = 111, dBC = 111, dCA = 166;
+  const adj = new Map<number, GraphEdge[]>([
+    [1, [{ toId: A, distanceM: 111, shadeFactor: 0 }]],
+    [A, [{ toId: 1, distanceM: 111, shadeFactor: 0 },
+         { toId: 3, distanceM: 111, shadeFactor: 0 },
+         { toId: B, distanceM: dAB, shadeFactor: 1.0 },
+         { toId: C, distanceM: dCA, shadeFactor: 1.0 }]],
+    [3, [{ toId: A, distanceM: 111, shadeFactor: 0 }]],
+    [B, [{ toId: A, distanceM: dAB, shadeFactor: 1.0 },
+         { toId: C, distanceM: dBC, shadeFactor: 1.0 }]],
+    [C, [{ toId: B, distanceM: dBC, shadeFactor: 1.0 },
+         { toId: A, distanceM: dCA, shadeFactor: 1.0 }]],
+  ]);
+  return { nodes, adj };
+}
+
+/**
+ * Extreme detour: direct sunny 111 m vs fully-shaded ~1116 m (10×) via node 4.
+ */
+function makeLongDetourGraph(): RoutingGraph {
+  const nodes = new Map<number, OsmNode>([
+    [1, { id: 1, lat: 0.0,   lon: 0.000 }],
+    [3, { id: 3, lat: 0.0,   lon: 0.001 }],
+    [4, { id: 4, lat: 0.005, lon: 0.0005 }],
+  ]);
+  const dLeg = haversineMeters([0.0, 0.0], [0.0005, 0.005]); // ≈ 558 m
+  const adj = new Map<number, GraphEdge[]>([
+    [1, [{ toId: 3, distanceM: 111,  shadeFactor: 0 },
+         { toId: 4, distanceM: dLeg, shadeFactor: 1.0 }]],
+    [3, [{ toId: 1, distanceM: 111,  shadeFactor: 0 },
+         { toId: 4, distanceM: dLeg, shadeFactor: 1.0 }]],
+    [4, [{ toId: 1, distanceM: dLeg, shadeFactor: 1.0 },
+         { toId: 3, distanceM: dLeg, shadeFactor: 1.0 }]],
+  ]);
+  return { nodes, adj };
+}
+
+/**
+ * Deterministic n×n city grid, 4-connected, ~111 m spacing, per-edge shade
+ * from an integer hash. Start = corner (0,0), end = corner (n-1,n-1).
+ */
+function makeGridGraph(n: number): { graph: RoutingGraph; startId: number; endId: number } {
+  const nodes = new Map<number, OsmNode>();
+  const adj = new Map<number, GraphEdge[]>();
+  const id = (r: number, c: number) => r * n + c + 1;
+  const D = 111.195;
+  const shadeAt = (r: number, c: number, horizontal: boolean) =>
+    (((r * 31 + c * 17 + (horizontal ? 7 : 0)) % 100) / 100);
+
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      nodes.set(id(r, c), { id: id(r, c), lat: r * 0.001, lon: c * 0.001 });
+      adj.set(id(r, c), []);
+    }
+  }
+  const link = (a: number, b: number, shade: number) => {
+    adj.get(a)!.push({ toId: b, distanceM: D, shadeFactor: shade });
+    adj.get(b)!.push({ toId: a, distanceM: D, shadeFactor: shade });
+  };
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (c + 1 < n) link(id(r, c), id(r, c + 1), shadeAt(r, c, true));
+      if (r + 1 < n) link(id(r, c), id(r + 1, c), shadeAt(r, c, false));
+    }
+  }
+  return { graph: { nodes, adj }, startId: id(0, 0), endId: id(n - 1, n - 1) };
+}
+
+describe("paretoRoutes — basic front selection", () => {
+  it("two-path graph: returns the direct route first and the shaded detour", () => {
+    const g = makeTwoPathGraph();
+    const routes = paretoRoutes(g, 1, 3);
+    expect(routes.length).toBeGreaterThanOrEqual(2);
+    expect(routes[0].nodeIds).toEqual([1, 3]); // shortest first
+    const mostShaded = routes[routes.length - 1];
+    expect(mostShaded.nodeIds).toEqual([1, 2, 3]);
+    expect(mostShaded.shadeCoverage).toBeCloseTo(1.0, 5);
+  });
+
+  it("uniform-shade graph: collapses to a single deduplicated route", () => {
+    const g = makeLinearGraph();
+    const routes = paretoRoutes(g, 1, 3);
+    expect(routes).toHaveLength(1);
+    expect(routes[0].nodeIds).toEqual([1, 2, 3]);
+  });
+
+  it("returns [] when the destination is unreachable", () => {
+    const g = makeDisconnectedGraph();
+    expect(paretoRoutes(g, 1, 3)).toEqual([]);
+  });
+});
+
+describe("paretoRoutes — routes must be simple paths (no loops, no back-and-forth)", () => {
+  it("never pumps shade by walking a shaded cul-de-sac and back", () => {
+    const g = makeShadeSpurGraph();
+    const routes = paretoRoutes(g, 1, 3);
+    expect(routes.length).toBeGreaterThanOrEqual(1);
+    for (const r of routes) expectSimplePath(r.nodeIds);
+    // Only one simple path exists → exactly one route
+    expect(routes).toHaveLength(1);
+    expect(routes[0].nodeIds).toEqual([1, 2, 3]);
+  });
+
+  it("never loops around a shaded block (revisit without immediate backtrack)", () => {
+    const g = makeShadedBlockGraph();
+    const routes = paretoRoutes(g, 1, 3);
+    expect(routes.length).toBeGreaterThanOrEqual(1);
+    for (const r of routes) expectSimplePath(r.nodeIds);
+  });
+
+  it("grid: all returned routes are simple paths", () => {
+    const { graph, startId, endId } = makeGridGraph(12);
+    const routes = paretoRoutes(graph, startId, endId);
+    expect(routes.length).toBeGreaterThanOrEqual(1);
+    expect(routes.length).toBeLessThanOrEqual(3);
+    for (const r of routes) expectSimplePath(r.nodeIds);
+  });
+});
+
+describe("paretoRoutes — detour budget", () => {
+  it("default budget excludes absurd detours (10× shaded loop not offered)", () => {
+    const g = makeLongDetourGraph();
+    const routes = paretoRoutes(g, 1, 3);
+    // shortest = 111 m → budget = 111 × 2 + 250 = 472 m; the 1116 m detour is out
+    for (const r of routes) {
+      expect(r.distanceM).toBeLessThanOrEqual(472);
+    }
+    expect(routes[0].nodeIds).toEqual([1, 3]);
+  });
+
+  it("maxDetourFactor option admits longer detours", () => {
+    const g = makeLongDetourGraph();
+    const routes = paretoRoutes(g, 1, 3, { maxDetourFactor: 12 });
+    const mostShaded = routes[routes.length - 1];
+    expect(mostShaded.nodeIds).toEqual([1, 4, 3]);
+    expect(mostShaded.shadeCoverage).toBeCloseTo(1.0, 5);
+  });
+
+  it("grid: every route respects the default budget relative to the shortest", () => {
+    const { graph, startId, endId } = makeGridGraph(12);
+    const routes = paretoRoutes(graph, startId, endId);
+    const shortest = routes[0].distanceM;
+    for (const r of routes) {
+      expect(r.distanceM).toBeLessThanOrEqual(shortest * 2 + 250);
+    }
+    // Absolute shaded meters grow along the front: last (most shaded) ≥ first (shortest)
+    const first = routes[0];
+    const last = routes[routes.length - 1];
+    expect(last.shadeCoverage * last.distanceM)
+      .toBeGreaterThanOrEqual(first.shadeCoverage * first.distanceM - 1e-9);
   });
 });
