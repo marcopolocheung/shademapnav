@@ -88,8 +88,9 @@ export const TRAIN_SUN_EXPOSURE: Record<TrainMode, number> = {
 
 const TRANSFER_PENALTY_M = 300;
 const INTERCHANGE_DIST_M = 150;
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
-const OVERPASS_FALLBACK_URL = "https://overpass.kumi.systems/api/interpreter";
+// Same-origin proxy (never overpass-api.de directly) — see app/lib/overpass.ts
+// and api/overpass.js for why. Mirror fallback is handled server-side.
+const OVERPASS_BASE = import.meta.env.DEV ? "/__overpass" : "/api/overpass";
 const FETCH_TIMEOUT_MS = 30_000;
 
 const DEFAULT_COLORS = [
@@ -131,15 +132,14 @@ function cacheContains(
 // ─── Overpass helpers ───────────────────────────────────────────────────────
 
 async function postOverpass(
-  url: string,
   body: string,
   signal?: AbortSignal
 ): Promise<Response> {
-  return fetch(url, {
+  // No User-Agent header — forbidden in browsers; the proxy sets one server-side.
+  return fetch(OVERPASS_BASE, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "ShadeMapNav/1.0",
     },
     body,
     signal,
@@ -383,14 +383,8 @@ export async function fetchTrainGraph(
 
   let res: Response;
   try {
-    res = await postOverpass(OVERPASS_URL, encodedBody, combinedSignal);
-    if (!res.ok && res.status >= 500) {
-      res = await postOverpass(
-        OVERPASS_FALLBACK_URL,
-        encodedBody,
-        combinedSignal
-      );
-    }
+    // The proxy handles the mirror fallback server-side.
+    res = await postOverpass(encodedBody, combinedSignal);
   } catch {
     return null;
   } finally {

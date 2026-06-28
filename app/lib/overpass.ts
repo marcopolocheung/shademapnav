@@ -1,21 +1,25 @@
 import { haversineMeters } from "./routing";
 import type { OsmNode, GraphEdge, RoutingGraph } from "./routing";
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
-const OVERPASS_FALLBACK_URL = "https://overpass.kumi.systems/api/interpreter";
+// Requests go through a same-origin proxy, never directly to overpass-api.de:
+// the public instance omits CORS headers on its 429/504 error responses, which
+// browsers report as a (misleading) CORS failure. In dev we use Vite's proxy;
+// in production a Vercel function at /api/overpass (which also handles the
+// mirror fallback server-side). See vite.config.ts and api/overpass.js.
+const OVERPASS_BASE = import.meta.env.DEV ? "/__overpass" : "/api/overpass";
 
 const FETCH_TIMEOUT_MS = 30_000;
 
 async function postOverpass(
-  url: string,
   body: string,
   signal?: AbortSignal
 ): Promise<Response> {
-  return fetch(url, {
+  // No User-Agent header: it's a forbidden header in browsers (silently
+  // dropped). The proxy sets a real one server-side.
+  return fetch(OVERPASS_BASE, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "ShadeMapNav/1.0",
     },
     body,
     signal,
@@ -89,10 +93,8 @@ out body geom;
 
   let res: Response;
   try {
-    res = await postOverpass(OVERPASS_URL, encodedBody, combinedSignal);
-    if (!res.ok && res.status >= 500) {
-      res = await postOverpass(OVERPASS_FALLBACK_URL, encodedBody, combinedSignal);
-    }
+    // The proxy handles the mirror fallback server-side.
+    res = await postOverpass(encodedBody, combinedSignal);
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
       if (signal?.aborted) throw e; // caller-initiated abort: rethrow as AbortError
@@ -244,7 +246,7 @@ out body;`.trim();
   const encodedBody = `data=${encodeURIComponent(query)}`;
 
   try {
-    const res = await postOverpass(OVERPASS_URL, encodedBody, signal);
+    const res = await postOverpass(encodedBody, signal);
     if (!res.ok) return [];
     const text = await res.text();
     if (text.trimStart().startsWith("<")) return [];

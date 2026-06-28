@@ -16,8 +16,16 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/__fsq/, ""),
         configure: (proxy) => {
-          
+
         },
+      },
+      // Overpass: overpass-api.de returns CORS-less error responses under load.
+      // Route through the dev server so dev matches the prod /api/overpass proxy.
+      "/__overpass": {
+        target: "https://overpass-api.de",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/__overpass/, "/api/interpreter"),
       },
     },
   },
