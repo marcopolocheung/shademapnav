@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import TimelineSlider from "./components/TimelineSlider";
 import AccumulationPanel from "./components/AccumulationPanel";
 import SaveRouteModal from "./components/SaveRouteModal";
@@ -16,7 +16,8 @@ import DirectionsPanel from "./components/DirectionsPanel";
 import PlaceDetail from "./components/PlaceDetail";
 import AssistantPanel from "./components/AssistantPanel";
 
-import { toMapLocal, fromMapLocal } from "./lib/timezone";
+import { toMapLocal, fromMapLocal, longitudeToUtcOffsetMin } from "./lib/timezone";
+import { parseShareState, shareUrlFromState } from "./lib/shareState";
 import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hooks/useShadowTime";
 import { useNavigation } from "./hooks/useNavigation";
 import { useAppState } from "./hooks/useAppState";
@@ -115,7 +116,7 @@ export default function Home() {
     handleMapClick, handleClear,
     handleOpenSaveModal, handleConfirmSave,
     handleLoadRoute, handleExportRoute,
-    handleRemoveAdditionalWaypoint,
+    handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
     handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,
@@ -131,6 +132,8 @@ export default function Home() {
 
   const { phase, selectedPlace, dispatch } = useAppState();
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const didHydrateShareRef = useRef(false);
 
   // AI assistant (shade-aware day-trip planner)
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -199,6 +202,74 @@ export default function Home() {
       handleToggleNavMode();
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (didHydrateShareRef.current || !mapRef.current || mapCenter == null) return;
+    didHydrateShareRef.current = true;
+
+    const firstPass = parseShareState(window.location.search, mapUtcOffsetMin);
+    const offset = firstPass.center ? longitudeToUtcOffsetMin(firstPass.center[0]) : mapUtcOffsetMin;
+    const shared = parseShareState(window.location.search, offset);
+    const hasRouteState = !!(shared.waypointA || shared.waypointB || shared.additionalWaypoints.length > 0);
+
+    if (shared.date) setDate(shared.date);
+    if (shared.waypointA) handleSetWaypointA(shared.waypointA, "Shared start");
+    if (shared.waypointB) handleSetWaypointB(shared.waypointB, "Shared destination");
+    if (shared.additionalWaypoints.length > 0) {
+      handleSetAdditionalWaypoints(shared.additionalWaypoints);
+    }
+    if (shared.center || shared.zoom != null) {
+      const center = shared.center ?? [mapCenter[1], mapCenter[0]] as [number, number];
+      mapRef.current.jumpTo({ center, zoom: shared.zoom ?? mapRef.current.getZoom() });
+    }
+    if (hasRouteState) {
+      setMenuOpen(true);
+      setSidebarOpen(true);
+      dispatch({ type: "START_DIRECTIONS" });
+    }
+  }, [
+    dispatch,
+    handleSetAdditionalWaypoints,
+    handleSetWaypointA,
+    handleSetWaypointB,
+    mapCenter,
+    mapRef,
+    mapUtcOffsetMin,
+    setDate,
+  ]);
+
+  useEffect(() => {
+    if (!didHydrateShareRef.current || !mapCenter) return;
+    const url = shareUrlFromState({
+      mapCenter,
+      mapZoom,
+      date,
+      utcOffsetMin: mapUtcOffsetMin,
+      waypointA,
+      waypointB,
+      additionalWaypoints,
+    });
+    window.history.replaceState(null, "", url);
+  }, [additionalWaypoints, date, mapCenter, mapUtcOffsetMin, mapZoom, waypointA, waypointB]);
+
+  const handleShareLink = useCallback(async () => {
+    const url = shareUrlFromState({
+      mapCenter,
+      mapZoom,
+      date,
+      utcOffsetMin: mapUtcOffsetMin,
+      waypointA,
+      waypointB,
+      additionalWaypoints,
+    });
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("copied");
+    } catch {
+      setShareStatus("error");
+    }
+    window.setTimeout(() => setShareStatus("idle"), 1800);
+  }, [additionalWaypoints, date, mapCenter, mapUtcOffsetMin, mapZoom, waypointA, waypointB]);
 
   // Drive bottom sheet snap from phase on mobile
   useEffect(() => {
@@ -478,7 +549,13 @@ export default function Home() {
 
       {/* Floating map controls — right side */}
       <div className="absolute bottom-20 md:top-24 md:bottom-auto right-3 z-10">
-        <FloatingMapControls mapRef={mapRef} onLocateMe={handleLocateMe} isLocating={isLocating} />
+        <FloatingMapControls
+          mapRef={mapRef}
+          onLocateMe={handleLocateMe}
+          isLocating={isLocating}
+          onShare={handleShareLink}
+          shareStatus={shareStatus}
+        />
       </div>
 
       {/* Desktop timeline — floating card at bottom */}
