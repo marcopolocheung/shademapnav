@@ -227,6 +227,12 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setSelectedRouteIndex(0);
   }, []);
 
+  const handleSetAdditionalWaypoints = useCallback((waypoints: [number, number][]) => {
+    setAdditionalWaypoints(waypoints);
+    setNavRoutes([]);
+    setSelectedRouteIndex(0);
+  }, []);
+
   const handleDeleteSavedRoute = useCallback((id: string) => {
     deleteRoute(id);
     setSavedRoutes(getRoutes());
@@ -1307,7 +1313,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     handleMapClick, handleClear,
     handleOpenSaveModal, handleConfirmSave,
     handleLoadRoute, handleExportRoute,
-    handleRemoveAdditionalWaypoint,
+    handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
     handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,

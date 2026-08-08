@@ -4,9 +4,17 @@ interface FloatingMapControlsProps {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
   onLocateMe: () => void;
   isLocating: boolean;
+  onShare?: () => void;
+  shareStatus?: "idle" | "copied" | "error";
 }
 
-export default function FloatingMapControls({ mapRef, onLocateMe, isLocating }: FloatingMapControlsProps) {
+export default function FloatingMapControls({
+  mapRef,
+  onLocateMe,
+  isLocating,
+  onShare,
+  shareStatus = "idle",
+}: FloatingMapControlsProps) {
   return (
     <div className="flex flex-col gap-3">
       {/* Zoom in */}
@@ -30,6 +38,22 @@ export default function FloatingMapControls({ mapRef, onLocateMe, isLocating }: 
       </button>
 
       <div className="h-px w-8 bg-slate-200 self-center my-1" />
+
+      {onShare && (
+        <button
+          onClick={onShare}
+          className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
+          aria-label={shareStatus === "copied" ? "Share link copied" : "Copy share link"}
+          title={shareStatus === "copied" ? "Copied" : shareStatus === "error" ? "Copy failed" : "Copy share link"}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontVariationSettings: shareStatus === "copied" ? "'FILL' 1" : undefined }}
+          >
+            {shareStatus === "copied" ? "check" : "ios_share"}
+          </span>
+        </button>
+      )}
 
       {/* My Location */}
       <button
