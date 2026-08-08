@@ -1,7 +1,7 @@
 /**
  * Snaps a waypoint coordinate to just outside a building footprint if it falls
  * inside one. Uses the map's maptiler_planet/building source layer — the same
- * data ShadeMap uses for shadow geometry — so no extra network requests are needed.
+ * data used for local shadow geometry — so no extra network requests are needed.
  */
 
 /** Minimal MapLibre interface required for building queries (mockable in tests). */
@@ -72,7 +72,7 @@ function nearestPointOnRing(
  * just outside the building boundary with a small outward buffer (default 3 m).
  * Otherwise returns coord unchanged.
  *
- * Uses maptiler_planet / building source layer (same source ShadeMap uses),
+ * Uses the maptiler_planet / building source layer used by the local renderer,
  * so no extra network requests are required.
  */
 export function snapOutsideBuilding(

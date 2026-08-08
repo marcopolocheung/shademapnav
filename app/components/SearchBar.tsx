@@ -148,7 +148,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
-        { headers: { "User-Agent": "ShadeMapNav/1.0" } }
+        { headers: { "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)" } }
       );
       const data: NominatimResult[] = await res.json();
       setResults(data);

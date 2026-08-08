@@ -32,7 +32,7 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
   });
 }
 
-const HEADERS = { "User-Agent": "ShadeMapNavigator/1.0" };
+const HEADERS = { "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)" };
 
 // Simple LRU caches for geocode results
 const CACHE_MAX = 50;

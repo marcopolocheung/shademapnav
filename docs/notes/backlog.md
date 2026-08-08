@@ -11,8 +11,8 @@ hours available
 
 UI fixes
 
-TikTok/messages integration (click on an address in imessage, route using google maps or shademapnav)
+TikTok/messages integration (click on an address in imessage, route using google maps or ShadeMapNav)
 
 What is Nav for?
 Social media is place of discovery, google maps is for saving destinations
-ShadeMap is a feature for Nav 
+ShadeMapNav is a personal open-source shaded-route navigation project.

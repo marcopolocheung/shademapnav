@@ -1,6 +1,7 @@
-# ShadeMapNavigation
+# ShadeMapNav
 
-Browser-based shadow-focused navigation for any location on Earth.
+A personal open-source shaded-route navigation project for any location on Earth.
+ShadeMapNav is an independent personal project and is not affiliated with ShadeMap.app.
 
 Visit here: https://shademapnav.vercel.app/
 

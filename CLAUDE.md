@@ -1,5 +1,7 @@
-# ShadeMap Navigator — Agent Guide (canonical entry)
+# ShadeMapNav — Agent Guide (canonical entry)
 
+ShadeMapNav is a personal open-source shaded-route navigation project. It is an
+independent personal project and is not affiliated with ShadeMap.app.
 Browser-based sun-shadow simulation with shade-aware pedestrian + transit routing.
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
 except one serverless proxy (`api/fsq.js`). Deployed: https://shademapnav.vercel.app

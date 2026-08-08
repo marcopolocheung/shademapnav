@@ -10,7 +10,7 @@ export interface ShadowLayerOptions {
 /**
  * Creates the local shadow layer.
  *
- * Previously this factory tried the ShadeMap API first with a fallback to local.
+ * Previously this factory tried a remote shadow API first with a fallback to local.
  * Now it always returns the LocalShadowAdapter (custom WebGL renderer).
  */
 export function createShadowLayer(

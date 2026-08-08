@@ -1,4 +1,7 @@
-# Project Review — ShadeMap Navigator
+# Project Review — ShadeMapNav
+
+ShadeMapNav is a personal open-source shaded-route navigation project. It is an independent
+personal project and is not affiliated with ShadeMap.app.
 
 *End-to-end review, 2026-07-05, on branch `feat/ai-agent-integration` (uncommitted agent work included). Verification run: **94/94 tests pass**, **build succeeds** (Vite 8/rolldown, 741ms), **lint passes** (but see below), **typecheck has 4 errors** (3 documented, 1 new).*
 

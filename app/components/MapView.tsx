@@ -51,7 +51,7 @@ function escapeHtml(s: string): string {
 /**
  * Ensure nav overlays stay visible.
  *
- * ShadeMap (shadow simulator) adds its own WebGL layer during `map.on('load')`.
+ * The local shadow simulator adds its own WebGL layer during `map.on('load')`.
  * Depending on timing (especially in production builds), it can end up above
  * our route layers and visually obscure them.
  *
