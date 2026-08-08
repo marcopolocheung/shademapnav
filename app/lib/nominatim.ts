@@ -63,6 +63,34 @@ export function geocodeForward(query: string): Promise<NominatimResult[]> {
   });
 }
 
+/**
+ * Search for matches to `query` biased to a bounding box around (lat, lng).
+ * Uses Nominatim's `viewbox` + `bounded=1` so e.g. "parks" returns parks IN
+ * that area rather than arbitrary administrative areas worldwide. This is the
+ * agent's "find POIs near here" primitive (Nominatim is a geocoder, not a true
+ * POI index, but viewbox-bounded search is good enough for area discovery).
+ */
+export function geocodeNear(
+  query: string,
+  lat: number,
+  lng: number,
+  radiusDeg = 0.15
+): Promise<NominatimResult[]> {
+  return enqueue(async () => {
+    const left = lng - radiusDeg;
+    const right = lng + radiusDeg;
+    const top = lat + radiusDeg;
+    const bottom = lat - radiusDeg;
+    const url =
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}` +
+      `&format=json&limit=8&addressdetails=1` +
+      `&viewbox=${left},${top},${right},${bottom}&bounded=1`;
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
+    return (await res.json()) as NominatimResult[];
+  });
+}
+
 /** Result of reverse geocode with address coordinates (Nominatim's representative point). */
 export interface ReverseGeocodeResult {
   displayName: string;

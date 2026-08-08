@@ -14,11 +14,13 @@ import FloatingRouteCards from "./components/FloatingRouteCards";
 import QuickActions from "./components/QuickActions";
 import DirectionsPanel from "./components/DirectionsPanel";
 import PlaceDetail from "./components/PlaceDetail";
+import AssistantPanel from "./components/AssistantPanel";
 
 import { toMapLocal, fromMapLocal } from "./lib/timezone";
 import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hooks/useShadowTime";
 import { useNavigation } from "./hooks/useNavigation";
 import { useAppState } from "./hooks/useAppState";
+import { useAgent } from "./hooks/useAgent";
 
 const MapView = lazy(() => import("./components/MapView"));
 
@@ -129,6 +131,21 @@ export default function Home() {
 
   const { phase, selectedPlace, dispatch } = useAppState();
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
+
+  // AI assistant (shade-aware day-trip planner)
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantPins, setAssistantPins] = useState<{ lng: number; lat: number; label?: string }[]>([]);
+  const agent = useAgent({
+    mapRef,
+    dateRef,
+    setDate,
+    mapUtcOffsetMin,
+    userLocation,
+    setWaypointA: handleSetWaypointA,
+    setWaypointB: handleSetWaypointB,
+    calculateRoute: handleCalculateRoute,
+    setPins: setAssistantPins,
+  });
 
   // Sync activeTab with phase
   const [activeTab, setActiveTab] = useState<SideNavTab>("map");
@@ -589,6 +606,7 @@ export default function Home() {
               navMrtEntrances={navMrtEntrances}
               additionalWaypoints={additionalWaypoints}
               userLocation={userLocation}
+              assistantPins={assistantPins}
               drawMode={drawMode}
               sketchPoints={sketchPoints}
               onSketchPointClick={handleSketchPointClick}
@@ -613,6 +631,36 @@ export default function Home() {
           onDirections={handleOpenDirections}
         />
       </div>
+
+      {/* AI assistant: launcher FAB + chat panel */}
+      {!assistantOpen && (
+        <button
+          onClick={() => setAssistantOpen(true)}
+          className="fixed z-40 flex items-center justify-center rounded-full shadow-xl transition-transform hover:scale-105"
+          style={{
+            bottom: "6rem",
+            right: "1rem",
+            width: 52,
+            height: 52,
+            background: "var(--md-primary, #b45309)",
+            color: "white",
+          }}
+          title="Ask the Shade Assistant"
+          aria-label="Open Shade Assistant"
+        >
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+            assistant
+          </span>
+        </button>
+      )}
+      <AssistantPanel
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        messages={agent.messages}
+        isThinking={agent.isThinking}
+        onSend={agent.sendMessage}
+        onReset={agent.reset}
+      />
     </>
   );
 }

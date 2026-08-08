@@ -20,6 +20,36 @@ npm run build      # vite build → dist/
 Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
 (place popups). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
 
+AI assistant (Shade Assistant, `app/lib/agent/`): uses a **free** LLM — **Cerebras only**
+(OpenAI-compatible, ~1M tokens/day **per account**, but only 5 req/min). Key:
+https://cloud.cerebras.ai. dev `VITE_CEREBRAS_API_KEY` (via the Vite `/__cerebras` proxy);
+prod `CEREBRAS_API_KEY` (server-only, via `api/agent.js`).
+- **One shared key pool.** List every account's key comma-separated in
+  `VITE_CEREBRAS_API_KEY` (and/or numbered `_1/_2/_3` dev, `_1.._9` prod) — the client (dev)
+  and `api/agent.js` (prod) round-robin across the pool and fail over to the next key on
+  429/5xx, so N accounts ≈ N×1M tokens/day. There is **no per-role key split** anymore — all
+  roles draw the one pool.
+- **Per-role model (not key):** the loop does its tool-use research with the "research" model,
+  then writes the final answer with the "response" model. `VITE_CEREBRAS_RESEARCH_MODEL`
+  (default `gpt-oss-120b`) / `VITE_CEREBRAS_RESPONSE_MODEL`; base default `VITE_CEREBRAS_MODEL`.
+  Current: research=`zai-glm-4.7`, response=`gpt-oss-120b`. If both resolve to the same model,
+  `rolesShareConfig()` makes the loop skip the separate write call (the research answer IS the
+  answer). Note: both are reasoning models (emit a `reasoning` field; `fromOpenAI` reads
+  `content`). gpt-oss-120b is great at the write but its reasoning eats the token budget on
+  tool-calls — keep zai-glm-4.7 (or another non-reasoning-heavy model) for research.
+The loop is tuned for determinism: temperature 0, fixed `seed`, `parallel_tool_calls: false`,
+`MAX_STEPS` 8 (the happy path needs ~5 tool turns through plot_points — a lower cap strands the
+loop before pins reach the map), and a tightly-scoped system prompt (shade-day-planning only).
+**Determinism by pre-injection:** `get_current_context` is NOT a tool — the map center / local
+time / location-known status is plain app state, so `agentLoop.ts` reads it once per turn (via
+the still-present `executeTool("get_current_context")` executor) and appends it to the system
+prompt, saving a guaranteed LLM round-trip. The final write call uses a separate, tool-free
+system prompt so a reasoning response model never narrates uncallable tools into the answer.
+The agent loop runs client-side (it orchestrates tools needing the live map canvas:
+geocoding, the solar model, on-canvas shade sampling, time/camera, the routing pipeline).
+The loop speaks one neutral IR (`LlmContent`/`LlmPart`); `llmClient.ts` translates it to/from
+the OpenAI chat-completions shape Cerebras expects.
+
 ## Hard invariants (breaking any of these breaks the app)
 
 1. **`maplibre-gl` stays pinned at exactly `5.9.0`.** v5.10+ changes `Texture.update`

@@ -29,6 +29,8 @@ interface MapViewProps {
   navMrtEntrances?: [[number, number], [number, number]] | null;
   additionalWaypoints?: [number, number][];
   userLocation?: [number, number] | null;
+  /** Itinerary pins dropped by the AI assistant (numbered, labeled). */
+  assistantPins?: { lng: number; lat: number; label?: string }[];
   drawMode?: boolean;
   sketchPoints?: SketchPoint[];
   onSketchPointClick?: (coord: LatLng) => void;
@@ -305,6 +307,7 @@ export default function MapView({
   navMrtEntrances,
   additionalWaypoints,
   userLocation,
+  assistantPins,
   drawMode = false,
   sketchPoints = [],
   onSketchPointClick,
@@ -325,6 +328,7 @@ export default function MapView({
   const markerBoardRef     = useRef<maplibregl.Marker | null>(null);
   const markerAlightRef    = useRef<maplibregl.Marker | null>(null);
   const markerWpRefs          = useRef<maplibregl.Marker[]>([]);
+  const assistantPinRefs      = useRef<maplibregl.Marker[]>([]);
   const userLocationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const showSunLinesRef       = useRef(showSunLines);
   const drawModeRef             = useRef(drawMode);
@@ -867,6 +871,41 @@ export default function MapView({
       markerWpRefs.current.push(marker);
     });
   }, [additionalWaypoints]);
+
+  // -------------------------------------------------------------------------
+  // Assistant itinerary pins (numbered amber teardrops with label popups)
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!mapRef.current) return;
+    assistantPinRefs.current.forEach((m) => m.remove());
+    assistantPinRefs.current = [];
+    (assistantPins ?? []).forEach((pin, i) => {
+      const el = document.createElement("div");
+      el.style.cssText = `
+        width:26px;height:26px;border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        background:#d97706;border:2px solid white;
+        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+        display:flex;align-items:center;justify-content:center;cursor:pointer;
+      `;
+      const inner = document.createElement("span");
+      inner.style.cssText = `transform:rotate(45deg);font-size:11px;font-weight:700;color:white;`;
+      inner.textContent = String(i + 1);
+      el.appendChild(inner);
+
+      const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([pin.lng, pin.lat]);
+      if (pin.label) {
+        marker.setPopup(
+          new maplibregl.Popup({ offset: 28, closeButton: false }).setText(
+            `${i + 1}. ${pin.label}`
+          )
+        );
+      }
+      marker.addTo(mapRef.current!);
+      assistantPinRefs.current.push(marker);
+    });
+  }, [assistantPins]);
 
   // -------------------------------------------------------------------------
   // User location dot (pulsing blue) — reuse marker via setLngLat
