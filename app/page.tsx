@@ -140,7 +140,7 @@ export default function Home() {
     handleMapClick, handleClear,
     handleOpenSaveModal, handleConfirmSave,
     handleLoadRoute, handleExportRoute,
-    handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints,
+    handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints, handleAddAdditionalWaypoint,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
     handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,
@@ -516,6 +516,7 @@ export default function Home() {
             onDeleteSavedRoute={handleDeleteSavedRoute}
             onRenameSavedRoute={handleRenameSavedRoute}
             additionalWaypoints={additionalWaypoints}
+            onAddAdditionalWaypoint={handleAddAdditionalWaypoint}
             onRemoveAdditionalWaypoint={handleRemoveAdditionalWaypoint}
             onExportRoute={handleExportRoute}
             onPinDragStart={handlePinDragStart}
@@ -665,6 +666,7 @@ export default function Home() {
               onDeleteSavedRoute={handleDeleteSavedRoute}
               onRenameSavedRoute={handleRenameSavedRoute}
               additionalWaypoints={additionalWaypoints}
+              onAddAdditionalWaypoint={handleAddAdditionalWaypoint}
               onRemoveAdditionalWaypoint={handleRemoveAdditionalWaypoint}
               onExportRoute={handleExportRoute}
               onPinDragStart={handlePinDragStart}

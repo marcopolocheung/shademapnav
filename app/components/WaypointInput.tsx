@@ -4,7 +4,7 @@ import { geocodeForward, type NominatimResult } from "../lib/nominatim";
 interface WaypointInputProps {
   label: string | null;
   placeholder: string;
-  dotColor: "green" | "red";
+  dotColor: "green" | "red" | "amber";
   onSet: (coord: [number, number], label: string) => void;
   onClear: () => void;
 }
@@ -99,9 +99,13 @@ const WaypointInput = memo(function WaypointInput({
           <span className="material-symbols-outlined text-green-600 bg-green-50 rounded-full p-0.5 text-sm shrink-0">
             radio_button_checked
           </span>
-        ) : (
+        ) : dotColor === "red" ? (
           <span className="material-symbols-outlined text-red-600 bg-red-50 rounded-full p-0.5 text-sm shrink-0">
             location_on
+          </span>
+        ) : (
+          <span className="material-symbols-outlined text-amber-700 bg-amber-50 rounded-full p-0.5 text-sm shrink-0">
+            add_location
           </span>
         )}
         <input

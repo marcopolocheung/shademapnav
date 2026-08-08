@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { RouteOption } from "../lib/routing";
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { shortestRoute } from "../lib/routeTradeoff";
@@ -64,6 +64,7 @@ export interface DirectionsPanelProps {
   onDeleteSavedRoute?: (id: string) => void;
   onRenameSavedRoute?: (id: string, name: string) => void;
   additionalWaypoints?: [number, number][];
+  onAddAdditionalWaypoint?: (coord: [number, number], label: string) => void;
   onRemoveAdditionalWaypoint?: (index: number) => void;
   onExportRoute?: (routeIndex: number, format: "gpx" | "geojson") => void;
   onPinDragStart?: (slot: 'A' | 'B') => void;
@@ -94,7 +95,7 @@ export default function DirectionsPanel({
   onSaveRoute,
   savedRoutes, savedFolders,
   onLoadRoute, onDeleteSavedRoute, onRenameSavedRoute,
-  additionalWaypoints, onRemoveAdditionalWaypoint,
+  additionalWaypoints, onAddAdditionalWaypoint, onRemoveAdditionalWaypoint,
   onExportRoute,
   onPinDragStart,
   drawMode = false, onDrawModeToggle, onClearSketch,
@@ -109,6 +110,7 @@ export default function DirectionsPanel({
 }: DirectionsPanelProps) {
   const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
   const baselineRoute = shortestRoute(routes);
+  const [addingStop, setAddingStop] = useState(false);
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
@@ -204,9 +206,20 @@ export default function DirectionsPanel({
       </div>
 
       {/* Additional waypoints */}
-      {(additionalWaypoints ?? []).length > 0 && (
-        <div className="pl-4 flex flex-col gap-0.5 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
-          <span className="text-[10px] mb-0.5" style={{ opacity: 0.6 }}>Waypoints (Alt+click on map)</span>
+      {(additionalWaypoints ?? []).length > 0 || addingStop ? (
+        <div className="pl-4 flex flex-col gap-1 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px]" style={{ opacity: 0.6 }}>Stops between start and destination</span>
+            {!addingStop && onAddAdditionalWaypoint && (
+              <button
+                onClick={() => setAddingStop(true)}
+                className="text-[10px] font-medium hover:text-amber-700 transition-colors"
+                style={{ color: "var(--md-primary)" }}
+              >
+                Add stop
+              </button>
+            )}
+          </div>
           {(additionalWaypoints ?? []).map((wp, i) => (
             <div key={i} className="flex items-center gap-1">
               <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center shrink-0" style={{ background: "var(--md-primary)" }}>{i + 1}</span>
@@ -219,8 +232,31 @@ export default function DirectionsPanel({
               </button>
             </div>
           ))}
+          {addingStop && onAddAdditionalWaypoint && (
+            <div className="mt-1 rounded-lg border px-2 py-1" style={{ borderColor: "var(--md-outline-variant)" }}>
+              <WaypointInput
+                label={null}
+                placeholder="Stop — type an address or place"
+                dotColor="amber"
+                onSet={(coord, label) => {
+                  onAddAdditionalWaypoint(coord, label);
+                  setAddingStop(false);
+                }}
+                onClear={() => setAddingStop(false)}
+              />
+            </div>
+          )}
         </div>
-      )}
+      ) : onAddAdditionalWaypoint ? (
+        <button
+          onClick={() => setAddingStop(true)}
+          className="ml-4 self-start flex items-center gap-1 text-[11px] font-medium hover:text-amber-700 transition-colors"
+          style={{ color: "var(--md-primary)" }}
+        >
+          <span className="material-symbols-outlined text-sm">add_location</span>
+          Add stop
+        </button>
+      ) : null}
 
       {/* Route input — Search / Draw segmented control */}
       <div className="border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
