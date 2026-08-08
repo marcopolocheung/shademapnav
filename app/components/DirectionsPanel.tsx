@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { RouteOption } from "../lib/routing";
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
+import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
 import RouteCard from "./RouteCard";
 import SavedRoutesSection from "./SavedRoutesSection";
@@ -107,6 +108,7 @@ export default function DirectionsPanel({
   shadePreference = 0.5, onShadePreferenceChange,
 }: DirectionsPanelProps) {
   const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
+  const baselineRoute = shortestRoute(routes);
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
@@ -325,6 +327,7 @@ export default function DirectionsPanel({
               onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
               onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
               recommended={r.label === "Balanced"}
+              baselineRoute={baselineRoute ?? undefined}
             />
           ))}
 

@@ -1,4 +1,5 @@
 import type { RouteOption } from "../lib/routing";
+import { shortestRoute } from "../lib/routeTradeoff";
 import RouteCard from "./RouteCard";
 
 interface FloatingRouteCardsProps {
@@ -21,6 +22,7 @@ export default function FloatingRouteCards({
   onStartNavigation,
 }: FloatingRouteCardsProps) {
   if (routes.length === 0) return null;
+  const baselineRoute = shortestRoute(routes);
 
   return (
     <div className="hidden md:flex absolute right-6 top-20 bottom-24 w-80 z-30 flex-col gap-3 pointer-events-none">
@@ -56,6 +58,7 @@ export default function FloatingRouteCards({
             onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
             onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
             recommended={r.label === "Balanced"}
+            baselineRoute={baselineRoute ?? undefined}
           />
         ))}
       </div>
