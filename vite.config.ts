@@ -27,6 +27,15 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/__overpass/, "/api/interpreter"),
       },
+      // Cerebras (agent LLM, OpenAI-compatible): route dev requests through Vite
+      // to sidestep CORS. The browser sends Authorization: Bearer
+      // <VITE_CEREBRAS_API_KEY> (dev only).
+      "/__cerebras": {
+        target: "https://api.cerebras.ai",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/__cerebras/, ""),
+      },
     },
   },
   resolve: {
@@ -37,9 +46,17 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'maplibre': ['maplibre-gl'],
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        // Function form: the object form is rejected by rolldown-based Vite 8.
+        manualChunks: (id) => {
+          if (id.includes("node_modules/maplibre-gl")) return "maplibre";
+          if (
+            id.includes("node_modules/react-router-dom") ||
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/react/")
+          ) {
+            return "react-vendor";
+          }
+          return undefined;
         },
       },
     },

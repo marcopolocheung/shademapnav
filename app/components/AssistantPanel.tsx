@@ -1,0 +1,187 @@
+import { useEffect, useRef, useState } from "react";
+import type { ChatMessage } from "../hooks/useAgent";
+
+interface AssistantPanelProps {
+  open: boolean;
+  onClose: () => void;
+  messages: ChatMessage[];
+  isThinking: boolean;
+  onSend: (text: string) => void;
+  onReset: () => void;
+}
+
+const SUGGESTIONS = [
+  "Plan a shaded afternoon walk near here",
+  "Where's a shady spot to sit at 2pm?",
+  "Plan a 3-stop day trip that stays out of the sun",
+];
+
+export default function AssistantPanel({
+  open,
+  onClose,
+  messages,
+  isThinking,
+  onSend,
+  onReset,
+}: AssistantPanelProps) {
+  const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, isThinking]);
+
+  if (!open) return null;
+
+  function submit() {
+    const text = input.trim();
+    if (!text) return;
+    onSend(text);
+    setInput("");
+  }
+
+  return (
+    <div
+      className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border shadow-2xl"
+      style={{
+        bottom: "1rem",
+        right: "1rem",
+        width: "min(380px, calc(100vw - 2rem))",
+        height: "min(560px, calc(100vh - 2rem))",
+        background: "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderColor: "var(--md-outline-variant)",
+        fontFamily: "var(--md-font)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center gap-2 px-4 py-3 border-b"
+        style={{ borderColor: "var(--md-outline-variant)" }}
+      >
+        <span className="material-symbols-outlined text-amber-700" style={{ fontVariationSettings: "'FILL' 1" }}>
+          wb_sunny
+        </span>
+        <div className="flex-1">
+          <div className="text-sm font-bold" style={{ color: "var(--md-on-surface)" }}>
+            Shade Assistant
+          </div>
+          <div className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
+            Plans shade-aware outings
+          </div>
+        </div>
+        <button
+          onClick={onReset}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+          title="New conversation"
+          style={{ color: "var(--md-on-surface-variant)" }}
+        >
+          <span className="material-symbols-outlined text-lg">refresh</span>
+        </button>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+          title="Close"
+          style={{ color: "var(--md-on-surface-variant)" }}
+        >
+          <span className="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
+        {messages.length === 0 && (
+          <div className="flex flex-col gap-2 mt-2">
+            <p className="text-xs px-1" style={{ color: "var(--md-on-surface-variant)" }}>
+              Ask me to plan around the sun. I can read the live shadows, check whether
+              a spot is shaded at a given hour, and draw shade-aware routes.
+            </p>
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => onSend(s)}
+                className="text-left text-xs px-3 py-2 rounded-xl border hover:bg-amber-50 transition-colors"
+                style={{ borderColor: "var(--md-outline-variant)", color: "var(--md-on-surface)" }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {messages.map((m) => {
+          if (m.role === "tool") {
+            return (
+              <div key={m.id} className="flex items-center gap-2 px-2 py-1 self-start">
+                <span className="material-symbols-outlined text-sm animate-pulse" style={{ color: "var(--md-primary)" }}>
+                  bolt
+                </span>
+                <span className="text-[11px] italic" style={{ color: "var(--md-on-surface-variant)" }}>
+                  {m.text}
+                </span>
+              </div>
+            );
+          }
+          const isUser = m.role === "user";
+          return (
+            <div
+              key={m.id}
+              className="max-w-[88%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words"
+              style={{
+                alignSelf: isUser ? "flex-end" : "flex-start",
+                background: isUser ? "var(--md-primary, #b45309)" : "var(--md-surface-container-low, #f5efe6)",
+                color: isUser ? "white" : "var(--md-on-surface)",
+                borderBottomRightRadius: isUser ? 4 : undefined,
+                borderBottomLeftRadius: isUser ? undefined : 4,
+              }}
+            >
+              {m.text}
+            </div>
+          );
+        })}
+
+        {isThinking && (
+          <div className="flex items-center gap-1.5 px-3 py-2 self-start">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-bounce" style={{ animationDelay: "120ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-bounce" style={{ animationDelay: "240ms" }} />
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="p-2 border-t" style={{ borderColor: "var(--md-outline-variant)" }}>
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            rows={1}
+            placeholder="Ask about shade, routes, or a day trip…"
+            className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none"
+            style={{
+              borderColor: "var(--md-outline-variant)",
+              color: "var(--md-on-surface)",
+              maxHeight: 96,
+            }}
+          />
+          <button
+            onClick={submit}
+            disabled={isThinking || !input.trim()}
+            className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors disabled:opacity-40"
+            style={{ background: "var(--md-primary, #b45309)", color: "white" }}
+            title="Send"
+          >
+            <span className="material-symbols-outlined text-lg">send</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
