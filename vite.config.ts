@@ -46,7 +46,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Function form: the object form is rejected by rolldown-based Vite 8.
+        // Function form keeps chunking compatible across Vite/Rollup versions.
         manualChunks: (id) => {
           if (id.includes("node_modules/maplibre-gl")) return "maplibre";
           if (
