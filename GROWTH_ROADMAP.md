@@ -1,8 +1,11 @@
-# Growth Roadmap — Getting and Keeping Users
+# ShadeMapNav Growth Roadmap — Getting and Keeping Users
 
 *Product-focused companion to `PROJECT_REVIEW.md` (which covers engineering health). This
-document answers one question: what would make people **find** ShadeMap Navigator, **succeed
+document answers one question: what would make people **find** ShadeMapNav, **succeed
 with it in the first two minutes**, and **come back**? Written 2026-07-05.*
+
+ShadeMapNav is a personal open-source shaded-route navigation project. It is an independent
+personal project and is not affiliated with ShadeMap.app.
 
 The core insight driving everything below: this app's value proposition — "walk in the shade
 on a hot day" — is **seasonal, local, and urgent**. People search for it mid-heatwave, on

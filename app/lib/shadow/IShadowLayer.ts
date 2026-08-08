@@ -5,7 +5,7 @@ export interface IShadowLayer {
   resize(): void;
   /** Clean up all WebGL resources and map layers on component unmount */
   remove(): void;
-  /** Toggle sun-exposure accumulation mode (ShadeMap only; no-op in local renderer) */
+  /** Toggle sun-exposure accumulation mode (no-op in the local renderer) */
   setSunExposure(enabled: boolean, opts?: { startDate: Date; endDate: Date; iterations: number }): void;
   /** Register an event listener (e.g. 'idle' after render completes) */
   on(event: string, callback: () => void): void;

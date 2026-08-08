@@ -11,91 +11,64 @@ export default function About() {
           ← Map
         </Link>
 
-        <h1 className="text-3xl font-semibold mb-1">ShadeMap API</h1>
-        <p className="text-white/50 mb-10">
-          Embed sun shadow simulation in your web app
+        <h1 className="text-3xl font-semibold mb-2">ShadeMapNav</h1>
+        <p className="text-white/70 mb-4">
+          A personal open-source shaded-route navigation project.
         </p>
+        <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100 mb-10">
+          ShadeMapNav is an independent personal project and is not affiliated with
+          ShadeMap.app.
+        </div>
 
-        {/* npm packages */}
         <section className="mb-10">
-          <h2 className="text-base font-semibold mb-4 text-white/80 uppercase tracking-wider text-xs">
-            npm Packages
+          <h2 className="text-xs font-semibold mb-4 text-white/80 uppercase tracking-wider">
+            What It Does
           </h2>
+          <ul className="space-y-2 text-sm text-white/60">
+            <li>Simulates building shadows on a MapLibre map.</li>
+            <li>Finds walking routes with shortest, balanced, and most-shaded options.</li>
+            <li>Shows route tradeoffs such as added time and reduced sun exposure.</li>
+            <li>Supports saved routes, shareable map links, and multi-stop route planning.</li>
+            <li>Provides cloud-cover context so shaded routing is easier to trust.</li>
+          </ul>
+        </section>
 
+        <section className="mb-10">
+          <h2 className="text-xs font-semibold mb-4 text-white/80 uppercase tracking-wider">
+            Built With
+          </h2>
           <div className="space-y-3">
             <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <h3 className="font-medium mb-1">Leaflet Plugin</h3>
-              <code className="text-sm text-amber-400 block mb-2">
-                npm install leaflet-shadow-simulator
-              </code>
+              <h3 className="font-medium mb-1">MapLibre GL</h3>
               <p className="text-sm text-white/50">
-                Drop-in shadow layer for Leaflet maps
+                Browser map rendering, camera controls, and vector tile display.
               </p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <h3 className="font-medium mb-1">
-                Mapbox GL JS / MapLibre GL JS Plugin
-              </h3>
-              <code className="text-sm text-amber-400 block mb-2">
-                npm install mapbox-gl-shadow-simulator
-              </code>
+              <h3 className="font-medium mb-1">mapbox-gl-shadow-simulator</h3>
               <p className="text-sm text-white/50">
-                Shadow layer for Mapbox GL JS and MapLibre GL JS
+                Local WebGL building-shadow simulation used by the app.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <h3 className="font-medium mb-1">OpenStreetMap and Open-Meteo</h3>
+              <p className="text-sm text-white/50">
+                Routing/search context and cloud-cover data for route planning.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Pricing tiers */}
-        <section className="mb-10">
-          <h2 className="text-base font-semibold mb-4 text-white/80 uppercase tracking-wider text-xs">
-            API Tiers
-          </h2>
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-white/40 text-left">
-                <th className="pb-2 pr-6 font-normal">Tier</th>
-                <th className="pb-2 pr-6 font-normal">Scope</th>
-                <th className="pb-2 font-normal">Notes</th>
-              </tr>
-            </thead>
-            <tbody className="text-white/70">
-              <tr className="border-t border-white/10">
-                <td className="py-3 pr-6 text-amber-400 font-medium">
-                  Educational
-                </td>
-                <td className="py-3 pr-6">localhost only</td>
-                <td className="py-3">Free API key</td>
-              </tr>
-              <tr className="border-t border-white/10">
-                <td className="py-3 pr-6 font-medium">Commercial</td>
-                <td className="py-3 pr-6">Custom domains</td>
-                <td className="py-3">Paid</td>
-              </tr>
-              <tr className="border-t border-white/10">
-                <td className="py-3 pr-6 font-medium">Enterprise</td>
-                <td className="py-3 pr-6">Custom domains + basemap</td>
-                <td className="py-3">
-                  Paid, higher-accuracy building data
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* Features */}
         <section>
-          <h2 className="text-base font-semibold mb-4 text-white/80 uppercase tracking-wider text-xs">
-            Features
+          <h2 className="text-xs font-semibold mb-4 text-white/80 uppercase tracking-wider">
+            Project Scope
           </h2>
-          <ul className="space-y-2 text-sm text-white/60">
-            <li>Real-time shadow simulation from terrain elevation data (GeoTIFF, RGB tiles)</li>
-            <li>OpenStreetMap building shadows with height-accurate 3D volumes</li>
-            <li>Shadow accumulation maps — single day, date range, or full year</li>
-            <li>GeoTIFF export for use in GIS workflows</li>
-            <li>Custom GeoJSON building data supported</li>
-          </ul>
+          <p className="text-sm text-white/60">
+            ShadeMapNav is experimental navigation software. Shadow, route, weather,
+            and place data can be incomplete or delayed; use normal judgment outdoors.
+          </p>
         </section>
       </div>
     </div>

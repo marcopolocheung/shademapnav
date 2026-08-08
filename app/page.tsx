@@ -461,7 +461,7 @@ export default function Home() {
           getBounds={getBounds as () => { getWest(): number; getEast(): number; getNorth(): number; getSouth(): number } | undefined}
         />
         <SettingsPanel showSunLines={showSunLines} onShowSunLinesChange={setShowSunLines} />
-        <a href="/about" className="text-[11px] hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About / API</a>
+        <a href="/about" className="text-[11px] hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About ShadeMapNav</a>
         <div className="h-px" style={{ background: "var(--md-outline-variant)" }} />
         <div className="text-[10px] tabular-nums select-none" style={{ color: "var(--md-on-surface-variant)", opacity: 0.6 }}>zoom {mapZoom.toFixed(1)}</div>
       </div>
@@ -698,7 +698,7 @@ export default function Home() {
                   getBounds={getBounds as () => { getWest(): number; getEast(): number; getNorth(): number; getSouth(): number } | undefined}
                 />
                 <SettingsPanel showSunLines={showSunLines} onShowSunLinesChange={setShowSunLines} />
-                <a href="/about" className="text-[10px] px-1.5 pt-0.5 pb-0.5 transition-colors hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About / API</a>
+                <a href="/about" className="text-[10px] px-1.5 pt-0.5 pb-0.5 transition-colors hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About ShadeMapNav</a>
               </div>
             </div>
           )}

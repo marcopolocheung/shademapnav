@@ -15,7 +15,7 @@ export function routeToGPX(route: RouteOption, name: string): string {
     .map(([lon, lat]) => `    <trkpt lat="${lat.toFixed(7)}" lon="${lon.toFixed(7)}"/>`)
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="ShadeMapNavigator" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="ShadeMapNav" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
     <name>${escapeXml(name)}</name>
     <trkseg>
