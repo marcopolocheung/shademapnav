@@ -22,6 +22,7 @@ import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hook
 import { useNavigation } from "./hooks/useNavigation";
 import { useAppState } from "./hooks/useAppState";
 import { useAgent } from "./hooks/useAgent";
+import { fetchCloudCoverForecast } from "./services/weather";
 
 const MapView = lazy(() => import("./components/MapView"));
 
@@ -86,6 +87,29 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
   );
 }
 
+function CloudCoverBadge({ pct }: { pct: number }) {
+  const label =
+    pct >= 80
+      ? `Cloud cover ${pct}% - shade routing matters less`
+      : pct >= 55
+        ? `Cloud cover ${pct}% - shadows may be muted`
+        : `Cloud cover ${pct}% - building shade still matters`;
+  const strongClouds = pct >= 55;
+
+  return (
+    <div
+      className="mx-3 mt-3 rounded-lg border px-3 py-1.5 text-center text-[11px] font-medium"
+      style={{
+        background: strongClouds ? "rgba(100,116,139,0.10)" : "rgba(255,171,0,0.10)",
+        borderColor: strongClouds ? "rgba(100,116,139,0.24)" : "rgba(180,83,9,0.18)",
+        color: strongClouds ? "var(--md-on-surface-variant)" : "#92400e",
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -133,6 +157,7 @@ export default function Home() {
   const { phase, selectedPlace, dispatch } = useAppState();
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [cloudCoverPct, setCloudCoverPct] = useState<number | null>(null);
   const didHydrateShareRef = useRef(false);
 
   // AI assistant (shade-aware day-trip planner)
@@ -283,6 +308,33 @@ export default function Home() {
     }
   }, [phase, menuOpen]);
 
+  const weatherLatKey = mapCenter ? mapCenter[0].toFixed(2) : null;
+  const weatherLngKey = mapCenter ? mapCenter[1].toFixed(2) : null;
+  const weatherHourMs = Math.round(date.getTime() / 3600000) * 3600000;
+
+  useEffect(() => {
+    if (!weatherLatKey || !weatherLngKey) {
+      setCloudCoverPct(null);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    fetchCloudCoverForecast(
+      Number(weatherLatKey),
+      Number(weatherLngKey),
+      new Date(weatherHourMs),
+      ctrl.signal
+    )
+      .then((forecast) => setCloudCoverPct(forecast?.cloudCoverPct ?? null))
+      .catch((err) => {
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          setCloudCoverPct(null);
+        }
+      });
+
+    return () => ctrl.abort();
+  }, [weatherHourMs, weatherLatKey, weatherLngKey]);
+
   const { hours: _localH, minutes: _localM, year: _localYear } = toMapLocal(date, mapUtcOffsetMin);
   const mapLocalMins = _localH * 60 + _localM;
 
@@ -315,6 +367,8 @@ export default function Home() {
       </div>
 
       {/* Ruler */}
+      {cloudCoverPct != null && <CloudCoverBadge pct={cloudCoverPct} />}
+
       {sliderMode === "time" ? (
         <TimelineSlider
           minutes={mapLocalMins}
