@@ -54,6 +54,20 @@ function cacheContains(
   );
 }
 
+function cloneRoutingGraph(graph: RoutingGraph): RoutingGraph {
+  const nodes = new Map<number, OsmNode>();
+  for (const [id, node] of graph.nodes) {
+    nodes.set(id, { ...node });
+  }
+
+  const adj = new Map<number, GraphEdge[]>();
+  for (const [id, edges] of graph.adj) {
+    adj.set(id, edges.map((edge) => ({ ...edge })));
+  }
+
+  return { nodes, adj };
+}
+
 /**
  * Fetches OSM walkable road graph for the given bounding box via Overpass API.
  * All edge shadeFactor values are initialized to 0 — caller fills them in.
@@ -70,7 +84,7 @@ export async function fetchRoutingGraph(
   // Return cached graph if a previously fetched bbox fully covers this request
   for (const entry of graphCache) {
     if (cacheContains(entry, south, west, north, east)) {
-      return entry.graph;
+      return cloneRoutingGraph(entry.graph);
     }
   }
 
@@ -208,7 +222,7 @@ out body geom;
   graphCache.unshift({ south, west, north, east, graph });
   if (graphCache.length > GRAPH_CACHE_MAX) graphCache.pop();
 
-  return graph;
+  return cloneRoutingGraph(graph);
 }
 
 // ---------------------------------------------------------------------------

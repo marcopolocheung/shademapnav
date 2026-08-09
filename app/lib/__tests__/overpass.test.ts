@@ -107,6 +107,50 @@ describe("fetchRoutingGraph — out body geom inline geometry", () => {
   });
 });
 
+// ── Graph cache isolation ────────────────────────────────────────────────────
+
+describe("fetchRoutingGraph — cache isolation", () => {
+  it("returns a fresh graph clone from cache so route mutations do not leak", async () => {
+    const way = {
+      type: "way",
+      id: 1101,
+      nodes: [110, 111],
+      tags: { highway: "footway" },
+      geometry: [
+        { lat: 43.7701, lon: 11.2558 },
+        { lat: 43.7702, lon: 11.2559 },
+      ],
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements: [way] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [south, west, north, east] = nextBbox();
+    const first = await fetchRoutingGraph(south, west, north, east);
+    first.nodes.set(-1, { id: -1, lat: 0, lon: 0 });
+    first.adj.get(110)![0].shadeFactor = 0.95;
+    first.adj.set(-1, [{ toId: 110, distanceM: 1, shadeFactor: 1 }]);
+
+    const second = await fetchRoutingGraph(
+      south + 0.001,
+      west + 0.001,
+      north - 0.001,
+      east - 0.001
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second).not.toBe(first);
+    expect(second.nodes.has(-1)).toBe(false);
+    expect(second.adj.has(-1)).toBe(false);
+    expect(second.adj.get(110)?.[0].shadeFactor).toBe(0);
+  });
+});
+
 // ── closed pedestrian way filter ──────────────────────────────────────────────
 
 describe("fetchRoutingGraph — closed pedestrian way filter", () => {
