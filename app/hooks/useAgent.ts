@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import { runAgent } from "../lib/agent/agentLoop";
 import type { LlmContent } from "../lib/agent/llmClient";
 import type { AgentContext, AssistantPin } from "../lib/agent/tools";
 
@@ -81,6 +80,7 @@ export function useAgent(args: UseAgentArgs) {
     setIsThinking(true);
 
     try {
+      const { runAgent } = await import("../lib/agent/agentLoop");
       const result = await runAgent({
         history: historyRef.current,
         userText: trimmed,
