@@ -88,6 +88,12 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const cancelInFlightCalculation = useCallback(() => {
+    calcGenRef.current++;
+    calcAbortRef.current?.abort();
+    setIsCalculating(false);
+  }, []);
+
   // Keyboard shortcuts for draw mode
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -123,6 +129,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     (coord: { lng: number; lat: number }, originalEvent?: MouseEvent) => {
       if (originalEvent?.altKey && waypointARef.current && waypointBRef.current) {
         const lngLat: [number, number] = [coord.lng, coord.lat];
+        cancelInFlightCalculation();
         setAdditionalWaypoints(prev => [...prev, lngLat]);
         setNavRoutes([]);
         setSelectedRouteIndex(0);
@@ -133,6 +140,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setNavError(null);
       const lngLat: [number, number] = [coord.lng, coord.lat];
       const coordLabel = `${coord.lat.toFixed(3)}, ${coord.lng.toFixed(3)}`;
+      cancelInFlightCalculation();
       if (slot === 'A') {
         setWaypointA(lngLat);
         setWaypointALabel(coordLabel);
@@ -147,12 +155,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setNavRoutes([]);
       setSelectedRouteIndex(0);
     },
-    []
+    [cancelInFlightCalculation]
   );
 
   const handleClear = useCallback(() => {
-    calcGenRef.current++;
-    setIsCalculating(false);
+    cancelInFlightCalculation();
     setWaypointA(null);
     setWaypointB(null);
     setWaypointALabel(null);
@@ -169,7 +176,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setSimplifiedWaypoints(null);
     setRouteMode('walk');
     setShadePreference(0.5);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleOpenSaveModal = useCallback((routeIndex: number) => {
     setSaveModalRouteIndex(routeIndex);
@@ -199,6 +206,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, [saveModalRouteIndex, navRoutes, waypointA, waypointB, waypointALabel, waypointBLabel, additionalWaypoints, dateRef]);
 
   const handleLoadRoute = useCallback((saved: SavedRoute) => {
+    cancelInFlightCalculation();
     setWaypointA(saved.waypointA);
     setWaypointB(saved.waypointB);
     setWaypointALabel(saved.waypointALabel);
@@ -209,7 +217,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     const d = new Date(saved.dateIso + "T00:00:00");
     d.setHours(Math.floor(saved.timeOfDayMinutes / 60), saved.timeOfDayMinutes % 60, 0, 0);
     setDate(d);
-  }, [setDate]);
+  }, [cancelInFlightCalculation, setDate]);
 
   const handleExportRoute = useCallback((routeIndex: number, format: "gpx" | "geojson") => {
     const route = navRoutes[routeIndex];
@@ -223,22 +231,25 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, [navRoutes]);
 
   const handleRemoveAdditionalWaypoint = useCallback((index: number) => {
+    cancelInFlightCalculation();
     setAdditionalWaypoints(prev => prev.filter((_, i) => i !== index));
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleSetAdditionalWaypoints = useCallback((waypoints: [number, number][]) => {
+    cancelInFlightCalculation();
     setAdditionalWaypoints(waypoints);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleAddAdditionalWaypoint = useCallback((coord: [number, number]) => {
+    cancelInFlightCalculation();
     setAdditionalWaypoints(prev => [...prev, coord]);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleDeleteSavedRoute = useCallback((id: string) => {
     deleteRoute(id);
@@ -272,28 +283,29 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, [mapRef]);
 
   const handleToggleNavMode = useCallback(() => {
-    setNavMode((prev) => {
-      if (prev) {
-        setWaypointA(null);
-        setWaypointB(null);
-        setWaypointALabel(null);
-        setWaypointBLabel(null);
-        setAdditionalWaypoints([]);
-        setNavRoutes([]);
-        setSelectedRouteIndex(0);
-        setNavError(null);
-        setRouteSolarIntensity(null);
-        setPendingSlot(null);
-        setDrawMode(false);
-        setSketchPoints([]);
-        setNavWarning(null);
-        setSimplifiedWaypoints(null);
-        setRouteMode('walk');
-        setShadePreference(0.5);
-      }
-      return !prev;
-    });
-  }, []);
+    if (!navMode) {
+      setNavMode(true);
+      return;
+    }
+    cancelInFlightCalculation();
+    setWaypointA(null);
+    setWaypointB(null);
+    setWaypointALabel(null);
+    setWaypointBLabel(null);
+    setAdditionalWaypoints([]);
+    setNavRoutes([]);
+    setSelectedRouteIndex(0);
+    setNavError(null);
+    setRouteSolarIntensity(null);
+    setPendingSlot(null);
+    setDrawMode(false);
+    setSketchPoints([]);
+    setNavWarning(null);
+    setSimplifiedWaypoints(null);
+    setRouteMode('walk');
+    setShadePreference(0.5);
+    setNavMode(false);
+  }, [cancelInFlightCalculation, navMode]);
 
   const handleDrawModeToggle = useCallback(() => {
     setDrawMode((prev) => {
@@ -311,10 +323,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, []);
 
   const handleRouteModeChange = useCallback((mode: 'walk' | 'transit') => {
+    cancelInFlightCalculation();
     setRouteMode(mode);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleShadePreferenceChange = useCallback((v: number) => {
     setShadePreference(v);
@@ -601,22 +614,24 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, [calculateSketchRoute]);
 
   const handleSetWaypointA = useCallback((coord: [number, number], label: string) => {
+    cancelInFlightCalculation();
     setWaypointA(coord);
     setWaypointALabel(label);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
     const map = mapRef.current;
     if (map) map.jumpTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
-  }, [mapRef]);
+  }, [cancelInFlightCalculation, mapRef]);
 
   const handleSetWaypointB = useCallback((coord: [number, number], label: string) => {
+    cancelInFlightCalculation();
     setWaypointB(coord);
     setWaypointBLabel(label);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
     const map = mapRef.current;
     if (map) map.jumpTo({ center: coord, zoom: Math.max(map.getZoom(), 15) });
-  }, [mapRef]);
+  }, [cancelInFlightCalculation, mapRef]);
 
   const handleUseLocationAsA = useCallback((coord: [number, number]) => {
     handleSetWaypointA(coord, "Your location");
@@ -631,36 +646,36 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     const b = waypointBRef.current;
     const aLabel = waypointALabelRef.current;
     const bLabel = waypointBLabelRef.current;
+    cancelInFlightCalculation();
     setWaypointA(b);
     setWaypointB(a);
     setWaypointALabel(bLabel);
     setWaypointBLabel(aLabel);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleClearWaypointA = useCallback(() => {
-    calcGenRef.current++;
-    setIsCalculating(false);
+    cancelInFlightCalculation();
     setWaypointA(null);
     setWaypointALabel(null);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleClearWaypointB = useCallback(() => {
-    calcGenRef.current++;
-    setIsCalculating(false);
+    cancelInFlightCalculation();
     setWaypointB(null);
     setWaypointBLabel(null);
     setNavRoutes([]);
     setSelectedRouteIndex(0);
-  }, []);
+  }, [cancelInFlightCalculation]);
 
   const handleMarkerDragEnd = useCallback(
     (slot: 'A' | 'B', coord: { lng: number; lat: number }) => {
       const lngLat: [number, number] = [coord.lng, coord.lat];
       const coordLabel = `${coord.lat.toFixed(3)}, ${coord.lng.toFixed(3)}`;
+      cancelInFlightCalculation();
       setNavRoutes([]);
       setSelectedRouteIndex(0);
       if (slot === 'A') {
@@ -673,7 +688,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         geocodeReverse(coord.lat, coord.lng).then((lbl) => { if (lbl) setWaypointBLabel(lbl); });
       }
     },
-    []
+    [cancelInFlightCalculation]
   );
 
   const handlePinDragStart = useCallback((slot: 'A' | 'B') => {
