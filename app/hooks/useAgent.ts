@@ -19,6 +19,7 @@ interface UseAgentArgs {
   userLocation: [number, number] | null;
   setWaypointA: (coord: [number, number], label: string) => void;
   setWaypointB: (coord: [number, number], label: string) => void;
+  setAdditionalWaypoints: (coords: [number, number][]) => void;
   calculateRoute: () => void;
   setPins: (pins: AssistantPin[]) => void;
 }
@@ -57,6 +58,7 @@ export function useAgent(args: UseAgentArgs) {
     getUserLocation: () => userLocationRef.current,
     setWaypointA: args.setWaypointA,
     setWaypointB: args.setWaypointB,
+    setAdditionalWaypoints: args.setAdditionalWaypoints,
     calculateRoute: args.calculateRoute,
     setPins: args.setPins,
   });
@@ -64,6 +66,7 @@ export function useAgent(args: UseAgentArgs) {
   ctxRef.current.setDate = args.setDate;
   ctxRef.current.setWaypointA = args.setWaypointA;
   ctxRef.current.setWaypointB = args.setWaypointB;
+  ctxRef.current.setAdditionalWaypoints = args.setAdditionalWaypoints;
   ctxRef.current.calculateRoute = args.calculateRoute;
   ctxRef.current.setPins = args.setPins;
 

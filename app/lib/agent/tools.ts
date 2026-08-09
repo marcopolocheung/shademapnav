@@ -33,6 +33,7 @@ export interface AgentContext {
   getUserLocation: () => [number, number] | null;
   setWaypointA: (coord: [number, number], label: string) => void;
   setWaypointB: (coord: [number, number], label: string) => void;
+  setAdditionalWaypoints: (coords: [number, number][]) => void;
   calculateRoute: () => void;
   /** Replace the assistant's itinerary pins on the map. */
   setPins: (pins: AssistantPin[]) => void;
@@ -236,7 +237,7 @@ export const toolDeclarations: LlmFunctionDeclaration[] = [
   {
     name: "plan_shaded_route",
     description:
-      "Draw a shade-aware walking route between two stops (shortest/balanced/most-shaded for the current time).",
+      "Draw a shade-aware walking route through an ordered set of stops (shortest/balanced/most-shaded for the current time).",
     parameters: {
       type: "object",
       properties: {
@@ -246,6 +247,19 @@ export const toolDeclarations: LlmFunctionDeclaration[] = [
         toLng: { type: "number" },
         fromLabel: { type: "string" },
         toLabel: { type: "string" },
+        via: {
+          type: "array",
+          description: "Optional ordered intermediate stops between from and to.",
+          items: {
+            type: "object",
+            properties: {
+              lat: { type: "number" },
+              lng: { type: "number" },
+              label: { type: "string" },
+            },
+            required: ["lat", "lng"],
+          },
+        },
       },
       required: ["fromLat", "fromLng", "toLat", "toLng"],
     },
@@ -478,6 +492,17 @@ export async function executeTool(
       if (fromLat == null || fromLng == null || toLat == null || toLng == null) {
         return { error: "fromLat, fromLng, toLat, toLng are all required." };
       }
+      const via: [number, number][] = [];
+      if (Array.isArray(args.via)) {
+        for (const item of args.via) {
+          const o = (item ?? {}) as Record<string, unknown>;
+          const lat = num(o.lat);
+          const lng = num(o.lng);
+          if (lat == null || lng == null) continue;
+          via.push([lng, lat]);
+        }
+      }
+      ctx.setAdditionalWaypoints(via);
       ctx.setWaypointA([fromLng, fromLat], str(args.fromLabel) ?? "Start");
       ctx.setWaypointB([toLng, toLat], str(args.toLabel) ?? "Destination");
       // Let the waypoint state settle before kicking off the pipeline.
@@ -485,6 +510,7 @@ export async function executeTool(
       ctx.calculateRoute();
       return {
         ok: true,
+        viaStops: via.length,
         note:
           "Route calculation started and will draw on the map. It produces " +
           "shortest, balanced, and most-shaded options for the current time.",

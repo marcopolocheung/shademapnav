@@ -26,7 +26,7 @@ Procedure (follow in order):
 3. Find stops with search_places (anchor to lat/lng or a 'near' name) or geocode_place for named places.
 4. Confirm shade at the key stops with check_shade(lat,lng,time) — it returns real building-shade 0..1.
 5. Call plot_points with the FULL ordered list of stops (numbered pins, map auto-framed).
-6. Optionally plan_shaded_route between two stops.
+6. Optionally plan_shaded_route through the ordered stops; pass intermediate stops in via.
 
 Rules: stay in the user's area; sequence stops by time of day (shade moves with the sun); keep answers short and concrete.`;
 
