@@ -862,6 +862,118 @@ export function snapToReachableEdge(
   return { id: virtualId, distM: bestDist };
 }
 
+/** Removes one virtual node and any edges pointing at it. */
+export function removeVirtualNode(graph: RoutingGraph, virtualId: number): void {
+  const vidEdges = graph.adj.get(virtualId);
+  if (vidEdges) {
+    for (const edge of vidEdges) {
+      const ownerEdges = graph.adj.get(edge.toId);
+      if (!ownerEdges) continue;
+      for (let i = ownerEdges.length - 1; i >= 0; i--) {
+        if (ownerEdges[i].toId === virtualId) ownerEdges.splice(i, 1);
+      }
+    }
+  }
+  graph.nodes.delete(virtualId);
+  graph.adj.delete(virtualId);
+}
+
+/** Clears all synthetic route-snap nodes from a mutable graph. */
+export function clearVirtualNodes(graph: RoutingGraph): void {
+  const virtualIds = new Set<number>();
+  for (const id of graph.nodes.keys()) {
+    if (id < 0) virtualIds.add(id);
+  }
+  for (const id of graph.adj.keys()) {
+    if (id < 0) virtualIds.add(id);
+  }
+  for (const id of virtualIds) removeVirtualNode(graph, id);
+  for (const edges of graph.adj.values()) {
+    for (let i = edges.length - 1; i >= 0; i--) {
+      if (edges[i].toId < 0) edges.splice(i, 1);
+    }
+  }
+}
+
+export interface SnapRouteStopsOptions {
+  maxSnapDistanceM?: number;
+  virtualIdStart?: number;
+  describeStop?: (index: number, total: number) => string;
+}
+
+export interface SnapRouteStopsResult {
+  ids: number[];
+  snapDistancesM: number[];
+}
+
+function defaultStopLabel(index: number, total: number): string {
+  if (index === 0) return "the start point";
+  if (index === total - 1) return "the destination";
+  return `stop ${index + 1}`;
+}
+
+/**
+ * Snaps an ordered route's stops to one connected walkable component.
+ *
+ * We anchor on the destination and repair each previous stop backwards. This
+ * matches the route UX: a slightly-off start/via point should snap onto the
+ * component that can actually reach the requested destination, not strand the
+ * route on a closer disconnected service road or path fragment.
+ */
+export function snapRouteStopsToReachableEdges(
+  coords: [number, number][],
+  graph: RoutingGraph,
+  options: SnapRouteStopsOptions = {}
+): SnapRouteStopsResult {
+  if (coords.length < 2) {
+    throw new Error("Need at least two route stops.");
+  }
+
+  const {
+    maxSnapDistanceM = 100,
+    virtualIdStart = -1,
+    describeStop = defaultStopLabel,
+  } = options;
+  if (virtualIdStart >= 0) {
+    throw new Error("virtualIdStart must be negative.");
+  }
+
+  const virtualIdFor = (index: number) => virtualIdStart - index;
+  const ids = coords.map((coord, index) => snapToEdge(coord, graph, virtualIdFor(index)));
+  const snapDistancesM = ids.map((id, index) => {
+    const n = graph.nodes.get(id);
+    return n ? haversineMeters(coords[index], [n.lon, n.lat]) : Infinity;
+  });
+
+  for (let i = coords.length - 2; i >= 0; i--) {
+    const reachableToDestination = bfsReachable(graph, ids[i + 1]);
+    if (reachableToDestination.has(ids[i])) continue;
+
+    if (ids[i] < 0) removeVirtualNode(graph, ids[i]);
+    const fallback = snapToReachableEdge(
+      coords[i],
+      graph,
+      reachableToDestination,
+      virtualIdFor(i)
+    );
+    const label = describeStop(i, coords.length);
+    if (!fallback) {
+      throw new Error(
+        `No connected walkable streets found near ${label}. Move it closer to a public street or footpath.`
+      );
+    }
+    if (fallback.distM > maxSnapDistanceM) {
+      throw new Error(
+        `${label} is ${Math.round(fallback.distM)} m from the nearest connected walkable street. Move it closer to a public street or footpath.`
+      );
+    }
+    ids[i] = fallback.id;
+    snapDistancesM[i] = fallback.distM;
+  }
+
+  return { ids, snapDistancesM };
+}
+
 /**
  * Connects a road-network route's geometry back to the actual requested
  * endpoints. Routing snaps the start/end onto the nearest walkable road, so the

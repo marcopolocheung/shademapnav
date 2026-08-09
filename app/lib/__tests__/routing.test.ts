@@ -21,6 +21,7 @@ import {
   graphToGeoJSON,
   bfsReachable,
   snapToReachableEdge,
+  snapRouteStopsToReachableEdges,
   connectRouteEndpoints,
   type RoutingGraph,
   type OsmNode,
@@ -704,6 +705,61 @@ describe("snapToReachableEdge", () => {
     const vAdj = graph.adj.get(-1)!;
     const toIds = vAdj.map((e) => e.toId).sort((a, b) => a - b);
     expect(toIds).toEqual([1, 2]); // wired bidirectionally to 1 and 2
+  });
+});
+
+// ── Tests: snapRouteStopsToReachableEdges ─────────────────────────────────────
+
+function makeNearbyDisconnectedWaypointGraph(): RoutingGraph {
+  const nodes = new Map<number, OsmNode>([
+    [1, { id: 1, lat: 0.0, lon: 0.000 }],
+    [2, { id: 2, lat: 0.0, lon: 0.020 }],
+    [3, { id: 3, lat: 0.0002, lon: 0.009 }],
+    [4, { id: 4, lat: 0.0002, lon: 0.011 }],
+  ]);
+  const mainDist = haversineMeters([0, 0], [0.02, 0]);
+  const islandDist = haversineMeters([0.009, 0.0002], [0.011, 0.0002]);
+  const adj = new Map<number, GraphEdge[]>([
+    [1, [{ toId: 2, distanceM: mainDist, shadeFactor: 0.2 }]],
+    [2, [{ toId: 1, distanceM: mainDist, shadeFactor: 0.2 }]],
+    [3, [{ toId: 4, distanceM: islandDist, shadeFactor: 0.9 }]],
+    [4, [{ toId: 3, distanceM: islandDist, shadeFactor: 0.9 }]],
+  ]);
+  return { nodes, adj };
+}
+
+describe("snapRouteStopsToReachableEdges", () => {
+  it("repairs a via stop that is closest to a disconnected path fragment", () => {
+    const graph = makeNearbyDisconnectedWaypointGraph();
+    const stops: [number, number][] = [
+      [0.001, 0],
+      [0.010, 0.0002],
+      [0.019, 0],
+    ];
+
+    const result = snapRouteStopsToReachableEdges(stops, graph, {
+      maxSnapDistanceM: 50,
+    });
+
+    expect(result.ids).toHaveLength(3);
+    expect(bfsReachable(graph, result.ids[0]).has(result.ids[1])).toBe(true);
+    expect(bfsReachable(graph, result.ids[1]).has(result.ids[2])).toBe(true);
+    expect(result.snapDistancesM[1]).toBeLessThan(50);
+    expect(dijkstra(graph, result.ids[0], result.ids[1], 0)).not.toBeNull();
+    expect(dijkstra(graph, result.ids[1], result.ids[2], 0)).not.toBeNull();
+  });
+
+  it("fails fast when a disconnected via stop is too far from the route component", () => {
+    const graph = makeNearbyDisconnectedWaypointGraph();
+    const stops: [number, number][] = [
+      [0.001, 0],
+      [0.010, 0.0002],
+      [0.019, 0],
+    ];
+
+    expect(() =>
+      snapRouteStopsToReachableEdges(stops, graph, { maxSnapDistanceM: 5 })
+    ).toThrow(/stop 2 is \d+ m from the nearest connected walkable street/);
   });
 });
 

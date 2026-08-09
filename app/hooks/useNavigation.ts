@@ -6,6 +6,7 @@ import {
   snapToEdge, dijkstra, snapToGraph, paretoRoutes, graphToGeoJSON,
   haversineMeters, bfsReachable, snapToReachableEdge, SpatialGrid,
   simplifyPolyline, sketchBoundingBox, findSketchGaps, connectRouteEndpoints,
+  clearVirtualNodes, snapRouteStopsToReachableEdges,
 } from "../lib/routing";
 import type { GraphEdge, RoutingGraph, RouteLeg, LatLng, SketchPoint, RouteOption } from "../lib/routing";
 import { recordRoutingRun, computeDerivedKpis } from "../lib/metrics";
@@ -788,8 +789,13 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const straightLineDistM = haversineMeters(a, b);
       const basePadding = Math.max(0.005, Math.min(0.008, straightLineDistM / 111000 * 0.3));
       const padding = basePadding;
-      const allLats = [a[1], b[1], ...additionalWaypoints.map(w => w[1])];
-      const allLngs = [a[0], b[0], ...additionalWaypoints.map(w => w[0])];
+      const routeStops: [number, number][] = [
+        a,
+        ...additionalWaypoints.map((wp) => snapOutsideBuilding(wp, map as unknown as MapBuildingQuery)),
+        b,
+      ];
+      const allLats = routeStops.map((w) => w[1]);
+      const allLngs = routeStops.map((w) => w[0]);
       const south = Math.min(...allLats) - padding;
       const north = Math.max(...allLats) + padding;
       const west = Math.min(...allLngs) - padding;
@@ -837,19 +843,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         return [p.x, p.y];
       };
 
-      for (const vid of [-1, -2]) {
-        const vidEdges = graph.adj.get(vid);
-        if (!vidEdges) continue;
-        for (const e of vidEdges) {
-          const ownerEdges = graph.adj.get(e.toId);
-          if (ownerEdges) {
-            const i = ownerEdges.findIndex((oe) => oe.toId === vid);
-            if (i !== -1) ownerEdges.splice(i, 1);
-          }
-        }
-        graph.nodes.delete(vid);
-        graph.adj.delete(vid);
-      }
+      clearVirtualNodes(graph);
 
       if (myGen !== calcGenRef.current) return;
       await new Promise<void>((r) => setTimeout(r, 0));
@@ -906,74 +900,26 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const routingGraph: RoutingGraph = { nodes: graph.nodes, adj: routingAdj };
       const spatialGrid = new SpatialGrid(routingGraph.nodes);
 
-      const startId = snapToEdge(a, routingGraph, -1);
-      const endId = snapToEdge(b, routingGraph, -2);
-      if (process.env.NODE_ENV !== "production") {
-        const snapA = routingGraph.nodes.get(startId);
-        const snapB = routingGraph.nodes.get(endId);
-        if (snapA) console.log(`[routing] A [${a}] snapped to road at [${snapA.lon},${snapA.lat}] (${haversineMeters(a, [snapA.lon, snapA.lat]).toFixed(1)} m)`);
-        if (snapB) console.log(`[routing] B [${b}] snapped to road at [${snapB.lon},${snapB.lat}] (${haversineMeters(b, [snapB.lon, snapB.lat]).toFixed(1)} m)`);
-      }
-
-      const removeVirtual = (vid: number) => {
-        const vidEdges = routingGraph.adj.get(vid);
-        if (vidEdges) {
-          for (const e of vidEdges) {
-            const ownerEdges = routingGraph.adj.get(e.toId);
-            if (ownerEdges) {
-              const i = ownerEdges.findIndex((oe) => oe.toId === vid);
-              if (i !== -1) ownerEdges.splice(i, 1);
-            }
-          }
-        }
-        routingGraph.nodes.delete(vid);
-        routingGraph.adj.delete(vid);
-      };
-
       const MAX_SNAP_DIST_M = 100;
-      let effectiveStartId = startId;
-      let effectiveEndId = endId;
-
-      const reachableFromEnd = bfsReachable(routingGraph, endId);
-      if (!reachableFromEnd.has(startId)) {
-        removeVirtual(-1);
-        const fallback = snapToReachableEdge(a, routingGraph, reachableFromEnd, -1);
-        if (!fallback) {
-          throw new Error(
-            "The start point is in an area with no walkable streets nearby. Move it to a street or public footpath."
+      const snappedStops = snapRouteStopsToReachableEdges(routeStops, routingGraph, {
+        maxSnapDistanceM: MAX_SNAP_DIST_M,
+        describeStop: (index, total) => {
+          if (index === 0) return "the start point";
+          if (index === total - 1) return "the destination";
+          return `stop ${index + 1}`;
+        },
+      });
+      const effectiveStartId = snappedStops.ids[0];
+      const effectiveEndId = snappedStops.ids[snappedStops.ids.length - 1];
+      if (process.env.NODE_ENV !== "production") {
+        snappedStops.ids.forEach((id, i) => {
+          const sn = routingGraph.nodes.get(id);
+          if (!sn) return;
+          console.log(
+            `[routing] stop ${i + 1} [${routeStops[i]}] snapped to connected road at ` +
+            `[${sn.lon},${sn.lat}] (${haversineMeters(routeStops[i], [sn.lon, sn.lat]).toFixed(1)} m)`
           );
-        }
-        if (fallback.distM > MAX_SNAP_DIST_M) {
-          throw new Error(
-            `The start point is ${Math.round(fallback.distM)} m from the nearest walkable street. Move it closer to a street.`
-          );
-        }
-        effectiveStartId = fallback.id;
-        if (process.env.NODE_ENV !== "production") {
-          const sn = routingGraph.nodes.get(effectiveStartId);
-          if (sn) console.log(`[routing] A re-snapped to connected road at [${sn.lon},${sn.lat}] (${fallback.distM.toFixed(1)} m)`);
-        }
-      }
-
-      const reachableFromStart = bfsReachable(routingGraph, effectiveStartId);
-      if (!reachableFromStart.has(effectiveEndId)) {
-        removeVirtual(-2);
-        const fallback = snapToReachableEdge(b, routingGraph, reachableFromStart, -2);
-        if (!fallback) {
-          throw new Error(
-            "The destination is in an area with no walkable streets nearby. Move it to a street or public footpath."
-          );
-        }
-        if (fallback.distM > MAX_SNAP_DIST_M) {
-          throw new Error(
-            `The destination is ${Math.round(fallback.distM)} m from the nearest walkable street. Move it closer to a street.`
-          );
-        }
-        effectiveEndId = fallback.id;
-        if (process.env.NODE_ENV !== "production") {
-          const sn = routingGraph.nodes.get(effectiveEndId);
-          if (sn) console.log(`[routing] B re-snapped to connected road at [${sn.lon},${sn.lat}] (${fallback.distM.toFixed(1)} m)`);
-        }
+        });
       }
 
       const midLat = (a[1] + b[1]) / 2;
@@ -1006,10 +952,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           turnCount: result.turnCount,
         }));
       } else {
-        const midNodeIds = additionalWaypoints.map(wp =>
-          snapToGraph(wp, routingGraph, spatialGrid)
-        );
-        const nodeChain = [effectiveStartId, ...midNodeIds, effectiveEndId];
+        const nodeChain = snappedStops.ids;
 
         const MULTI_LABELS = ["Shortest", "Balanced", "Most shaded"] as const;
         const STRENGTHS = [0, 0.5, 1.0];
@@ -1025,7 +968,12 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           for (let seg = 0; seg < nodeChain.length - 1; seg++) {
             const segResult = dijkstra(routingGraph, nodeChain[seg], nodeChain[seg + 1], strength, opts);
             if (!segResult) { failed = true; break; }
-            const coords = graphToGeoJSON(segResult.nodeIds, routingGraph).geometry.coordinates as [number, number][];
+            const segGeojson = connectRouteEndpoints(
+              graphToGeoJSON(segResult.nodeIds, routingGraph),
+              routeStops[seg],
+              routeStops[seg + 1],
+            );
+            const coords = segGeojson.geometry.coordinates as [number, number][];
             if (allCoords.length > 0) coords.shift();
             allCoords.push(...coords);
             totalDist += segResult.distanceM;
