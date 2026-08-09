@@ -32,6 +32,7 @@ function makeCtx(): AgentContext {
     getUserLocation: () => null,
     setWaypointA: vi.fn(),
     setWaypointB: vi.fn(),
+    setAdditionalWaypoints: vi.fn(),
     calculateRoute: vi.fn(),
     setPins: vi.fn(),
   };
