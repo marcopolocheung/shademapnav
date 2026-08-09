@@ -171,6 +171,7 @@ export default function Home() {
     userLocation,
     setWaypointA: handleSetWaypointA,
     setWaypointB: handleSetWaypointB,
+    setAdditionalWaypoints: handleSetAdditionalWaypoints,
     calculateRoute: handleCalculateRoute,
     setPins: setAssistantPins,
   });
