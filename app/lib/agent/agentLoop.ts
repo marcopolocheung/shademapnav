@@ -14,7 +14,7 @@ import {
   type LlmContent,
   type LlmPart,
 } from "./llmClient";
-import { executeTool, toolDeclarations, type AgentContext } from "./tools";
+import { executeTool, toolDeclarations, type AgentContext, type AssistantPin } from "./tools";
 
 const SYSTEM_PROMPT = `You are the Shade Assistant in a sun/shadow mapping app. You ONLY plan a day or outing around shade and sun comfort: shaded walks, where to sit or eat out of the sun at a given hour, and shade-aware routes. If asked anything else, reply in one sentence that you only help plan around shade, and stop. Do not answer off-topic questions.
 
@@ -71,6 +71,63 @@ function extractText(content: LlmContent | undefined): string {
     .trim();
 }
 
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function str(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+
+function pinKey(lat: number, lng: number): string {
+  return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+}
+
+function collectPointCandidates(
+  toolName: string,
+  args: Record<string, unknown>,
+  result: Record<string, unknown>,
+  candidates: AssistantPin[]
+): void {
+  const add = (lat: unknown, lng: unknown, label?: unknown) => {
+    const nLat = num(lat);
+    const nLng = num(lng);
+    if (nLat == null || nLng == null) return;
+    const key = pinKey(nLat, nLng);
+    if (candidates.some((p) => pinKey(p.lat, p.lng) === key)) return;
+    candidates.push({ lat: nLat, lng: nLng, label: str(label) });
+  };
+
+  if (toolName === "check_shade") {
+    add(args.lat, args.lng);
+    return;
+  }
+
+  if (toolName === "plan_shaded_route") {
+    add(args.fromLat, args.fromLng, args.fromLabel);
+    add(args.toLat, args.toLng, args.toLabel);
+    return;
+  }
+
+  if (toolName === "geocode_place" || toolName === "search_places") {
+    const results = Array.isArray(result.results) ? result.results : [];
+    for (const item of results) {
+      const o = (item ?? {}) as Record<string, unknown>;
+      add(o.lat, o.lng, o.name);
+      if (candidates.length >= 8) break;
+    }
+  }
+}
+
+function plottedPointSummary(pins: AssistantPin[]): string {
+  return pins
+    .map((p, i) => {
+      const label = p.label ? `${p.label} ` : "";
+      return `${i + 1}. ${label}(${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`;
+    })
+    .join("; ");
+}
+
 export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   const { ctx, onToolEvent } = opts;
   const contents: LlmContent[] = [
@@ -96,6 +153,23 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // When research/response resolve to the same model, a separate write call is
   // wasted tokens — the research model's own final answer is the answer.
   const separateWrite = !rolesShareConfig();
+  const pointCandidates: AssistantPin[] = [];
+  let plottedPoints = false;
+  let fallbackPlotLine = "";
+
+  const plotFallbackPoints = async (): Promise<string> => {
+    if (plottedPoints || pointCandidates.length === 0) return "";
+    const pins = pointCandidates.slice(0, 8);
+    onToolEvent?.({ name: "plot_points", args: { points: pins } });
+    try {
+      const result = await executeTool("plot_points", { points: pins }, ctx);
+      if (result.error) return "";
+      plottedPoints = true;
+      return `\n\nMap state guarantee: the app already plotted these itinerary pins before answering: ${plottedPointSummary(pins)}.`;
+    } catch {
+      return "";
+    }
+  };
 
   // --- Research phase: tool-use loop on the "research" model. ---
   for (let step = 0; step < MAX_STEPS; step++) {
@@ -119,6 +193,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     const calls = candidate.parts.filter((p) => p.functionCall);
     if (calls.length === 0) {
       // Done researching.
+      fallbackPlotLine ||= await plotFallbackPoints();
       if (!separateWrite) {
         // Same config for both roles → research model's answer IS the answer.
         // Returning it here saves a full-context write call (TPD savings).
@@ -141,16 +216,20 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
       } catch (err) {
         result = { error: err instanceof Error ? err.message : "Tool failed." };
       }
+      if (fc.name === "plot_points" && !result.error) plottedPoints = true;
+      collectPointCandidates(fc.name, fc.args ?? {}, result, pointCandidates);
       responseParts.push({ functionResponse: { name: fc.name, response: result } });
     }
     contents.push({ role: "user", parts: responseParts });
   }
 
+  fallbackPlotLine ||= await plotFallbackPoints();
+
   // --- Write phase: final answer on the "response" model, no tools. ---
   const finalRes = await callModel(
     {
       contents,
-      systemInstruction: { parts: [{ text: WRITE_SYSTEM_PROMPT + ctxLine }] },
+      systemInstruction: { parts: [{ text: WRITE_SYSTEM_PROMPT + ctxLine + fallbackPlotLine }] },
       generationConfig: { temperature: 0 },
     },
     "response"
