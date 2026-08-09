@@ -100,7 +100,7 @@ describe("foursquare service", () => {
 
   it("de-dupes in-flight getPlaceDetails requests for the same fsq_id", async () => {
     // Create a fetch promise we can resolve later so both calls overlap.
-    let resolveFetch: ((v: any) => void) | null = null;
+    let resolveFetch: ((v: Response) => void) | undefined;
     const fetchMock = vi.fn().mockImplementation(() => {
       return new Promise((resolve) => {
         resolveFetch = resolve;
@@ -115,12 +115,13 @@ describe("foursquare service", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    if (!resolveFetch) throw new Error("expected fetch to be in-flight");
-    resolveFetch({
+    const finishFetch = resolveFetch;
+    if (!finishFetch) throw new Error("expected fetch to be in-flight");
+    finishFetch({
       ok: true,
       status: 200,
       json: async () => ({ name: "Detail Place" }),
-    });
+    } as Response);
 
     const [r1, r2] = await Promise.all([p1, p2]);
     expect(r1?.name).toBe("Detail Place");
