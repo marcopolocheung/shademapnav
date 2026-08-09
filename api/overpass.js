@@ -15,19 +15,28 @@
  */
 const PRIMARY = "https://overpass-api.de/api/interpreter";
 const MIRROR = "https://overpass.kumi.systems/api/interpreter";
+const UPSTREAM_TIMEOUT_MS = Number(process.env.OVERPASS_UPSTREAM_TIMEOUT_MS || 25_000);
+const MAX_BODY_BYTES = Number(process.env.OVERPASS_MAX_BODY_BYTES || 100_000);
 
-function callOverpass(target, body) {
-  return fetch(target, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      // A real server-side User-Agent (browsers forbid setting this header, so
-      // the old client-side attempt was silently dropped). Overpass asks clients
-      // to identify themselves.
-      "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)",
-    },
-    body,
-  });
+async function callOverpass(target, body) {
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+  try {
+    return await fetch(target, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        // A real server-side User-Agent (browsers forbid setting this header, so
+        // the old client-side attempt was silently dropped). Overpass asks clients
+        // to identify themselves.
+        "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)",
+      },
+      body,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(tid);
+  }
 }
 
 function readRawBody(req) {
@@ -39,9 +48,19 @@ function readRawBody(req) {
   });
 }
 
+function isAbortError(err) {
+  return !!err && typeof err === "object" && err.name === "AbortError";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const contentLength = Number(req.headers?.["content-length"]);
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+    res.status(413).json({ error: "Overpass request is too large" });
     return;
   }
 
@@ -58,6 +77,10 @@ export default async function handler(req, res) {
   } else {
     body = await readRawBody(req);
   }
+  if (Buffer.byteLength(body, "utf8") > MAX_BODY_BYTES) {
+    res.status(413).json({ error: "Overpass request is too large" });
+    return;
+  }
 
   let response;
   try {
@@ -71,7 +94,11 @@ export default async function handler(req, res) {
       response = await callOverpass(MIRROR, body);
     } catch (err) {
       console.error("Overpass proxy error:", err);
-      res.status(502).json({ error: "Upstream Overpass request failed" });
+      res.status(isAbortError(err) ? 504 : 502).json({
+        error: isAbortError(err)
+          ? "Upstream Overpass request timed out"
+          : "Upstream Overpass request failed",
+      });
       return;
     }
   }
