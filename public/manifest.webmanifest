@@ -1,0 +1,19 @@
+{
+  "name": "ShadeMapNav",
+  "short_name": "ShadeMapNav",
+  "description": "Shade-aware walking route planning for hot, sunny days.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#ffab00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
