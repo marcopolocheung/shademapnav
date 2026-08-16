@@ -273,7 +273,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
       >
         {/* Hamburger — toggles desktop sidebar */}
         {onMenuToggle && (
-          <button
+          <button type="button"
             onClick={onMenuToggle}
             className="shrink-0 text-amber-700 hover:opacity-80 transition-opacity"
             aria-label="Toggle menu"
@@ -302,7 +302,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
 
         {/* Clear button */}
         {query.length > 0 && (
-          <button
+          <button type="button"
             onClick={handleClear}
             className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Clear search"
@@ -315,7 +315,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
         )}
 
         {/* Magnifying glass — triggers search */}
-        <button
+        <button type="button"
           onClick={handleMagnifierClick}
           onMouseDown={(e) => e.preventDefault()}
           className="shrink-0 text-amber-700 hover:opacity-80 transition-opacity"
@@ -326,7 +326,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
 
         {/* Directions button */}
         {onDirections && (
-          <button
+          <button type="button"
             onClick={onDirections}
             className="shrink-0 text-slate-400 hover:opacity-80 transition-opacity"
             aria-label="Directions"
@@ -350,7 +350,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
               {recent.map((it, i) => {
                 const dist = mapCenter ? formatDistance(haversineM(mapCenter, it.center)) : "";
                 return (
-                  <button
+                  <button type="button"
                     key={`${it.label}-${i}`}
                     onClick={() => handleSelectSaved(it)}
                     className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-amber-50/50"
@@ -376,7 +376,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
               {saved.map((it, i) => {
                 const dist = mapCenter ? formatDistance(haversineM(mapCenter, it.center)) : "";
                 return (
-                  <button
+                  <button type="button"
                     key={`${it.label}-${i}`}
                     onClick={() => handleSelectSaved(it)}
                     className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-amber-50/50"
@@ -398,42 +398,45 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
 
       {/* Results dropdown */}
       {isOpen && (
-        <ul
+        <div
           id={listId}
           role="listbox"
           className="absolute top-full mt-2 w-full bg-white rounded-2xl overflow-hidden border z-20 max-h-72 overflow-y-auto md-scrollbar"
           style={{ borderColor: "rgba(215,195,172,0.2)", boxShadow: "var(--md-shadow-lg)" }}
         >
           {results.map((r, i) => (
-            <li key={i} id={`${listId}-opt-${i}`} role="option" aria-selected={i === highlightIndex}>
-              <button
-                onClick={() => handleSelect(r)}
-                className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 ${
-                  i === highlightIndex ? "bg-amber-50" : "hover:bg-amber-50/50"
-                }`}
-              >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--md-surface-container)", color: "var(--md-on-surface-variant)" }}>
-                  <span className="material-symbols-outlined text-base">location_on</span>
-                </div>
+            <button
+              key={i}
+              type="button"
+              id={`${listId}-opt-${i}`}
+              role="option"
+              aria-selected={i === highlightIndex}
+              onClick={() => handleSelect(r)}
+              className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 ${
+                i === highlightIndex ? "bg-amber-50" : "hover:bg-amber-50/50"
+              }`}
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--md-surface-container)", color: "var(--md-on-surface-variant)" }}>
+                <span className="material-symbols-outlined text-base">location_on</span>
+              </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium truncate" style={{ color: "var(--md-on-surface)" }}>
-                    {primaryName(r.display_name)}
-                  </div>
-                  <div className="text-[11px] truncate" style={{ color: "var(--md-on-surface-variant)" }}>
-                    {guessCategory(r.display_name)}
-                  </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-medium truncate" style={{ color: "var(--md-on-surface)" }}>
+                  {primaryName(r.display_name)}
                 </div>
+                <div className="text-[11px] truncate" style={{ color: "var(--md-on-surface-variant)" }}>
+                  {guessCategory(r.display_name)}
+                </div>
+              </div>
 
-                {mapCenter && (
-                  <div className="text-[11px] tabular-nums" style={{ color: "var(--md-on-surface-variant)" }}>
-                    {formatDistance(haversineM(mapCenter, [Number(r.lon), Number(r.lat)]))}
-                  </div>
-                )}
-              </button>
-            </li>
+              {mapCenter && (
+                <div className="text-[11px] tabular-nums" style={{ color: "var(--md-on-surface-variant)" }}>
+                  {formatDistance(haversineM(mapCenter, [Number(r.lon), Number(r.lat)]))}
+                </div>
+              )}
+            </button>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
