@@ -82,10 +82,10 @@ export default function BottomSheet({ snap, onSnapChange, children, collapsedHei
   }, [onSnapChange]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    // Only respond to drag handle area (top 32px)
+    // Only respond to drag handle area (top 44px minimum touch target)
     const rect = sheetRef.current?.getBoundingClientRect();
     if (!rect) return;
-    if (e.clientY < rect.top || e.clientY > rect.top + 32) return;
+    if (e.clientY < rect.top || e.clientY > rect.top + 44) return;
 
     if (animRef.current !== null) {
       cancelAnimationFrame(animRef.current);
@@ -162,7 +162,7 @@ export default function BottomSheet({ snap, onSnapChange, children, collapsedHei
       onPointerUp={onPointerUp}
     >
       {/* Drag handle */}
-      <div className="flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing shrink-0">
+      <div className="flex h-11 items-center justify-center cursor-grab active:cursor-grabbing shrink-0">
         <div className="w-8 h-1 rounded-full" style={{ background: "var(--md-outline-variant)" }} />
       </div>
 
