@@ -3,7 +3,7 @@
  *
  * Each tool is a thin, typed wrapper over capabilities the app already has:
  * geocoding (Nominatim), the solar-intensity model, the WebGL shadow simulator
- * (sampled off the live canvas), the time/date state, the map camera, and the
+ * (queried from loaded or fetched building geometry), the time/date state, and the
  * shade-aware routing pipeline. The LLM plans; these tools act.
  *
  * Tool executors receive an `AgentContext` of live handles supplied by the
@@ -13,7 +13,8 @@
 import type maplibregl from "maplibre-gl";
 import type { IShadowLayer } from "../shadow/IShadowLayer";
 import { geocodeForward, geocodeNear } from "../nominatim";
-import { computeSolarIntensity, isBlueDominantShadowPixel } from "../shadeSampling";
+import { computeSolarIntensity } from "../shadeSampling";
+import { queryOffscreenBuildingShade } from "../shadow/offscreenShade";
 import { fromMapLocal, toMapLocal } from "../timezone";
 import { parseTime } from "../../hooks/useShadowTime";
 import type { LlmFunctionDeclaration } from "./llmClient";
@@ -94,50 +95,6 @@ function requestBrowserLocation(): Promise<[number, number] | null> {
   });
 }
 
-/**
- * Sample the shadow fraction at a single map point by reading back the rendered
- * canvas. The shadow overlay is a semi-transparent blue wash; a shaded pixel
- * has blue dominating the red/green average. Predicate kept consistent with
- * app/lib/shadeSampling.ts (the routing shade test).
- *
- * Requires the point to be within the current viewport — callers fly the camera
- * so the point is centered before sampling.
- */
-function samplePointShade(
-  map: maplibregl.Map,
-  lng: number,
-  lat: number
-): number {
-  const canvas = map.getCanvas();
-  const tmp = document.createElement("canvas");
-  tmp.width = canvas.width;
-  tmp.height = canvas.height;
-  const ctx2d = tmp.getContext("2d");
-  if (!ctx2d) return 0;
-  ctx2d.drawImage(canvas, 0, 0);
-  const { data, width, height } = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
-  const dpr = window.devicePixelRatio || 1;
-
-  const p = map.project([lng, lat]);
-  const offsets = [-8, -4, 0, 4, 8];
-  let shaded = 0;
-  let count = 0;
-  for (const ox of offsets) {
-    for (const oy of offsets) {
-      const x = Math.round((p.x + ox) * dpr);
-      const y = Math.round((p.y + oy) * dpr);
-      if (x < 0 || y < 0 || x >= width || y >= height) continue;
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      if (isBlueDominantShadowPixel(r, g, b)) shaded++;
-      count++;
-    }
-  }
-  return count === 0 ? 0 : shaded / count;
-}
-
 function shadeStatus(frac: number): "shaded" | "partial sun" | "sunlit" {
   if (frac >= 0.6) return "shaded";
   if (frac >= 0.25) return "partial sun";
@@ -188,7 +145,7 @@ export const toolDeclarations: LlmFunctionDeclaration[] = [
   {
     name: "check_shade",
     description:
-      "Real building-shade at a spot and time from the 3D simulator. Returns shadeFraction 0..1.",
+      "Real building-shade at a spot and time from building geometry. Returns shadeFraction 0..1.",
     parameters: {
       type: "object",
       properties: {
@@ -403,7 +360,6 @@ export async function executeTool(
       const lat = num(args.lat);
       const lng = num(args.lng);
       if (lat == null || lng == null) return { error: "lat and lng are required." };
-      if (!map) return { error: "Map not ready yet." };
 
       const probeDate = dateAtLocalTime(ctx.dateRef.current, offset, str(args.time));
       const geometryShade = ctx.shadowLayerRef.current?.queryPointShade?.(lng, lat, { date: probeDate });
@@ -417,27 +373,22 @@ export async function executeTool(
         };
       }
 
-      // Save view + time so probing doesn't hijack the user's screen.
-      const orig = map.getCenter();
-      const origZoom = map.getZoom();
-      const origDate = ctx.dateRef.current;
-
-      ctx.setDate(probeDate);
-      map.flyTo({ center: [lng, lat], zoom: Math.max(origZoom, 16), duration: 600 });
-      await waitForIdle(map);
-      await delay(650); // let the shadow layer recompute for the probe time
-
-      const frac = samplePointShade(map, lng, lat);
-
-      // Restore.
-      ctx.setDate(origDate);
-      map.flyTo({ center: [orig.lng, orig.lat], zoom: origZoom, duration: 400 });
-
-      return {
-        shadeFraction: +frac.toFixed(2),
-        status: shadeStatus(frac),
-        atLocalTime: fmtLocalTime(probeDate, offset),
-      };
+      try {
+        const offscreenShade = await queryOffscreenBuildingShade(lng, lat, probeDate);
+        const frac = offscreenShade.shadeFraction;
+        return {
+          shadeFraction: +frac.toFixed(2),
+          status: shadeStatus(frac),
+          atLocalTime: fmtLocalTime(probeDate, offset),
+          source: offscreenShade.source,
+          buildingCount: offscreenShade.buildingCount,
+        };
+      } catch {
+        return {
+          error:
+            "Could not check building shade here without moving the map. Try again in a moment.",
+        };
+      }
     }
 
     case "set_time": {
