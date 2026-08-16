@@ -50,7 +50,7 @@ export default function FloatingRouteCards({
       )}
 
       {/* Route cards */}
-      <div className="flex-1 flex flex-col gap-3 overflow-y-auto md-scrollbar pointer-events-auto" role="radiogroup" aria-label="Route options">
+      <div className="flex-1 flex flex-col gap-3 overflow-y-auto md-scrollbar pointer-events-auto">
         {routes.map((r, i) => (
           <RouteCard
             key={i}

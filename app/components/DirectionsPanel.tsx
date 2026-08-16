@@ -119,6 +119,12 @@ export default function DirectionsPanel({
   const [addingStop, setAddingStop] = useState(false);
   const progressPercent = routeProgress ? routeProgressPercent(routeProgress) : null;
   const progressCount = routeProgress ? routeProgressCount(routeProgress) : null;
+
+  function activateWaypointSlot(slot: 'A' | 'B') {
+    if (slot === 'B' && drawMode) return;
+    onSetPendingSlot(pendingSlot === slot ? null : slot);
+  }
+
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
@@ -172,18 +178,28 @@ export default function DirectionsPanel({
         className="rounded-xl p-4 flex flex-col gap-2"
         style={{ background: "var(--md-surface-container-low)" }}
       >
-        <div
-          onPointerDown={() => onPinDragStart?.('A')}
-          onClick={() => onSetPendingSlot(pendingSlot === 'A' ? null : 'A')}
-          className="cursor-pointer"
-        >
-          <WaypointInput
-            label={waypointALabel}
-            placeholder="Start — type or click map"
-            dotColor="green"
-            onSet={onSetWaypointA}
-            onClear={onClearWaypointA}
-          />
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <WaypointInput
+              label={waypointALabel}
+              placeholder="Start — type or click map"
+              dotColor="green"
+              onSet={onSetWaypointA}
+              onClear={onClearWaypointA}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Place start waypoint on map"
+            aria-pressed={pendingSlot === 'A'}
+            onPointerDown={() => onPinDragStart?.('A')}
+            onClick={() => activateWaypointSlot('A')}
+            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-amber-50"
+            style={{ color: pendingSlot === 'A' ? "var(--md-primary)" : "var(--md-on-surface-variant)" }}
+            title="Place start waypoint on map"
+          >
+            <span className="material-symbols-outlined text-base">add_location</span>
+          </button>
         </div>
 
         {/* Swap button */}
@@ -198,18 +214,31 @@ export default function DirectionsPanel({
         </div>
 
         <div
-          onPointerDown={() => !drawMode && onPinDragStart?.('B')}
-          onClick={() => !drawMode && onSetPendingSlot(pendingSlot === 'B' ? null : 'B')}
-          className="cursor-pointer transition-opacity"
-          style={drawMode ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+          className="flex items-start gap-2 transition-opacity"
+          style={drawMode ? { opacity: 0.4 } : undefined}
         >
-          <WaypointInput
-            label={waypointBLabel}
-            placeholder={drawMode ? "Tap map to sketch route" : "End — type or click map"}
-            dotColor="red"
-            onSet={onSetWaypointB}
-            onClear={onClearWaypointB}
-          />
+          <div className="flex-1 min-w-0">
+            <WaypointInput
+              label={waypointBLabel}
+              placeholder={drawMode ? "Tap map to sketch route" : "End — type or click map"}
+              dotColor="red"
+              onSet={onSetWaypointB}
+              onClear={onClearWaypointB}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Place destination waypoint on map"
+            aria-pressed={pendingSlot === 'B'}
+            disabled={drawMode}
+            onPointerDown={() => !drawMode && onPinDragStart?.('B')}
+            onClick={() => activateWaypointSlot('B')}
+            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-amber-50 disabled:cursor-not-allowed"
+            style={{ color: pendingSlot === 'B' ? "var(--md-primary)" : "var(--md-on-surface-variant)" }}
+            title="Place destination waypoint on map"
+          >
+            <span className="material-symbols-outlined text-base">add_location</span>
+          </button>
         </div>
       </div>
 
