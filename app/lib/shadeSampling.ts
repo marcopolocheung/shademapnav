@@ -4,6 +4,15 @@
  */
 
 /**
+ * Detect the blue-dominant shadow overlay emitted by LocalShadowAdapter after it
+ * has been composited over the basemap.
+ */
+export function isBlueDominantShadowPixel(r: number, g: number, b: number): boolean {
+  const avgRG = (r + g) / 2;
+  return r + g + b < 600 && b - avgRG > 18 && b > avgRG * 1.15;
+}
+
+/**
  * Sample shade independently for the left and right sidewalks of an edge.
  * The shadow overlay is a semi-transparent blue wash; shaded pixels read as
  * blue-dominant (blue channel above the red/green average) regardless of how
@@ -49,12 +58,7 @@ export function sampleBothSidewalks(
       // basemap, where a blended shadow pixel is ~ (70,81,102): blue-dominant
       // but not dark.) Reject very bright pixels (sky/labels) and keep a strong
       // blue margin so green parkland and neutral roads stay unshaded.
-      const avgRG = (r + g) / 2;
-      const isShaded =
-        r + g + b < 600 &&
-        b - avgRG > 18 &&
-        b > avgRG * 1.15;
-      shadeSum += isShaded ? 1 : 0;
+      shadeSum += isBlueDominantShadowPixel(r, g, b) ? 1 : 0;
       count++;
     }
     return count === 0 ? 0 : shadeSum / count;
