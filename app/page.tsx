@@ -26,6 +26,15 @@ import { useAgent } from "./hooks/useAgent";
 import { fetchCloudCoverForecast } from "./services/weather";
 
 const MapView = lazy(() => import("./components/MapView"));
+const SHADE_LEGEND_STORAGE_KEY = "shademapnav:shadeLegendDismissed";
+
+function readShadeLegendDismissed(): boolean {
+  try {
+    return window.localStorage.getItem(SHADE_LEGEND_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number }) {
   const [editing, setEditing] = useState(false);
@@ -111,6 +120,48 @@ function CloudCoverBadge({ pct }: { pct: number }) {
   );
 }
 
+function ShadeLegend({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="flex min-h-11 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur-md"
+      style={{
+        background: "rgba(255,255,255,0.92)",
+        borderColor: "var(--md-outline-variant)",
+        color: "var(--md-on-surface)",
+        fontFamily: "var(--md-font)",
+      }}
+      role="status"
+    >
+      {/*
+        Swatch mirrors LocalShadowAdapter's midday shadow: NOON_RGB #22467f at
+        SHADOW_ALPHA 0.7. If those change, change this — a legend that shows a
+        colour the map never paints is worse than no legend. See CLAUDE.md
+        invariant #5, which already couples shadow colour to the shade predicate.
+      */}
+      <span
+        className="h-4 w-4 shrink-0 rounded-sm border"
+        style={{
+          background: "rgba(42,70,125,0.72)",
+          borderColor: "rgba(15,23,42,0.28)",
+        }}
+        aria-hidden="true"
+      />
+      <span className="leading-snug">Dark blue areas are shaded at the selected time.</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-slate-100"
+        aria-label="Dismiss shade legend"
+        title="Dismiss"
+      >
+        <span className="material-symbols-outlined text-base" aria-hidden="true">
+          close
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -159,6 +210,8 @@ export default function Home() {
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
   const [cloudCoverPct, setCloudCoverPct] = useState<number | null>(null);
+  const [shadowLayerReady, setShadowLayerReady] = useState(false);
+  const [shadeLegendDismissed, setShadeLegendDismissed] = useState(readShadeLegendDismissed);
   const didHydrateShareRef = useRef(false);
 
   // AI assistant (shade-aware day-trip planner)
@@ -299,6 +352,15 @@ export default function Home() {
     }
     window.setTimeout(() => setShareStatus("idle"), 1800);
   }, [additionalWaypoints, date, mapCenter, mapUtcOffsetMin, mapZoom, waypointA, waypointB]);
+
+  const handleDismissShadeLegend = useCallback(() => {
+    setShadeLegendDismissed(true);
+    try {
+      window.localStorage.setItem(SHADE_LEGEND_STORAGE_KEY, "1");
+    } catch {
+      // Ignore storage failures; dismissal still applies for this session.
+    }
+  }, []);
 
   // Drive bottom sheet snap from phase on mobile
   useEffect(() => {
@@ -618,6 +680,12 @@ export default function Home() {
         />
       </div>
 
+      {shadowLayerReady && !shadeLegendDismissed && !accumulation.enabled && (
+        <div className="absolute left-4 top-20 z-20 md:left-6 md:top-20">
+          <ShadeLegend onDismiss={handleDismissShadeLegend} />
+        </div>
+      )}
+
       {/* Desktop timeline — floating card at bottom */}
       {!accumulation.enabled && (
         <div className="hidden md:block absolute bottom-6 z-10" style={{ left: 24, right: 24 }}>
@@ -735,7 +803,10 @@ export default function Home() {
               date={date}
               accumulation={accumulation}
               onMapReady={handleMapReady}
-              onShadowLayerReady={(layer) => { shadowLayerRef.current = layer; }}
+              onShadowLayerReady={(layer) => {
+                shadowLayerRef.current = layer;
+                setShadowLayerReady(layer !== null);
+              }}
               onMapClick={handleMapClick}
               navWaypoints={{ a: waypointA ?? undefined, b: waypointB ?? undefined }}
               navRoute={selectedNavRoute}
