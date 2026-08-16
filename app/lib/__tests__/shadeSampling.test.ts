@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sampleBothSidewalks } from "../shadeSampling";
+import { isBlueDominantShadowPixel, sampleBothSidewalks } from "../shadeSampling";
 
 /**
  * Build a uniform ImageData where every pixel is [r,g,b,255].
@@ -49,5 +49,13 @@ describe("sampleBothSidewalks shade classifier", () => {
 
   it("does NOT flag green parkland as shaded", () => {
     expect(shadeOf(180, 200, 160)).toBe(0);
+  });
+});
+
+describe("isBlueDominantShadowPixel", () => {
+  it("keeps routing and assistant shade checks on the same pixel predicate", () => {
+    expect(isBlueDominantShadowPixel(70, 81, 102)).toBe(true);
+    expect(isBlueDominantShadowPixel(230, 230, 230)).toBe(false);
+    expect(isBlueDominantShadowPixel(151, 151, 151)).toBe(false);
   });
 });

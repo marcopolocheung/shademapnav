@@ -65,9 +65,11 @@ the OpenAI chat-completions shape Cerebras expects.
    shade sampling and GeoTIFF export read the canvas back.
 4. **`MapView` is only imported via `React.lazy`** in `app/page.tsx` (code-splits MapLibre).
    Never import it statically from app code (type-only imports are fine).
-5. **Shade detection couples to shadow color.** Routing decides "shaded" by canvas pixel
-   test `B/R > 1.8`; the shadow color `#01112f` guarantees it. Change one → change both
-   (`LocalShadowAdapter.ts` ↔ `app/lib/shadeSampling.ts`).
+5. **Shade detection couples to shadow color.** Routing and assistant spot checks decide
+   "shaded" with the shared `isBlueDominantShadowPixel` predicate:
+   `r + g + b < 600 && b - ((r + g) / 2) > 18 && b > ((r + g) / 2) * 1.15`.
+   The shadow colors in `LocalShadowAdapter.ts` must stay blue-dominant enough to
+   satisfy that predicate after compositing over the basemap.
 6. **Nominatim and Overpass requests need a `User-Agent` header** or they get rejected.
 7. **Never read or edit `.worktrees/`** — an orphaned, stale checkout (gitignored, not a
    registered worktree). Same for any `oldbuild/` copy you encounter.

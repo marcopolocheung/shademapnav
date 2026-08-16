@@ -12,7 +12,7 @@
  */
 import type maplibregl from "maplibre-gl";
 import { geocodeForward, geocodeNear } from "../nominatim";
-import { computeSolarIntensity } from "../shadeSampling";
+import { computeSolarIntensity, isBlueDominantShadowPixel } from "../shadeSampling";
 import { fromMapLocal, toMapLocal } from "../timezone";
 import { parseTime } from "../../hooks/useShadowTime";
 import type { LlmFunctionDeclaration } from "./llmClient";
@@ -129,9 +129,7 @@ function samplePointShade(
       const r = data[idx];
       const g = data[idx + 1];
       const b = data[idx + 2];
-      const avgRG = (r + g) / 2;
-      const isShaded = r + g + b < 600 && b - avgRG > 18 && b > avgRG * 1.15;
-      if (isShaded) shaded++;
+      if (isBlueDominantShadowPixel(r, g, b)) shaded++;
       count++;
     }
   }
