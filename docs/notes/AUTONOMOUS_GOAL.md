@@ -108,20 +108,13 @@ When choosing between two backlog items, prefer the one that:
 
 *Status verified 2026-08-15: tests 125/125 pass, `tsc --noEmit` clean, PR #17 open
 for shared shade predicate, PR #18 open for route progress status, PR #19 open for
-partial route results, no CI. Recent merged work already covered: shareable URLs,
-cloud-cover badge, route tradeoff summary, multi-stop UI + agent multi-stop, PWA offline
-shell, agent fallback plotting, lazy agent loop, agent-proxy hardening, stale-route-calc
-cancellation, waypoint snapping.*
+partial route results, PR #20 open for route preview streaming, no CI. Recent merged
+work already covered: shareable URLs, cloud-cover badge, route tradeoff summary,
+multi-stop UI + agent multi-stop, PWA offline shell, agent fallback plotting, lazy agent
+loop, agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
 
 ## P0 — Trust and correctness
 
-- **Route calculation still does not stream per-leg results.** Long / multi-stop
-  journeys now show phase/count progress (PR #18) and can return honest partial
-  results when a later leg fails (PR #19), but the map still waits until the end
-  instead of drawing each finished leg. Next: stream per-leg results onto the map as
-  each leg's Pareto search finishes, then only consider raising budgets if real
-  routes still need it.
-  *(`useNavigation.ts` route pipeline, `routing.ts` Pareto search.)*
 - **Shade queries go through the camera.** `check_shade` flies the camera, waits for
   idle, sleeps for the shadow recompute, reads pixels, flies back — seconds per probe
   and visible teleporting. Expose a point-query API from `LocalShadowAdapter`
