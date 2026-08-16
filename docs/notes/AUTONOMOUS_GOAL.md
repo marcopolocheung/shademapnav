@@ -106,15 +106,16 @@ When choosing between two backlog items, prefer the one that:
 
 # BACKLOG (living — edit freely)
 
-*Status verified 2026-08-15: tests 132/132 pass, `tsc --noEmit` clean, PR #17 open
+*Status verified 2026-08-15: tests 133/133 pass, `tsc --noEmit` clean, PR #17 open
 for shared shade predicate, PR #18 open for route progress status, PR #19 open for
 partial route results, PR #20 open for route preview streaming, PR #21 open for visible
 shade point queries, PR #22 open for offscreen shade point queries, PR #23 open for
 offscreen building relation parsing, PR #24 open for partial performance baseline,
-PR #25 open for cached offscreen building Overpass queries, no CI. Recent merged
-work already covered: shareable URLs, cloud-cover badge, route tradeoff summary,
-multi-stop UI + agent multi-stop, PWA offline shell, agent fallback plotting, lazy
-agent loop, agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
+PR #25 open for cached offscreen building Overpass queries, PR #26 open for cached
+station-entrance Overpass queries, no CI. Recent merged work already covered:
+shareable URLs, cloud-cover badge, route tradeoff summary, multi-stop UI + agent
+multi-stop, PWA offline shell, agent fallback plotting, lazy agent loop,
+agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
 
 ## P0 — Trust and correctness
 
@@ -130,11 +131,6 @@ _No open P0 items after PR #23; keep watching for anything that can mislead user
 - **Route calc is single-threaded on the main thread.** Independent Pareto searches
   per leg are parallelizable, and the graph build/Dijkstra work is a natural fit for a
   worker (`app/workers/` already has the pattern). Only pursue after the baseline exists.
-- **Station-entrance Overpass fetches may still repeat.** Walking-route graphs,
-  transit graphs, and offscreen building shade probes now have containing-bbox caches
-  (PR #25 added the building cache), but `fetchStationEntrances` still fetches
-  directly. Inspect whether repeat transit-capable routes in the same area re-fetch
-  station entrances and add the same small cache if they do.
 
 ## P2 — Accessibility (both senses)
 
