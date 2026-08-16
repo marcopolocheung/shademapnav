@@ -14,10 +14,14 @@ except one serverless proxy (`api/fsq.js`). Deployed: https://shademapnav.vercel
 npm install
 npm run dev        # Vite dev server → http://localhost:5173
 npm test           # vitest run — app/{lib,services}/__tests__/**
-npx tsc --noEmit   # typecheck (no dedicated script)
+npm run typecheck  # tsc --noEmit
 npm run lint       # eslint (flat config, minimal rules)
 npm run build      # vite build → dist/
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint → typecheck → test → build on every PR to
+`main` and every push to `main`. It needs no secrets: the build inlines missing
+`VITE_*` vars as `undefined`, and the test suite is hermetic (no network, no env).
 
 Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
 (place popups). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
@@ -57,10 +61,11 @@ the OpenAI chat-completions shape Cerebras expects.
 1. **`maplibre-gl` stays pinned at exactly `5.9.0`.** v5.10+ changes `Texture.update`
    so `mapbox-gl-shadow-simulator`'s `{width,height}` call crashes WebGL2
    ("Overload resolution failed").
-2. **`LocalShadowAdapter.ts` directly imports two transitive deps**: `suncalc` (provided
-   via `mapbox-gl-shadow-simulator`) and `earcut` (via `maplibre-gl`). Removing/replacing
-   either provider package without adding the lib to `package.json` breaks the build.
-   Neither has type declarations — source of 3 known pre-existing `tsc` errors.
+2. **`LocalShadowAdapter.ts` directly imports `suncalc` and `earcut`.** Both arrive
+   transitively too (via `mapbox-gl-shadow-simulator` and `maplibre-gl`), but PR #10
+   pinned them as direct `dependencies` alongside `@types/suncalc` / `@types/earcut`,
+   so the import is typed and survives a provider-package swap. Keep them declared —
+   dropping either back to a transitive-only dep re-breaks both the build and `tsc`.
 3. **Map must keep `canvasContextAttributes: { preserveDrawingBuffer: true }`** —
    shade sampling and GeoTIFF export read the canvas back.
 4. **`MapView` is only imported via `React.lazy`** in `app/page.tsx` (code-splits MapLibre).

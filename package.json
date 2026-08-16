@@ -8,6 +8,7 @@
     "build": "vite build",
     "start": "vite preview",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
