@@ -86,7 +86,8 @@ describe("fetchBuildingFootprintsAround", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const buildings = await fetchBuildingFootprintsAround(-74, 40, 120);
+    const [south, west] = nextBbox();
+    const buildings = await fetchBuildingFootprintsAround(west, south, 120);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = String(fetchMock.mock.calls[0][1]?.body);
@@ -144,7 +145,8 @@ describe("fetchBuildingFootprintsAround", () => {
       })
     );
 
-    const buildings = await fetchBuildingFootprintsAround(-74, 40, 120);
+    const [south, west] = nextBbox();
+    const buildings = await fetchBuildingFootprintsAround(west, south, 120);
 
     expect(buildings).toEqual([
       {
@@ -159,6 +161,46 @@ describe("fetchBuildingFootprintsAround", () => {
         ]],
       },
     ]);
+  });
+
+  it("reuses cached building footprints for contained repeat probes without sharing mutations", async () => {
+    const building = {
+      type: "way",
+      id: 7001,
+      tags: { building: "yes", height: "9" },
+      geometry: [
+        { lat: 11.0, lon: 11.0 },
+        { lat: 11.0, lon: 11.001 },
+        { lat: 11.001, lon: 11.001 },
+        { lat: 11.001, lon: 11.0 },
+        { lat: 11.0, lon: 11.0 },
+      ],
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements: [building] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [south, west] = nextBbox();
+    const first = await fetchBuildingFootprintsAround(west, south, 240);
+    first[0].rings[0][0][0] = -999;
+    first[0].rings.push([[0, 0]]);
+
+    const second = await fetchBuildingFootprintsAround(west, south, 60);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second).not.toBe(first);
+    expect(second[0].rings).toEqual([[
+      [11.0, 11.0],
+      [11.001, 11.0],
+      [11.001, 11.001],
+      [11.0, 11.001],
+      [11.0, 11.0],
+    ]]);
   });
 });
 

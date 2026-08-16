@@ -36,11 +36,17 @@ interface CacheEntry {
   east: number;
   graph: RoutingGraph;
 }
+interface BboxBounds {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
 const GRAPH_CACHE_MAX = 5;
 const graphCache: CacheEntry[] = []; // newest first
 
 function cacheContains(
-  entry: CacheEntry,
+  entry: BboxBounds,
   south: number,
   west: number,
   north: number,
@@ -244,6 +250,22 @@ export interface BuildingFootprint {
   rings: [number, number][][];
 }
 
+interface BuildingCacheEntry extends BboxBounds {
+  buildings: BuildingFootprint[];
+}
+
+const BUILDING_CACHE_MAX = 8;
+const buildingCache: BuildingCacheEntry[] = [];
+
+function cloneBuildingFootprints(buildings: BuildingFootprint[]): BuildingFootprint[] {
+  return buildings.map((building) => ({
+    ...building,
+    rings: building.rings.map((ring) =>
+      ring.map(([lng, lat]) => [lng, lat] as [number, number])
+    ),
+  }));
+}
+
 function heightMForBuilding(tags: Record<string, unknown> | null | undefined): number {
   const renderHeight = Number(tags?.render_height);
   if (Number.isFinite(renderHeight) && renderHeight > 0) return renderHeight;
@@ -345,6 +367,13 @@ export async function fetchBuildingFootprintsAround(
   signal?: AbortSignal
 ): Promise<BuildingFootprint[]> {
   const { south, west, north, east } = bboxAround(lng, lat, radiusM);
+
+  for (const entry of buildingCache) {
+    if (cacheContains(entry, south, west, north, east)) {
+      return cloneBuildingFootprints(entry.buildings);
+    }
+  }
+
   const query = `
 [out:json][timeout:10];
 (
@@ -412,7 +441,11 @@ out body geom;
     })
     .filter((b): b is BuildingFootprint => b !== null);
 
-  return [...wayBuildings, ...relationBuildings];
+  const buildings = [...wayBuildings, ...relationBuildings];
+  buildingCache.unshift({ south, west, north, east, buildings });
+  if (buildingCache.length > BUILDING_CACHE_MAX) buildingCache.pop();
+
+  return cloneBuildingFootprints(buildings);
 }
 
 /**
