@@ -92,19 +92,19 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
               }}
               placeholder="Folder name"
             />
-            <button
+            <button type="button"
               onClick={handleAddFolder}
               className="text-xs px-2 py-1 rounded font-medium transition-colors"
               style={{ background: "var(--md-primary-container)", color: "var(--md-on-surface)" }}
             >
               Add
             </button>
-            <button onClick={() => setShowNewFolder(false)} className="text-xs px-2 py-1 text-slate-400 hover:text-slate-700 transition-colors">
+            <button type="button" onClick={() => setShowNewFolder(false)} className="text-xs px-2 py-1 text-slate-400 hover:text-slate-700 transition-colors">
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
           </div>
         ) : (
-          <button
+          <button type="button"
             onClick={() => setShowNewFolder(true)}
             className="text-[11px] hover:text-amber-700 self-start transition-colors"
             style={{ color: "var(--md-primary)" }}
@@ -115,7 +115,7 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
-          <button
+          <button type="button"
             onClick={() => onSave(name.trim() || defaultName, folderId)}
             disabled={!name.trim()}
             className="flex-1 py-1.5 rounded text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -123,7 +123,7 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
           >
             Save
           </button>
-          <button
+          <button type="button"
             onClick={onCancel}
             className="px-3 py-1.5 rounded text-xs text-slate-600 hover:text-slate-900 border transition-colors"
             style={{ borderColor: "var(--md-outline-variant)" }}

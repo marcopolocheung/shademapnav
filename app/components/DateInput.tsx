@@ -93,7 +93,7 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   }
 
   return (
-    <button
+    <button type="button"
       onClick={startEdit}
       className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
       style={{

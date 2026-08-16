@@ -32,7 +32,7 @@
       },
 
       "a11y": {
-        "useButtonType": "warn",
+        "useButtonType": "error",
         "noSvgWithoutTitle": "warn",
         "noAutofocus": "warn",
         "noLabelWithoutControl": "warn",

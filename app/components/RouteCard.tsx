@@ -26,7 +26,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
 
   return (
     <div className="flex gap-1.5 items-start">
-      <button
+      <button type="button"
         onClick={onSelect}
         role="radio"
         aria-checked={selected}
@@ -175,7 +175,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
       </button>
 
       {onSave && !isPartial && (
-        <button
+        <button type="button"
           onClick={onSave}
           title="Save this route"
           className="shrink-0 mt-0.5 p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-all"
@@ -186,15 +186,15 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
 
       {onExport && !isPartial && (
         <div className="relative group/export shrink-0 mt-0.5">
-          <button className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" title="Export route">
+          <button type="button" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" title="Export route">
             <span className="material-symbols-outlined text-base">download</span>
           </button>
           <div
             className="hidden group-hover/export:flex absolute right-0 top-full mt-1 flex-col rounded-lg shadow-xl z-30 min-w-max border"
             style={{ background: "white", borderColor: "var(--md-outline-variant)" }}
           >
-            <button onClick={() => onExport("gpx")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GPX</button>
-            <button onClick={() => onExport("geojson")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GeoJSON</button>
+            <button type="button" onClick={() => onExport("gpx")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GPX</button>
+            <button type="button" onClick={() => onExport("geojson")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GeoJSON</button>
           </div>
         </div>
       )}
