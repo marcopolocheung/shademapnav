@@ -1,5 +1,5 @@
 // app/components/SaveRouteModal.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { getFolders, createFolder } from "../lib/savedRoutes";
 import type { SavedFolder } from "../lib/savedRoutes";
 
@@ -10,6 +10,8 @@ interface Props {
 }
 
 export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props) {
+  const nameInputId = useId();
+  const folderSelectId = useId();
   const [name, setName]   = useState(defaultName);
   const [folders, setFolders] = useState<SavedFolder[]>(getFolders);
   const [folderId, setFolderId] = useState<string | null>(null);
@@ -49,8 +51,9 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
 
         {/* Name */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Name</label>
+          <label htmlFor={nameInputId} className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Name</label>
           <input
+            id={nameInputId}
             ref={nameInputRef}
             value={name}
             onChange={e => setName(e.target.value)}
@@ -67,8 +70,9 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
 
         {/* Folder */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Folder</label>
+          <label htmlFor={folderSelectId} className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Folder</label>
           <select
+            id={folderSelectId}
             value={folderId ?? ""}
             onChange={e => setFolderId(e.target.value || null)}
             className="border rounded px-2 py-1.5 text-xs focus:outline-none"

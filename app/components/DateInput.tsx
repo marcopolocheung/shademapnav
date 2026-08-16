@@ -43,9 +43,15 @@ interface DateInputProps {
   date: Date;
   onChange: (d: Date) => void;
   utcOffsetMin?: number;
+  ariaLabel?: string;
 }
 
-const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOffsetMinProp }: DateInputProps) {
+const DateInput = memo(function DateInput({
+  date,
+  onChange,
+  utcOffsetMin: utcOffsetMinProp,
+  ariaLabel,
+}: DateInputProps) {
   const utcOffsetMin = utcOffsetMinProp ?? -new Date().getTimezoneOffset();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
@@ -76,6 +82,7 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
     return (
       <input
         ref={inputRef}
+        aria-label={ariaLabel}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
@@ -98,7 +105,9 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   }
 
   return (
-    <button type="button"
+    <button
+      type="button"
+      aria-label={ariaLabel}
       onClick={startEdit}
       className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
       style={{
