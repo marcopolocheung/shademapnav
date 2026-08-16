@@ -12,6 +12,11 @@ interface FloatingRouteCardsProps {
   onStartNavigation?: () => void;
 }
 
+function routeKey(route: RouteOption): string {
+  const shade = Math.round(route.shadeCoverage * 1000);
+  return `${route.label}-${Math.round(route.distanceM)}-${shade}`;
+}
+
 export default function FloatingRouteCards({
   routes,
   selectedRouteIndex,
@@ -27,54 +32,63 @@ export default function FloatingRouteCards({
   const selectedRoute = routes[selectedRouteIndex];
 
   return (
-    <div className="hidden md:flex absolute right-6 top-20 bottom-24 w-80 z-30 flex-col gap-3 pointer-events-none">
-      {/* Recommended badge */}
-      <div className="flex items-center gap-2 pointer-events-none">
-        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-[10px] uppercase tracking-widest font-bold text-green-700">
-          Recommended Option
-        </span>
-      </div>
-
-      {/* Solar pill */}
-      {solarIntensity != null && solarIntensity > 0.15 && (
-        <div
-          className="text-xs px-3 py-1.5 rounded-full self-start pointer-events-none"
-          style={{
-            background: solarIntensity > 0.6 ? "var(--md-primary-container)" : "rgba(255,171,0,0.12)",
-            color: solarIntensity > 0.6 ? "var(--md-on-primary-container)" : "#92400e",
-          }}
-        >
-          {solarIntensity > 0.6 ? "High solar load — shade matters" : "Moderate solar load"}
+    <div className="hidden md:flex absolute right-6 top-20 bottom-24 w-80 z-30 pointer-events-none">
+      <div
+        className="pointer-events-auto flex max-h-full w-full flex-col gap-3 rounded-xl border p-3 shadow-xl backdrop-blur-md"
+        style={{
+          background: "rgba(255,255,255,0.92)",
+          borderColor: "var(--md-outline-variant)",
+        }}
+      >
+        {/* Recommended badge */}
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-[10px] uppercase tracking-widest font-bold text-green-700">
+            Recommended Option
+          </span>
         </div>
-      )}
 
-      {/* Route cards */}
-      <div className="flex-1 flex flex-col gap-3 overflow-y-auto md-scrollbar pointer-events-auto" role="radiogroup" aria-label="Route options">
-        {routes.map((r, i) => (
-          <RouteCard
-            key={i}
-            route={r}
-            selected={i === selectedRouteIndex}
-            onSelect={() => onSelectRoute(i)}
-            onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
-            onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
-            recommended={r.label === "Balanced"}
-            baselineRoute={completeBaselineRoute ?? undefined}
-          />
-        ))}
+        {/* Solar pill */}
+        {solarIntensity != null && solarIntensity > 0.15 && (
+          <div
+            className="text-xs px-3 py-1.5 rounded-full self-start"
+            style={{
+              background: solarIntensity > 0.6 ? "var(--md-primary-container)" : "rgba(255,171,0,0.12)",
+              color: solarIntensity > 0.6 ? "var(--md-on-primary-container)" : "#92400e",
+            }}
+          >
+            {solarIntensity > 0.6 ? "High solar load — shade matters" : "Moderate solar load"}
+          </div>
+        )}
+
+        {/* Route cards */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md-scrollbar" role="radiogroup" aria-label="Route options">
+          {routes.map((r, i) => (
+            <RouteCard
+              key={routeKey(r)}
+              route={r}
+              selected={i === selectedRouteIndex}
+              onSelect={() => onSelectRoute(i)}
+              onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
+              onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
+              recommended={r.label === "Balanced"}
+              baselineRoute={completeBaselineRoute ?? undefined}
+            />
+          ))}
+        </div>
+
+        {/* Start navigating */}
+        {onStartNavigation && !selectedRoute?.partial && (
+          <button
+            type="button"
+            onClick={onStartNavigation}
+            className="w-full px-4 py-3 rounded-lg text-sm font-bold transition-colors"
+            style={{ background: "#22c55e", color: "white" }}
+          >
+            START NAVIGATING
+          </button>
+        )}
       </div>
-
-      {/* Start navigating */}
-      {onStartNavigation && !selectedRoute?.partial && (
-        <button
-          onClick={onStartNavigation}
-          className="w-full px-4 py-3 rounded-xl text-sm font-bold transition-colors pointer-events-auto shadow-lg"
-          style={{ background: "#22c55e", color: "white" }}
-        >
-          START NAVIGATING
-        </button>
-      )}
     </div>
   );
 }
