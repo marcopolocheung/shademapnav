@@ -71,7 +71,7 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
       />
       {/* Clear button — only when there is text */}
       {query.length > 0 && (
-        <button
+        <button type="button"
           onClick={() => { setQuery(""); setResults([]); }}
           className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors cursor-pointer"
           aria-label="Clear search"
@@ -86,7 +86,7 @@ export default function LocationSearch({ onSelect }: LocationSearchProps) {
         <ul className="absolute top-full mt-1 w-full glass-panel rounded-lg overflow-hidden border z-20">
           {results.map((r, i) => (
             <li key={i}>
-              <button
+              <button type="button"
                 onClick={() => handleSelect(r)}
                 className="w-full text-left px-3 py-2 text-xs text-white/80 hover:bg-white/10 transition-colors"
               >

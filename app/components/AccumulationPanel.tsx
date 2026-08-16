@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { AccumulationOptions } from "./MapView";
 import DateInput from "./DateInput";
 
@@ -115,6 +115,7 @@ export default function AccumulationPanel({
   getBounds,
 }: AccumulationPanelProps) {
   const [open, setOpen] = useState(false);
+  const qualityInputId = useId();
 
   function toggle() {
     const next = !accumulation.enabled;
@@ -156,7 +157,7 @@ export default function AccumulationPanel({
 
   return (
     <div className="flex flex-col gap-2 items-start">
-      <button
+      <button type="button"
         onClick={toggle}
         className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
           accumulation.enabled
@@ -180,22 +181,25 @@ export default function AccumulationPanel({
           }}
         >
           <div className="flex items-center gap-2">
-            <label className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>From</label>
+            <span className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>From</span>
             <DateInput
+              ariaLabel="Sun exposure start date"
               date={accumulation.startDate}
               onChange={(d) => onChange({ ...accumulation, startDate: d })}
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>To</label>
+            <span className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>To</span>
             <DateInput
+              ariaLabel="Sun exposure end date"
               date={accumulation.endDate}
               onChange={(d) => onChange({ ...accumulation, endDate: d })}
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>Quality</label>
+            <label htmlFor={qualityInputId} className="w-12" style={{ color: "var(--md-on-surface-variant)" }}>Quality</label>
             <input
+              id={qualityInputId}
               type="range"
               min={8}
               max={64}
@@ -236,7 +240,7 @@ export default function AccumulationPanel({
             </div>
           </div>
 
-          <button
+          <button type="button"
             onClick={exportGeoTIFF}
             className="mt-1 transition-colors rounded px-3 py-1.5 text-center font-medium"
             style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}

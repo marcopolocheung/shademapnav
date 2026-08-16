@@ -20,6 +20,7 @@ import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from 
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { travelTimeSeconds } from "../lib/travelMode";
+import { routeBounds } from "../lib/routeBounds";
 
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
@@ -100,6 +101,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setRouteProgress(null);
     setRoutePreview(null);
   }, []);
+
+  const fitMapToRoute = useCallback((route: RouteOption) => {
+    const map = mapRef.current;
+    const bounds = routeBounds(route);
+    if (!map || !bounds) return;
+
+    map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 800 });
+  }, [mapRef]);
 
   // Keyboard shortcuts for draw mode
   useEffect(() => {
@@ -619,13 +628,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       setNavRoutes(options);
       setSelectedRouteIndex(0);
+      fitMapToRoute(options[0]);
     } catch (e) {
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
       setIsCalculating(false);
       setRouteProgress(null);
     }
-  }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints]);
+  }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute]);
 
   const handleSketchFinish = useCallback(() => {
     setDrawMode(false);
@@ -1056,6 +1066,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           let totalDist = 0;
           let totalShadeDist = 0;
           const allCoords: [number, number][] = [];
+          const legs: RouteLeg[] = [];
           let failed = false;
           let failedLeg: number | null = null;
 
@@ -1079,9 +1090,15 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               routeStops[seg],
               routeStops[seg + 1],
             );
-            const coords = segGeojson.geometry.coordinates as [number, number][];
-            if (allCoords.length > 0) coords.shift();
-            allCoords.push(...coords);
+            const legCoords = segGeojson.geometry.coordinates as [number, number][];
+            const stitchedCoords = allCoords.length > 0 ? legCoords.slice(1) : legCoords;
+            allCoords.push(...stitchedCoords);
+            legs.push({
+              type: "walk",
+              geojson: segGeojson,
+              distanceM: segResult.distanceM,
+              shadeCoverage: segResult.shadeCoverage,
+            });
             totalDist += segResult.distanceM;
             totalShadeDist += segResult.distanceM * segResult.shadeCoverage;
             if (si === 0) updatePreview(allCoords);
@@ -1103,6 +1120,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                 shadeTransitions: 0,
                 detourRatio: 1.0,
                 turnCount: 0,
+                legs,
                 partial: {
                   completedLegs: failedLeg - 1,
                   failedLeg,
@@ -1132,6 +1150,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             shadeTransitions: 0,
             detourRatio: 1.0,
             turnCount: 0,
+            legs,
           });
         }
 
@@ -1340,6 +1359,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setSketchPoints([]);
       setNavWarning(partialWarning ? partialRouteNotice(partialWarning) : null);
       setSimplifiedWaypoints(null);
+      fitMapToRoute(options[0]);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       if (calcSignal.aborted) return;
@@ -1351,7 +1371,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         setRoutePreview(null);
       }
     }
-  }, [additionalWaypoints, mapRef, dateRef]);
+  }, [additionalWaypoints, mapRef, dateRef, fitMapToRoute]);
 
   const handleCalculateRoute = useCallback(() => {
     const useSketch = drawModeRef.current && sketchPointsRef.current.length >= 2;

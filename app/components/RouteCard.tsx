@@ -1,6 +1,6 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
 import { partialRouteNotice } from "../lib/partialRoute";
-import { routeTradeoffLine } from "../lib/routeTradeoff";
+import { routeLegSummary } from "../lib/routeLegSummary";
 
 function formatDist(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
@@ -13,29 +13,29 @@ interface RouteCardProps {
   onSave?: () => void;
   onExport?: (format: "gpx" | "geojson") => void;
   recommended?: boolean;
-  baselineRoute?: RouteOption;
 }
 
-export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended, baselineRoute }: RouteCardProps) {
+export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended }: RouteCardProps) {
   const streak = r.longestContinuousShadeM >= 10 ? `${Math.round(r.longestContinuousShadeM)}m shade` : null;
   const transitions = r.shadeTransitions === 0 ? "continuous" : `${r.shadeTransitions} break${r.shadeTransitions === 1 ? "" : "s"}`;
   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
   const shadePct = Math.round(r.shadeCoverage * 100);
   const isPartial = !!r.partial;
-  const tradeoffLine = baselineRoute && !isPartial ? routeTradeoffLine(r, baselineRoute) : null;
 
   return (
-    <div className="flex gap-1.5 items-start">
+    <div
+      className={`flex gap-1.5 items-start rounded-lg text-xs transition-all ${
+        selected
+          ? 'bg-white/80 backdrop-blur-xl p-4 shadow-xl border-l-4'
+          : 'bg-white/60 backdrop-blur-md p-3 border-l-4 border-slate-200 hover:bg-white/70'
+      }`}
+      style={selected ? { borderColor: "var(--md-primary)" } : undefined}
+    >
       <button
+        type="button"
         onClick={onSelect}
-        role="radio"
-        aria-checked={selected}
-        className={`flex-1 text-left rounded-lg text-xs transition-all ${
-          selected
-            ? 'bg-white/80 backdrop-blur-xl p-4 shadow-xl border-l-4'
-            : 'bg-white/60 backdrop-blur-md p-3 border-l-4 border-slate-200 hover:bg-white/70'
-        }`}
-        style={selected ? { borderColor: "var(--md-primary)" } : undefined}
+        aria-pressed={selected}
+        className="min-w-0 flex-1 text-left"
       >
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -73,15 +73,6 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             {shadePct}% shade
           </span>
         </div>
-
-        {tradeoffLine && (
-          <div
-            className={`mt-1 font-semibold ${selected ? "text-[12px]" : "text-[11px]"}`}
-            style={{ color: selected ? "var(--md-primary)" : "var(--md-on-surface)" }}
-          >
-            {tradeoffLine}
-          </div>
-        )}
 
         {r.partial && (
           <div className="mt-1 text-[11px] font-medium" style={{ color: "#a16207" }}>
@@ -124,6 +115,28 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             <div className="rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
               <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shade Breaks</div>
               <div className="text-xs font-semibold mt-0.5" style={{ color: "var(--md-on-surface)" }}>{transitions}</div>
+            </div>
+          </div>
+        )}
+
+        {selected && r.legs && r.legs.length > 1 && (
+          <div className="mt-3 rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Journey Legs</div>
+            <div className="mt-1 flex flex-col gap-1">
+              {r.legs.map((leg, index) => {
+                const summary = routeLegSummary(leg, index);
+                return (
+                  <div key={`${leg.type}-${index}`} className="flex items-center gap-2 text-[10px]">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--md-primary-container)", color: "var(--md-on-primary-container)" }}>
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-semibold" style={{ color: "var(--md-on-surface)" }}>{summary.title}</span>
+                      <span style={{ color: "var(--md-on-surface-variant)" }}> · {summary.detail}</span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -176,6 +189,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
 
       {onSave && !isPartial && (
         <button
+          type="button"
           onClick={onSave}
           title="Save this route"
           className="shrink-0 mt-0.5 p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-all"
@@ -186,15 +200,15 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
 
       {onExport && !isPartial && (
         <div className="relative group/export shrink-0 mt-0.5">
-          <button className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" title="Export route">
+          <button type="button" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" title="Export route">
             <span className="material-symbols-outlined text-base">download</span>
           </button>
           <div
             className="hidden group-hover/export:flex absolute right-0 top-full mt-1 flex-col rounded-lg shadow-xl z-30 min-w-max border"
             style={{ background: "white", borderColor: "var(--md-outline-variant)" }}
           >
-            <button onClick={() => onExport("gpx")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GPX</button>
-            <button onClick={() => onExport("geojson")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GeoJSON</button>
+            <button type="button" onClick={() => onExport("gpx")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GPX</button>
+            <button type="button" onClick={() => onExport("geojson")} className="px-3 py-1.5 text-[11px] hover:bg-amber-50 text-left transition-colors" style={{ color: "var(--md-on-surface)" }}>GeoJSON</button>
           </div>
         </div>
       )}
