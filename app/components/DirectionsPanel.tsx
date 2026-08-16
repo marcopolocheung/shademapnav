@@ -6,6 +6,7 @@ import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
 import RouteCard from "./RouteCard";
+import RouteTradeoffSummary from "./RouteTradeoffSummary";
 import SavedRoutesSection from "./SavedRoutesSection";
 
 const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) {
@@ -119,11 +120,17 @@ export default function DirectionsPanel({
   const [addingStop, setAddingStop] = useState(false);
   const progressPercent = routeProgress ? routeProgressPercent(routeProgress) : null;
   const progressCount = routeProgress ? routeProgressCount(routeProgress) : null;
+
+  function activateWaypointSlot(slot: 'A' | 'B') {
+    if (slot === 'B' && drawMode) return;
+    onSetPendingSlot(pendingSlot === slot ? null : slot);
+  }
+
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button
+        <button type="button"
           onClick={onBack}
           className="flex items-center justify-center w-7 h-7 rounded-full transition-colors hover:bg-amber-50"
           style={{ background: "var(--md-surface-container-low)", color: "var(--md-on-surface-variant)" }}
@@ -138,7 +145,7 @@ export default function DirectionsPanel({
           style={{ borderColor: "var(--md-outline-variant)" }}
         >
           {(['walk', 'transit'] as const).map((mode) => (
-            <button
+            <button type="button"
               key={mode}
               onClick={() => onRouteModeChange?.(mode)}
               disabled={mode === 'transit' && !canTransit}
@@ -172,23 +179,33 @@ export default function DirectionsPanel({
         className="rounded-xl p-4 flex flex-col gap-2"
         style={{ background: "var(--md-surface-container-low)" }}
       >
-        <div
-          onPointerDown={() => onPinDragStart?.('A')}
-          onClick={() => onSetPendingSlot(pendingSlot === 'A' ? null : 'A')}
-          className="cursor-pointer"
-        >
-          <WaypointInput
-            label={waypointALabel}
-            placeholder="Start — type or click map"
-            dotColor="green"
-            onSet={onSetWaypointA}
-            onClear={onClearWaypointA}
-          />
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <WaypointInput
+              label={waypointALabel}
+              placeholder="Start — type or click map"
+              dotColor="green"
+              onSet={onSetWaypointA}
+              onClear={onClearWaypointA}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Place start waypoint on map"
+            aria-pressed={pendingSlot === 'A'}
+            onPointerDown={() => onPinDragStart?.('A')}
+            onClick={() => activateWaypointSlot('A')}
+            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-amber-50"
+            style={{ color: pendingSlot === 'A' ? "var(--md-primary)" : "var(--md-on-surface-variant)" }}
+            title="Place start waypoint on map"
+          >
+            <span className="material-symbols-outlined text-base">add_location</span>
+          </button>
         </div>
 
         {/* Swap button */}
         <div className="flex justify-center">
-          <button
+          <button type="button"
             onClick={onSwapWaypoints}
             className="text-slate-400 hover:text-amber-700 transition-colors p-1 hover:bg-amber-50 rounded-lg"
             title="Swap waypoints"
@@ -198,18 +215,31 @@ export default function DirectionsPanel({
         </div>
 
         <div
-          onPointerDown={() => !drawMode && onPinDragStart?.('B')}
-          onClick={() => !drawMode && onSetPendingSlot(pendingSlot === 'B' ? null : 'B')}
-          className="cursor-pointer transition-opacity"
-          style={drawMode ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+          className="flex items-start gap-2 transition-opacity"
+          style={drawMode ? { opacity: 0.4 } : undefined}
         >
-          <WaypointInput
-            label={waypointBLabel}
-            placeholder={drawMode ? "Tap map to sketch route" : "End — type or click map"}
-            dotColor="red"
-            onSet={onSetWaypointB}
-            onClear={onClearWaypointB}
-          />
+          <div className="flex-1 min-w-0">
+            <WaypointInput
+              label={waypointBLabel}
+              placeholder={drawMode ? "Tap map to sketch route" : "End — type or click map"}
+              dotColor="red"
+              onSet={onSetWaypointB}
+              onClear={onClearWaypointB}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Place destination waypoint on map"
+            aria-pressed={pendingSlot === 'B'}
+            disabled={drawMode}
+            onPointerDown={() => !drawMode && onPinDragStart?.('B')}
+            onClick={() => activateWaypointSlot('B')}
+            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-amber-50 disabled:cursor-not-allowed"
+            style={{ color: pendingSlot === 'B' ? "var(--md-primary)" : "var(--md-on-surface-variant)" }}
+            title="Place destination waypoint on map"
+          >
+            <span className="material-symbols-outlined text-base">add_location</span>
+          </button>
         </div>
       </div>
 
@@ -219,7 +249,7 @@ export default function DirectionsPanel({
           <div className="flex items-center justify-between">
             <span className="text-[10px]" style={{ opacity: 0.6 }}>Stops between start and destination</span>
             {!addingStop && onAddAdditionalWaypoint && (
-              <button
+              <button type="button"
                 onClick={() => setAddingStop(true)}
                 className="text-[10px] font-medium hover:text-amber-700 transition-colors"
                 style={{ color: "var(--md-primary)" }}
@@ -232,7 +262,7 @@ export default function DirectionsPanel({
             <div key={i} className="flex items-center gap-1">
               <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center shrink-0" style={{ background: "var(--md-primary)" }}>{i + 1}</span>
               <span className="flex-1 tabular-nums truncate" style={{ color: "var(--md-on-surface)" }}>{wp[1].toFixed(5)}, {wp[0].toFixed(5)}</span>
-              <button
+              <button type="button"
                 onClick={() => onRemoveAdditionalWaypoint?.(i)}
                 className="text-slate-300 hover:text-red-500 transition-colors px-0.5"
               >
@@ -256,7 +286,7 @@ export default function DirectionsPanel({
           )}
         </div>
       ) : onAddAdditionalWaypoint ? (
-        <button
+        <button type="button"
           onClick={() => setAddingStop(true)}
           className="ml-4 self-start flex items-center gap-1 text-[11px] font-medium hover:text-amber-700 transition-colors"
           style={{ color: "var(--md-primary)" }}
@@ -274,7 +304,7 @@ export default function DirectionsPanel({
             className="flex rounded-lg overflow-hidden border"
             style={{ borderColor: "var(--md-outline-variant)" }}
           >
-            <button
+            <button type="button"
               onClick={() => drawMode && onDrawModeToggle?.()}
               className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 !drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
@@ -283,7 +313,7 @@ export default function DirectionsPanel({
             >
               Search
             </button>
-            <button
+            <button type="button"
               onClick={() => !drawMode && onDrawModeToggle?.()}
               className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
@@ -306,7 +336,7 @@ export default function DirectionsPanel({
               )}
             </p>
             {sketchPointCount > 0 && onClearSketch && (
-              <button
+              <button type="button"
                 onClick={onClearSketch}
                 className="text-[11px] transition-colors hover:text-amber-700"
                 style={{ color: "var(--md-on-surface-variant)" }}
@@ -342,14 +372,14 @@ export default function DirectionsPanel({
 
       {/* Calculate button */}
       <div className="flex gap-2 shrink-0">
-        <button
+        <button type="button"
           onClick={onCalculate}
           disabled={drawMode ? sketchPointCount < 2 || isCalculating : !waypointA || !waypointB || isCalculating}
           className="flex-1 px-2 py-2 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
           style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}
         >
           {isCalculating && (
-            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+            <svg aria-hidden="true" focusable="false" className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
@@ -393,23 +423,28 @@ export default function DirectionsPanel({
 
       {/* Route cards — hidden on desktop when FloatingRouteCards is used */}
       {!hideRouteCards && routes.length > 0 && (
-        <div className="flex flex-col gap-1.5 border-t pt-2" role="radiogroup" aria-label="Route options" style={{ borderColor: "var(--md-outline-variant)" }}>
+        <div className="flex flex-col gap-1.5 border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
           {solarIntensity != null && <SolarPill intensity={solarIntensity} />}
-          {routes.map((r, i) => (
-            <RouteCard
-              key={i}
-              route={r}
-              selected={i === selectedRouteIndex}
-              onSelect={() => onSelectRoute(i)}
-              onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
-              onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
-              recommended={r.label === "Balanced"}
-              baselineRoute={completeBaselineRoute ?? undefined}
-            />
-          ))}
+          <RouteTradeoffSummary
+            route={selectedRoute}
+            baselineRoute={completeBaselineRoute ?? undefined}
+          />
+          <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Route options">
+            {routes.map((r, i) => (
+              <RouteCard
+                key={i}
+                route={r}
+                selected={i === selectedRouteIndex}
+                onSelect={() => onSelectRoute(i)}
+                onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
+                onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
+                recommended={r.label === "Balanced"}
+              />
+            ))}
+          </div>
 
           {onStartNavigation && routes.length > 0 && !selectedRoute?.partial && (
-            <button
+            <button type="button"
               onClick={onStartNavigation}
               className="mt-2 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-colors"
               style={{ background: "#22c55e", color: "white" }}
