@@ -1,4 +1,4 @@
-import { useState, useRef, memo } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 import { toMapLocal } from "../lib/timezone";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -55,7 +55,12 @@ const DateInput = memo(function DateInput({
   const utcOffsetMin = utcOffsetMinProp ?? -new Date().getTimezoneOffset();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const shouldCommit = useRef(true);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   function startEdit() {
     shouldCommit.current = true;
@@ -76,6 +81,7 @@ const DateInput = memo(function DateInput({
   if (editing) {
     return (
       <input
+        ref={inputRef}
         aria-label={ariaLabel}
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -94,13 +100,13 @@ const DateInput = memo(function DateInput({
           borderColor: "var(--md-outline-variant)",
           fontFamily: "var(--md-font)",
         }}
-        autoFocus
       />
     );
   }
 
   return (
     <button
+      type="button"
       aria-label={ariaLabel}
       onClick={startEdit}
       className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"

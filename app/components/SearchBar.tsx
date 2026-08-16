@@ -273,7 +273,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
       >
         {/* Hamburger — toggles desktop sidebar */}
         {onMenuToggle && (
-          <button
+          <button type="button"
             onClick={onMenuToggle}
             className="shrink-0 text-amber-700 hover:opacity-80 transition-opacity"
             aria-label="Toggle menu"
@@ -302,7 +302,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
 
         {/* Clear button */}
         {query.length > 0 && (
-          <button
+          <button type="button"
             onClick={handleClear}
             className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Clear search"
@@ -315,7 +315,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
         )}
 
         {/* Magnifying glass — triggers search */}
-        <button
+        <button type="button"
           onClick={handleMagnifierClick}
           onMouseDown={(e) => e.preventDefault()}
           className="shrink-0 text-amber-700 hover:opacity-80 transition-opacity"
@@ -326,7 +326,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
 
         {/* Directions button */}
         {onDirections && (
-          <button
+          <button type="button"
             onClick={onDirections}
             className="shrink-0 text-slate-400 hover:opacity-80 transition-opacity"
             aria-label="Directions"
@@ -350,7 +350,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
               {recent.map((it, i) => {
                 const dist = mapCenter ? formatDistance(haversineM(mapCenter, it.center)) : "";
                 return (
-                  <button
+                  <button type="button"
                     key={`${it.label}-${i}`}
                     onClick={() => handleSelectSaved(it)}
                     className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-amber-50/50"
@@ -376,7 +376,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
               {saved.map((it, i) => {
                 const dist = mapCenter ? formatDistance(haversineM(mapCenter, it.center)) : "";
                 return (
-                  <button
+                  <button type="button"
                     key={`${it.label}-${i}`}
                     onClick={() => handleSelectSaved(it)}
                     className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-amber-50/50"
@@ -406,7 +406,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
         >
           {results.map((r, i) => (
             <li key={i} id={`${listId}-opt-${i}`} role="option" aria-selected={i === highlightIndex}>
-              <button
+              <button type="button"
                 onClick={() => handleSelect(r)}
                 className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 ${
                   i === highlightIndex ? "bg-amber-50" : "hover:bg-amber-50/50"
