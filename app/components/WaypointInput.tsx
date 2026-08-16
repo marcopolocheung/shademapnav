@@ -127,7 +127,7 @@ const WaypointInput = memo(function WaypointInput({
           style={{ color: "var(--md-on-surface)", fontFamily: "var(--md-font)" }}
         />
         {label && (
-          <button
+          <button type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => { onClear(); setQuery(""); closeDropdown(); }}
             className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors leading-none px-0.5"
@@ -150,7 +150,7 @@ const WaypointInput = memo(function WaypointInput({
             const primary = comma >= 0 ? r.display_name.slice(0, comma) : r.display_name;
             const secondary = comma >= 0 ? r.display_name.slice(comma + 1).trim() : "";
             return (
-              <button
+              <button type="button"
                 key={r.place_id}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(r)}
