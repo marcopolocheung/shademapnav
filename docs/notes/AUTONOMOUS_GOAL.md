@@ -171,12 +171,15 @@ _No open P0 items after PR #23; keep watching for anything that can mislead user
 
 ## P4 — Honest tooling and hygiene
 
-- **`npm run lint` verifies nothing.** `eslint.config.mjs` is a `dist/` ignore and zero
-  rules. Add typescript-eslint + react-hooks at minimum; the codebase is disciplined
-  enough to pass. A lint that manufactures false confidence is worse than none.
-- **No CI.** There is no `.github/`. Add a workflow running test + typecheck + build on
-  push and PR, so the gates above are enforced when a human isn't watching either.
-- **No `typecheck` script**, and `start` is a misleading name for `vite preview`.
+- **Lint debt is now visible but not enforced.** Biome replaced the empty eslint config;
+  its recommended set blocks at error level, but ~180 findings are deliberately set to
+  `warn` in `biome.json` so adoption didn't require a 200-file diff. Burn these down in
+  focused slices — a11y first (~127, and "Accessible" is a governing word), then
+  `useExhaustiveDependencies` (17 real stale-closure risks in hooks).
+- **Formatting is configured but never applied.** `biome.json` sets the formatter and
+  `npm run format` exists, but the repo has never been formatted; `format:check` is not
+  in CI because the first run would rewrite every file. Do it as its own commit.
+- **`start` is a misleading name for `vite preview`.**
 - **Four unused dependencies** ship in `dependencies`: `@anthropic-ai/sdk`, `openai`,
   `commander`, `zod` — zero imports in `app/` or `api/`, leftovers from a `tools/tailor`
   CLI that no longer exists in the tree. Remove them (verify with a grep first).

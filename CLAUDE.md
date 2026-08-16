@@ -15,9 +15,17 @@ npm install
 npm run dev        # Vite dev server → http://localhost:5173
 npm test           # vitest run — app/{lib,services}/__tests__/**
 npm run typecheck  # tsc --noEmit
-npm run lint       # eslint (flat config, minimal rules)
+npm run lint       # biome lint — blocks on errors, ~180 known findings are "warn"
+npm run format     # biome format --write (never yet run repo-wide; see biome.json)
 npm run build      # vite build → dist/
 ```
+
+Lint config is `biome.json` (Biome replaced ESLint, whose config had zero rules and
+matched zero `.ts` files). Rules the codebase intentionally violates — `noNonNullAssertion`
+(`routing.ts` leans on `!`), `noExplicitAny` (maplibre interop), `noApproximativeNumericConstant`
+(solar constants) — are `off`. Large real backlogs (a11y, `useExhaustiveDependencies`)
+are `warn` so they surface without blocking. Everything else in Biome's recommended set
+is an error and will fail CI.
 
 CI (`.github/workflows/ci.yml`) runs lint → typecheck → test → build on every PR to
 `main` and every push to `main`. It needs no secrets: the build inlines missing

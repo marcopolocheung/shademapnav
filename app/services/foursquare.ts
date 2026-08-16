@@ -88,7 +88,7 @@ async function fetchWithRetry(
 
     const delayMs = retryAfter
       ? parseInt(retryAfter, 10) * 1000
-      : 1000 * Math.pow(2, attempt);
+      : 1000 * 2 ** attempt;
 
     if (FSQ_DEBUG) {
       console.warn("⚠️ Foursquare 429 rate limit");
