@@ -6,6 +6,7 @@ import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
 import RouteCard from "./RouteCard";
+import RouteTradeoffSummary from "./RouteTradeoffSummary";
 import SavedRoutesSection from "./SavedRoutesSection";
 
 const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) {
@@ -393,20 +394,25 @@ export default function DirectionsPanel({
 
       {/* Route cards — hidden on desktop when FloatingRouteCards is used */}
       {!hideRouteCards && routes.length > 0 && (
-        <div className="flex flex-col gap-1.5 border-t pt-2" role="radiogroup" aria-label="Route options" style={{ borderColor: "var(--md-outline-variant)" }}>
+        <div className="flex flex-col gap-1.5 border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
           {solarIntensity != null && <SolarPill intensity={solarIntensity} />}
-          {routes.map((r, i) => (
-            <RouteCard
-              key={i}
-              route={r}
-              selected={i === selectedRouteIndex}
-              onSelect={() => onSelectRoute(i)}
-              onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
-              onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
-              recommended={r.label === "Balanced"}
-              baselineRoute={completeBaselineRoute ?? undefined}
-            />
-          ))}
+          <RouteTradeoffSummary
+            route={selectedRoute}
+            baselineRoute={completeBaselineRoute ?? undefined}
+          />
+          <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Route options">
+            {routes.map((r, i) => (
+              <RouteCard
+                key={i}
+                route={r}
+                selected={i === selectedRouteIndex}
+                onSelect={() => onSelectRoute(i)}
+                onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
+                onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
+                recommended={r.label === "Balanced"}
+              />
+            ))}
+          </div>
 
           {onStartNavigation && routes.length > 0 && !selectedRoute?.partial && (
             <button
