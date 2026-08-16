@@ -19,6 +19,7 @@ export default function FloatingMapControls({
     <div className="flex flex-col gap-3">
       {/* Zoom in */}
       <button
+        type="button"
         onClick={() => mapRef.current?.zoomIn()}
         className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
         aria-label="Zoom in"
@@ -29,6 +30,7 @@ export default function FloatingMapControls({
 
       {/* Zoom out */}
       <button
+        type="button"
         onClick={() => mapRef.current?.zoomOut()}
         className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
         aria-label="Zoom out"
@@ -41,6 +43,7 @@ export default function FloatingMapControls({
 
       {onShare && (
         <button
+          type="button"
           onClick={onShare}
           className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
           aria-label={shareStatus === "copied" ? "Share link copied" : "Copy share link"}
@@ -57,6 +60,7 @@ export default function FloatingMapControls({
 
       {/* My Location */}
       <button
+        type="button"
         onClick={onLocateMe}
         className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
         aria-label="My location"
@@ -64,7 +68,7 @@ export default function FloatingMapControls({
         disabled={isLocating}
       >
         {isLocating ? (
-          <svg width="20" height="20" viewBox="0 0 20 20" className="animate-spin text-amber-700">
+          <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20" className="animate-spin text-amber-700">
             <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="8" strokeLinecap="round" />
           </svg>
         ) : (
@@ -74,6 +78,7 @@ export default function FloatingMapControls({
 
       {/* 3D / Reset bearing */}
       <button
+        type="button"
         onClick={() => mapRef.current?.resetNorthPitch()}
         className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
         aria-label="Reset view"

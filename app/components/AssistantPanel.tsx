@@ -71,7 +71,7 @@ export default function AssistantPanel({
             Plans shade-aware outings
           </div>
         </div>
-        <button
+        <button type="button"
           onClick={onReset}
           className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
           title="New conversation"
@@ -79,7 +79,7 @@ export default function AssistantPanel({
         >
           <span className="material-symbols-outlined text-lg">refresh</span>
         </button>
-        <button
+        <button type="button"
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
           title="Close"
@@ -98,7 +98,7 @@ export default function AssistantPanel({
               a spot is shaded at a given hour, and draw shade-aware routes.
             </p>
             {SUGGESTIONS.map((s) => (
-              <button
+              <button type="button"
                 key={s}
                 onClick={() => onSend(s)}
                 className="text-left text-xs px-3 py-2 rounded-xl border hover:bg-amber-50 transition-colors"
@@ -171,7 +171,7 @@ export default function AssistantPanel({
               maxHeight: 96,
             }}
           />
-          <button
+          <button type="button"
             onClick={submit}
             disabled={isThinking || !input.trim()}
             className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors disabled:opacity-40"

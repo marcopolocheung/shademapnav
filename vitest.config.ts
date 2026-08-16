@@ -3,6 +3,20 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["app/{lib,services}/__tests__/**/*.test.ts"],
+    include: ["app/{lib,services,hooks,components}/__tests__/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary"],
+      include: [
+        "app/lib/**/*.{ts,tsx}",
+        "app/services/**/*.{ts,tsx}",
+        "app/hooks/**/*.{ts,tsx}",
+        "app/components/**/*.{ts,tsx}",
+      ],
+      exclude: [
+        "app/**/__tests__/**",
+        "app/**/*.d.ts",
+      ],
+    },
   },
 });
