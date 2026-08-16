@@ -26,6 +26,7 @@ function modelResponse(parts: LlmPart[]): LlmResponse {
 function makeCtx(): AgentContext {
   return {
     mapRef: { current: null },
+    shadowLayerRef: { current: null },
     dateRef: { current: new Date("2026-08-08T12:00:00Z") },
     setDate: vi.fn(),
     getUtcOffsetMin: () => 0,

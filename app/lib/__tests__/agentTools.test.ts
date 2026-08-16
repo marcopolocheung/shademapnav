@@ -5,6 +5,7 @@ import type { AgentContext } from "../agent/tools";
 function makeCtx(): AgentContext {
   return {
     mapRef: { current: null },
+    shadowLayerRef: { current: null },
     dateRef: { current: new Date("2026-08-08T12:00:00Z") },
     setDate: vi.fn(),
     getUtcOffsetMin: () => 0,
@@ -64,5 +65,28 @@ describe("agent route tools", () => {
     );
 
     expect(ctx.setAdditionalWaypoints).toHaveBeenCalledWith([]);
+  });
+
+  it("uses shadow-layer point queries for check_shade without moving the camera", async () => {
+    const flyTo = vi.fn();
+    const ctx = makeCtx();
+    ctx.mapRef.current = { flyTo } as any;
+    ctx.shadowLayerRef.current = {
+      queryPointShade: vi.fn(() => ({ shadeFraction: 0.8, source: "geometry-cache" })),
+    } as any;
+
+    const result = await executeTool(
+      "check_shade",
+      { lat: 40.7, lng: -74.0, time: "2:00 PM" },
+      ctx
+    );
+
+    expect(result).toMatchObject({
+      shadeFraction: 0.8,
+      status: "shaded",
+      source: "geometry-cache",
+    });
+    expect(flyTo).not.toHaveBeenCalled();
+    expect(ctx.setDate).not.toHaveBeenCalled();
   });
 });

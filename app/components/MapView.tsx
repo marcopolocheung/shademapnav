@@ -18,6 +18,7 @@ interface MapViewProps {
   date: Date;
   accumulation: AccumulationOptions;
   onMapReady?: (map: maplibregl.Map) => void;
+  onShadowLayerReady?: (layer: IShadowLayer | null) => void;
   navMode?: boolean;
   onMapClick?: (coord: { lng: number; lat: number }, originalEvent?: MouseEvent) => void;
   navWaypoints?: { a?: [number, number]; b?: [number, number] };
@@ -297,6 +298,7 @@ export default function MapView({
   date,
   accumulation,
   onMapReady,
+  onShadowLayerReady,
   onMapClick,
   navWaypoints,
   navRoute,
@@ -702,6 +704,7 @@ export default function MapView({
       });
 
       shadeRef.current = shadowLayer;
+      onShadowLayerReady?.(shadowLayer);
 
       // If local renderer (CustomLayer), register it as a map layer
       const maybeCustom = shadowLayer as unknown as maplibregl.CustomLayerInterface;
@@ -733,6 +736,7 @@ export default function MapView({
       placePopupRef.current = null;
       shadeRef.current?.remove();
       shadeRef.current = null;
+      onShadowLayerReady?.(null);
       markerARef.current?.remove();      markerARef.current = null;
       markerBRef.current?.remove();     markerBRef.current = null;
       markerBoardRef.current?.remove(); markerBoardRef.current = null;

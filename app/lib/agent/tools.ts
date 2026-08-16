@@ -11,6 +11,7 @@
  * agent code importing React.
  */
 import type maplibregl from "maplibre-gl";
+import type { IShadowLayer } from "../shadow/IShadowLayer";
 import { geocodeForward, geocodeNear } from "../nominatim";
 import { computeSolarIntensity, isBlueDominantShadowPixel } from "../shadeSampling";
 import { fromMapLocal, toMapLocal } from "../timezone";
@@ -25,6 +26,7 @@ export interface AssistantPin {
 
 export interface AgentContext {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
+  shadowLayerRef: React.MutableRefObject<IShadowLayer | null>;
   dateRef: React.MutableRefObject<Date>;
   setDate: (d: Date) => void;
   /** Current map-local UTC offset in minutes (longitude-derived). */
@@ -404,6 +406,16 @@ export async function executeTool(
       if (!map) return { error: "Map not ready yet." };
 
       const probeDate = dateAtLocalTime(ctx.dateRef.current, offset, str(args.time));
+      const geometryShade = ctx.shadowLayerRef.current?.queryPointShade?.(lng, lat, { date: probeDate });
+      if (geometryShade) {
+        const frac = geometryShade.shadeFraction;
+        return {
+          shadeFraction: +frac.toFixed(2),
+          status: shadeStatus(frac),
+          atLocalTime: fmtLocalTime(probeDate, offset),
+          source: geometryShade.source,
+        };
+      }
 
       // Save view + time so probing doesn't hijack the user's screen.
       const orig = map.getCenter();

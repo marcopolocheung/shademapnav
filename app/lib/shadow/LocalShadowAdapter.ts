@@ -244,6 +244,44 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.listeners.get(event)!.add(callback);
   }
 
+  queryPointShade(lng: number, lat: number, opts?: { date?: Date }) {
+    if (!this.map) return null;
+    if (!this.map.getBounds().contains([lng, lat])) return null;
+
+    if (!this.buildingCache) {
+      this.buildingCache = this.buildBuildingGeometryCache();
+    }
+    const cache = this.buildingCache;
+    if (!cache) return null;
+
+    const queryDate = opts?.date ?? this.currentDate;
+    const sun = SunCalc.getPosition(queryDate, lat, lng);
+    if (sun.altitude <= 0) {
+      return { shadeFraction: 1, source: "geometry-cache" as const };
+    }
+
+    const mPerLat = 111320;
+    const mPerLng = Math.max(1e-6, 111320 * Math.cos(lat * Math.PI / 180));
+    const offsetsM: Array<[number, number]> = [
+      [0, 0],
+      [-4, 0],
+      [4, 0],
+      [0, -4],
+      [0, 4],
+    ];
+
+    let shaded = 0;
+    for (const [dxM, dyM] of offsetsM) {
+      const sampleLng = lng + dxM / mPerLng;
+      const sampleLat = lat + dyM / mPerLat;
+      if (pointInCachedShadow(cache, sampleLng, sampleLat, sun.azimuth, sun.altitude, mPerLat, mPerLng)) {
+        shaded++;
+      }
+    }
+
+    return { shadeFraction: shaded / offsetsM.length, source: "geometry-cache" as const };
+  }
+
   // ─── CustomLayerInterface ──────────────────────────────────────────────────
 
   onAdd(map: maplibregl.Map, gl: WebGL2RenderingContext | WebGLRenderingContext) {
@@ -972,6 +1010,78 @@ function triangulateConvexRing(ring: [number, number][]): [number, number][] {
     out.push(p0, pts[i], pts[i + 1]);
   }
   return out;
+}
+
+function pointInCachedShadow(
+  cache: CachedBuildingGeometry,
+  lng: number,
+  lat: number,
+  sunAzimuth: number,
+  sunAltitude: number,
+  mPerLat: number,
+  mPerLng: number,
+): boolean {
+  for (const bldg of cache.buildings) {
+    for (const ring of bldg.rings) {
+      if (pointInPolygon(lng, lat, ring.coords)) return false;
+    }
+  }
+
+  for (const bldg of cache.buildings) {
+    for (const ring of bldg.rings) {
+      const shadowTris = buildShadowTriangles(ring.coords, bldg.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng);
+      if (pointInTriangles(lng, lat, shadowTris)) return true;
+    }
+  }
+
+  return false;
+}
+
+function pointInTriangles(lng: number, lat: number, tris: [number, number][]): boolean {
+  for (let i = 0; i < tris.length; i += 3) {
+    if (pointInTriangle(lng, lat, tris[i], tris[i + 1], tris[i + 2])) return true;
+  }
+  return false;
+}
+
+function pointInTriangle(
+  lng: number,
+  lat: number,
+  a: [number, number],
+  b: [number, number],
+  c: [number, number],
+): boolean {
+  const v0x = c[0] - a[0];
+  const v0y = c[1] - a[1];
+  const v1x = b[0] - a[0];
+  const v1y = b[1] - a[1];
+  const v2x = lng - a[0];
+  const v2y = lat - a[1];
+
+  const dot00 = v0x * v0x + v0y * v0y;
+  const dot01 = v0x * v1x + v0y * v1y;
+  const dot02 = v0x * v2x + v0y * v2y;
+  const dot11 = v1x * v1x + v1y * v1y;
+  const dot12 = v1x * v2x + v1y * v2y;
+  const denom = dot00 * dot11 - dot01 * dot01;
+  if (Math.abs(denom) < 1e-20) return false;
+
+  const invDenom = 1 / denom;
+  const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+  const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+  return u >= 0 && v >= 0 && u + v <= 1;
+}
+
+function pointInPolygon(lng: number, lat: number, ring: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersects = ((yi > lat) !== (yj > lat)) &&
+      (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-20) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
 }
 
 function createShader(
