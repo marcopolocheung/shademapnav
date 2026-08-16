@@ -1,9 +1,12 @@
 # Autonomous Goal — ShadeMapNav
 
 **This file is your standing instruction set. Re-read it whenever your context is
-summarized or you lose the thread. It is also yours to edit:** the backlog at the
-bottom is a living list — strike items you finish, add problems you discover,
-delete items that stop being true.
+summarized or you lose the thread.** It holds the mission, the loop, and the
+guardrails — the things that do not change per task.
+
+**The backlog is not here.** It lives in GitHub Issues (`gh issue list`); see the
+bottom of this file. Close issues by merging PRs that say `Fixes #N`, and file new
+issues for anything you discover.
 
 ---
 
@@ -30,20 +33,23 @@ Everything else (new features, refactors, cleverness) is subordinate to those th
 
 You are running unattended until session limits are reached. **Never stop to ask a
 question and never idle.** When something is ambiguous, pick the reasonable default,
-write the assumption in the worklog, and keep moving. Repeat this cycle:
+write the assumption in the PR description, and keep moving. Repeat this cycle:
 
-1. **Pick one item** from the backlog below (highest priority that is actionable).
-   One item ≈ one PR. If an item turns out to be bigger than one PR, split it in the
-   backlog and take the first slice.
+1. **Pick one item from GitHub Issues** — `gh issue list --state open --label p0`,
+   falling back to `p1`, `p2`, … in order. Take the highest-priority issue that is
+   actionable. One issue ≈ one PR. If an issue turns out to be bigger than one PR,
+   split it (`gh issue create`), close nothing, and take the first slice.
+   **Issues are the only backlog.** This file no longer carries one.
 2. **Branch** from up-to-date `main`: `feat/…`, `fix/…`, `perf/…`, `a11y/…`, `chore/…`.
 3. **Read before writing.** Root `CLAUDE.md` → the per-directory `CLAUDE.md` for the
    area you're touching → the file. Match the surrounding code's idiom.
 4. **Implement**, with tests when the change is logic (`app/lib/**`, `app/services/**`,
    `app/hooks/**`). Behavior changes to `routing.ts`, `trainGraph.ts`, `shadeSampling.ts`,
    or `app/lib/agent/**` require test coverage, not just a green existing suite.
-5. **Verify — all four gates, every time:**
-   - `npm test` — must pass (baseline: 119 passing, 13 files)
-   - `npx tsc --noEmit` — must be **clean** (baseline: 0 errors; do not regress this)
+5. **Verify — all four gates, every time** (CI runs exactly these on every PR):
+   - `npm run lint` — Biome; must pass (errors block, `warn`-level debt does not)
+   - `npm run typecheck` — must be **clean** (baseline: 0 errors; do not regress this)
+   - `npm test` — must pass (baseline: 133 passing, 16 files)
    - `npm run build` — must succeed
    - UI/map changes: run `npm run dev` and actually confirm the thing works
      (shadows render, timeline drags, a route calculates end to end)
@@ -52,15 +58,21 @@ write the assumption in the worklog, and keep moving. Repeat this cycle:
 7. **Push and open a PR** with `gh`. **Never merge it — every PR stays open for the
    repo owner to review.** Never merge, squash, or land anything onto `main` yourself.
    See "PR descriptions" below for the required format.
-8. **Record it** — append one line to `docs/notes/worklog.md`:
-   `YYYY-MM-DD — <branch> — PR #N — what changed, why, verification result`.
-9. **Update this file's backlog** — remove what you finished, add what you found.
+8. **Link the issue** — put `Fixes #N` in the PR body so the issue closes when the PR
+   merges. The PR description is the record; there is no separate worklog to append to.
+   Any assumption you had to make goes in that description.
+9. **File what you found** — `gh issue create` for anything you noticed and did not fix,
+   labelled with a priority (`p0`…`p5`) and a type (`security`, `chore`, `docs`, `test`,
+   `perf`, `a11y`, `feature`, `tooling`). Never leave a discovery only in a commit message.
 10. **Go to 1.** Do not report "done" and wait; there is always a next item.
 
-Because nothing merges while you work, **always branch from `main`** and prefer items
-that are independent of your open PRs. If an item genuinely depends on unmerged work,
-branch from that PR's branch, say so in the PR description's first sentence, and note
-the dependency in the worklog.
+Because nothing merges while you work, **always branch from `main`** and prefer issues
+that are independent of your open PRs. If an issue genuinely depends on unmerged work,
+branch from that PR's branch and say so in the PR description's first sentence.
+
+Prefer independent issues over stacking. PRs #17–#26 all had to be stacked purely
+because each one edited the same shared backlog file — that file is now gone, and two
+PRs touching unrelated code should no longer conflict.
 
 ## PR descriptions
 
@@ -81,12 +93,12 @@ The PR title stays a conventional-commit line (`fix: bound overpass proxy upstre
 - **Hard invariants in root `CLAUDE.md` are non-negotiable** (maplibre pinned at
   `5.9.0`; `preserveDrawingBuffer`; `MapView` only via `React.lazy`; shadow color ↔
   shade predicate coupling; `User-Agent` on Nominatim/Overpass). If a task genuinely
-  requires breaking one, don't — write the tradeoff in the backlog and pick something else.
+  requires breaking one, don't — file an issue describing the tradeoff and pick something else.
 - **Never read or edit `.worktrees/`** or any `oldbuild/` copy.
 - **Never** rewrite published history, force-push, commit secrets, or commit `.env`.
 - **Free-tier only.** No new paid services or keys. Cerebras is the LLM (5 req/min,
   shared key pool) — respect that budget; don't add chatty LLM calls.
-- **No speculative rewrites.** `MapView.tsx` (1373 lines) and `useNavigation.ts` (1301)
+- **No speculative rewrites.** `MapView.tsx` (1377 lines) and `useNavigation.ts` (1425)
   are large but working — extract from them only as a side effect of a change you were
   making anyway, never as a standalone "cleanup" PR.
 - **Don't widen scope.** A PR that fixes a timeout does not also restyle a panel.
@@ -95,7 +107,7 @@ The PR title stays a conventional-commit line (`fix: bound overpass proxy upstre
 
 ## Prioritization rubric
 
-When choosing between two backlog items, prefer the one that:
+When choosing between two open issues, prefer the one that:
 1. removes a way the app currently misleads a user, over one that adds capability;
 2. helps the phone-outdoors user, over the desktop user;
 3. is verifiable by test or by a measurable number (bundle size, ms, Lighthouse a11y),
@@ -104,110 +116,32 @@ When choosing between two backlog items, prefer the one that:
 
 ---
 
-# BACKLOG (living — edit freely)
+# Backlog
 
-*Status verified 2026-08-15: tests 133/133 pass, `tsc --noEmit` clean, PR #17 open
-for shared shade predicate, PR #18 open for route progress status, PR #19 open for
-partial route results, PR #20 open for route preview streaming, PR #21 open for visible
-shade point queries, PR #22 open for offscreen shade point queries, PR #23 open for
-offscreen building relation parsing, PR #24 open for partial performance baseline,
-PR #25 open for cached offscreen building Overpass queries, PR #26 open for cached
-station-entrance Overpass queries, no CI. Recent merged work already covered:
-shareable URLs, cloud-cover badge, route tradeoff summary, multi-stop UI + agent
-multi-stop, PWA offline shell, agent fallback plotting, lazy agent loop,
-agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
+This file used to carry the backlog inline. It no longer does — **open issues are the
+single source of open work**, seeded from what was previously spread across this file,
+`GROWTH_ROADMAP.md`, `PROJECT_REVIEW.md`, `userTODO.md`, and ad-hoc audits.
 
-## P0 — Trust and correctness
+```bash
+gh issue list --state open --label p0     # then p1, p2, … in order
+gh issue list --state open --label a11y   # or by type
+```
 
-_No open P0 items after PR #23; keep watching for anything that can mislead users._
+**Priority labels** carry the same meaning the old sections did:
 
-## P1 — Speed
+| Label | Meaning |
+|---|---|
+| `p0` | Trust, correctness, security — do first |
+| `p1` | Speed and verification |
+| `p2` | Accessibility, both senses |
+| `p3` | Product scope vs mission |
+| `p4` | Tooling and hygiene |
+| `p5` | Bigger bets — only when p0–p2 are quiet |
 
-- **Performance baseline is only partial.** PR #24 records cold build artifact sizes
-  in `docs/notes/performance-baseline.md`, but this workspace has no Chromium,
-  Playwright, or Lighthouse binary, so throttled-4G TTI and representative 2-point /
-  5-point route calculation timings are still missing. Capture those from a real
-  browser session via `window.__shadeMapMetrics` or add repo-owned browser automation.
-- **Route calc is single-threaded on the main thread.** Independent Pareto searches
-  per leg are parallelizable, and the graph build/Dijkstra work is a natural fit for a
-  worker (`app/workers/` already has the pattern). Only pursue after the baseline exists.
+**Type labels:** `security`, `chore`, `docs`, `test`, `perf`, `a11y`, `feature`, `tooling`.
 
-## P2 — Accessibility (both senses)
+The prioritization rubric above still decides ordering *within* a label.
 
-- **No a11y baseline.** ~13 `aria-label`s across 22 components and 6 `role=`/
-  `prefers-reduced-motion` hits total. Run an audit (Lighthouse a11y or axe on the
-  dev server), record the score in the worklog, then fix in priority order:
-  keyboard operability of the timeline slider and map controls → focus states and
-  focus trapping in panels/sheets → screen-reader labeling of routes and stops →
-  contrast → `prefers-reduced-motion` for camera flights and the play animation.
-- **Touch targets and one-handed use.** The persona is outdoors on a phone. Audit the
-  timeline slider, bottom sheet, and floating controls for 44px minimum targets and
-  thumb reach.
-- **The shade metaphor is unexplained.** A first-time user doesn't know dark blue =
-  shade at the current time, or that the timeline is the magic. One dismissible
-  one-line legend on first shadow render; nothing modal, nothing that blocks the map.
-- **The tradeoff sentence is buried.** "+4 min, −62% sun" is the entire product pitch
-  and it lives inside route cards. It belongs where it's read first.
-
-## P3 — The product is walking-only; the mission is not
-
-- **No travel-mode concept anywhere.** Speed is hardcoded (`WALK_SPEED_MS = 1.4` in
-  `useNavigation.ts:1143`) and the cost model is pedestrian. For bikes / scooters /
-  skateboards the graph already ingests `cycleway`, `steps`, `track`, `bridleway`
-  (`overpass.ts:94`) but treats them alike. A credible v1: a mode selector that sets
-  (a) speed, (b) a hard penalty or exclusion for `highway=steps`, (c) surface
-  awareness (`surface=cobblestone|gravel|sand` is punishing on skate/scooter wheels),
-  (d) a preference weight for `cycleway`/`bicycle=designated`. Ship it as one mode
-  beyond walking first (bike is the best-tagged in OSM), then generalize.
-  This is the largest gap between what the app is and what the mission says it is —
-  size it into slices before starting.
-- **Trees are the missing shade source.** Buildings-only shadow systematically
-  under-reports shade on tree-lined streets. Not a renderer change: Overpass serves
-  `natural=tree` and `landuse=forest`/`leaf_type`, and the routing cost model can take
-  a flat canopy bonus per edge. Rough is fine and visibly improves believability.
-- **"Best time to go."** The engine answers "which route at time T"; the same machinery
-  answers "which T for my route" by sweeping the day. A mini exposure-by-hour chart is
-  the first true daily-habit feature and is UI over existing capability.
-
-## P4 — Honest tooling and hygiene
-
-- **Lint debt is now visible but not enforced.** Biome replaced the empty eslint config;
-  its recommended set blocks at error level, but ~180 findings are deliberately set to
-  `warn` in `biome.json` so adoption didn't require a 200-file diff. Burn these down in
-  focused slices — a11y first (~127, and "Accessible" is a governing word), then
-  `useExhaustiveDependencies` (17 real stale-closure risks in hooks).
-- **Formatting is configured but never applied.** `biome.json` sets the formatter and
-  `npm run format` exists, but the repo has never been formatted; `format:check` is not
-  in CI because the first run would rewrite every file. Do it as its own commit.
-- **`start` is a misleading name for `vite preview`.**
-- **Four unused dependencies** ship in `dependencies`: `@anthropic-ai/sdk`, `openai`,
-  `commander`, `zod` — zero imports in `app/` or `api/`, leftovers from a `tools/tailor`
-  CLI that no longer exists in the tree. Remove them (verify with a grep first).
-- **Doc drift in the canonical guide.** Root `CLAUDE.md` says "one serverless proxy
-  (`api/fsq.js`)" — there are three (`agent.js`, `fsq.js`, `overpass.js`); it points at
-  `tools/tailor/` which doesn't exist; it says env lives in `.env.local` while the repo
-  uses `.env`; and it points at `app/lib/CLAUDE.md`, `app/hooks/CLAUDE.md`, and
-  `app/components/CLAUDE.md`, which don't exist. `AGENTS.md` points at
-  `docs/kb/INDEX.md`, which doesn't exist either. The docs' whole value is being
-  trustworthy — keep them true as you change things.
-- **15 merged local branches** still sit on the repo; prune the ones whose PRs merged.
-- **`maplibre-gl` is frozen at 5.9.0** by a single upstream call in
-  `mapbox-gl-shadow-simulator` (`Texture.update`). A `patch-package` patch would unfreeze
-  a whole major version's worth of upgrades. Not urgent, high leverage, self-contained.
-
-## P5 — Bigger bets (only when P0–P2 are quiet)
-
-- Share cards for a calculated route (canvas capture is nearly free —
-  `preserveDrawingBuffer` is already on) with the tradeoff sentence baked into the image.
-- Static pre-rendered city landing pages for "shaded walking route <city>" searches.
-- UV index and a burn-time estimate, turning "minutes in sun" into something a
-  sun-sensitive user can act on.
-- Saved places/routines that do something on return (needs the PWA shell, which shipped).
-
----
-
-## Worklog
-
-Append every iteration to `docs/notes/worklog.md` (create it on first run). One line
-per merged or attempted change. That file plus this backlog is how a future you, or
-the repo's owner, reconstructs what happened while nobody was watching.
+`GROWTH_ROADMAP.md` stays as the product thesis — the reasoning behind why these items
+matter and who the users are. It is not a task list; anything actionable in it has been
+filed as an issue. Historical records live in `docs/notes/archive/`.

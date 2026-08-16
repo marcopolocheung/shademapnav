@@ -1,6 +1,10 @@
 # ShadeMapNav Growth Roadmap — Getting and Keeping Users
 
-*Product-focused companion to `PROJECT_REVIEW.md` (which covers engineering health). This
+> **This is the product thesis, not a task list.** It explains who the users are and
+> why these bets matter. Anything actionable in it is tracked in GitHub Issues
+> (`gh issue list`) — several items below have already shipped and are not marked as such.
+
+*Product-focused companion to `docs/notes/archive/PROJECT_REVIEW-2026-07-05.md` (engineering health, as of that date). This
 document answers one question: what would make people **find** ShadeMapNav, **succeed
 with it in the first two minutes**, and **come back**? Written 2026-07-05.*
 
@@ -36,14 +40,14 @@ New users churn on broken promises faster than they churn on missing features. T
 ordered by how directly they break the promise the UI makes.
 
 ### 1.1 The AI assistant narrates trips it never plots ⚠️ ship-blocker
-`userTODO.md` #1 / `PROJECT_REVIEW.md` §1. The assistant confidently describes an itinerary,
+Originally `userTODO.md` #1 / `PROJECT_REVIEW.md` §1, both now archived. The assistant confidently describes an itinerary,
 teleports the camera around, and leaves the map empty. For a new user this doesn't read as
 "buggy feature," it reads as "this app lies." Either enforce plot-before-answer in code (the
 loop already holds the coordinates) or **hide the assistant behind a "beta" toggle until it
 does**. A feature that demos badly is negative marketing.
 
 ### 1.2 Route calculation timeout kills exactly the impressive routes
-`userTODO.md` #2. The ~5s budget means long/multi-stop journeys — the screenshots people
+Originally `userTODO.md` #2, now archived. The ~5s budget means long/multi-stop journeys — the screenshots people
 would share — fail silently-ish. Fixes, cheapest first: (a) show progress + partial results
 instead of a cliff timeout; (b) compute per-leg and stream legs onto the map as they finish
 (each leg is an independent Pareto search — this also parallelizes); (c) raise the budget
@@ -156,7 +160,7 @@ tradeoff from geometry to health: "this route: ~12 min direct sun at UV 9."
 ### 4.4 Assistant, once fixed, as the retention closer
 When §1.1–1.3 land, the day-planner assistant ("plan me a shaded afternoon: coffee, park,
 dinner") is the feature nothing else on the market has. It should also stop hijacking the
-camera during research (`PROJECT_REVIEW.md` §2) — a 10–15s teleporting map reads as broken to
+camera during research (`PROJECT_REVIEW-2026-07-05.md` §2, archived) — a 10–15s teleporting map reads as broken to
 every user who triggers it.
 
 ---
