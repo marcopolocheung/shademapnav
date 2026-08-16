@@ -22,16 +22,19 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
   const isPartial = !!r.partial;
 
   return (
-    <div className="flex gap-1.5 items-start">
-      <button type="button"
+    <div
+      className={`flex gap-1.5 items-start rounded-lg text-xs transition-all ${
+        selected
+          ? 'bg-white/80 backdrop-blur-xl p-4 shadow-xl border-l-4'
+          : 'bg-white/60 backdrop-blur-md p-3 border-l-4 border-slate-200 hover:bg-white/70'
+      }`}
+      style={selected ? { borderColor: "var(--md-primary)" } : undefined}
+    >
+      <button
+        type="button"
         onClick={onSelect}
         aria-pressed={selected}
-        className={`flex-1 text-left rounded-lg text-xs transition-all ${
-          selected
-            ? 'bg-white/80 backdrop-blur-xl p-4 shadow-xl border-l-4'
-            : 'bg-white/60 backdrop-blur-md p-3 border-l-4 border-slate-200 hover:bg-white/70'
-        }`}
-        style={selected ? { borderColor: "var(--md-primary)" } : undefined}
+        className="min-w-0 flex-1 text-left"
       >
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -162,7 +165,8 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
       </button>
 
       {onSave && !isPartial && (
-        <button type="button"
+        <button
+          type="button"
           onClick={onSave}
           title="Save this route"
           className="shrink-0 mt-0.5 p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-all"
