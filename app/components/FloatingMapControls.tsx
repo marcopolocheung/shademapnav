@@ -68,7 +68,7 @@ export default function FloatingMapControls({
         disabled={isLocating}
       >
         {isLocating ? (
-          <svg width="20" height="20" viewBox="0 0 20 20" className="animate-spin text-amber-700" aria-hidden="true">
+          <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20" className="animate-spin text-amber-700">
             <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="8" strokeLinecap="round" />
           </svg>
         ) : (
