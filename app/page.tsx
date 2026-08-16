@@ -73,7 +73,7 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
             setEditing(false);
           }
         }}
-        className="rounded px-2 py-1 text-xs border focus:outline-none w-20 text-center"
+        className="min-h-11 rounded px-2 py-1 text-xs border focus:outline-none w-24 text-center"
         style={{
           background: "var(--md-surface-container-low)",
           color: "var(--md-on-surface)",
@@ -87,8 +87,9 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
 
   return (
     <button
+      type="button"
       onClick={startEdit}
-      className="text-xs tabular-nums w-20 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
+      className="min-h-11 text-xs tabular-nums w-24 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
       style={{ color: "var(--md-on-surface-variant)", fontFamily: "var(--md-font)" }}
       title="Click to type a time (e.g. 6:30 AM, 14:30)"
     >
@@ -455,8 +456,9 @@ export default function Home() {
       {/* Controls row */}
       <div className="flex items-center justify-center gap-3 px-4 py-2">
         <button
+          type="button"
           onClick={() => setIsPlaying((p) => !p)}
-          className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 transition-colors"
+          className="flex items-center justify-center w-11 h-11 rounded-lg hover:bg-slate-100 transition-colors"
           style={{ color: "var(--md-on-surface-variant)" }}
           title={isPlaying ? "Pause" : "Play"}
         >
@@ -466,8 +468,9 @@ export default function Home() {
         </button>
 
         <button
+          type="button"
           onClick={() => setSliderMode((m) => m === "time" ? "day" : "time")}
-          className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg hover:bg-slate-100 transition-colors border"
+          className="flex min-h-11 items-center gap-1.5 px-3 rounded-lg hover:bg-slate-100 transition-colors border"
           style={{ borderColor: "var(--md-outline-variant)" }}
           title={sliderMode === "time" ? "Switch to day of year" : "Switch to time of day"}
         >
@@ -494,8 +497,9 @@ export default function Home() {
         ) : (
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => adjustYear(-1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
               style={{ color: "var(--md-on-surface-variant)" }}
               aria-label="Previous year"
             >
@@ -503,8 +507,9 @@ export default function Home() {
             </button>
             <span className="text-sm tabular-nums w-12 text-center font-medium" style={{ color: "var(--md-on-surface)", fontFamily: "var(--md-font)" }}>{_localYear}</span>
             <button
+              type="button"
               onClick={() => adjustYear(+1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
               style={{ color: "var(--md-on-surface-variant)" }}
               aria-label="Next year"
             >

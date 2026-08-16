@@ -80,7 +80,7 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
             setEditing(false);
           }
         }}
-        className="rounded px-2 py-1 text-xs border focus:outline-none w-32 text-center"
+        className="min-h-11 rounded px-2 py-1 text-xs border focus:outline-none w-32 text-center"
         style={{
           background: "var(--md-surface-container-low)",
           color: "var(--md-on-surface)",
@@ -94,8 +94,9 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
 
   return (
     <button
+      type="button"
       onClick={startEdit}
-      className="text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
+      className="min-h-11 text-xs tabular-nums w-32 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
       style={{
         color: "var(--md-on-surface-variant)",
         fontFamily: "var(--md-font)",
