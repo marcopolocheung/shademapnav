@@ -101,7 +101,7 @@ the OpenAI chat-completions shape Cerebras expects.
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `app/workers/CLAUDE.md` |
 | `api/` | Vercel serverless Foursquare proxy (prod CORS) | `api/CLAUDE.md` |
 | `.claude/` | This guide's history: deep-dive working notes |
-| `tools/tailor/` | Empty placeholder (resume-tailor CLI spec'd, never built — explains unused `@anthropic-ai/sdk`/`openai`/`commander`/`zod` deps) | — |
+| ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 
 ## Where to edit what
 
