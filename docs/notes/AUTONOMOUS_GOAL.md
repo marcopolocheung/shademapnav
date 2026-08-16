@@ -110,10 +110,11 @@ When choosing between two backlog items, prefer the one that:
 for shared shade predicate, PR #18 open for route progress status, PR #19 open for
 partial route results, PR #20 open for route preview streaming, PR #21 open for visible
 shade point queries, PR #22 open for offscreen shade point queries, PR #23 open for
-offscreen building relation parsing, no CI. Recent merged work already covered:
-shareable URLs, cloud-cover badge, route tradeoff summary, multi-stop UI + agent
-multi-stop, PWA offline shell, agent fallback plotting, lazy agent loop, agent-proxy
-hardening, stale-route-calc cancellation, waypoint snapping.*
+offscreen building relation parsing, PR #24 open for partial performance baseline,
+no CI. Recent merged work already covered: shareable URLs, cloud-cover badge, route
+tradeoff summary, multi-stop UI + agent multi-stop, PWA offline shell, agent fallback
+plotting, lazy agent loop, agent-proxy hardening, stale-route-calc cancellation,
+waypoint snapping.*
 
 ## P0 — Trust and correctness
 
