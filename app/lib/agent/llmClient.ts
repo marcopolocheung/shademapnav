@@ -333,6 +333,7 @@ function extractTextToolCalls(
   // <function=NAME> ... {json}  (closing tag optional)
   const reFn = /<function\s*=\s*([a-zA-Z_]\w*)\s*>/g;
   let m: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard /g exec-iteration idiom; the assignment IS the loop advance
   while ((m = reFn.exec(text))) {
     const braceStart = text.indexOf("{", m.index);
     if (braceStart === -1) continue;
@@ -347,6 +348,7 @@ function extractTextToolCalls(
 
   // <tool_call>{"name":..., "arguments"|"parameters":{...}}</tool_call>
   const reTc = /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/g;
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard /g exec-iteration idiom; the assignment IS the loop advance
   while ((m = reTc.exec(text))) {
     try {
       const o = JSON.parse(m[1]) as { name?: string; arguments?: unknown; parameters?: unknown };
