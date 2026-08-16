@@ -106,21 +106,21 @@ When choosing between two backlog items, prefer the one that:
 
 # BACKLOG (living — edit freely)
 
-*Status verified 2026-08-15: tests 125/125 pass, `tsc --noEmit` clean, PR #17 open
+*Status verified 2026-08-15: tests 126/126 pass, `tsc --noEmit` clean, PR #17 open
 for shared shade predicate, PR #18 open for route progress status, PR #19 open for
-partial route results, PR #20 open for route preview streaming, no CI. Recent merged
-work already covered: shareable URLs, cloud-cover badge, route tradeoff summary,
-multi-stop UI + agent multi-stop, PWA offline shell, agent fallback plotting, lazy agent
-loop, agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
+partial route results, PR #20 open for route preview streaming, PR #21 open for visible
+shade point queries, no CI. Recent merged work already covered: shareable URLs,
+cloud-cover badge, route tradeoff summary, multi-stop UI + agent multi-stop, PWA offline
+shell, agent fallback plotting, lazy agent loop, agent-proxy hardening, stale-route-calc
+cancellation, waypoint snapping.*
 
 ## P0 — Trust and correctness
 
-- **Shade queries go through the camera.** `check_shade` flies the camera, waits for
-  idle, sleeps for the shadow recompute, reads pixels, flies back — seconds per probe
-  and visible teleporting. Expose a point-query API from `LocalShadowAdapter`
-  (shadows are computed analytically from geometry + sun position) so a shade query
-  doesn't require rendering the place the user is looking at. Biggest single win for
-  both speed and the assistant's credibility.
+- **Offscreen shade queries still fall back to the camera.** PR #21 lets `check_shade`
+  answer from `LocalShadowAdapter`'s currently loaded geometry without moving the map,
+  but points outside the loaded viewport still use the old fly/wait/sample/restore path.
+  Next slice: load or maintain enough offscreen building geometry for point queries so
+  assistant shade probes never visibly teleport the map.
 
 ## P1 — Speed
 
