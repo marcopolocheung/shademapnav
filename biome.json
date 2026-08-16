@@ -35,7 +35,7 @@
         "useButtonType": "error",
         "noSvgWithoutTitle": "error",
         "noAutofocus": "error",
-        "noLabelWithoutControl": "warn",
+        "noLabelWithoutControl": "error",
         "noStaticElementInteractions": "warn",
         "useKeyWithClickEvents": "warn",
         "noNoninteractiveElementToInteractiveRole": "warn",
