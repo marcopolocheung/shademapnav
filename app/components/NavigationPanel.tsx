@@ -269,6 +269,13 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
   const [open, setOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!renamingId) return;
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+  }, [renamingId]);
 
   const uncategorised = routes.filter(r => !r.folderId);
   const byFolder = folders.map(f => ({
@@ -290,7 +297,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
       <div key={r.id} className="flex items-center gap-1 group">
         {renamingId === r.id ? (
           <input
-            autoFocus
+            ref={renameInputRef}
             value={renameValue}
             onChange={e => setRenameValue(e.target.value)}
             onKeyDown={e => {

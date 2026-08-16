@@ -1,5 +1,5 @@
 // app/components/SaveRouteModal.tsx
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getFolders, createFolder } from "../lib/savedRoutes";
 import type { SavedFolder } from "../lib/savedRoutes";
 
@@ -15,6 +15,16 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
   const [folderId, setFolderId] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
   const [showNewFolder, setShowNewFolder] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (showNewFolder) newFolderInputRef.current?.focus();
+  }, [showNewFolder]);
 
   function handleAddFolder() {
     if (!newFolderName.trim()) return;
@@ -41,7 +51,7 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
         <div className="flex flex-col gap-1">
           <label className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Name</label>
           <input
-            autoFocus
+            ref={nameInputRef}
             value={name}
             onChange={e => setName(e.target.value)}
             className="border rounded px-2 py-1.5 text-xs focus:outline-none"
@@ -80,7 +90,7 @@ export default function SaveRouteModal({ defaultName, onSave, onCancel }: Props)
         {showNewFolder ? (
           <div className="flex gap-2">
             <input
-              autoFocus
+              ref={newFolderInputRef}
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleAddFolder(); if (e.key === "Escape") setShowNewFolder(false); }}
