@@ -13,6 +13,8 @@ import FloatingMapControls from "./components/FloatingMapControls";
 import FloatingRouteCards from "./components/FloatingRouteCards";
 import QuickActions from "./components/QuickActions";
 import DirectionsPanel from "./components/DirectionsPanel";
+import NavigationStatusPanel from "./components/NavigationStatusPanel";
+import ArrivalPanel from "./components/ArrivalPanel";
 import PlaceDetail from "./components/PlaceDetail";
 import AssistantPanel from "./components/AssistantPanel";
 
@@ -39,7 +41,12 @@ function readShadeLegendDismissed(): boolean {
 function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const shouldCommitRef = useRef(true);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   function startEdit() {
     shouldCommitRef.current = true;
@@ -63,6 +70,7 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
   if (editing) {
     return (
       <input
+        ref={inputRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
@@ -80,13 +88,12 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
           borderColor: "var(--md-outline-variant)",
           fontFamily: "var(--md-font)",
         }}
-        autoFocus
       />
     );
   }
 
   return (
-    <button
+    <button type="button"
       onClick={startEdit}
       className="text-xs tabular-nums w-20 text-center rounded px-2 py-1 hover:bg-slate-100 transition-colors"
       style={{ color: "var(--md-on-surface-variant)", fontFamily: "var(--md-font)" }}
@@ -454,7 +461,7 @@ export default function Home() {
 
       {/* Controls row */}
       <div className="flex items-center justify-center gap-3 px-4 py-2">
-        <button
+        <button type="button"
           onClick={() => setIsPlaying((p) => !p)}
           className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 transition-colors"
           style={{ color: "var(--md-on-surface-variant)" }}
@@ -465,7 +472,7 @@ export default function Home() {
           </span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setSliderMode((m) => m === "time" ? "day" : "time")}
           className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg hover:bg-slate-100 transition-colors border"
           style={{ borderColor: "var(--md-outline-variant)" }}
@@ -493,7 +500,7 @@ export default function Home() {
           </>
         ) : (
           <div className="flex items-center gap-1">
-            <button
+            <button type="button"
               onClick={() => adjustYear(-1)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
               style={{ color: "var(--md-on-surface-variant)" }}
@@ -502,7 +509,7 @@ export default function Home() {
               <span className="material-symbols-outlined text-base">chevron_left</span>
             </button>
             <span className="text-sm tabular-nums w-12 text-center font-medium" style={{ color: "var(--md-on-surface)", fontFamily: "var(--md-font)" }}>{_localYear}</span>
-            <button
+            <button type="button"
               onClick={() => adjustYear(+1)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
               style={{ color: "var(--md-on-surface-variant)" }}
@@ -553,7 +560,6 @@ export default function Home() {
         );
 
       case "DIRECTIONS":
-      case "NAVIGATING":
         return (
           <DirectionsPanel
             waypointA={waypointA}
@@ -603,7 +609,32 @@ export default function Home() {
           />
         );
 
-      default: // IDLE, ARRIVAL
+      case "NAVIGATING":
+        return (
+          <NavigationStatusPanel
+            route={filteredRoutes[selectedRouteIndex] ?? null}
+            waypointA={waypointA}
+            waypointB={waypointB}
+            waypointALabel={waypointALabel}
+            waypointBLabel={waypointBLabel}
+            onBack={() => dispatch({ type: "BACK" })}
+            onArrive={() => dispatch({ type: "ARRIVE" })}
+            onExit={() => dispatch({ type: "DISMISS" })}
+          />
+        );
+
+      case "ARRIVAL":
+        return (
+          <ArrivalPanel
+            route={filteredRoutes[selectedRouteIndex] ?? null}
+            waypointB={waypointB}
+            waypointBLabel={waypointBLabel}
+            onPlanAnother={() => dispatch({ type: "START_DIRECTIONS" })}
+            onDone={() => dispatch({ type: "DISMISS" })}
+          />
+        );
+
+      default: // IDLE
         return (
           <QuickActions
             onNavigate={() => dispatch({ type: "START_DIRECTIONS" })}
@@ -657,7 +688,7 @@ export default function Home() {
       )}
 
       {/* Floating route cards — desktop only, during DIRECTIONS phase */}
-      {(phase === "DIRECTIONS" || phase === "NAVIGATING") && filteredRoutes.length > 0 && (
+      {phase === "DIRECTIONS" && filteredRoutes.length > 0 && (
         <FloatingRouteCards
           routes={filteredRoutes}
           selectedRouteIndex={selectedRouteIndex}
@@ -711,7 +742,7 @@ export default function Home() {
               onDirections={() => dispatch({ type: "START_DIRECTIONS" })}
               onBack={() => dispatch({ type: "BACK" })}
             />
-          ) : phase === "DIRECTIONS" || phase === "NAVIGATING" ? (
+          ) : phase === "DIRECTIONS" ? (
             <DirectionsPanel
               waypointA={waypointA}
               waypointB={waypointB}
@@ -756,6 +787,25 @@ export default function Home() {
               canTransit={canTransit}
               shadePreference={shadePreference}
               onShadePreferenceChange={handleShadePreferenceChange}
+            />
+          ) : phase === "NAVIGATING" ? (
+            <NavigationStatusPanel
+              route={filteredRoutes[selectedRouteIndex] ?? null}
+              waypointA={waypointA}
+              waypointB={waypointB}
+              waypointALabel={waypointALabel}
+              waypointBLabel={waypointBLabel}
+              onBack={() => dispatch({ type: "BACK" })}
+              onArrive={() => dispatch({ type: "ARRIVE" })}
+              onExit={() => dispatch({ type: "DISMISS" })}
+            />
+          ) : phase === "ARRIVAL" ? (
+            <ArrivalPanel
+              route={filteredRoutes[selectedRouteIndex] ?? null}
+              waypointB={waypointB}
+              waypointBLabel={waypointBLabel}
+              onPlanAnother={() => dispatch({ type: "START_DIRECTIONS" })}
+              onDone={() => dispatch({ type: "DISMISS" })}
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -845,7 +895,7 @@ export default function Home() {
 
       {/* AI assistant: launcher FAB + chat panel */}
       {!assistantOpen && (
-        <button
+        <button type="button"
           onClick={() => setAssistantOpen(true)}
           className="fixed z-40 flex items-center justify-center rounded-full shadow-xl transition-transform hover:scale-105"
           style={{
