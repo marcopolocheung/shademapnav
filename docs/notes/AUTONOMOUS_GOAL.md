@@ -106,20 +106,20 @@ When choosing between two backlog items, prefer the one that:
 
 # BACKLOG (living — edit freely)
 
-*Status verified 2026-08-15: tests 120/120 pass, `tsc --noEmit` clean, PR #17 open
-for shared shade predicate, no CI. Recent merged work already covered: shareable URLs,
-cloud-cover badge, route tradeoff summary, multi-stop UI + agent multi-stop, PWA offline
-shell, agent fallback plotting, lazy agent loop, agent-proxy hardening, stale-route-calc
-cancellation, waypoint snapping.*
+*Status verified 2026-08-15: tests 123/123 pass, `tsc --noEmit` clean, PR #17 open
+for shared shade predicate, PR #18 open for route progress status, no CI. Recent merged
+work already covered: shareable URLs, cloud-cover badge, route tradeoff summary,
+multi-stop UI + agent multi-stop, PWA offline shell, agent fallback plotting, lazy agent
+loop, agent-proxy hardening, stale-route-calc cancellation, waypoint snapping.*
 
 ## P0 — Trust and correctness
 
 - **Route calculation has no progress and a hard ceiling.** Long / multi-stop journeys
-  (the impressive, shareable ones) still dead-end rather than degrade. Do it in this
-  order: (a) surface phase/count progress in the route UI; (b) stream per-leg results
-  onto the map as each leg's Pareto search finishes; (c) return partial results with an
-  honest "couldn't finish leg 4" instead of a silent cliff; (d) only then consider
-  raising budgets.
+  (the impressive, shareable ones) still dead-end rather than degrade. PR #18 adds
+  phase/count progress in the route UI; next do this in order: (a) stream per-leg
+  results onto the map as each leg's Pareto search finishes; (b) return partial results
+  with an honest "couldn't finish leg 4" instead of a silent cliff; (c) only then
+  consider raising budgets.
   *(`useNavigation.ts` route pipeline, `routing.ts` Pareto search.)*
 - **Shade queries go through the camera.** `check_shade` flies the camera, waits for
   idle, sleeps for the shadow recompute, reads pixels, flies back — seconds per probe
