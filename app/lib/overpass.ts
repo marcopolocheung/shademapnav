@@ -244,6 +244,17 @@ export interface StationEntranceNode {
   kind: "entrance" | "station";
 }
 
+interface StationEntranceCacheEntry extends BboxBounds {
+  entrances: StationEntranceNode[];
+}
+
+const STATION_ENTRANCE_CACHE_MAX = 8;
+const stationEntranceCache: StationEntranceCacheEntry[] = [];
+
+function cloneStationEntrances(entrances: StationEntranceNode[]): StationEntranceNode[] {
+  return entrances.map((entrance) => ({ ...entrance }));
+}
+
 export interface BuildingFootprint {
   id: number;
   heightM: number;
@@ -459,6 +470,12 @@ export async function fetchStationEntrances(
   east: number,
   signal?: AbortSignal
 ): Promise<StationEntranceNode[]> {
+  for (const entry of stationEntranceCache) {
+    if (cacheContains(entry, south, west, north, east)) {
+      return cloneStationEntrances(entry.entrances);
+    }
+  }
+
   const query = `
 [out:json][timeout:10];
 (
@@ -478,7 +495,7 @@ out body;`.trim();
     const json = JSON.parse(text) as { elements?: any[] };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const elements: any[] = json.elements ?? [];
-    return elements
+    const entrances: StationEntranceNode[] = elements
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((e: any) => e.type === "node" && e.lat != null && e.lon != null)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -489,6 +506,11 @@ out body;`.trim();
         name: e.tags?.name ?? e.tags?.["name:en"] ?? undefined,
         kind: e.tags?.railway === "subway_entrance" ? "entrance" : "station",
       }));
+    stationEntranceCache.unshift({ south, west, north, east, entrances });
+    if (stationEntranceCache.length > STATION_ENTRANCE_CACHE_MAX) {
+      stationEntranceCache.pop();
+    }
+    return cloneStationEntrances(entrances);
   } catch {
     return [];
   }

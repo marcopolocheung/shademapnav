@@ -398,4 +398,38 @@ describe("fetchStationEntrances — kind tagging", () => {
     expect(res.find((n) => n.id === 1)?.kind).toBe("entrance");
     expect(res.find((n) => n.id === 2)?.kind).toBe("station");
   });
+
+  it("reuses cached entrances for contained repeat bboxes without sharing mutations", async () => {
+    const elements = [
+      { type: "node", id: 11, lat: 10, lon: 20, tags: { railway: "subway_entrance", name: "Entrance B" } },
+      { type: "node", id: 12, lat: 11, lon: 21, tags: { railway: "station", station: "subway", name: "Station Y" } },
+    ];
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [south, west, north, east] = nextBbox();
+    const first = await fetchStationEntrances(south, west, north, east);
+    first[0].name = "Mutated";
+    first.push({ id: -1, lat: 0, lon: 0, kind: "station" });
+
+    const second = await fetchStationEntrances(
+      south + 0.001,
+      west + 0.001,
+      north - 0.001,
+      east - 0.001
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second).not.toBe(first);
+    expect(second).toEqual([
+      { id: 11, lat: 10, lon: 20, name: "Entrance B", kind: "entrance" },
+      { id: 12, lat: 11, lon: 21, name: "Station Y", kind: "station" },
+    ]);
+  });
 });
