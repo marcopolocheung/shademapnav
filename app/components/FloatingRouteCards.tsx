@@ -23,6 +23,8 @@ export default function FloatingRouteCards({
 }: FloatingRouteCardsProps) {
   if (routes.length === 0) return null;
   const baselineRoute = shortestRoute(routes);
+  const completeBaselineRoute = shortestRoute(routes.filter((route) => !route.partial)) ?? baselineRoute;
+  const selectedRoute = routes[selectedRouteIndex];
 
   return (
     <div className="hidden md:flex absolute right-6 top-20 bottom-24 w-80 z-30 flex-col gap-3 pointer-events-none">
@@ -58,13 +60,13 @@ export default function FloatingRouteCards({
             onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
             onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
             recommended={r.label === "Balanced"}
-            baselineRoute={baselineRoute ?? undefined}
+            baselineRoute={completeBaselineRoute ?? undefined}
           />
         ))}
       </div>
 
       {/* Start navigating */}
-      {onStartNavigation && (
+      {onStartNavigation && !selectedRoute?.partial && (
         <button
           onClick={onStartNavigation}
           className="w-full px-4 py-3 rounded-xl text-sm font-bold transition-colors pointer-events-auto shadow-lg"

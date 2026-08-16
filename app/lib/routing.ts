@@ -1,4 +1,5 @@
 // Pure TypeScript routing utilities — no browser dependencies
+import type { PartialRouteInfo } from "./partialRoute";
 import type { TrainDrawData } from "./trainGraph";
 
 export interface OsmNode {
@@ -66,6 +67,7 @@ export interface RouteOption {
   totalTimeSec?: number;   // sum of walk time + transit travel time
   mrtEntrances?: [[number, number], [number, number]]; // [boardEntrance, alightEntrance] in [lng, lat]
   trainDrawData?: TrainDrawData; // multi-colored polylines, stops, transfers for MapView
+  partial?: PartialRouteInfo; // present when only completed legs are shown
 }
 
 export interface DijkstraOptions {

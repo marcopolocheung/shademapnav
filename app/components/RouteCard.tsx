@@ -1,4 +1,5 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
+import { partialRouteNotice } from "../lib/partialRoute";
 import { routeTradeoffLine } from "../lib/routeTradeoff";
 
 function formatDist(m: number): string {
@@ -20,7 +21,8 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
   const transitions = r.shadeTransitions === 0 ? "continuous" : `${r.shadeTransitions} break${r.shadeTransitions === 1 ? "" : "s"}`;
   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
   const shadePct = Math.round(r.shadeCoverage * 100);
-  const tradeoffLine = baselineRoute ? routeTradeoffLine(r, baselineRoute) : null;
+  const isPartial = !!r.partial;
+  const tradeoffLine = baselineRoute && !isPartial ? routeTradeoffLine(r, baselineRoute) : null;
 
   return (
     <div className="flex gap-1.5 items-start">
@@ -52,6 +54,14 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
                 Recommended
               </span>
             )}
+            {isPartial && (
+              <span
+                className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
+                style={{ background: "rgba(217,119,6,0.12)", color: "#92400e" }}
+              >
+                Partial
+              </span>
+            )}
           </span>
           <span
             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -70,6 +80,12 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             style={{ color: selected ? "var(--md-primary)" : "var(--md-on-surface)" }}
           >
             {tradeoffLine}
+          </div>
+        )}
+
+        {r.partial && (
+          <div className="mt-1 text-[11px] font-medium" style={{ color: "#a16207" }}>
+            {partialRouteNotice(r.partial)}
           </div>
         )}
 
@@ -158,7 +174,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
         })()}
       </button>
 
-      {onSave && (
+      {onSave && !isPartial && (
         <button
           onClick={onSave}
           title="Save this route"
@@ -168,7 +184,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
         </button>
       )}
 
-      {onExport && (
+      {onExport && !isPartial && (
         <div className="relative group/export shrink-0 mt-0.5">
           <button className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" title="Export route">
             <span className="material-symbols-outlined text-base">download</span>
