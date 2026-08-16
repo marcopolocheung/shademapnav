@@ -1065,6 +1065,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           let totalDist = 0;
           let totalShadeDist = 0;
           const allCoords: [number, number][] = [];
+          const legs: RouteLeg[] = [];
           let failed = false;
           let failedLeg: number | null = null;
 
@@ -1088,9 +1089,15 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               routeStops[seg],
               routeStops[seg + 1],
             );
-            const coords = segGeojson.geometry.coordinates as [number, number][];
-            if (allCoords.length > 0) coords.shift();
-            allCoords.push(...coords);
+            const legCoords = segGeojson.geometry.coordinates as [number, number][];
+            const stitchedCoords = allCoords.length > 0 ? legCoords.slice(1) : legCoords;
+            allCoords.push(...stitchedCoords);
+            legs.push({
+              type: "walk",
+              geojson: segGeojson,
+              distanceM: segResult.distanceM,
+              shadeCoverage: segResult.shadeCoverage,
+            });
             totalDist += segResult.distanceM;
             totalShadeDist += segResult.distanceM * segResult.shadeCoverage;
             if (si === 0) updatePreview(allCoords);
@@ -1112,6 +1119,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                 shadeTransitions: 0,
                 detourRatio: 1.0,
                 turnCount: 0,
+                legs,
                 partial: {
                   completedLegs: failedLeg - 1,
                   failedLeg,
@@ -1141,6 +1149,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             shadeTransitions: 0,
             detourRatio: 1.0,
             turnCount: 0,
+            legs,
           });
         }
 
