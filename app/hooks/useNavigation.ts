@@ -18,6 +18,7 @@ import { routeToGPX, routeToGeoJSON, downloadBlob } from "../lib/exportRoute";
 import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN_SUN_EXPOSURE, buildTrainDrawData } from "../lib/trainGraph";
 import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
+import { partialRouteNotice } from "../lib/partialRoute";
 
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
@@ -182,8 +183,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, [cancelInFlightCalculation]);
 
   const handleOpenSaveModal = useCallback((routeIndex: number) => {
+    if (navRoutes[routeIndex]?.partial) return;
     setSaveModalRouteIndex(routeIndex);
-  }, []);
+  }, [navRoutes]);
 
   const handleConfirmSave = useCallback((name: string, folderId: string | null) => {
     if (saveModalRouteIndex === null) return;
@@ -225,6 +227,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const handleExportRoute = useCallback((routeIndex: number, format: "gpx" | "geojson") => {
     const route = navRoutes[routeIndex];
     if (!route) return;
+    if (route.partial) {
+      setNavWarning(partialRouteNotice(route.partial));
+      return;
+    }
     const name = route.label;
     if (format === "gpx") {
       downloadBlob(routeToGPX(route, name), `${name}.gpx`, "application/gpx+xml");
@@ -1038,6 +1044,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           let totalShadeDist = 0;
           const allCoords: [number, number][] = [];
           let failed = false;
+          let failedLeg: number | null = null;
 
           for (let seg = 0; seg < nodeChain.length - 1; seg++) {
             const segResult = dijkstra(routingGraph, nodeChain[seg], nodeChain[seg + 1], strength, opts);
@@ -1049,7 +1056,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             });
             await yieldToBrowser();
             if (myGen !== calcGenRef.current) return;
-            if (!segResult) { failed = true; break; }
+            if (!segResult) {
+              failed = true;
+              failedLeg = seg + 1;
+              break;
+            }
             const segGeojson = connectRouteEndpoints(
               graphToGeoJSON(segResult.nodeIds, routingGraph),
               routeStops[seg],
@@ -1062,7 +1073,32 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             totalShadeDist += segResult.distanceM * segResult.shadeCoverage;
           }
 
-          if (failed || allCoords.length < 2) continue;
+          if (failed) {
+            if (failedLeg != null && allCoords.length >= 2 && totalDist > 0) {
+              const shadeCov = totalShadeDist / totalDist;
+              options.push({
+                label: `${MULTI_LABELS[si] ?? "Route"} (partial)`,
+                geojson: {
+                  type: "Feature",
+                  properties: {},
+                  geometry: { type: "LineString", coordinates: allCoords },
+                },
+                distanceM: totalDist,
+                shadeCoverage: shadeCov,
+                longestContinuousShadeM: 0,
+                shadeTransitions: 0,
+                detourRatio: 1.0,
+                turnCount: 0,
+                partial: {
+                  completedLegs: failedLeg - 1,
+                  failedLeg,
+                  totalLegs: nodeChain.length - 1,
+                },
+              });
+            }
+            continue;
+          }
+          if (allCoords.length < 2) continue;
 
           const shadeCov = totalDist > 0 ? totalShadeDist / totalDist : 0;
           options.push({
@@ -1283,11 +1319,12 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       if (calcGenRef.current !== myGen) return;
       updateProgress({ message: "Finalizing route options" });
+      const partialWarning = options.find((o) => o.partial)?.partial;
       setNavRoutes(options);
       setSelectedRouteIndex(0);
       setRouteSolarIntensity(solarIntensity);
       setSketchPoints([]);
-      setNavWarning(null);
+      setNavWarning(partialWarning ? partialRouteNotice(partialWarning) : null);
       setSimplifiedWaypoints(null);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;

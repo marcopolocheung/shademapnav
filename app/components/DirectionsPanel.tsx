@@ -114,6 +114,8 @@ export default function DirectionsPanel({
 }: DirectionsPanelProps) {
   const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
   const baselineRoute = shortestRoute(routes);
+  const completeBaselineRoute = shortestRoute(routes.filter((route) => !route.partial)) ?? baselineRoute;
+  const selectedRoute = routes[selectedRouteIndex];
   const [addingStop, setAddingStop] = useState(false);
   const progressPercent = routeProgress ? routeProgressPercent(routeProgress) : null;
   const progressCount = routeProgress ? routeProgressCount(routeProgress) : null;
@@ -402,11 +404,11 @@ export default function DirectionsPanel({
               onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
               onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
               recommended={r.label === "Balanced"}
-              baselineRoute={baselineRoute ?? undefined}
+              baselineRoute={completeBaselineRoute ?? undefined}
             />
           ))}
 
-          {onStartNavigation && routes.length > 0 && (
+          {onStartNavigation && routes.length > 0 && !selectedRoute?.partial && (
             <button
               onClick={onStartNavigation}
               className="mt-2 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-colors"
