@@ -1,0 +1,1 @@
+2026-08-15 — fix/share-shade-predicate — PR #17 — shared the shade pixel predicate between routing and assistant probes, corrected CLAUDE.md invariant #5, and verified with `npm test`, `npx tsc --noEmit`, and `npm run build`; assumed no per-directory app/lib guide because `app/lib/CLAUDE.md` is missing and recorded that under doc drift.
