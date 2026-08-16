@@ -1,6 +1,7 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { routeTradeoffLine } from "../lib/routeTradeoff";
+import { routeLegSummary } from "../lib/routeLegSummary";
 
 function formatDist(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
@@ -124,6 +125,28 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             <div className="rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
               <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shade Breaks</div>
               <div className="text-xs font-semibold mt-0.5" style={{ color: "var(--md-on-surface)" }}>{transitions}</div>
+            </div>
+          </div>
+        )}
+
+        {selected && r.legs && r.legs.length > 1 && (
+          <div className="mt-3 rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Journey Legs</div>
+            <div className="mt-1 flex flex-col gap-1">
+              {r.legs.map((leg, index) => {
+                const summary = routeLegSummary(leg, index);
+                return (
+                  <div key={`${leg.type}-${index}`} className="flex items-center gap-2 text-[10px]">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--md-primary-container)", color: "var(--md-on-primary-container)" }}>
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-semibold" style={{ color: "var(--md-on-surface)" }}>{summary.title}</span>
+                      <span style={{ color: "var(--md-on-surface-variant)" }}> · {summary.detail}</span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
