@@ -1,4 +1,4 @@
-import { useState, memo } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 
 interface SavedRoutesSectionProps {
@@ -19,6 +19,13 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
   const [open, setOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!renamingId) return;
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+  }, [renamingId]);
 
   const uncategorised = routes.filter(r => !r.folderId);
   const byFolder = folders.map(f => ({
@@ -40,7 +47,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
       <div key={r.id} className="flex items-center gap-1 group">
         {renamingId === r.id ? (
           <input
-            autoFocus
+            ref={renameInputRef}
             value={renameValue}
             onChange={e => setRenameValue(e.target.value)}
             onKeyDown={e => {
@@ -56,7 +63,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
             }}
           />
         ) : (
-          <button
+          <button type="button"
             onClick={() => onLoad(r)}
             className="flex-1 text-left px-1.5 py-1 rounded hover:bg-amber-50 transition-colors min-w-0"
           >
@@ -65,14 +72,14 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
           </button>
         )}
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-          <button
+          <button type="button"
             onClick={() => { setRenamingId(r.id); setRenameValue(r.name); }}
             title="Rename"
             className="p-0.5 text-slate-300 hover:text-slate-600 transition-colors"
           >
             <span className="material-symbols-outlined text-sm">edit</span>
           </button>
-          <button
+          <button type="button"
             onClick={() => { if (confirm(`Delete "${r.name}"?`)) onDelete(r.id); }}
             title="Delete"
             className="p-0.5 text-slate-300 hover:text-red-500 transition-colors"
@@ -86,7 +93,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
 
   return (
     <div className="border-b pb-2 mb-1" style={{ borderColor: "var(--md-outline-variant)" }}>
-      <button
+      <button type="button"
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 w-full text-left text-[11px] hover:text-slate-700 transition-colors py-0.5"
         style={{ color: "var(--md-on-surface-variant)" }}
