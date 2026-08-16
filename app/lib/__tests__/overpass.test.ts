@@ -214,7 +214,7 @@ describe("fetchRoutingGraph — out body geom inline geometry", () => {
       type: "way",
       id: 1001,
       nodes: [10, 11],
-      tags: { highway: "footway" },
+      tags: { highway: "cycleway", surface: "gravel", bicycle: "designated", foot: "yes" },
       geometry: [
         { lat: 43.7701, lon: 11.2558 },
         { lat: 43.7702, lon: 11.2559 },
@@ -244,7 +244,22 @@ describe("fetchRoutingGraph — out body geom inline geometry", () => {
     // The edge must exist in both directions
     const edgesFrom10 = graph.adj.get(10);
     expect(edgesFrom10).toBeDefined();
-    expect(edgesFrom10!.some((e) => e.toId === 11)).toBe(true);
+    const edgeTo11 = edgesFrom10!.find((e) => e.toId === 11);
+    expect(edgeTo11).toBeDefined();
+    expect(edgeTo11).toMatchObject({
+      highway: "cycleway",
+      surface: "gravel",
+      bicycle: "designated",
+      foot: "yes",
+    });
+
+    const edgeTo10 = graph.adj.get(11)!.find((e) => e.toId === 10);
+    expect(edgeTo10).toMatchObject({
+      highway: "cycleway",
+      surface: "gravel",
+      bicycle: "designated",
+      foot: "yes",
+    });
   });
 });
 

@@ -217,8 +217,16 @@ out body geom;
       ensureAdj(fromId);
       ensureAdj(toId);
 
-      adj.get(fromId)!.push({ toId, distanceM, shadeFactor: 0 });
-      adj.get(toId)!.push({ toId: fromId, distanceM, shadeFactor: 0 });
+      const edgeTags = {
+        highway: way.tags?.highway,
+        surface: way.tags?.surface,
+        cycleway: way.tags?.cycleway,
+        bicycle: way.tags?.bicycle,
+        foot: way.tags?.foot,
+      };
+
+      adj.get(fromId)!.push({ toId, distanceM, shadeFactor: 0, ...edgeTags });
+      adj.get(toId)!.push({ toId: fromId, distanceM, shadeFactor: 0, ...edgeTags });
     }
   }
 
