@@ -116,9 +116,10 @@ cancellation, waypoint snapping.*
 
 - **Route calculation has no progress and a hard ceiling.** Long / multi-stop journeys
   (the impressive, shareable ones) still dead-end rather than degrade. Do it in this
-  order: (a) surface progress + per-leg streaming onto the map as each leg's Pareto
-  search finishes; (b) return partial results with an honest "couldn't finish leg 4"
-  instead of a silent cliff; (c) only then consider raising budgets.
+  order: (a) surface phase/count progress in the route UI; (b) stream per-leg results
+  onto the map as each leg's Pareto search finishes; (c) return partial results with an
+  honest "couldn't finish leg 4" instead of a silent cliff; (d) only then consider
+  raising budgets.
   *(`useNavigation.ts` route pipeline, `routing.ts` Pareto search.)*
 - **Shade queries go through the camera.** `check_shade` flies the camera, waits for
   idle, sleeps for the shadow recompute, reads pixels, flies back — seconds per probe
@@ -190,9 +191,10 @@ cancellation, waypoint snapping.*
 - **Doc drift in the canonical guide.** Root `CLAUDE.md` says "one serverless proxy
   (`api/fsq.js`)" — there are three (`agent.js`, `fsq.js`, `overpass.js`); it points at
   `tools/tailor/` which doesn't exist; it says env lives in `.env.local` while the repo
-  uses `.env`; and it points at `app/lib/CLAUDE.md`, which doesn't exist. `AGENTS.md`
-  points at `docs/kb/INDEX.md`, which doesn't exist either. The docs' whole value is
-  being trustworthy — keep them true as you change things.
+  uses `.env`; and it points at `app/lib/CLAUDE.md`, `app/hooks/CLAUDE.md`, and
+  `app/components/CLAUDE.md`, which don't exist. `AGENTS.md` points at
+  `docs/kb/INDEX.md`, which doesn't exist either. The docs' whole value is being
+  trustworthy — keep them true as you change things.
 - **15 merged local branches** still sit on the repo; prune the ones whose PRs merged.
 - **`maplibre-gl` is frozen at 5.9.0** by a single upstream call in
   `mapbox-gl-shadow-simulator` (`Texture.update`). A `patch-package` patch would unfreeze

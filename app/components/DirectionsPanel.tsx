@@ -1,5 +1,7 @@
 import { memo, useState } from "react";
 import type { RouteOption } from "../lib/routing";
+import type { RouteCalculationProgress } from "../lib/routeProgress";
+import { routeProgressCount, routeProgressPercent } from "../lib/routeProgress";
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
@@ -50,6 +52,7 @@ export interface DirectionsPanelProps {
   onClear: () => void;
   onCalculate: () => void;
   isCalculating: boolean;
+  routeProgress?: RouteCalculationProgress | null;
   routes: RouteOption[];
   selectedRouteIndex: number;
   onSelectRoute: (i: number) => void;
@@ -89,6 +92,7 @@ export default function DirectionsPanel({
   onSetWaypointA, onSetWaypointB,
   onSwapWaypoints, onClearWaypointA, onClearWaypointB,
   onClear, onCalculate, isCalculating,
+  routeProgress,
   routes, selectedRouteIndex, onSelectRoute,
   error, solarIntensity,
   pendingSlot, onSetPendingSlot,
@@ -111,6 +115,8 @@ export default function DirectionsPanel({
   const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
   const baselineRoute = shortestRoute(routes);
   const [addingStop, setAddingStop] = useState(false);
+  const progressPercent = routeProgress ? routeProgressPercent(routeProgress) : null;
+  const progressCount = routeProgress ? routeProgressCount(routeProgress) : null;
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
@@ -349,6 +355,39 @@ export default function DirectionsPanel({
           {isCalculating ? 'Calculating...' : 'Find Shaded Route'}
         </button>
       </div>
+      {isCalculating && routeProgress && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border px-3 py-2 text-[11px]"
+          style={{
+            background: "var(--md-surface-container-low)",
+            borderColor: "var(--md-outline-variant)",
+            color: "var(--md-on-surface-variant)",
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="truncate">{routeProgress.message}</span>
+            {progressCount && <span className="shrink-0 tabular-nums">{progressCount}</span>}
+          </div>
+          {progressPercent != null && (
+            <div
+              role="progressbar"
+              aria-label={routeProgress.message}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progressPercent)}
+              className="mt-2 h-1.5 overflow-hidden rounded-full"
+              style={{ background: "rgba(100,116,139,0.16)" }}
+            >
+              <div
+                className="h-full rounded-full transition-[width]"
+                style={{ width: `${progressPercent}%`, background: "var(--md-primary)" }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Route cards — hidden on desktop when FloatingRouteCards is used */}
       {!hideRouteCards && routes.length > 0 && (

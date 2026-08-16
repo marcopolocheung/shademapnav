@@ -129,7 +129,7 @@ export default function Home() {
   const nav = useNavigation({ mapRef, dateRef, setDate });
   const {
     navMode, waypointA, waypointB, navRoutes, selectedRouteIndex,
-    isCalculating, navError, routeSolarIntensity,
+    isCalculating, routeProgress, navError, routeSolarIntensity,
     waypointALabel, waypointBLabel, pendingSlot,
     saveModalRouteIndex, additionalWaypoints,
     savedRoutes, savedFolders,
@@ -503,6 +503,7 @@ export default function Home() {
             onClear={handleClear}
             onCalculate={handleCalculateRoute}
             isCalculating={isCalculating}
+            routeProgress={routeProgress}
             routes={filteredRoutes}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
@@ -653,6 +654,7 @@ export default function Home() {
               onClear={handleClear}
               onCalculate={handleCalculateRoute}
               isCalculating={isCalculating}
+              routeProgress={routeProgress}
               routes={filteredRoutes}
               selectedRouteIndex={selectedRouteIndex}
               onSelectRoute={setSelectedRouteIndex}
