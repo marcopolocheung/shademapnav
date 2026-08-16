@@ -1,4 +1,4 @@
-import { useState, useRef, memo } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 import { toMapLocal } from "../lib/timezone";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -49,7 +49,12 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   const utcOffsetMin = utcOffsetMinProp ?? -new Date().getTimezoneOffset();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const shouldCommit = useRef(true);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   function startEdit() {
     shouldCommit.current = true;
@@ -70,6 +75,7 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
   if (editing) {
     return (
       <input
+        ref={inputRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
@@ -87,7 +93,6 @@ const DateInput = memo(function DateInput({ date, onChange, utcOffsetMin: utcOff
           borderColor: "var(--md-outline-variant)",
           fontFamily: "var(--md-font)",
         }}
-        autoFocus
       />
     );
   }
