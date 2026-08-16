@@ -1,3 +1,8 @@
+export interface ShadowPointQueryResult {
+  shadeFraction: number;
+  source: "geometry-cache";
+}
+
 export interface IShadowLayer {
   /** Called whenever the date/time changes (slider drag, play animation, TimeInput commit) */
   setDate(date: Date): void;
@@ -9,4 +14,10 @@ export interface IShadowLayer {
   setSunExposure(enabled: boolean, opts?: { startDate: Date; endDate: Date; iterations: number }): void;
   /** Register an event listener (e.g. 'idle' after render completes) */
   on(event: string, callback: () => void): void;
+  /**
+   * Query shade from currently loaded shadow geometry without moving the map.
+   * Returns null when the layer cannot answer confidently and callers should
+   * fall back to rendered-canvas sampling.
+   */
+  queryPointShade?(lng: number, lat: number, opts?: { date?: Date }): ShadowPointQueryResult | null;
 }

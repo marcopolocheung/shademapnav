@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
 import type { LlmContent } from "../lib/agent/llmClient";
 import type { AgentContext, AssistantPin } from "../lib/agent/tools";
+import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 
 export interface ChatMessage {
   id: string;
@@ -11,6 +12,7 @@ export interface ChatMessage {
 
 interface UseAgentArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
+  shadowLayerRef: React.MutableRefObject<IShadowLayer | null>;
   dateRef: React.MutableRefObject<Date>;
   setDate: (d: Date) => void;
   mapUtcOffsetMin: number;
@@ -51,6 +53,7 @@ export function useAgent(args: UseAgentArgs) {
   // AgentContext is stable across renders; it reads through refs/callbacks.
   const ctxRef = useRef<AgentContext>({
     mapRef: args.mapRef,
+    shadowLayerRef: args.shadowLayerRef,
     dateRef: args.dateRef,
     setDate: args.setDate,
     getUtcOffsetMin: () => offsetRef.current,

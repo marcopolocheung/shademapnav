@@ -16,6 +16,7 @@ import DirectionsPanel from "./components/DirectionsPanel";
 import PlaceDetail from "./components/PlaceDetail";
 import AssistantPanel from "./components/AssistantPanel";
 
+import type { IShadowLayer } from "./lib/shadow/IShadowLayer";
 import { toMapLocal, fromMapLocal, longitudeToUtcOffsetMin } from "./lib/timezone";
 import { parseShareState, shareUrlFromState } from "./lib/shareState";
 import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hooks/useShadowTime";
@@ -163,8 +164,10 @@ export default function Home() {
   // AI assistant (shade-aware day-trip planner)
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPins, setAssistantPins] = useState<{ lng: number; lat: number; label?: string }[]>([]);
+  const shadowLayerRef = useRef<IShadowLayer | null>(null);
   const agent = useAgent({
     mapRef,
+    shadowLayerRef,
     dateRef,
     setDate,
     mapUtcOffsetMin,
@@ -732,6 +735,7 @@ export default function Home() {
               date={date}
               accumulation={accumulation}
               onMapReady={handleMapReady}
+              onShadowLayerReady={(layer) => { shadowLayerRef.current = layer; }}
               onMapClick={handleMapClick}
               navWaypoints={{ a: waypointA ?? undefined, b: waypointB ?? undefined }}
               navRoute={selectedNavRoute}
