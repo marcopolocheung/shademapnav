@@ -11,7 +11,8 @@
     "format": "biome format --write",
     "format:check": "biome format",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",
@@ -22,19 +23,22 @@
     "openai": "^6.33.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-router-dom": "^7.13.1",
+    "react-router-dom": "^7.18.2",
     "suncalc": "1.9.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/react": "^16.3.2",
     "@types/earcut": "3.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/suncalc": "1.9.2",
     "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^2.1.9",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^5.4.21",
