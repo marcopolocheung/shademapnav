@@ -129,7 +129,7 @@ export default function DirectionsPanel({
     <div className="flex flex-col gap-3 p-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button
+        <button type="button"
           onClick={onBack}
           className="flex items-center justify-center w-7 h-7 rounded-full transition-colors hover:bg-amber-50"
           style={{ background: "var(--md-surface-container-low)", color: "var(--md-on-surface-variant)" }}
@@ -144,7 +144,7 @@ export default function DirectionsPanel({
           style={{ borderColor: "var(--md-outline-variant)" }}
         >
           {(['walk', 'transit'] as const).map((mode) => (
-            <button
+            <button type="button"
               key={mode}
               onClick={() => onRouteModeChange?.(mode)}
               disabled={mode === 'transit' && !canTransit}
@@ -204,7 +204,7 @@ export default function DirectionsPanel({
 
         {/* Swap button */}
         <div className="flex justify-center">
-          <button
+          <button type="button"
             onClick={onSwapWaypoints}
             className="text-slate-400 hover:text-amber-700 transition-colors p-1 hover:bg-amber-50 rounded-lg"
             title="Swap waypoints"
@@ -248,7 +248,7 @@ export default function DirectionsPanel({
           <div className="flex items-center justify-between">
             <span className="text-[10px]" style={{ opacity: 0.6 }}>Stops between start and destination</span>
             {!addingStop && onAddAdditionalWaypoint && (
-              <button
+              <button type="button"
                 onClick={() => setAddingStop(true)}
                 className="text-[10px] font-medium hover:text-amber-700 transition-colors"
                 style={{ color: "var(--md-primary)" }}
@@ -261,7 +261,7 @@ export default function DirectionsPanel({
             <div key={i} className="flex items-center gap-1">
               <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center shrink-0" style={{ background: "var(--md-primary)" }}>{i + 1}</span>
               <span className="flex-1 tabular-nums truncate" style={{ color: "var(--md-on-surface)" }}>{wp[1].toFixed(5)}, {wp[0].toFixed(5)}</span>
-              <button
+              <button type="button"
                 onClick={() => onRemoveAdditionalWaypoint?.(i)}
                 className="text-slate-300 hover:text-red-500 transition-colors px-0.5"
               >
@@ -285,7 +285,7 @@ export default function DirectionsPanel({
           )}
         </div>
       ) : onAddAdditionalWaypoint ? (
-        <button
+        <button type="button"
           onClick={() => setAddingStop(true)}
           className="ml-4 self-start flex items-center gap-1 text-[11px] font-medium hover:text-amber-700 transition-colors"
           style={{ color: "var(--md-primary)" }}
@@ -303,7 +303,7 @@ export default function DirectionsPanel({
             className="flex rounded-lg overflow-hidden border"
             style={{ borderColor: "var(--md-outline-variant)" }}
           >
-            <button
+            <button type="button"
               onClick={() => drawMode && onDrawModeToggle?.()}
               className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 !drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
@@ -312,7 +312,7 @@ export default function DirectionsPanel({
             >
               Search
             </button>
-            <button
+            <button type="button"
               onClick={() => !drawMode && onDrawModeToggle?.()}
               className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 drawMode ? 'text-amber-900 bg-amber-50' : 'hover:bg-slate-50'
@@ -335,7 +335,7 @@ export default function DirectionsPanel({
               )}
             </p>
             {sketchPointCount > 0 && onClearSketch && (
-              <button
+              <button type="button"
                 onClick={onClearSketch}
                 className="text-[11px] transition-colors hover:text-amber-700"
                 style={{ color: "var(--md-on-surface-variant)" }}
@@ -371,14 +371,14 @@ export default function DirectionsPanel({
 
       {/* Calculate button */}
       <div className="flex gap-2 shrink-0">
-        <button
+        <button type="button"
           onClick={onCalculate}
           disabled={drawMode ? sketchPointCount < 2 || isCalculating : !waypointA || !waypointB || isCalculating}
           className="flex-1 px-2 py-2 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
           style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}
         >
           {isCalculating && (
-            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+            <svg aria-hidden="true" focusable="false" className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
@@ -438,7 +438,7 @@ export default function DirectionsPanel({
           ))}
 
           {onStartNavigation && routes.length > 0 && !selectedRoute?.partial && (
-            <button
+            <button type="button"
               onClick={onStartNavigation}
               className="mt-2 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-colors"
               style={{ background: "#22c55e", color: "white" }}

@@ -250,7 +250,7 @@ const SunCompass = memo(function SunCompass({ sunViz, showSunLines }: { sunViz: 
 
   return (
     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-      <svg width="400" height="400" viewBox="0 0 400 400" style={{ overflow: "visible" }}>
+      <svg aria-hidden="true" focusable="false" width="400" height="400" viewBox="0 0 400 400" style={{ overflow: "visible" }}>
         <defs>
           <linearGradient
             id="sunDayGrad"
