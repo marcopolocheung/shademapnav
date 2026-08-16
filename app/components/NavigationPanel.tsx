@@ -209,7 +209,7 @@ const WaypointInput = memo(function WaypointInput({
           style={{ background: 'transparent', color: 'var(--parchment)', borderColor: 'var(--brass-dim)', fontFamily: 'var(--font-serif)' }}
         />
         {label && (
-          <button
+          <button type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => { onClear(); setQuery(""); closeDropdown(); }}
             className="shrink-0 text-white/30 hover:text-white/70 transition-colors leading-none px-0.5"
@@ -229,7 +229,7 @@ const WaypointInput = memo(function WaypointInput({
             const primary = comma >= 0 ? r.display_name.slice(0, comma) : r.display_name;
             const secondary = comma >= 0 ? r.display_name.slice(comma + 1).trim() : "";
             return (
-              <button
+              <button type="button"
                 key={r.place_id}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(r)}
@@ -269,6 +269,13 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
   const [open, setOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!renamingId) return;
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+  }, [renamingId]);
 
   const uncategorised = routes.filter(r => !r.folderId);
   const byFolder = folders.map(f => ({
@@ -290,7 +297,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
       <div key={r.id} className="flex items-center gap-1 group">
         {renamingId === r.id ? (
           <input
-            autoFocus
+            ref={renameInputRef}
             value={renameValue}
             onChange={e => setRenameValue(e.target.value)}
             onKeyDown={e => {
@@ -301,7 +308,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
             className="flex-1 bg-white/5 border border-amber-400/40 rounded px-1.5 py-0.5 text-[11px] text-white/80 focus:outline-none"
           />
         ) : (
-          <button
+          <button type="button"
             onClick={() => onLoad(r)}
             className="flex-1 text-left px-1.5 py-1 rounded hover:bg-white/5 transition-colors min-w-0"
           >
@@ -310,7 +317,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
           </button>
         )}
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-          <button
+          <button type="button"
             onClick={() => { setRenamingId(r.id); setRenameValue(r.name); }}
             title="Rename"
             className="p-0.5 text-white/20 hover:text-white/60 transition-colors"
@@ -319,7 +326,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
               <path d="M1 9h2L8.5 2.5a1.06 1.06 0 0 0-1.5-1.5L1 7.5V9z"/>
             </svg>
           </button>
-          <button
+          <button type="button"
             onClick={() => { if (confirm(`Delete "${r.name}"?`)) onDelete(r.id); }}
             title="Delete"
             className="p-0.5 text-white/20 hover:text-red-400 transition-colors"
@@ -335,7 +342,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
 
   return (
     <div className="border-b border-white/[0.07] pb-2 mb-1">
-      <button
+      <button type="button"
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 w-full text-left text-[11px] text-white/40 hover:text-white/70 transition-colors py-0.5"
       >
@@ -419,14 +426,14 @@ export default function NavigationPanel({
   if (!navMode) {
     return (
       <div className="absolute bottom-6 left-3 z-20 flex gap-1.5">
-        <button
+        <button type="button"
           onClick={onToggleNavMode}
           className="glass-panel border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:border-[rgba(200,175,110,0.35)]"
           style={{ color: 'var(--brass)', fontFamily: 'var(--font-display)' }}
         >
           Navigate
         </button>
-        <button
+        <button type="button"
           onClick={onDrawModeToggle}
           className={`glass-panel border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             drawMode
@@ -453,7 +460,7 @@ export default function NavigationPanel({
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-3 border-b border-white/[0.07] shrink-0">
             <span className="panel-heading">Navigate</span>
-            <button
+            <button type="button"
               onClick={onToggleNavMode}
               className="text-white/30 hover:text-white/70 transition-colors p-1 rounded"
               title="Exit navigation mode"
@@ -486,7 +493,7 @@ export default function NavigationPanel({
             )}
             {/* Locate me */}
             <div className="flex flex-col gap-1.5">
-              <button
+              <button type="button"
                 onClick={onLocateMe}
                 disabled={isLocating}
                 className={`flex items-center gap-2 w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border ${
@@ -512,13 +519,13 @@ export default function NavigationPanel({
 
               {userLocation && (
                 <div className="flex gap-1">
-                  <button
+                  <button type="button"
                     onClick={() => onUseLocationAsA?.(userLocation)}
                     className="flex-1 text-[10px] px-2 py-1 rounded bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-colors"
                   >
                     Use as start (A)
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => onUseLocationAsB?.(userLocation)}
                     className="flex-1 text-[10px] px-2 py-1 rounded bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-colors"
                   >
@@ -541,7 +548,7 @@ export default function NavigationPanel({
                     onClear={onClearWaypointA}
                   />
                 </div>
-                <button
+                <button type="button"
                   onClick={() => onSetPendingSlot(pendingSlot === 'A' ? null : 'A')}
                   onPointerDown={() => { onPinDragStart?.('A'); }}
                   className={`shrink-0 mt-0.5 p-1 rounded transition-all ${
@@ -559,7 +566,7 @@ export default function NavigationPanel({
 
               {/* Swap */}
               <div className="flex items-center pl-1">
-                <button
+                <button type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={onSwapWaypoints}
                   className="text-white/30 hover:text-white/70 transition-colors text-base leading-none px-1"
@@ -580,7 +587,7 @@ export default function NavigationPanel({
                     onClear={onClearWaypointB}
                   />
                 </div>
-                <button
+                <button type="button"
                   onClick={() => onSetPendingSlot(pendingSlot === 'B' ? null : 'B')}
                   onPointerDown={() => { onPinDragStart?.('B'); }}
                   className={`shrink-0 mt-0.5 p-1 rounded transition-all ${
@@ -605,7 +612,7 @@ export default function NavigationPanel({
                   <div key={i} className="flex items-center gap-1">
                     <span className="w-4 h-4 rounded-full bg-slate-600 text-white text-[9px] flex items-center justify-center shrink-0">{i + 1}</span>
                     <span className="flex-1 tabular-nums truncate">{wp[1].toFixed(5)}, {wp[0].toFixed(5)}</span>
-                    <button
+                    <button type="button"
                       onClick={() => onRemoveAdditionalWaypoint?.(i)}
                       className="text-white/20 hover:text-red-400 transition-colors px-0.5"
                     >×</button>
@@ -616,7 +623,7 @@ export default function NavigationPanel({
 
             {/* Draw Route toggle */}
             <div className="border-t border-white/[0.07] pt-2">
-              <button
+              <button type="button"
                 onClick={onDrawModeToggle}
                 className={`w-full px-2 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
                   drawMode
@@ -656,7 +663,7 @@ export default function NavigationPanel({
 
             {/* Actions */}
             <div className="flex gap-2 shrink-0">
-              <button
+              <button type="button"
                 onClick={onCalculate}
                 disabled={drawMode ? sketchPointCount < 2 || isCalculating : !waypointA || !waypointB || isCalculating}
                 className="flex-1 px-2 py-1.5 rounded text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
@@ -670,7 +677,7 @@ export default function NavigationPanel({
                 )}
                 {isCalculating ? 'Calculating…' : 'Find Shaded Route'}
               </button>
-              <button
+              <button type="button"
                 onClick={onClear}
                 className="px-2 py-1.5 rounded text-xs text-white/60 hover:text-white/90 border border-white/10 transition-colors"
               >
@@ -690,7 +697,7 @@ export default function NavigationPanel({
                     streak !== null || r.shadeTransitions > 0 || r.detourRatio > 1.05 || r.turnCount > 0;
                   return (
                     <div key={i} className="flex gap-1 items-start">
-                      <button
+                      <button type="button"
                         onClick={() => onSelectRoute(i)}
                         className={`flex-1 text-left px-2 py-1.5 rounded text-xs transition-all ${
                           i === selectedRouteIndex
@@ -763,7 +770,7 @@ export default function NavigationPanel({
                         })()}
                       </button>
                       {onSaveRoute && (
-                        <button
+                        <button type="button"
                           onClick={() => onSaveRoute(i)}
                           title="Save this route"
                           className="shrink-0 mt-0.5 p-1.5 rounded text-white/25 hover:text-amber-400 hover:bg-amber-400/10 border border-transparent hover:border-amber-400/20 transition-all"
@@ -775,7 +782,7 @@ export default function NavigationPanel({
                       )}
                       {onExportRoute && (
                         <div className="relative group/export shrink-0 mt-0.5">
-                          <button
+                          <button type="button"
                             className="p-1.5 rounded text-white/25 hover:text-white/60 transition-colors"
                             title="Export route"
                           >
@@ -784,8 +791,8 @@ export default function NavigationPanel({
                             </svg>
                           </button>
                           <div className="hidden group-hover/export:flex absolute right-0 top-full mt-1 flex-col bg-[#1a1a1a] border border-white/10 rounded shadow-xl z-30 min-w-max">
-                            <button onClick={() => onExportRoute(i, "gpx")} className="px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/5 text-left transition-colors">GPX</button>
-                            <button onClick={() => onExportRoute(i, "geojson")} className="px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/5 text-left transition-colors">GeoJSON</button>
+                            <button type="button" onClick={() => onExportRoute(i, "gpx")} className="px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/5 text-left transition-colors">GPX</button>
+                            <button type="button" onClick={() => onExportRoute(i, "geojson")} className="px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/5 text-left transition-colors">GeoJSON</button>
                           </div>
                         </div>
                       )}
@@ -813,7 +820,7 @@ export default function NavigationPanel({
       </div>
 
       {/* Collapse toggle tab — always visible on the sidebar's right edge */}
-      <button
+      <button type="button"
         onClick={() => setCollapsed((c) => !c)}
         className="pointer-events-auto self-center glass-panel border border-l-0 rounded-r-lg px-1 py-4 text-white/40 hover:text-white/80 transition-colors shrink-0"
         title={collapsed ? 'Expand navigation panel' : 'Collapse navigation panel'}

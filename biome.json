@@ -32,9 +32,9 @@
       },
 
       "a11y": {
-        "useButtonType": "warn",
+        "useButtonType": "error",
         "noSvgWithoutTitle": "error",
-        "noAutofocus": "warn",
+        "noAutofocus": "error",
         "noLabelWithoutControl": "warn",
         "noStaticElementInteractions": "warn",
         "useKeyWithClickEvents": "warn",
