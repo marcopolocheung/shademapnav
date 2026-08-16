@@ -13,6 +13,8 @@ import FloatingMapControls from "./components/FloatingMapControls";
 import FloatingRouteCards from "./components/FloatingRouteCards";
 import QuickActions from "./components/QuickActions";
 import DirectionsPanel from "./components/DirectionsPanel";
+import NavigationStatusPanel from "./components/NavigationStatusPanel";
+import ArrivalPanel from "./components/ArrivalPanel";
 import PlaceDetail from "./components/PlaceDetail";
 import AssistantPanel from "./components/AssistantPanel";
 
@@ -553,7 +555,6 @@ export default function Home() {
         );
 
       case "DIRECTIONS":
-      case "NAVIGATING":
         return (
           <DirectionsPanel
             waypointA={waypointA}
@@ -603,7 +604,32 @@ export default function Home() {
           />
         );
 
-      default: // IDLE, ARRIVAL
+      case "NAVIGATING":
+        return (
+          <NavigationStatusPanel
+            route={filteredRoutes[selectedRouteIndex] ?? null}
+            waypointA={waypointA}
+            waypointB={waypointB}
+            waypointALabel={waypointALabel}
+            waypointBLabel={waypointBLabel}
+            onBack={() => dispatch({ type: "BACK" })}
+            onArrive={() => dispatch({ type: "ARRIVE" })}
+            onExit={() => dispatch({ type: "DISMISS" })}
+          />
+        );
+
+      case "ARRIVAL":
+        return (
+          <ArrivalPanel
+            route={filteredRoutes[selectedRouteIndex] ?? null}
+            waypointB={waypointB}
+            waypointBLabel={waypointBLabel}
+            onPlanAnother={() => dispatch({ type: "START_DIRECTIONS" })}
+            onDone={() => dispatch({ type: "DISMISS" })}
+          />
+        );
+
+      default: // IDLE
         return (
           <QuickActions
             onNavigate={() => dispatch({ type: "START_DIRECTIONS" })}
@@ -657,7 +683,7 @@ export default function Home() {
       )}
 
       {/* Floating route cards — desktop only, during DIRECTIONS phase */}
-      {(phase === "DIRECTIONS" || phase === "NAVIGATING") && filteredRoutes.length > 0 && (
+      {phase === "DIRECTIONS" && filteredRoutes.length > 0 && (
         <FloatingRouteCards
           routes={filteredRoutes}
           selectedRouteIndex={selectedRouteIndex}
@@ -711,7 +737,7 @@ export default function Home() {
               onDirections={() => dispatch({ type: "START_DIRECTIONS" })}
               onBack={() => dispatch({ type: "BACK" })}
             />
-          ) : phase === "DIRECTIONS" || phase === "NAVIGATING" ? (
+          ) : phase === "DIRECTIONS" ? (
             <DirectionsPanel
               waypointA={waypointA}
               waypointB={waypointB}
@@ -756,6 +782,25 @@ export default function Home() {
               canTransit={canTransit}
               shadePreference={shadePreference}
               onShadePreferenceChange={handleShadePreferenceChange}
+            />
+          ) : phase === "NAVIGATING" ? (
+            <NavigationStatusPanel
+              route={filteredRoutes[selectedRouteIndex] ?? null}
+              waypointA={waypointA}
+              waypointB={waypointB}
+              waypointALabel={waypointALabel}
+              waypointBLabel={waypointBLabel}
+              onBack={() => dispatch({ type: "BACK" })}
+              onArrive={() => dispatch({ type: "ARRIVE" })}
+              onExit={() => dispatch({ type: "DISMISS" })}
+            />
+          ) : phase === "ARRIVAL" ? (
+            <ArrivalPanel
+              route={filteredRoutes[selectedRouteIndex] ?? null}
+              waypointB={waypointB}
+              waypointBLabel={waypointBLabel}
+              onPlanAnother={() => dispatch({ type: "START_DIRECTIONS" })}
+              onDone={() => dispatch({ type: "DISMISS" })}
             />
           ) : (
             <div className="flex flex-col gap-3">
