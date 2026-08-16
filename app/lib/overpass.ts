@@ -238,6 +238,101 @@ export interface StationEntranceNode {
   kind: "entrance" | "station";
 }
 
+export interface BuildingFootprint {
+  id: number;
+  heightM: number;
+  rings: [number, number][][];
+}
+
+function heightMForBuilding(tags: Record<string, unknown> | null | undefined): number {
+  const renderHeight = Number(tags?.render_height);
+  if (Number.isFinite(renderHeight) && renderHeight > 0) return renderHeight;
+  const height = Number(tags?.height);
+  if (Number.isFinite(height) && height > 0) return height;
+  const levels = Number(tags?.["building:levels"]);
+  if (Number.isFinite(levels) && levels > 0) return levels * 3;
+  return 10;
+}
+
+function bboxAround(lng: number, lat: number, radiusM: number): {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+} {
+  const dLat = radiusM / 111320;
+  const dLng = radiusM / Math.max(1e-6, 111320 * Math.cos(lat * Math.PI / 180));
+  return {
+    south: lat - dLat,
+    west: lng - dLng,
+    north: lat + dLat,
+    east: lng + dLng,
+  };
+}
+
+/**
+ * Fetch building footprints near a point for offscreen shade checks.
+ *
+ * This intentionally starts with way["building"] footprints only. Multipolygon
+ * relations need member assembly to avoid false geometry, so they are left for
+ * a later slice instead of returning overconfident shade.
+ */
+export async function fetchBuildingFootprintsAround(
+  lng: number,
+  lat: number,
+  radiusM = 180,
+  signal?: AbortSignal
+): Promise<BuildingFootprint[]> {
+  const { south, west, north, east } = bboxAround(lng, lat, radiusM);
+  const query = `
+[out:json][timeout:10];
+(
+  way["building"](${south},${west},${north},${east});
+);
+out body geom;
+`.trim();
+
+  const encodedBody = `data=${encodeURIComponent(query)}`;
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 12_000);
+  const combinedSignal = signal
+    ? AbortSignal.any([controller.signal, signal])
+    : controller.signal;
+
+  let res: Response;
+  try {
+    res = await postOverpass(encodedBody, combinedSignal);
+  } finally {
+    clearTimeout(tid);
+  }
+
+  if (!res.ok) {
+    throw new Error(`Overpass building API error: ${res.status} ${res.statusText}`);
+  }
+
+  const text = await res.text();
+  if (text.trimStart().startsWith("<")) {
+    throw new Error("The map server returned an error while checking building shade.");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const json = JSON.parse(text) as { elements?: any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const elements: any[] = json.elements ?? [];
+
+  return elements
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((e: any) => e.type === "way" && Array.isArray(e.geometry) && e.geometry.length >= 3)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((e: any): BuildingFootprint => ({
+      id: e.id,
+      heightM: heightMForBuilding(e.tags),
+      rings: [
+        e.geometry.map((p: { lat: number; lon: number }) => [p.lon, p.lat] as [number, number]),
+      ],
+    }));
+}
+
 /**
  * Fetches subway station entrance and station nodes from Overpass.
  * Non-critical — returns empty array on failure instead of throwing.

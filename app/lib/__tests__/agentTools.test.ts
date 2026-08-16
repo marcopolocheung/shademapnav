@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { executeTool, toolDeclarations } from "../agent/tools";
 import type { AgentContext } from "../agent/tools";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function makeCtx(): AgentContext {
   return {
@@ -87,6 +91,32 @@ describe("agent route tools", () => {
       source: "geometry-cache",
     });
     expect(flyTo).not.toHaveBeenCalled();
+    expect(ctx.setDate).not.toHaveBeenCalled();
+  });
+
+  it("uses offscreen building geometry for check_shade without requiring the map", async () => {
+    const ctx = makeCtx();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await executeTool(
+      "check_shade",
+      { lat: 40.7, lng: -74.0, time: "2:00 PM" },
+      ctx
+    );
+
+    expect(result).toMatchObject({
+      shadeFraction: 0,
+      status: "sunlit",
+      source: "overpass-buildings",
+      buildingCount: 0,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(ctx.setDate).not.toHaveBeenCalled();
   });
 });

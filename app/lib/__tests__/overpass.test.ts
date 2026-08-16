@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fetchRoutingGraph, fetchStationEntrances } from "../overpass";
+import { fetchBuildingFootprintsAround, fetchRoutingGraph, fetchStationEntrances } from "../overpass";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -60,6 +60,50 @@ describe("fetchRoutingGraph — XML error detection", () => {
     expect((caught as Error).message).not.toMatch(/is not valid JSON/i);
     // Must be human-readable
     expect((caught as Error).message.length).toBeGreaterThan(20);
+  });
+});
+
+describe("fetchBuildingFootprintsAround", () => {
+  it("fetches way building footprints with parsed heights through the Overpass proxy", async () => {
+    const building = {
+      type: "way",
+      id: 5001,
+      tags: { building: "yes", "building:levels": "4" },
+      geometry: [
+        { lat: 40.0, lon: -74.0 },
+        { lat: 40.0, lon: -73.999 },
+        { lat: 40.001, lon: -73.999 },
+        { lat: 40.001, lon: -74.0 },
+        { lat: 40.0, lon: -74.0 },
+      ],
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements: [building] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const buildings = await fetchBuildingFootprintsAround(-74, 40, 120);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = String(fetchMock.mock.calls[0][1]?.body);
+    expect(decodeURIComponent(body)).toContain('way["building"]');
+    expect(buildings).toEqual([
+      {
+        id: 5001,
+        heightM: 12,
+        rings: [[
+          [-74.0, 40.0],
+          [-73.999, 40.0],
+          [-73.999, 40.001],
+          [-74.0, 40.001],
+          [-74.0, 40.0],
+        ]],
+      },
+    ]);
   });
 });
 
