@@ -39,7 +39,12 @@ function readShadeLegendDismissed(): boolean {
 function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const shouldCommitRef = useRef(true);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   function startEdit() {
     shouldCommitRef.current = true;
@@ -63,6 +68,7 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
   if (editing) {
     return (
       <input
+        ref={inputRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
@@ -80,7 +86,6 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
           borderColor: "var(--md-outline-variant)",
           fontFamily: "var(--md-font)",
         }}
-        autoFocus
       />
     );
   }
