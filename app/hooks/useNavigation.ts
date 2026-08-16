@@ -19,6 +19,7 @@ import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN
 import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
+import { travelTimeSeconds } from "../lib/travelMode";
 import { routeBounds } from "../lib/routeBounds";
 
 interface UseNavigationArgs {
@@ -1276,9 +1277,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                   },
                 ];
 
-                const WALK_SPEED_MS = 1.4;
                 const totalWalkDistM = walkA.distanceM + walkB.distanceM;
-                const totalTimeSec = totalWalkDistM / WALK_SPEED_MS + transitTimeSec;
+                const totalTimeSec = travelTimeSeconds(totalWalkDistM, "walk") + transitTimeSec;
                 const shadeCov = totalWalkDistM > 0
                   ? (walkA.distanceM * walkA.shadeCoverage + walkB.distanceM * walkB.shadeCoverage) / totalWalkDistM
                   : 0;
