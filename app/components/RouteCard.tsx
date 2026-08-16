@@ -1,6 +1,5 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
 import { partialRouteNotice } from "../lib/partialRoute";
-import { routeTradeoffLine } from "../lib/routeTradeoff";
 
 function formatDist(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
@@ -13,16 +12,14 @@ interface RouteCardProps {
   onSave?: () => void;
   onExport?: (format: "gpx" | "geojson") => void;
   recommended?: boolean;
-  baselineRoute?: RouteOption;
 }
 
-export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended, baselineRoute }: RouteCardProps) {
+export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended }: RouteCardProps) {
   const streak = r.longestContinuousShadeM >= 10 ? `${Math.round(r.longestContinuousShadeM)}m shade` : null;
   const transitions = r.shadeTransitions === 0 ? "continuous" : `${r.shadeTransitions} break${r.shadeTransitions === 1 ? "" : "s"}`;
   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
   const shadePct = Math.round(r.shadeCoverage * 100);
   const isPartial = !!r.partial;
-  const tradeoffLine = baselineRoute && !isPartial ? routeTradeoffLine(r, baselineRoute) : null;
 
   return (
     <div
@@ -36,8 +33,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
       <button
         type="button"
         onClick={onSelect}
-        role="radio"
-        aria-checked={selected}
+        aria-pressed={selected}
         className="min-w-0 flex-1 text-left"
       >
         {/* Header */}
@@ -76,15 +72,6 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             {shadePct}% shade
           </span>
         </div>
-
-        {tradeoffLine && (
-          <div
-            className={`mt-1 font-semibold ${selected ? "text-[12px]" : "text-[11px]"}`}
-            style={{ color: selected ? "var(--md-primary)" : "var(--md-on-surface)" }}
-          >
-            {tradeoffLine}
-          </div>
-        )}
 
         {r.partial && (
           <div className="mt-1 text-[11px] font-medium" style={{ color: "#a16207" }}>

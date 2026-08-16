@@ -1,6 +1,7 @@
 import type { RouteOption } from "../lib/routing";
 import { shortestRoute } from "../lib/routeTradeoff";
 import RouteCard from "./RouteCard";
+import RouteTradeoffSummary from "./RouteTradeoffSummary";
 
 interface FloatingRouteCardsProps {
   routes: RouteOption[];
@@ -61,8 +62,13 @@ export default function FloatingRouteCards({
           </div>
         )}
 
+        <RouteTradeoffSummary
+          route={selectedRoute}
+          baselineRoute={completeBaselineRoute ?? undefined}
+        />
+
         {/* Route cards */}
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md-scrollbar" role="radiogroup" aria-label="Route options">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md-scrollbar">
           {routes.map((r, i) => (
             <RouteCard
               key={routeKey(r)}
@@ -72,7 +78,6 @@ export default function FloatingRouteCards({
               onSave={onSaveRoute ? () => onSaveRoute(i) : undefined}
               onExport={onExportRoute ? (fmt) => onExportRoute(i, fmt) : undefined}
               recommended={r.label === "Balanced"}
-              baselineRoute={completeBaselineRoute ?? undefined}
             />
           ))}
         </div>
