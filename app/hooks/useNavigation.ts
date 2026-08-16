@@ -1079,9 +1079,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               routeStops[seg],
               routeStops[seg + 1],
             );
-            const coords = segGeojson.geometry.coordinates as [number, number][];
-            if (allCoords.length > 0) coords.shift();
-            allCoords.push(...coords);
+            const legCoords = segGeojson.geometry.coordinates as [number, number][];
+            const stitchedCoords = allCoords.length > 0 ? legCoords.slice(1) : legCoords;
+            allCoords.push(...stitchedCoords);
             legs.push({
               type: "walk",
               geojson: segGeojson,
