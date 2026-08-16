@@ -270,12 +270,73 @@ function bboxAround(lng: number, lat: number, radiusM: number): {
   };
 }
 
+type LngLat = [number, number];
+
+function coordsFromGeometry(geometry: Array<{ lat: number; lon: number }> | undefined): LngLat[] {
+  return (geometry ?? []).map((p) => [p.lon, p.lat] as LngLat);
+}
+
+function samePoint(a: LngLat, b: LngLat): boolean {
+  return Math.abs(a[0] - b[0]) < 1e-10 && Math.abs(a[1] - b[1]) < 1e-10;
+}
+
+function isClosedRing(ring: LngLat[]): boolean {
+  return ring.length >= 4 && samePoint(ring[0], ring[ring.length - 1]);
+}
+
+function closeRing(ring: LngLat[]): LngLat[] {
+  if (ring.length === 0 || isClosedRing(ring)) return ring;
+  return [...ring, ring[0]];
+}
+
+function assembleClosedRings(lines: LngLat[][]): LngLat[][] {
+  const remaining = lines
+    .map((line) => line.filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1])))
+    .filter((line) => line.length >= 2);
+  const rings: LngLat[][] = [];
+
+  while (remaining.length > 0) {
+    let ring = remaining.shift()!;
+    let changed = true;
+
+    while (!isClosedRing(ring) && changed) {
+      changed = false;
+      for (let i = 0; i < remaining.length; i++) {
+        const candidate = remaining[i];
+        const start = ring[0];
+        const end = ring[ring.length - 1];
+        const cStart = candidate[0];
+        const cEnd = candidate[candidate.length - 1];
+
+        if (samePoint(end, cStart)) {
+          ring = [...ring, ...candidate.slice(1)];
+        } else if (samePoint(end, cEnd)) {
+          ring = [...ring, ...candidate.slice(0, -1).reverse()];
+        } else if (samePoint(start, cEnd)) {
+          ring = [...candidate.slice(0, -1), ...ring];
+        } else if (samePoint(start, cStart)) {
+          ring = [...candidate.slice(1).reverse(), ...ring];
+        } else {
+          continue;
+        }
+
+        remaining.splice(i, 1);
+        changed = true;
+        break;
+      }
+    }
+
+    if (ring.length >= 3) {
+      const closed = closeRing(ring);
+      if (isClosedRing(closed)) rings.push(closed);
+    }
+  }
+
+  return rings;
+}
+
 /**
  * Fetch building footprints near a point for offscreen shade checks.
- *
- * This intentionally starts with way["building"] footprints only. Multipolygon
- * relations need member assembly to avoid false geometry, so they are left for
- * a later slice instead of returning overconfident shade.
  */
 export async function fetchBuildingFootprintsAround(
   lng: number,
@@ -288,6 +349,7 @@ export async function fetchBuildingFootprintsAround(
 [out:json][timeout:10];
 (
   way["building"](${south},${west},${north},${east});
+  relation["building"]["type"="multipolygon"](${south},${west},${north},${east});
 );
 out body geom;
 `.trim();
@@ -320,17 +382,37 @@ out body geom;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const elements: any[] = json.elements ?? [];
 
-  return elements
+  const wayBuildings = elements
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .filter((e: any) => e.type === "way" && Array.isArray(e.geometry) && e.geometry.length >= 3)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((e: any): BuildingFootprint => ({
       id: e.id,
       heightM: heightMForBuilding(e.tags),
-      rings: [
-        e.geometry.map((p: { lat: number; lon: number }) => [p.lon, p.lat] as [number, number]),
-      ],
+      rings: [closeRing(coordsFromGeometry(e.geometry))],
     }));
+
+  const relationBuildings = elements
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((e: any) => e.type === "relation" && Array.isArray(e.members))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((e: any): BuildingFootprint | null => {
+      const outerLines = (e.members ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((m: any) => m.type === "way" && (m.role === "outer" || m.role == null || m.role === "") && Array.isArray(m.geometry))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((m: any) => coordsFromGeometry(m.geometry));
+      const rings = assembleClosedRings(outerLines);
+      if (rings.length === 0) return null;
+      return {
+        id: e.id,
+        heightM: heightMForBuilding(e.tags),
+        rings,
+      };
+    })
+    .filter((b): b is BuildingFootprint => b !== null);
+
+  return [...wayBuildings, ...relationBuildings];
 }
 
 /**
