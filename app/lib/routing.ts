@@ -13,6 +13,11 @@ export interface GraphEdge {
   toId: number;
   distanceM: number;
   shadeFactor: number;
+  highway?: string;
+  surface?: string;
+  cycleway?: string;
+  bicycle?: string;
+  foot?: string;
 }
 
 export interface RoutingGraph {
@@ -299,19 +304,18 @@ export function snapToEdge(
   const distToFrom = totalDist * bestT;
   const distToTo   = totalDist * (1 - bestT);
 
-  // Inherit shade factor from the split edge
-  const shadeFactor =
-    (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId)
-      ?.shadeFactor ?? 0;
+  // Inherit edge metadata from the split edge.
+  const sourceEdge = (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId);
+  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadeFactor: 0 };
 
   // Wire virtual node bidirectionally
   graph.adj.set(virtualId, [
-    { toId: bestFromId, distanceM: distToFrom, shadeFactor },
-    { toId: bestToId,   distanceM: distToTo,   shadeFactor },
+    { ...edgeBase, toId: bestFromId, distanceM: distToFrom },
+    { ...edgeBase, toId: bestToId,   distanceM: distToTo },
   ]);
-  graph.adj.get(bestFromId)!.push({ toId: virtualId, distanceM: distToFrom, shadeFactor });
+  graph.adj.get(bestFromId)!.push({ ...edgeBase, toId: virtualId, distanceM: distToFrom });
   const toAdj = graph.adj.get(bestToId);
-  if (toAdj) toAdj.push({ toId: virtualId, distanceM: distToTo, shadeFactor });
+  if (toAdj) toAdj.push({ ...edgeBase, toId: virtualId, distanceM: distToTo });
 
   return virtualId;
 }
@@ -849,17 +853,16 @@ export function snapToReachableEdge(
   const distToFrom = totalDist * bestT;
   const distToTo   = totalDist * (1 - bestT);
 
-  const shadeFactor =
-    (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId)
-      ?.shadeFactor ?? 0;
+  const sourceEdge = (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId);
+  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadeFactor: 0 };
 
   graph.adj.set(virtualId, [
-    { toId: bestFromId, distanceM: distToFrom, shadeFactor },
-    { toId: bestToId,   distanceM: distToTo,   shadeFactor },
+    { ...edgeBase, toId: bestFromId, distanceM: distToFrom },
+    { ...edgeBase, toId: bestToId,   distanceM: distToTo },
   ]);
-  graph.adj.get(bestFromId)!.push({ toId: virtualId, distanceM: distToFrom, shadeFactor });
+  graph.adj.get(bestFromId)!.push({ ...edgeBase, toId: virtualId, distanceM: distToFrom });
   const toAdj = graph.adj.get(bestToId);
-  if (toAdj) toAdj.push({ toId: virtualId, distanceM: distToTo, shadeFactor });
+  if (toAdj) toAdj.push({ ...edgeBase, toId: virtualId, distanceM: distToTo });
 
   return { id: virtualId, distM: bestDist };
 }

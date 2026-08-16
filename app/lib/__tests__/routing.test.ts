@@ -289,20 +289,22 @@ describe("snapToEdge", () => {
     expect(id).toBe(1);
   });
 
-  it("inherits shadeFactor from the split edge", () => {
+  it("inherits edge metadata from the split edge", () => {
     const graph: RoutingGraph = {
       nodes: new Map([
         [1, { id: 1, lat: 0, lon: 0 }],
         [2, { id: 2, lat: 0, lon: 0.01 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 1000, shadeFactor: 0.75 }]],
-        [2, [{ toId: 1, distanceM: 1000, shadeFactor: 0.75 }]],
+        [1, [{ toId: 2, distanceM: 1000, shadeFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
+        [2, [{ toId: 1, distanceM: 1000, shadeFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
       ]),
     };
     snapToEdge([0.005, 0], graph, -1);
     const vEdges = graph.adj.get(-1)!;
     expect(vEdges.every((e) => e.shadeFactor === 0.75)).toBe(true);
+    expect(vEdges.every((e) => e.highway === "cycleway")).toBe(true);
+    expect(vEdges.every((e) => e.surface === "gravel")).toBe(true);
   });
 });
 
