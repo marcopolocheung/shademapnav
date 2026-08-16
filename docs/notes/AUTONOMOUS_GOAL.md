@@ -110,10 +110,11 @@ When choosing between two backlog items, prefer the one that:
 for shared shade predicate, PR #18 open for route progress status, PR #19 open for
 partial route results, PR #20 open for route preview streaming, PR #21 open for visible
 shade point queries, PR #22 open for offscreen shade point queries, PR #23 open for
-offscreen building relation parsing, no CI. Recent merged work already covered:
-shareable URLs, cloud-cover badge, route tradeoff summary, multi-stop UI + agent
-multi-stop, PWA offline shell, agent fallback plotting, lazy agent loop, agent-proxy
-hardening, stale-route-calc cancellation, waypoint snapping.*
+offscreen building relation parsing, PR #24 open for partial performance baseline,
+no CI. Recent merged work already covered: shareable URLs, cloud-cover badge, route
+tradeoff summary, multi-stop UI + agent multi-stop, PWA offline shell, agent fallback
+plotting, lazy agent loop, agent-proxy hardening, stale-route-calc cancellation,
+waypoint snapping.*
 
 ## P0 — Trust and correctness
 
@@ -121,10 +122,11 @@ _No open P0 items after PR #23; keep watching for anything that can mislead user
 
 ## P1 — Speed
 
-- **No performance baseline exists.** Establish and record one in the worklog: cold
-  bundle size per chunk, time-to-interactive on a throttled 4G profile, and ms for a
-  representative 2-point and 5-point route calculation. Every later perf claim should
-  cite a delta against it.
+- **Performance baseline is only partial.** PR #24 records cold build artifact sizes
+  in `docs/notes/performance-baseline.md`, but this workspace has no Chromium,
+  Playwright, or Lighthouse binary, so throttled-4G TTI and representative 2-point /
+  5-point route calculation timings are still missing. Capture those from a real
+  browser session via `window.__shadeMapMetrics` or add repo-owned browser automation.
 - **Route calc is single-threaded on the main thread.** Independent Pareto searches
   per leg are parallelizable, and the graph build/Dijkstra work is a natural fit for a
   worker (`app/workers/` already has the pattern). Only pursue after the baseline exists.
