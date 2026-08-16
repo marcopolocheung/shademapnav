@@ -17,6 +17,7 @@ import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { routeToGPX, routeToGeoJSON, downloadBlob } from "../lib/exportRoute";
 import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN_SUN_EXPOSURE, buildTrainDrawData } from "../lib/trainGraph";
 import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
+import type { RouteCalculationProgress } from "../lib/routeProgress";
 
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
@@ -32,6 +33,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const [navRoutes, setNavRoutes] = useState<RouteOption[]>([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [routeProgress, setRouteProgress] = useState<RouteCalculationProgress | null>(null);
   const [navError, setNavError] = useState<string | null>(null);
   const [routeSolarIntensity, setRouteSolarIntensity] = useState<number | null>(null);
   const [waypointALabel, setWaypointALabel] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     calcGenRef.current++;
     calcAbortRef.current?.abort();
     setIsCalculating(false);
+    setRouteProgress(null);
   }, []);
 
   // Keyboard shortcuts for draw mode
@@ -477,6 +480,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     if (!map) { setNavError("Map not ready"); return; }
 
     setIsCalculating(true);
+    setRouteProgress({ message: "Preparing sketch route" });
     setNavError(null);
     setNavWarning(null);
 
@@ -487,6 +491,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setSimplifiedWaypoints(simplified);
 
       const bbox = sketchBoundingBox(simplified, 0.005);
+      setRouteProgress({ message: "Fetching walk network" });
 
       const currentBounds = map.getBounds();
       const bboxInView =
@@ -516,6 +521,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         );
       }
 
+      setRouteProgress({ message: "Reading shadow layer" });
       const canvas = map.getCanvas();
       const tmp = document.createElement("canvas");
       tmp.width = canvas.width;
@@ -531,6 +537,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         return [p.x, p.y];
       };
 
+      setRouteProgress({ message: "Sampling street shade" });
       for (const [fromId, edges] of graph.adj) {
         const fromNode = graph.nodes.get(fromId);
         if (!fromNode) continue;
@@ -546,6 +553,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         }
       }
 
+      setRouteProgress({ message: "Finding route choices" });
       const sketchGraph = cloneRoutingGraph(graph);
       const { snappedIds } = snapSketchWaypoints(simplified, sketchGraph, map);
 
@@ -605,6 +613,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
       setIsCalculating(false);
+      setRouteProgress(null);
     }
   }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints]);
 
@@ -789,10 +798,18 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     calcAbortRef.current?.abort();
     calcAbortRef.current = new AbortController();
     const calcSignal = calcAbortRef.current.signal;
+    const updateProgress = (progress: RouteCalculationProgress) => {
+      if (calcGenRef.current === myGen && !calcSignal.aborted) {
+        setRouteProgress(progress);
+      }
+    };
+    const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
     setIsCalculating(true);
+    updateProgress({ message: "Preparing route area" });
     setNavError(null);
 
-    await new Promise<void>((r) => setTimeout(r, 0));
+    await yieldToBrowser();
 
     const t0 = performance.now();
     let graphFetchMs = 0;
@@ -817,6 +834,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const east = Math.max(...allLngs) + padding;
 
       const tFetch = performance.now();
+      updateProgress({ message: "Fetching walk network" });
       const currentBounds = map.getBounds();
       const bboxInView =
         currentBounds.getWest() <= west &&
@@ -839,6 +857,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       graphFetchMs = performance.now() - tFetch;
 
       const tCanvas = performance.now();
+      updateProgress({ message: "Reading shadow layer" });
       const canvas = map.getCanvas();
       const tmp = document.createElement("canvas");
       tmp.width = canvas.width;
@@ -861,13 +880,33 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       clearVirtualNodes(graph);
 
       if (myGen !== calcGenRef.current) return;
-      await new Promise<void>((r) => setTimeout(r, 0));
+      await yieldToBrowser();
       if (myGen !== calcGenRef.current) return;
 
       const tShade = performance.now();
       let directedEdgeCount = 0;
       const edgeShadeCache = new Map<string, { left: number; right: number }>();
+      const edgeShadeKeys = new Set<string>();
 
+      for (const [fromId, edges] of graph.adj) {
+        if (fromId < 0) continue;
+        const fromNode = graph.nodes.get(fromId);
+        if (!fromNode) continue;
+        for (const edge of edges) {
+          if (edge.toId < 0) continue;
+          if (!graph.nodes.has(edge.toId)) continue;
+          const lo = Math.min(fromId, edge.toId);
+          const hi = Math.max(fromId, edge.toId);
+          edgeShadeKeys.add(`${lo},${hi}`);
+        }
+      }
+
+      let sampledShadeEdges = 0;
+      updateProgress({
+        message: "Sampling street shade",
+        current: sampledShadeEdges,
+        total: edgeShadeKeys.size,
+      });
       for (const [fromId, edges] of graph.adj) {
         if (fromId < 0) continue;
         const fromNode = graph.nodes.get(fromId)!;
@@ -886,11 +925,22 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           const canonTo: [number, number] = fromId < edge.toId
             ? [toNode.lon, toNode.lat] : [fromNode.lon, fromNode.lat];
           edgeShadeCache.set(key, sampleBothSidewalks(projectToScreen, imageData, dpr, canonFrom, canonTo, samples));
+          sampledShadeEdges++;
+          if (sampledShadeEdges === edgeShadeKeys.size || sampledShadeEdges % 100 === 0) {
+            updateProgress({
+              message: "Sampling street shade",
+              current: sampledShadeEdges,
+              total: edgeShadeKeys.size,
+            });
+            await yieldToBrowser();
+            if (myGen !== calcGenRef.current) return;
+          }
         }
       }
       shadeSampleMs = performance.now() - tShade;
 
       const tDijkstra = performance.now();
+      updateProgress({ message: "Building shade-aware graph" });
       const routingAdj = new Map<number, GraphEdge[]>();
       const ensureRA = (id: number) => { if (!routingAdj.has(id)) routingAdj.set(id, []); };
 
@@ -915,6 +965,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const routingGraph: RoutingGraph = { nodes: graph.nodes, adj: routingAdj };
       const spatialGrid = new SpatialGrid(routingGraph.nodes);
 
+      updateProgress({ message: "Snapping stops to walkable streets" });
       const MAX_SNAP_DIST_M = 100;
       const snappedStops = snapRouteStopsToReachableEdges(routeStops, routingGraph, {
         maxSnapDistanceM: MAX_SNAP_DIST_M,
@@ -946,6 +997,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       let options: RouteOption[];
 
       if (additionalWaypoints.length === 0) {
+        updateProgress({ message: "Finding route choices" });
         const paretoResults = paretoRoutes(routingGraph, effectiveStartId, effectiveEndId, opts);
         dijkstraMs = performance.now() - tDijkstra;
 
@@ -971,7 +1023,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
         const MULTI_LABELS = ["Shortest", "Balanced", "Most shaded"] as const;
         const STRENGTHS = [0, 0.5, 1.0];
+        const totalRouteLegs = STRENGTHS.length * (nodeChain.length - 1);
+        let completedRouteLegs = 0;
         options = [];
+        updateProgress({
+          message: "Calculating route legs",
+          current: completedRouteLegs,
+          total: totalRouteLegs,
+        });
 
         for (let si = 0; si < STRENGTHS.length; si++) {
           const strength = STRENGTHS[si];
@@ -982,6 +1041,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
           for (let seg = 0; seg < nodeChain.length - 1; seg++) {
             const segResult = dijkstra(routingGraph, nodeChain[seg], nodeChain[seg + 1], strength, opts);
+            completedRouteLegs++;
+            updateProgress({
+              message: "Calculating route legs",
+              current: completedRouteLegs,
+              total: totalRouteLegs,
+            });
+            await yieldToBrowser();
+            if (myGen !== calcGenRef.current) return;
             if (!segResult) { failed = true; break; }
             const segGeojson = connectRouteEndpoints(
               graphToGeoJSON(segResult.nodeIds, routingGraph),
@@ -1036,6 +1103,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       }
       if (straightLineDistM > 500) {
         try {
+          updateProgress({ message: "Checking transit option" });
           const trainPadding = Math.max(padding, 0.015);
           const trainSouth = Math.min(a[1], b[1]) - trainPadding;
           const trainNorth = Math.max(a[1], b[1]) + trainPadding;
@@ -1214,6 +1282,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       });
 
       if (calcGenRef.current !== myGen) return;
+      updateProgress({ message: "Finalizing route options" });
       setNavRoutes(options);
       setSelectedRouteIndex(0);
       setRouteSolarIntensity(solarIntensity);
@@ -1225,7 +1294,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       if (calcSignal.aborted) return;
       setNavError(e instanceof Error ? e.message : "Routing failed");
     } finally {
-      if (calcGenRef.current === myGen) setIsCalculating(false);
+      if (calcGenRef.current === myGen) {
+        setIsCalculating(false);
+        setRouteProgress(null);
+      }
     }
   }, [additionalWaypoints, mapRef, dateRef]);
 
@@ -1267,7 +1339,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   return {
     // State
     navMode, waypointA, waypointB, navRoutes, selectedRouteIndex,
-    isCalculating, navError, routeSolarIntensity,
+    isCalculating, routeProgress, navError, routeSolarIntensity,
     waypointALabel, waypointBLabel, pendingSlot,
     saveModalRouteIndex, additionalWaypoints,
     savedRoutes, savedFolders,
