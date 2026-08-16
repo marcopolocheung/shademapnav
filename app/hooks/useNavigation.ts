@@ -35,6 +35,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
   const [routeProgress, setRouteProgress] = useState<RouteCalculationProgress | null>(null);
+  const [routePreview, setRoutePreview] = useState<GeoJSON.Feature<GeoJSON.LineString> | null>(null);
   const [navError, setNavError] = useState<string | null>(null);
   const [routeSolarIntensity, setRouteSolarIntensity] = useState<number | null>(null);
   const [waypointALabel, setWaypointALabel] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     calcAbortRef.current?.abort();
     setIsCalculating(false);
     setRouteProgress(null);
+    setRoutePreview(null);
   }, []);
 
   // Keyboard shortcuts for draw mode
@@ -172,6 +174,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setNavRoutes([]);
     setSelectedRouteIndex(0);
     setNavError(null);
+    setRoutePreview(null);
     setRouteSolarIntensity(null);
     setPendingSlot(null);
     setDrawMode(false);
@@ -809,10 +812,19 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         setRouteProgress(progress);
       }
     };
+    const updatePreview = (coords: [number, number][]) => {
+      if (calcGenRef.current !== myGen || calcSignal.aborted || coords.length < 2) return;
+      setRoutePreview({
+        type: "Feature",
+        properties: { preview: true },
+        geometry: { type: "LineString", coordinates: [...coords] },
+      });
+    };
     const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     setIsCalculating(true);
     updateProgress({ message: "Preparing route area" });
+    setRoutePreview(null);
     setNavError(null);
 
     await yieldToBrowser();
@@ -1071,6 +1083,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             allCoords.push(...coords);
             totalDist += segResult.distanceM;
             totalShadeDist += segResult.distanceM * segResult.shadeCoverage;
+            if (si === 0) updatePreview(allCoords);
           }
 
           if (failed) {
@@ -1323,6 +1336,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setNavRoutes(options);
       setSelectedRouteIndex(0);
       setRouteSolarIntensity(solarIntensity);
+      setRoutePreview(null);
       setSketchPoints([]);
       setNavWarning(partialWarning ? partialRouteNotice(partialWarning) : null);
       setSimplifiedWaypoints(null);
@@ -1334,6 +1348,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       if (calcGenRef.current === myGen) {
         setIsCalculating(false);
         setRouteProgress(null);
+        setRoutePreview(null);
       }
     }
   }, [additionalWaypoints, mapRef, dateRef]);
@@ -1350,14 +1365,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
   // Derived values
   const selectedRoute = navRoutes[selectedRouteIndex];
-  const selectedNavRoute = selectedRoute?.legs
+  const selectedNavRoute = routePreview ?? (selectedRoute?.legs
     ? ({
         type: "FeatureCollection",
         features: selectedRoute.legs
           .filter((l: RouteLeg) => l.type === 'walk')
           .map((l: RouteLeg) => l.geojson),
       } as GeoJSON.FeatureCollection)
-    : navRoutes[selectedRouteIndex]?.geojson ?? null;
+    : navRoutes[selectedRouteIndex]?.geojson ?? null);
   const navTrainDrawData = selectedRoute?.trainDrawData ?? null;
   const navMrtEntrances = selectedRoute?.mrtEntrances ?? null;
 
