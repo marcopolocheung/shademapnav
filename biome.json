@@ -33,7 +33,7 @@
 
       "a11y": {
         "useButtonType": "error",
-        "noSvgWithoutTitle": "warn",
+        "noSvgWithoutTitle": "error",
         "noAutofocus": "error",
         "noLabelWithoutControl": "warn",
         "noStaticElementInteractions": "warn",
