@@ -36,11 +36,11 @@
         "noSvgWithoutTitle": "error",
         "noAutofocus": "error",
         "noLabelWithoutControl": "error",
-        "noStaticElementInteractions": "warn",
-        "useKeyWithClickEvents": "warn",
-        "noNoninteractiveElementToInteractiveRole": "warn",
-        "useSemanticElements": "warn",
-        "useFocusableInteractive": "warn"
+        "noStaticElementInteractions": "error",
+        "useKeyWithClickEvents": "error",
+        "noNoninteractiveElementToInteractiveRole": "error",
+        "useSemanticElements": "error",
+        "useFocusableInteractive": "error"
       }
     }
   },
