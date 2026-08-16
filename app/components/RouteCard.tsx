@@ -28,8 +28,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
     <div className="flex gap-1.5 items-start">
       <button
         onClick={onSelect}
-        role="radio"
-        aria-checked={selected}
+        aria-pressed={selected}
         className={`flex-1 text-left rounded-lg text-xs transition-all ${
           selected
             ? 'bg-white/80 backdrop-blur-xl p-4 shadow-xl border-l-4'
