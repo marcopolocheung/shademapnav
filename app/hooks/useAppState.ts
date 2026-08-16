@@ -35,7 +35,7 @@ export type AppAction =
   | { type: "DISMISS" }
   | { type: "BACK" };
 
-function appReducer(state: AppState, action: AppAction): AppState {
+export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SELECT_PLACE":
       return { phase: "PLACE_DETAIL", selectedPlace: action.place };
@@ -78,7 +78,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-const INITIAL_STATE: AppState = { phase: "IDLE", selectedPlace: null };
+export const INITIAL_STATE: AppState = { phase: "IDLE", selectedPlace: null };
 
 export function useAppState() {
   const [state, dispatch] = useReducer(appReducer, INITIAL_STATE);

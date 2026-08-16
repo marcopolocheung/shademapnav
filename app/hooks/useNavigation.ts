@@ -19,6 +19,7 @@ import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN
 import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
+import { routeBounds } from "../lib/routeBounds";
 
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
@@ -99,6 +100,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setRouteProgress(null);
     setRoutePreview(null);
   }, []);
+
+  const fitMapToRoute = useCallback((route: RouteOption) => {
+    const map = mapRef.current;
+    const bounds = routeBounds(route);
+    if (!map || !bounds) return;
+
+    map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 800 });
+  }, [mapRef]);
 
   // Keyboard shortcuts for draw mode
   useEffect(() => {
@@ -618,13 +627,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       setNavRoutes(options);
       setSelectedRouteIndex(0);
+      fitMapToRoute(options[0]);
     } catch (e) {
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
       setIsCalculating(false);
       setRouteProgress(null);
     }
-  }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints]);
+  }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute]);
 
   const handleSketchFinish = useCallback(() => {
     setDrawMode(false);
@@ -1340,6 +1350,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setSketchPoints([]);
       setNavWarning(partialWarning ? partialRouteNotice(partialWarning) : null);
       setSimplifiedWaypoints(null);
+      fitMapToRoute(options[0]);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       if (calcSignal.aborted) return;
@@ -1351,7 +1362,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         setRoutePreview(null);
       }
     }
-  }, [additionalWaypoints, mapRef, dateRef]);
+  }, [additionalWaypoints, mapRef, dateRef, fitMapToRoute]);
 
   const handleCalculateRoute = useCallback(() => {
     const useSketch = drawModeRef.current && sketchPointsRef.current.length >= 2;
