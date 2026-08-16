@@ -13,14 +13,14 @@ export default function QuickActions({ onNavigate, onDrawRoute, drawMode }: Quic
       </div>
       <h3 className="text-sm font-bold mb-2" style={{ color: "var(--md-on-surface)" }}>Quick Entry</h3>
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <button type="button"
           onClick={onNavigate}
           className="flex flex-col items-center justify-center p-3 bg-white shadow-sm rounded-xl hover:bg-amber-50 transition-colors"
         >
           <span className="material-symbols-outlined text-amber-700 mb-1">route</span>
           <span className="text-[10px] font-bold" style={{ color: "var(--md-on-surface)" }}>Directions</span>
         </button>
-        <button
+        <button type="button"
           onClick={onDrawRoute}
           className={`flex flex-col items-center justify-center p-3 shadow-sm rounded-xl transition-colors ${
             drawMode ? "bg-amber-50 ring-1 ring-amber-300" : "bg-white hover:bg-amber-50"

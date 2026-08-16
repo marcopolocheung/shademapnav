@@ -157,7 +157,7 @@ export default function AccumulationPanel({
 
   return (
     <div className="flex flex-col gap-2 items-start">
-      <button
+      <button type="button"
         onClick={toggle}
         className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
           accumulation.enabled
@@ -240,7 +240,7 @@ export default function AccumulationPanel({
             </div>
           </div>
 
-          <button
+          <button type="button"
             onClick={exportGeoTIFF}
             className="mt-1 transition-colors rounded px-3 py-1.5 text-center font-medium"
             style={{ background: "var(--md-primary)", color: "var(--md-on-primary)" }}

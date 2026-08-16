@@ -15,7 +15,7 @@ export default function PlaceDetail({ place, onDirections, onBack }: PlaceDetail
   return (
     <div className="flex flex-col gap-4 p-4 md-surface">
       {/* Back */}
-      <button
+      <button type="button"
         onClick={onBack}
         className="flex items-center gap-2 text-[13px] hover:underline self-start"
         style={{ color: "rgba(32,33,36,0.75)" }}
@@ -87,7 +87,7 @@ export default function PlaceDetail({ place, onDirections, onBack }: PlaceDetail
           icon="pin"
           label={place.address ?? "Address unavailable"}
           rightAction={place.address ? (
-            <button
+            <button type="button"
               onClick={async () => {
                 try { await navigator.clipboard.writeText(place.address ?? ""); } catch { /* ignore */ }
               }}
@@ -161,7 +161,7 @@ export default function PlaceDetail({ place, onDirections, onBack }: PlaceDetail
         <h3 className="text-[14px] font-semibold" style={{ color: "var(--md-on-surface)" }}>People also search for</h3>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {["Coffee", "Lunch", "Bars", "Parks", "Museums"].map((t) => (
-            <button
+            <button type="button"
               key={t}
               className="px-3 py-2 rounded-full text-[12px] whitespace-nowrap"
               style={{ background: "var(--md-surface-container)", color: "rgba(32,33,36,0.8)" }}
@@ -233,7 +233,7 @@ function ActionPill({
   };
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className="flex flex-col items-center justify-center shrink-0 px-3 py-2 rounded-2xl"
       style={{ background: "var(--md-surface-container)", color: "rgba(32,33,36,0.82)", minWidth: 74 }}
