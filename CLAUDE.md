@@ -74,6 +74,13 @@ the OpenAI chat-completions shape Cerebras expects.
    pinned them as direct `dependencies` alongside `@types/suncalc` / `@types/earcut`,
    so the import is typed and survives a provider-package swap. Keep them declared —
    dropping either back to a transitive-only dep re-breaks both the build and `tsc`.
+   **`suncalc` also stays on `1.x`.** 2.x is an ESM rewrite exporting only named
+   functions, so the `import SunCalc from "suncalc"` in `sunPosition.worker.ts`,
+   `LocalShadowAdapter.ts`, and `offscreenShade.ts` fails the Vite/rollup build
+   ("default is not exported by node_modules/suncalc/index.js"). Independently,
+   `mapbox-gl-shadow-simulator` depends on `suncalc ^1.9.0`, so bumping ours to 2.x
+   installs a *second* copy and skews solar math between our sampling and the
+   renderer. Both this and the maplibre pin are enforced in `.github/dependabot.yml`.
 3. **Map must keep `canvasContextAttributes: { preserveDrawingBuffer: true }`** —
    shade sampling and GeoTIFF export read the canvas back.
 4. **`MapView` is only imported via `React.lazy`** in `app/page.tsx` (code-splits MapLibre).
