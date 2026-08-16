@@ -67,7 +67,7 @@ export default function FloatingRouteCards({
 
       {/* Start navigating */}
       {onStartNavigation && !selectedRoute?.partial && (
-        <button
+        <button type="button"
           onClick={onStartNavigation}
           className="w-full px-4 py-3 rounded-xl text-sm font-bold transition-colors pointer-events-auto shadow-lg"
           style={{ background: "#22c55e", color: "white" }}

@@ -65,7 +65,7 @@ export default function AppShell({
         </div>
 
         {/* Pull-tab — outside overflow-hidden wrapper so it isn't clipped */}
-        <button
+        <button type="button"
           onClick={onSidebarToggle}
           className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-full w-8 h-16 rounded-r-xl flex items-center justify-center hover:brightness-95 transition-[filter]"
           style={{

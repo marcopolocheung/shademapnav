@@ -13,7 +13,7 @@ export default function SettingsPanel({
 
   return (
     <div className="flex flex-col gap-2 items-start">
-      <button
+      <button type="button"
         onClick={() => setOpen((o) => !o)}
         className={`text-xs px-3 py-1.5 rounded-lg transition-colors border ${
           open ? "bg-slate-50" : "bg-white hover:bg-slate-50"
