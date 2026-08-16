@@ -91,10 +91,65 @@ describe("fetchBuildingFootprintsAround", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = String(fetchMock.mock.calls[0][1]?.body);
     expect(decodeURIComponent(body)).toContain('way["building"]');
+    expect(decodeURIComponent(body)).toContain('relation["building"]["type"="multipolygon"]');
     expect(buildings).toEqual([
       {
         id: 5001,
         heightM: 12,
+        rings: [[
+          [-74.0, 40.0],
+          [-73.999, 40.0],
+          [-73.999, 40.001],
+          [-74.0, 40.001],
+          [-74.0, 40.0],
+        ]],
+      },
+    ]);
+  });
+
+  it("assembles multipolygon relation outer members into closed building rings", async () => {
+    const relation = {
+      type: "relation",
+      id: 6001,
+      tags: { building: "yes", height: "18" },
+      members: [
+        {
+          type: "way",
+          role: "outer",
+          geometry: [
+            { lat: 40.0, lon: -74.0 },
+            { lat: 40.0, lon: -73.999 },
+            { lat: 40.001, lon: -73.999 },
+          ],
+        },
+        {
+          type: "way",
+          role: "outer",
+          geometry: [
+            { lat: 40.001, lon: -73.999 },
+            { lat: 40.001, lon: -74.0 },
+            { lat: 40.0, lon: -74.0 },
+          ],
+        },
+      ],
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        text: async () => JSON.stringify({ elements: [relation] }),
+      })
+    );
+
+    const buildings = await fetchBuildingFootprintsAround(-74, 40, 120);
+
+    expect(buildings).toEqual([
+      {
+        id: 6001,
+        heightM: 18,
         rings: [[
           [-74.0, 40.0],
           [-73.999, 40.0],
