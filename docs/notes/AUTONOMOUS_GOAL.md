@@ -121,10 +121,11 @@ _No open P0 items after PR #23; keep watching for anything that can mislead user
 
 ## P1 — Speed
 
-- **No performance baseline exists.** Establish and record one in the worklog: cold
-  bundle size per chunk, time-to-interactive on a throttled 4G profile, and ms for a
-  representative 2-point and 5-point route calculation. Every later perf claim should
-  cite a delta against it.
+- **Performance baseline is only partial.** PR #24 records cold build artifact sizes
+  in `docs/notes/performance-baseline.md`, but this workspace has no Chromium,
+  Playwright, or Lighthouse binary, so throttled-4G TTI and representative 2-point /
+  5-point route calculation timings are still missing. Capture those from a real
+  browser session via `window.__shadeMapMetrics` or add repo-owned browser automation.
 - **Route calc is single-threaded on the main thread.** Independent Pareto searches
   per leg are parallelizable, and the graph build/Dijkstra work is a natural fit for a
   worker (`app/workers/` already has the pattern). Only pursue after the baseline exists.
