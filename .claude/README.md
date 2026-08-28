@@ -31,6 +31,18 @@ hooks that deny the edit.
 The trap this replaces: writing "never do X" in `CLAUDE.md` and believing it is enforcement.
 It is a request. If it must hold, it goes in `hooks/`.
 
+### Why there is no `.claude/CLAUDE.md`
+
+`./CLAUDE.md` and `./.claude/CLAUDE.md` are the two supported locations for the *same* file —
+an either/or, not a pair. Discovered memory files are concatenated rather than overriding each
+other, so creating the second one would put two always-on project-instruction files in every
+session: the "conflicting instructions" failure the docs warn about, in a repo whose own
+guides say "root `CLAUDE.md`" a dozen times.
+
+The slot is not empty either. Rules **without** `paths:` frontmatter load at launch *with the
+same priority as `.claude/CLAUDE.md`* — which is exactly what `rules/change-discipline.md` is.
+That layer exists; it just isn't named `CLAUDE.md`.
+
 ## Hooks
 
 | Event | Script | What it does |
