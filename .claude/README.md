@@ -115,6 +115,23 @@ Deliberately **not** denied: `git rebase` and `git merge`. The cross-track playb
 second session to rebase once the first PR opens, so denying them would block sanctioned work.
 Over-denying is how a config gets switched off.
 
+## Attribution
+
+```json
+"attribution": { "commit": "", "pr": "", "sessionUrl": false }
+```
+
+Three empty/false values, which is the documented way to turn attribution off entirely: no
+`Co-Authored-By` trailer on commits, no attribution line in PR bodies, no session link. The
+repo owner is the sole contributor on this project and the history should say so.
+
+This replaces the deprecated `includeCoAuthoredBy: false`. Note the interaction: once `commit`
+or `pr` is set, Claude Code ignores `includeCoAuthoredBy` entirely and falls back to its
+*default* text for whichever of the two you left unset — so set both, not one.
+
+Scope note: this is project settings, so it covers this repo only. To apply it everywhere, put
+the same block in `~/.claude/settings.json`.
+
 ## Maintaining this
 
 Same test as `CLAUDE.md`: for each line, *would removing it cause a mistake?* If not, cut it.
