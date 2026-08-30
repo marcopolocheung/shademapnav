@@ -1,7 +1,14 @@
 import type maplibregl from 'maplibre-gl';
 import SunCalc from 'suncalc';
-import earcut from 'earcut';
 import type { IShadowLayer } from './IShadowLayer';
+import {
+  type BuildingPrism,
+  buildShadowTriangles,
+  metersPerDegree,
+  pointInPrismShadow,
+  prismsFromTileFeatures,
+  triangulateRing,
+} from '../shade/geometry';
 import SunWorker from '../../workers/sunPosition.worker?worker';
 
 // Shadow-edge antialiasing via supersampling: the shadow FBO is rendered at
@@ -21,13 +28,12 @@ interface ShadowGeometry {
 }
 
 interface CachedBuildingGeometry {
+  /** One entry per prism ring, ordered shortest building first (see `prismsFromTileFeatures`). */
   buildings: Array<{
-    heightM: number;
+    prism: BuildingPrism;
     normalizedH: number;
-    rings: Array<{
-      coords: [number, number][];
-      mercatorRoofVerts: Float32Array;
-    }>;
+    /** Roof footprint, pre-triangulated and pre-offset to `centerMerc`. */
+    mercatorRoofVerts: Float32Array;
   }>;
   maxH: number;
   centerMerc: [number, number];
@@ -260,8 +266,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       return { shadeFraction: 1, source: "geometry-cache" as const };
     }
 
-    const mPerLat = 111320;
-    const mPerLng = Math.max(1e-6, 111320 * Math.cos(lat * Math.PI / 180));
+    const { mPerLat, mPerLng } = metersPerDegree(lat);
+    const prisms = cache.buildings.map(b => b.prism);
     const offsetsM: Array<[number, number]> = [
       [0, 0],
       [-4, 0],
@@ -274,7 +280,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     for (const [dxM, dyM] of offsetsM) {
       const sampleLng = lng + dxM / mPerLng;
       const sampleLat = lat + dyM / mPerLat;
-      if (pointInCachedShadow(cache, sampleLng, sampleLat, sun.azimuth, sun.altitude, mPerLat, mPerLng)) {
+      if (pointInPrismShadow(prisms, sampleLng, sampleLat, sun.azimuth, sun.altitude, mPerLat, mPerLng)) {
         shaded++;
       }
     }
@@ -736,81 +742,27 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const center = this.map.getCenter();
     const [cx, cy] = lngLatToMercator(center.lng, center.lat);
 
-    const TALL_THRESHOLD = 100;
-
-    const heightMFor = (props: Record<string, unknown> | null | undefined): number => {
-      if (!props) return 3.1;
-      const rh = Number((props as any).render_height);
-      if (Number.isFinite(rh) && rh > 0) return rh;
-      const h = Number((props as any).height);
-      if (Number.isFinite(h) && h > 0) return h;
-      const lv = Number((props as any)['building:levels']);
-      if (Number.isFinite(lv) && lv > 0) return lv * 3.1;
-      return 3.1;
-    };
-
-    const rawBuildings = this.map.querySourceFeatures('maptiler_planet', {
+    const features = this.map.querySourceFeatures('maptiler_planet', {
       sourceLayer: 'building',
-    }).filter(f =>
-      f.properties &&
-      f.properties.underground !== 'true'
-    );
-
-    const buildings = rawBuildings.filter(b => {
-      if (heightMFor(b.properties as any) > TALL_THRESHOLD && (b.properties as any)?.hide_3d) {
-        return false;
-      }
-      return true;
     });
+    const { prisms, maxHeightM } = prismsFromTileFeatures(features);
 
-    buildings.sort((a, b) => heightMFor(a.properties as any) - heightMFor(b.properties as any));
+    const cached: CachedBuildingGeometry = { buildings: [], maxH: maxHeightM, centerMerc: [cx, cy] };
 
-    let maxH = 0;
-    for (const b of buildings) {
-      const h = heightMFor(b.properties as any);
-      if (h > maxH) maxH = h;
-    }
-    if (maxH === 0) maxH = 1;
-
-    const cached: CachedBuildingGeometry = { buildings: [], maxH, centerMerc: [cx, cy] };
-
-    for (const b of buildings) {
-      if (b.geometry.type !== 'Polygon' && b.geometry.type !== 'MultiPolygon') continue;
-      const heightM = heightMFor(b.properties as any);
-      const normalizedH = heightM / maxH;
-
-      const rawRings =
-        b.geometry.type === 'Polygon'
-          ? b.geometry.coordinates
-          : b.geometry.coordinates.flat(1);
-
-      const cachedRings: CachedBuildingGeometry['buildings'][number]['rings'] = [];
-
-      for (const ring of rawRings) {
-        const coords = ring as [number, number][];
-
-        // Earcut triangulation for roof footprint (reused in Pass C)
-        const flatCoords: number[] = [];
-        for (const [lng, lat] of coords) {
-          flatCoords.push(lng, lat);
-        }
-        const indices = earcut(flatCoords, [], 2);
-        const roofVerts: number[] = [];
-        for (let i = 0; i < indices.length; i += 3) {
-          const ai = indices[i], bi = indices[i + 1], ci = indices[i + 2];
-          const [x0, y0] = lngLatToMercator(flatCoords[ai * 2], flatCoords[ai * 2 + 1]);
-          const [x1, y1] = lngLatToMercator(flatCoords[bi * 2], flatCoords[bi * 2 + 1]);
-          const [x2, y2] = lngLatToMercator(flatCoords[ci * 2], flatCoords[ci * 2 + 1]);
-          roofVerts.push(x0 - cx, y0 - cy, x1 - cx, y1 - cy, x2 - cx, y2 - cy);
-        }
-
-        cachedRings.push({
-          coords,
-          mercatorRoofVerts: new Float32Array(roofVerts),
-        });
+    for (const prism of prisms) {
+      // Roof footprint triangulation, Mercator-projected and centered once here
+      // so Pass C can memcpy it straight into the vertex buffer every frame.
+      const roofVerts: number[] = [];
+      for (const [lng, lat] of triangulateRing(prism.ring)) {
+        const [x, y] = lngLatToMercator(lng, lat);
+        roofVerts.push(x - cx, y - cy);
       }
 
-      cached.buildings.push({ heightM, normalizedH, rings: cachedRings });
+      cached.buildings.push({
+        prism,
+        normalizedH: prism.heightM / maxHeightM,
+        mercatorRoofVerts: new Float32Array(roofVerts),
+      });
     }
 
     return cached;
@@ -865,9 +817,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (cache.buildings.length === 0) return empty;
 
     const center = this.map.getCenter();
-    const lat0 = center.lat * Math.PI / 180;
-    const mPerLat = 111320;
-    const mPerLng = 111320 * Math.cos(lat0);
+    const { mPerLat, mPerLng } = metersPerDegree(center.lat);
 
     const shadowVertsList: number[] = [];
     const shadowHeightsList: number[] = [];
@@ -877,24 +827,24 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const [cx, cy] = cache.centerMerc;
 
     for (const bldg of cache.buildings) {
-      for (const ring of bldg.rings) {
-        // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
-        const shadowTris = buildShadowTriangles(ring.coords, bldg.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng);
-        for (const [lng, lat] of shadowTris) {
-          const [x, y] = lngLatToMercator(lng, lat);
-          shadowVertsList.push(x - cx, y - cy);
-          shadowHeightsList.push(bldg.normalizedH);
-        }
+      // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
+      const shadowTris = buildShadowTriangles(
+        bldg.prism.ring, bldg.prism.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng
+      );
+      for (const [lng, lat] of shadowTris) {
+        const [x, y] = lngLatToMercator(lng, lat);
+        shadowVertsList.push(x - cx, y - cy);
+        shadowHeightsList.push(bldg.normalizedH);
+      }
 
-        // Roof verts from cache (already triangulated and in Mercator)
-        const rv = ring.mercatorRoofVerts;
-        for (let i = 0; i < rv.length; i++) {
-          roofVertsList.push(rv[i]);
-        }
-        const roofTriCount = rv.length / 2; // number of xy pairs = vertex count
-        for (let i = 0; i < roofTriCount; i++) {
-          roofHeightsList.push(bldg.normalizedH);
-        }
+      // Roof verts from cache (already triangulated and in Mercator)
+      const rv = bldg.mercatorRoofVerts;
+      for (let i = 0; i < rv.length; i++) {
+        roofVertsList.push(rv[i]);
+      }
+      const roofTriCount = rv.length / 2; // number of xy pairs = vertex count
+      for (let i = 0; i < roofTriCount; i++) {
+        roofHeightsList.push(bldg.normalizedH);
       }
     }
 
@@ -915,173 +865,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
 // ─── Geometry helpers ──────────────────────────────────────────────────────────
 
-/**
- * Returns the shadow polygon for one building ring.
- * Shadow = convex hull of (original footprint ∪ footprint translated in anti-sun direction).
- */
-/**
- * Build shadow triangles via edge-by-edge side-wall extrusion + earcut caps.
- *
- * For each consecutive edge of the polygon ring, a quad (2 triangles) is formed
- * between the original edge and its sun-shifted counterpart. Then the original
- * footprint and the shifted footprint are triangulated with earcut to cap the
- * top and bottom. This preserves the true concave shape of the building.
- *
- * Returns an array of [lng, lat] points where every 3 form one triangle.
- */
-function buildShadowTriangles(
-  ring: [number, number][],
-  heightM: number,
-  azimuth: number,   // radians, SunCalc convention (clockwise from south)
-  altitude: number,  // radians above horizon
-  mPerLat: number,
-  mPerLng: number,
-): [number, number][] {
-  const shadowLengthM = heightM / Math.tan(altitude);
-  // SunCalc's azimuth is the direction *to the sun* (clockwise from south).
-  // A shadow projects *away* from the sun, so the footprint translation must
-  // be in the opposite direction.
-  const dLat = Math.cos(azimuth) * shadowLengthM / mPerLat;
-  const dLng = Math.sin(azimuth) * shadowLengthM / mPerLng;
-
-  // Ensure ring is open (no duplicate closing vertex)
-  let pts = ring;
-  if (pts.length > 1 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) {
-    pts = pts.slice(0, -1);
-  }
-  if (pts.length < 3) return [];
-
-  const shifted = pts.map(([lng, lat]) => [lng + dLng, lat + dLat] as [number, number]);
-  const out: [number, number][] = [];
-
-  // Side-wall quads: for each edge, extrude from original to shifted
-  for (let i = 0; i < pts.length; i++) {
-    const j = (i + 1) % pts.length;
-    const a = pts[i], b = pts[j];
-    const sa = shifted[i], sb = shifted[j];
-    // Quad as 2 triangles: (a, b, sa) and (b, sb, sa)
-    out.push(a, b, sa);
-    out.push(b, sb, sa);
-  }
-
-  // Cap: original footprint (bottom)
-  const flatOrig: number[] = [];
-  for (const [lng, lat] of pts) flatOrig.push(lng, lat);
-  const origIdx = earcut(flatOrig, [], 2);
-  for (let i = 0; i < origIdx.length; i += 3) {
-    const a = origIdx[i], b = origIdx[i + 1], c = origIdx[i + 2];
-    out.push(pts[a], pts[b], pts[c]);
-  }
-
-  // Cap: shifted footprint (top)
-  const flatShifted: number[] = [];
-  for (const [lng, lat] of shifted) flatShifted.push(lng, lat);
-  const shiftIdx = earcut(flatShifted, [], 2);
-  for (let i = 0; i < shiftIdx.length; i += 3) {
-    const a = shiftIdx[i], b = shiftIdx[i + 1], c = shiftIdx[i + 2];
-    out.push(shifted[a], shifted[b], shifted[c]);
-  }
-
-  return out;
-}
-
 function lngLatToMercator(lng: number, lat: number): [number, number] {
   const x = (lng + 180) / 360;
   const sinLat = Math.sin((lat * Math.PI) / 180);
   const y = 0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI);
   return [x, y];
-}
-
-/**
- * Fan triangulation for a convex GeoJSON ring.
- *
- * Input may be closed (last vertex == first). Output is an array of points
- * where every 3 points form one triangle.
- */
-function triangulateConvexRing(ring: [number, number][]): [number, number][] {
-  if (ring.length < 4) return [];
-  const pts = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
-    ? ring.slice(0, -1)
-    : ring;
-  if (pts.length < 3) return [];
-  const out: [number, number][] = [];
-  const p0 = pts[0];
-  for (let i = 1; i < pts.length - 1; i++) {
-    out.push(p0, pts[i], pts[i + 1]);
-  }
-  return out;
-}
-
-function pointInCachedShadow(
-  cache: CachedBuildingGeometry,
-  lng: number,
-  lat: number,
-  sunAzimuth: number,
-  sunAltitude: number,
-  mPerLat: number,
-  mPerLng: number,
-): boolean {
-  for (const bldg of cache.buildings) {
-    for (const ring of bldg.rings) {
-      if (pointInPolygon(lng, lat, ring.coords)) return false;
-    }
-  }
-
-  for (const bldg of cache.buildings) {
-    for (const ring of bldg.rings) {
-      const shadowTris = buildShadowTriangles(ring.coords, bldg.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng);
-      if (pointInTriangles(lng, lat, shadowTris)) return true;
-    }
-  }
-
-  return false;
-}
-
-function pointInTriangles(lng: number, lat: number, tris: [number, number][]): boolean {
-  for (let i = 0; i < tris.length; i += 3) {
-    if (pointInTriangle(lng, lat, tris[i], tris[i + 1], tris[i + 2])) return true;
-  }
-  return false;
-}
-
-function pointInTriangle(
-  lng: number,
-  lat: number,
-  a: [number, number],
-  b: [number, number],
-  c: [number, number],
-): boolean {
-  const v0x = c[0] - a[0];
-  const v0y = c[1] - a[1];
-  const v1x = b[0] - a[0];
-  const v1y = b[1] - a[1];
-  const v2x = lng - a[0];
-  const v2y = lat - a[1];
-
-  const dot00 = v0x * v0x + v0y * v0y;
-  const dot01 = v0x * v1x + v0y * v1y;
-  const dot02 = v0x * v2x + v0y * v2y;
-  const dot11 = v1x * v1x + v1y * v1y;
-  const dot12 = v1x * v2x + v1y * v2y;
-  const denom = dot00 * dot11 - dot01 * dot01;
-  if (Math.abs(denom) < 1e-20) return false;
-
-  const invDenom = 1 / denom;
-  const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-  const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-  return u >= 0 && v >= 0 && u + v <= 1;
-}
-
-function pointInPolygon(lng: number, lat: number, ring: [number, number][]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0], yi = ring[i][1];
-    const xj = ring[j][0], yj = ring[j][1];
-    const intersects = ((yi > lat) !== (yj > lat)) &&
-      (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-20) + xi);
-    if (intersects) inside = !inside;
-  }
-  return inside;
 }
 
 function createShader(
@@ -1122,26 +910,4 @@ function createProgram(
     throw new Error(info);
   }
   return program;
-}
-
-/** Andrew's monotone chain convex hull — O(n log n) */
-function convexHull(pts: [number, number][]): [number, number][] {
-  if (pts.length < 3) return pts;
-  const sorted = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cross = (o: [number,number], a: [number,number], b: [number,number]) =>
-    (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
-
-  const lower: [number,number][] = [];
-  for (const p of sorted) {
-    while (lower.length >= 2 && cross(lower.at(-2)!, lower.at(-1)!, p) <= 0) lower.pop();
-    lower.push(p);
-  }
-  const upper: [number,number][] = [];
-  for (const p of [...sorted].reverse()) {
-    while (upper.length >= 2 && cross(upper.at(-2)!, upper.at(-1)!, p) <= 0) upper.pop();
-    upper.push(p);
-  }
-  upper.pop();
-  lower.pop();
-  return [...lower, ...upper];
 }

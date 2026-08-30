@@ -1,0 +1,308 @@
+/**
+ * Building geometry for the shade engine (Track A).
+ *
+ * One normalized shape — `BuildingPrism` — assembled from either of the two
+ * sources the app has: MapTiler vector-tile `building` features (what the
+ * renderer draws) and Overpass `building` footprints (what works off-screen).
+ * Everything downstream of this module — the WebGL shadow extrusion in
+ * `LocalShadowAdapter`, the camera-free probe in `offscreenShade`, and the
+ * `ShadeField` that will sit on top of both — reads prisms, not source formats.
+ *
+ * This module is pure: no map, no WebGL, no network. Mercator conversion and
+ * buffer packing stay in the renderer, because they are rendering concerns.
+ */
+
+import earcut from "earcut";
+
+/**
+ * A building reduced to what casting a shadow needs: one ring at ground level
+ * plus a height. Rings hold `[lng, lat]` pairs in degrees, exactly as the source
+ * supplied them — GeoJSON and Overpass both close their rings, so consumers
+ * normalize with `openRing` rather than this module rewriting the coordinates.
+ *
+ * Inner rings (courtyards) become their own prisms. Both existing shadow
+ * implementations already treat every ring as a separate solid, and the
+ * shadow of a courtyard wall is not visibly wrong at building scale.
+ */
+export interface BuildingPrism {
+  ring: [number, number][];
+  heightM: number;
+}
+
+/**
+ * Prisms plus the tallest height among the source features they came from.
+ * The renderer normalizes per-vertex height against `maxHeightM`, so it has to
+ * be computed over the same set the prisms were filtered from.
+ */
+export interface PrismSet {
+  prisms: BuildingPrism[];
+  maxHeightM: number;
+}
+
+/** Fallback storey height when a tile feature only tags `building:levels`. */
+export const LEVEL_HEIGHT_M = 3.1;
+
+/** Fallback height for a tile feature with no usable height tag at all. */
+export const DEFAULT_BUILDING_HEIGHT_M = 3.1;
+
+/**
+ * Above this, a `hide_3d` tile feature is dropped: MapTiler flags landmarks
+ * whose modelled height is unreliable, and a wrong 100 m+ prism throws a
+ * shadow across several blocks.
+ */
+export const TALL_BUILDING_THRESHOLD_M = 100;
+
+/** The subset of a vector-tile / GeoJSON feature this module reads. */
+export interface BuildingFeatureLike {
+  properties?: Record<string, unknown> | null;
+  geometry: {
+    type: string;
+    /** Absent on a `GeometryCollection`, which this module skips. */
+    coordinates?: unknown;
+  };
+}
+
+/** The subset of `overpass.ts`'s `BuildingFootprint` this module reads. */
+export interface BuildingFootprintLike {
+  heightM: number;
+  rings: [number, number][][];
+}
+
+/**
+ * Height for a MapTiler `building` feature, in metres.
+ *
+ * Note: `overpass.ts` derives height from raw OSM tags with slightly different
+ * fallbacks (3 m storeys, 10 m default) because it sees untouched OSM data,
+ * where MapTiler has already computed `render_height`. Reconciling the two is
+ * an A2 decision, not a refactor — see the tracked issue.
+ */
+export function buildingHeightM(props: Record<string, unknown> | null | undefined): number {
+  if (!props) return DEFAULT_BUILDING_HEIGHT_M;
+  const renderHeight = Number(props.render_height);
+  if (Number.isFinite(renderHeight) && renderHeight > 0) return renderHeight;
+  const height = Number(props.height);
+  if (Number.isFinite(height) && height > 0) return height;
+  const levels = Number(props["building:levels"]);
+  if (Number.isFinite(levels) && levels > 0) return levels * LEVEL_HEIGHT_M;
+  return DEFAULT_BUILDING_HEIGHT_M;
+}
+
+/** Strips a ring's duplicated closing vertex, if it has one. */
+export function openRing(ring: [number, number][]): [number, number][] {
+  if (
+    ring.length > 1 &&
+    ring[0][0] === ring[ring.length - 1][0] &&
+    ring[0][1] === ring[ring.length - 1][1]
+  ) {
+    return ring.slice(0, -1);
+  }
+  return ring;
+}
+
+/** Metres per degree of latitude / longitude at a given latitude. */
+export function metersPerDegree(lat: number): { mPerLat: number; mPerLng: number } {
+  return {
+    mPerLat: 111320,
+    mPerLng: Math.max(1e-6, 111320 * Math.cos((lat * Math.PI) / 180)),
+  };
+}
+
+/**
+ * Vector-tile `building` features → prisms.
+ *
+ * Underground features are dropped, unreliable tall features are dropped, and
+ * the result is ordered shortest-first so the renderer's later prisms (taller,
+ * darker) composite over the earlier ones.
+ */
+export function prismsFromTileFeatures(features: BuildingFeatureLike[]): PrismSet {
+  const usable = features.filter((f) => {
+    if (!f.properties) return false;
+    if (f.properties.underground === "true") return false;
+    if (buildingHeightM(f.properties) > TALL_BUILDING_THRESHOLD_M && f.properties.hide_3d) {
+      return false;
+    }
+    return true;
+  });
+
+  usable.sort((a, b) => buildingHeightM(a.properties) - buildingHeightM(b.properties));
+
+  let maxHeightM = 0;
+  for (const f of usable) {
+    const h = buildingHeightM(f.properties);
+    if (h > maxHeightM) maxHeightM = h;
+  }
+  if (maxHeightM === 0) maxHeightM = 1;
+
+  const prisms: BuildingPrism[] = [];
+  for (const f of usable) {
+    if (f.geometry.type !== "Polygon" && f.geometry.type !== "MultiPolygon") continue;
+    const heightM = buildingHeightM(f.properties);
+    const rawRings =
+      f.geometry.type === "Polygon"
+        ? (f.geometry.coordinates as [number, number][][])
+        : (f.geometry.coordinates as [number, number][][][]).flat(1);
+
+    for (const ring of rawRings) {
+      prisms.push({ ring, heightM });
+    }
+  }
+
+  return { prisms, maxHeightM };
+}
+
+/** Overpass building footprints → prisms. Heights are already resolved upstream. */
+export function prismsFromFootprints(footprints: BuildingFootprintLike[]): PrismSet {
+  const prisms: BuildingPrism[] = [];
+  let maxHeightM = 0;
+
+  for (const footprint of footprints) {
+    if (footprint.heightM > maxHeightM) maxHeightM = footprint.heightM;
+    for (const ring of footprint.rings) {
+      prisms.push({ ring, heightM: footprint.heightM });
+    }
+  }
+
+  return { prisms, maxHeightM: maxHeightM === 0 ? 1 : maxHeightM };
+}
+
+/**
+ * The ground shadow one prism casts, as triangles.
+ *
+ * Each ring edge is extruded into a quad between its original position and its
+ * sun-shifted counterpart, then both the original and the shifted footprint are
+ * earcut to cap the ends. Unlike a convex hull this preserves concave shapes,
+ * which is what an L-shaped block's shadow actually looks like.
+ *
+ * Returns `[lng, lat]` points where every three form one triangle.
+ */
+export function buildShadowTriangles(
+  ring: [number, number][],
+  heightM: number,
+  azimuth: number, // radians, SunCalc convention (clockwise from south)
+  altitude: number, // radians above the horizon
+  mPerLat: number,
+  mPerLng: number
+): [number, number][] {
+  const shadowLengthM = heightM / Math.tan(altitude);
+  // SunCalc's azimuth points *to* the sun; a shadow falls away from it, so the
+  // footprint translation runs in the opposite direction.
+  const dLat = (Math.cos(azimuth) * shadowLengthM) / mPerLat;
+  const dLng = (Math.sin(azimuth) * shadowLengthM) / mPerLng;
+
+  const pts = openRing(ring);
+  if (pts.length < 3) return [];
+
+  const shifted = pts.map(([lng, lat]) => [lng + dLng, lat + dLat] as [number, number]);
+  const out: [number, number][] = [];
+
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    out.push(pts[i], pts[j], shifted[i]);
+    out.push(pts[j], shifted[j], shifted[i]);
+  }
+
+  out.push(...triangulateRing(pts));
+  out.push(...triangulateRing(shifted));
+  return out;
+}
+
+/** Earcut triangulation of an open ring, as flat triangle points. */
+export function triangulateRing(ring: [number, number][]): [number, number][] {
+  if (ring.length < 3) return [];
+
+  const flat: number[] = [];
+  for (const [lng, lat] of ring) flat.push(lng, lat);
+  const indices = earcut(flat, [], 2);
+
+  const out: [number, number][] = [];
+  for (let i = 0; i < indices.length; i += 3) {
+    out.push(ring[indices[i]], ring[indices[i + 1]], ring[indices[i + 2]]);
+  }
+  return out;
+}
+
+/**
+ * Is this point in the ground shadow of any prism?
+ *
+ * A point standing on a building's own footprint is reported as *not* shaded:
+ * the renderer paints roofs lit, and a sidewalk sample that lands on a footprint
+ * is a geometry-precision artefact rather than real shade.
+ */
+export function pointInPrismShadow(
+  prisms: BuildingPrism[],
+  lng: number,
+  lat: number,
+  sunAzimuth: number,
+  sunAltitude: number,
+  mPerLat: number,
+  mPerLng: number
+): boolean {
+  for (const prism of prisms) {
+    if (pointInPolygon(lng, lat, prism.ring)) return false;
+  }
+
+  for (const prism of prisms) {
+    const tris = buildShadowTriangles(
+      prism.ring,
+      prism.heightM,
+      sunAzimuth,
+      sunAltitude,
+      mPerLat,
+      mPerLng
+    );
+    if (pointInTriangles(lng, lat, tris)) return true;
+  }
+
+  return false;
+}
+
+/** True when the point falls inside any of the flat triangle triples. */
+export function pointInTriangles(lng: number, lat: number, tris: [number, number][]): boolean {
+  for (let i = 0; i < tris.length; i += 3) {
+    if (pointInTriangle(lng, lat, tris[i], tris[i + 1], tris[i + 2])) return true;
+  }
+  return false;
+}
+
+export function pointInTriangle(
+  lng: number,
+  lat: number,
+  a: [number, number],
+  b: [number, number],
+  c: [number, number]
+): boolean {
+  const v0x = c[0] - a[0];
+  const v0y = c[1] - a[1];
+  const v1x = b[0] - a[0];
+  const v1y = b[1] - a[1];
+  const v2x = lng - a[0];
+  const v2y = lat - a[1];
+
+  const dot00 = v0x * v0x + v0y * v0y;
+  const dot01 = v0x * v1x + v0y * v1y;
+  const dot02 = v0x * v2x + v0y * v2y;
+  const dot11 = v1x * v1x + v1y * v1y;
+  const dot12 = v1x * v2x + v1y * v2y;
+  const denom = dot00 * dot11 - dot01 * dot01;
+  if (Math.abs(denom) < 1e-20) return false;
+
+  const invDenom = 1 / denom;
+  const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+  const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+  return u >= 0 && v >= 0 && u + v <= 1;
+}
+
+/** Ray-cast point-in-polygon over an `[lng, lat]` ring (closed or open). */
+export function pointInPolygon(lng: number, lat: number, ring: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
+    const intersects =
+      yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi || 1e-20) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
