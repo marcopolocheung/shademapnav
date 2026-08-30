@@ -6,14 +6,18 @@ Browser-based sun-shadow simulation with shade-aware pedestrian + transit routin
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
 except one serverless proxy (`api/fsq.js`). Deployed: https://shademapnav.vercel.app
 
-**Read order (keep context small):** this file → "Where to edit what" table → ONE
+**Read order (keep context small):** this file → the "Where to edit what" table → the file.
+The per-area constraints load themselves: `.claude/rules/` is path-scoped, so opening
+`app/lib/routing.ts` pulls in the routing rule and nothing else. Don't go looking for
+per-directory `CLAUDE.md` files — that's what the rules replaced. See `.claude/README.md`
+for the whole agent setup.
 
 ## Commands
 
 ```bash
 npm install
 npm run dev        # Vite dev server → http://localhost:5173
-npm test           # vitest run — app/{lib,services}/__tests__/**
+npm test           # vitest run — app/{lib,services,hooks,components}/__tests__/**
 npm run typecheck  # tsc --noEmit
 npm run lint       # biome lint — blocks on errors, ~180 known findings are "warn"
 npm run format     # biome format --write (never yet run repo-wide; see biome.json)
@@ -66,6 +70,11 @@ the OpenAI chat-completions shape Cerebras expects.
 
 ## Hard invariants (breaking any of these breaks the app)
 
+The mechanical ones are **enforced**, not merely requested: `.claude/hooks/guard-invariants.sh`
+runs on every `Edit`/`Write` and denies the edit. #5 escalates to a prompt instead, because it
+is a judgment call. A hook denial is not an obstacle to route around with `sed` — it means the
+approach needs to change.
+
 1. **`maplibre-gl` stays pinned at exactly `5.9.0`.** v5.10+ changes `Texture.update`
    so `mapbox-gl-shadow-simulator`'s `{width,height}` call crashes WebGL2
    ("Overload resolution failed").
@@ -96,18 +105,18 @@ the OpenAI chat-completions shape Cerebras expects.
 
 ## Repo map
 
-| Path | What lives there |
-|---|---|
-| `app/page.tsx` | Root component: composes hooks + layout; owns only small UI state 
+| Path | What lives there | Read before editing |
+|---|---|---|
+| `app/page.tsx` | Root component: composes hooks + layout; owns only small UI state | `.claude/rules/components-and-map.md` |
 | `app/main.tsx` | Entry; BrowserRouter (`/`, `/about`) | — |
-| `app/hooks/` | All real state: `useShadowTime`, `useNavigation` (routing pipeline), `useAppState` (phase FSM) | `app/hooks/CLAUDE.md` |
-| `app/components/` | UI components incl. `MapView` (map + layers) | `app/components/CLAUDE.md` |
-| `app/lib/` | Pure TS: routing, overpass, trainGraph, shade sampling, exports | `app/lib/CLAUDE.md` |
-| `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) |
-| `app/services/` | Third-party API wrappers (Foursquare) | `app/services/CLAUDE.md` |
-| `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `app/workers/CLAUDE.md` |
-| `api/` | Vercel serverless Foursquare proxy (prod CORS) | `api/CLAUDE.md` |
-| `.claude/` | This guide's history: deep-dive working notes |
+| `app/hooks/` | All real state: `useShadowTime`, `useNavigation` (routing pipeline), `useAppState` (phase FSM) | `.claude/rules/hooks-and-state.md` |
+| `app/components/` | UI components incl. `MapView` (map + layers) | `.claude/rules/components-and-map.md` |
+| `app/lib/` | Pure TS: routing, overpass, trainGraph, shade sampling, exports | `.claude/rules/routing-and-shade.md` |
+| `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
+| `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
+| `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
+| `api/` | Vercel serverless Foursquare proxy (prod CORS) | `.claude/rules/external-apis.md` |
+| `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 
 ## Where to edit what
@@ -121,7 +130,7 @@ the OpenAI chat-completions shape Cerebras expects.
 | Sketch / draw-route mode | `useNavigation.ts` (`calculateSketchRoute`), `MapView.tsx` (sketch layers) |
 | Train/transit routing | `app/lib/trainGraph.ts`, `useNavigation.ts` (`calculateRoute`) |
 | Search, geocoding, place details | `app/components/SearchBar.tsx`, `app/services/foursquare.ts` |
-| Map layers, markers, popups, 3D | `app/components/CLAUDE.md` | `app/components/MapView.tsx` |
+| Map layers, markers, popups, 3D | `.claude/rules/components-and-map.md` | `app/components/MapView.tsx` |
 | Sun-exposure mode, GeoTIFF export | `app/components/AccumulationPanel.tsx` |
 | Screen flow / app phases |  `app/hooks/useAppState.ts`, `app/page.tsx` |
 | Layout, sidebar, bottom sheet, responsive |  `app/components/AppShell.tsx`, `app/page.tsx` |
@@ -138,5 +147,10 @@ Map instance flows up once via `onMapReady(map)` into a ref (never state).
 
 ## Verification
 
-- Logic changes: `npm test` + `npx tsc --noEmit` before claiming done.
-- UI/map changes: also verify in `npm run dev` (shadows render, slider drags, route calculates).
+- Run `/gates` — all four, in order, with the real output. It records the result that the
+  `Stop` hook and the status line read, so the session cannot end on an unearned "tests pass".
+- UI/map changes: also verify in `npm run dev` (shadows render, slider drags, route
+  calculates). Nothing in `npm test` runs a browser — it never has. If you can't look, say the
+  check is outstanding rather than letting four green gates imply it.
+- Before a PR opens: `/checkpoint` walks the definition of done and gets a cold review from
+  the `verifier` agent.

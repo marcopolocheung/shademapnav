@@ -37,6 +37,10 @@ session hands off to the next.
 /track b B5
 ```
 
+`/track` is now a skill (`.claude/skills/track/`), invoked exactly as before. At session start
+a hook prints the track board — every brief's active checkpoint — so you can see what is live
+before loading anything.
+
 The command loads root `CLAUDE.md`, the mission and seam sections of `AUTONOMOUS_GOAL.md`,
 this playbook, and the track brief — then prints a six-line orientation and starts.
 
@@ -62,10 +66,12 @@ this to get going, the brief is the thing to fix — not the prompt.
 
 | Situation | Pattern | Why |
 |---|---|---|
-| "Where is X handled? What calls Y?" across many files | **Scout** — 1–3 `Explore` agents in parallel, read-only | Keeps large file dumps out of the session's context; returns just the pointers |
-| A checkpoint splits into slices that touch **disjoint** files | **Swarm** — one `general-purpose` agent per slice, each with `isolation: "worktree"` | Real parallelism, no branch or file collisions |
-| A checkpoint is done and you want it checked cold | **Verifier** — one fresh agent, given only the brief's acceptance criteria + the diff | Cold context is an *advantage* here: it can't inherit your optimism |
-| A long research question with a bounded answer ("does Overpass expose crown diameter, and how often is it tagged?") | **Scout** with web access | Cheap, isolatable, doesn't pollute the implementation context |
+| "Where is X handled? What calls Y?" across many files | 1–3 `scout` agents in parallel, read-only | Keeps large file dumps out of the session's context; returns just the pointers |
+| A checkpoint splits into slices that touch **disjoint** files | one `builder` per slice — it already carries `isolation: "worktree"` | Real parallelism, no branch or file collisions |
+| A checkpoint is done and you want it checked cold | `verifier`, given only the brief's acceptance criteria + the diff | Cold context is an *advantage* here: it can't inherit your optimism |
+| A long research question with a bounded answer ("does Overpass expose crown diameter, and how often is it tagged?") | `landscape-scout` | Cheap, isolatable, doesn't pollute the implementation context |
+| An assistant answer or a new user-facing number | `grounding-auditor` | The honesty guardrail is the one claim this product can't get wrong |
+| A diff touching `app/components/**` or `page.tsx` | `interface-reviewer` | Outdoors, bright sun, one-handed is a review standard nobody applies by default |
 | Sequential checkpoints (A2 → A3 → A4) | **No subagent.** Do it yourself, in order | Each one's output is the next one's input; a swarm just serializes with extra steps and lost context |
 | Anything touching `useNavigation.ts`, `MapView.tsx`, or `page.tsx` | **No subagent** (until G6 lands) | Three contested files; concurrent edits conflict, and they're where the invariants bite |
 | "Go do Track B" as a whole | **Never** | A track is weeks of dependent work with an evolving state block. That's a session, not a task |
@@ -75,59 +81,28 @@ this to get going, the brief is the thing to fix — not the prompt.
 > Fan out for **reading** and for **provably disjoint writing**. Keep **dependent writing**
 > in the session.
 
-### Role prompts (copy-paste)
+### The roster
 
-**Scout** (read-only recon — spawn 2–3 in one message when the questions are independent):
+These are defined as real agents in `.claude/agents/`, so you address them by name instead of
+pasting a prompt. Each is tool-scoped and model-scoped to its job.
 
-```
-Read-only recon for ShadeMapNav Track <X>. Question: <the specific question>.
-Search the repo and report: (1) the files and line ranges that answer it, (2) the shape of
-the relevant types/functions, (3) anything that contradicts docs/tracks/TRACK_<X>.md.
-Do not edit anything. Return under 30 lines — pointers, not file contents.
-```
+| Agent | Writes? | Use it for |
+|---|---|---|
+| `scout` | no | Repo recon. Returns pointers, not file contents, and flags where the code contradicts this brief. |
+| `landscape-scout` | no | One bounded external question, with sources, separating verified from inferred. |
+| `verifier` | no | The cold adversarial check before the PR opens. The highest-value one in this repo. |
+| `grounding-auditor` | no | Assistant answers and any user-facing number — the honesty guardrail. |
+| `interface-reviewer` | no | Anything touching `app/components/**` or `page.tsx`. |
+| `scribe` | no | Batch-filing findings as labelled issues at the end of a checkpoint. |
+| `builder` | **yes** | One provably disjoint slice, in its own worktree. Never the contested three. |
 
-**Builder** (one disjoint slice, isolated worktree — only when files truly don't overlap):
+Spawn them with the Agent tool, giving the specific question or the pasted acceptance
+criteria — the standing instructions live in the agent file, so the prompt only needs to carry
+what is particular to this call. Spawn two or three `scout`s in one message when the questions
+are independent.
 
-```
-You are implementing exactly one slice of ShadeMapNav Track <X>: <checkpoint id + slice>.
-Read CLAUDE.md and docs/tracks/TRACK_<X>.md first — the hard invariants there are
-non-negotiable. Touch ONLY these files: <explicit list>. Do not touch app/hooks/useNavigation.ts,
-app/components/MapView.tsx, or app/page.tsx.
-Acceptance criteria: <paste from the brief>.
-Run all four gates (npm run lint, npm run typecheck, npm test, npm run build) and report
-their real output — if something fails, say so, don't paper over it. Branch from main as
-<branch>, commit with a conventional-commit message, push, and open a PR with gh whose body
-is at most four sentences and contains "Fixes #<n>". Never merge.
-```
-
-Spawn these with `isolation: "worktree"` so each gets its own checkout.
-
-**Verifier** (adversarial check before you open the PR — the highest-value subagent in this repo):
-
-```
-Adversarially verify a ShadeMapNav change. Branch: <branch>. Read the diff (git diff main...HEAD).
-The claimed acceptance criteria are: <paste from the brief>.
-Check, and report only what you can substantiate with file:line evidence:
-1. Does the diff actually meet each criterion, or only appear to?
-2. Does it violate any hard invariant in CLAUDE.md (maplibre 5.9.0 pin, preserveDrawingBuffer,
-   MapView only via React.lazy, shadow-color ↔ isBlueDominantShadowPixel coupling,
-   User-Agent on Nominatim/Overpass, suncalc 1.x)?
-3. Do the tests test behavior, or do they restate the implementation?
-4. Run npm run lint, npm run typecheck, npm test, npm run build and paste the real results.
-Do not fix anything. List findings most-severe first, or say "no findings" plainly.
-```
-
-**Scribe** (issue filing / doc drift, batched at the end of a checkpoint):
-
-```
-For ShadeMapNav Track <X>: file GitHub issues with gh for each of the following findings:
-<list>. Each issue needs a clear title, a body explaining the impact and the file:line
-evidence, a priority label (p0–p5), a type label (security/chore/docs/test/perf/a11y/
-feature/tooling), and the label track-<x>. Do not open PRs or edit code. Report the issue
-numbers created.
-```
-
----
+Six of the seven cannot write, by construction rather than by instruction. That is the point:
+rule 3 above says implementation stays in the session, and the roster now enforces it.
 
 ## Anti-patterns (each one has burned a session in this repo's shape)
 
@@ -140,7 +115,9 @@ numbers created.
 - **Letting a subagent "quickly also fix" something it noticed.** Scope creep in a cold context
   is how invariants get broken. Findings become issues, not edits.
 - **Trusting a subagent's "all tests pass."** Ask for the pasted output; verify the four gates
-  in the session before opening a PR.
+  in the session before opening a PR. `/gates` runs all four and records the result, and a
+  `Stop` hook blocks a session that edited source and never got them green — but neither
+  substitutes for reading the output.
 - **Re-deriving the repo every session.** If you spent the first 20 minutes rediscovering how
   shade sampling works, the brief was missing a pointer — add it before you finish.
 
@@ -199,9 +176,13 @@ and say so in the PR's four sentences.
 
 - [ ] The brief's acceptance criteria for that checkpoint are met, demonstrably
 - [ ] Tests cover the behavior (logic changes in `app/lib/**`, `app/services/**`, `app/hooks/**` require them)
-- [ ] `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` all pass
+- [ ] `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` all pass — run
+      `/gates`, which records the result the `Stop` hook reads
 - [ ] UI/map changes confirmed in `npm run dev` — actually looked at, not assumed
 - [ ] No hard invariant touched (root `CLAUDE.md`)
 - [ ] PR open, ≤4 sentences, `Fixes #N`, never merged
 - [ ] `## Current state` updated in the brief
 - [ ] Findings filed as issues with priority + type + `track-x` labels
+
+`/checkpoint` walks this list in order, gets the cold review, opens the PR, and updates the
+state block — use it rather than working from memory.

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm test*)",
+      "Bash(npm run test*)",
+      "Bash(npm run build*)",
+      "Bash(npm run coverage*)",
+      "Bash(npm run format:check*)",
+      "Bash(npm ci*)",
+      "Bash(npm install*)",
+      "Bash(npx tsc --noEmit*)",
+      "Bash(npx vitest run*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git checkout -b *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push -u origin *)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh issue list*)",
+      "Bash(gh issue view*)",
+      "Bash(gh issue create*)",
+      "Bash(gh pr create*)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "WebFetch(domain:wiki.openstreetmap.org)",
+      "WebFetch(domain:overpass-api.de)",
+      "WebFetch(domain:open-meteo.com)",
+      "WebFetch(domain:maplibre.org)"
+    ],
+    "deny": [
+      "Bash(gh pr merge*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.worktrees/**)",
+      "Edit(./.worktrees/**)",
+      "Read(./oldbuild/**)",
+      "Edit(./oldbuild/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-brief.sh",
+            "args": [],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-invariants.sh",
+            "args": [],
+            "timeout": 15,
+            "statusMessage": "Checking hard invariants..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/lint-changed.sh",
+            "args": [],
+            "timeout": 60,
+            "statusMessage": "Linting the file you changed..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-gates.sh",
+            "args": [],
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/statusline.sh"
+  }
+}
