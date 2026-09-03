@@ -6,7 +6,7 @@ import {
   snapToEdge, dijkstra, snapToGraph, paretoRoutes, graphToGeoJSON,
   haversineMeters, bfsReachable, snapToReachableEdge, SpatialGrid,
   simplifyPolyline, sketchBoundingBox, findSketchGaps, connectRouteEndpoints,
-  clearVirtualNodes, snapRouteStopsToReachableEdges,
+  clearVirtualNodes, snapRouteStopsToReachableEdges, parallelSidewalkEdges,
 } from "../lib/routing";
 import type { GraphEdge, RoutingGraph, RouteLeg, LatLng, SketchPoint, RouteOption } from "../lib/routing";
 import { recordRoutingRun, computeDerivedKpis } from "../lib/metrics";
@@ -982,12 +982,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           const lo = Math.min(fromId, edge.toId);
           const hi = Math.max(fromId, edge.toId);
           const { left, right } = edgeShadeCache.get(`${lo},${hi}`) ?? { left: 0, right: 0 };
-          const isCanonical = fromId < edge.toId;
-          const shadeA = isCanonical ? left : right;
-          const shadeB = isCanonical ? right : left;
           routingAdj.get(fromId)!.push(
-            { toId: edge.toId, distanceM: edge.distanceM, shadeFactor: shadeA },
-            { toId: edge.toId, distanceM: edge.distanceM, shadeFactor: shadeB },
+            ...parallelSidewalkEdges(fromId, edge.toId, edge.distanceM, left, right)
           );
         }
       }
@@ -1040,6 +1036,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         options = paretoResults.map((result, i) => ({
           label: ROUTE_LABELS[i] ?? "Route",
           geojson: connectRouteEndpoints(graphToGeoJSON(result.nodeIds, routingGraph), a, b),
+          sides: result.sides,
           distanceM: result.distanceM,
           shadeCoverage: result.shadeCoverage,
           longestContinuousShadeM: result.longestContinuousShadeM,
