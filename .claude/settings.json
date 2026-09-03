@@ -38,10 +38,10 @@
     ],
     "ask": [
       "Bash(git push --force*)",
-      "Bash(git push -f *)"
+      "Bash(git push -f *)",
+      "Bash(gh pr merge*)"
     ],
     "deny": [
-      "Bash(gh pr merge*)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./.worktrees/**)",
