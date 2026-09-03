@@ -2,6 +2,11 @@ import type maplibregl from 'maplibre-gl';
 import SunCalc from 'suncalc';
 import type { IShadowLayer } from './IShadowLayer';
 import {
+  type CacheAnchor,
+  coversPoint,
+  shouldRebuildCache,
+} from '../shade/cachePolicy';
+import {
   type BuildingPrism,
   buildShadowTriangles,
   metersPerDegree,
@@ -37,6 +42,8 @@ interface CachedBuildingGeometry {
   }>;
   maxH: number;
   centerMerc: [number, number];
+  /** What this cache was built for — see `shouldRebuildCache`. */
+  anchor: CacheAnchor;
 }
 
 /**
@@ -122,6 +129,34 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private quadAttrLoc = -1;
   private quadTexLoc: WebGLUniformLocation | null = null;
 
+  /**
+   * Discard the building cache only if the camera has actually invalidated it.
+   *
+   * Rebuilding is the most expensive routine here, and all three map events below
+   * used to force one unconditionally — so a single pan paid for two (the source
+   * settles *and* the move ends), and a follow camera paid on every settle. The
+   * policy in `../shade/cachePolicy` decides; this just applies it.
+   *
+   * Always repaints regardless: the sun may have moved even when the geometry
+   * has not.
+   */
+  private invalidateIfStale() {
+    const map = this.map;
+    if (!map) return;
+    const center = map.getCenter();
+    const stale = shouldRebuildCache(this.buildingCache?.anchor ?? null, {
+      centerLng: center.lng,
+      centerLat: center.lat,
+      zoom: map.getZoom(),
+      sourceLoaded: map.isSourceLoaded('maptiler_planet'),
+    });
+    if (stale) {
+      this.buildingCache = null;
+      this.dirty = true;
+    }
+    map.triggerRepaint();
+  }
+
   // Map event handlers (bound so we can unregister)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onSourceData = (e: any) => {
@@ -129,26 +164,18 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // not on every intermediate tile update (prevents flickering).
     if (!this.map) return;
     if (e?.sourceId === 'maptiler_planet' && this.map.isSourceLoaded('maptiler_planet')) {
-      this.buildingCache = null;
-      this.dirty = true;
-      this.map.triggerRepaint();
+      this.invalidateIfStale();
     }
   };
 
   private onZoomEnd = () => {
-    if (!this.map) return;
-    this.buildingCache = null;
-    this.dirty = true;
-    this.map.triggerRepaint();
+    this.invalidateIfStale();
   };
 
   private onMoveEnd = () => {
-    if (!this.map) return;
-    this.buildingCache = null;
     this.lastSunAzDeg = null;
     this.lastSunAltDeg = null;
-    this.dirty = true;
-    this.map.triggerRepaint();
+    this.invalidateIfStale();
   };
 
   // MapLibre expects premultiplied alpha for custom layers by default.
@@ -256,6 +283,15 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
     if (!this.buildingCache) {
       this.buildingCache = this.buildBuildingGeometryCache();
+    }
+    // The cache is now allowed to lag the viewport, so being inside the *viewport*
+    // no longer means the cache holds buildings for this point. Answering from a
+    // cache that never covered it would report open sun for ground we never looked
+    // at — a confident wrong number, which is worse than a slow one. Rebuild for
+    // the current camera and re-check rather than guess.
+    if (!coversPoint(this.buildingCache.anchor, lng, lat)) {
+      this.buildingCache = this.buildBuildingGeometryCache();
+      if (!coversPoint(this.buildingCache.anchor, lng, lat)) return null;
     }
     const cache = this.buildingCache;
     if (!cache) return null;
@@ -735,11 +771,25 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
    * shapes don't change with time.
    */
   private buildBuildingGeometryCache(): CachedBuildingGeometry {
-    const emptyCache: CachedBuildingGeometry = { buildings: [], maxH: 1, centerMerc: [0, 0] };
-    if (!this.map) return emptyCache;
+    const center = this.map?.getCenter();
+    const bounds = this.map?.getBounds();
+    const anchor: CacheAnchor = {
+      centerLng: center?.lng ?? 0,
+      centerLat: center?.lat ?? 0,
+      zoom: this.map?.getZoom() ?? 0,
+      bounds: bounds
+        ? [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
+        : [0, 0, 0, 0],
+      // A cache assembled while tiles are still streaming holds only part of the
+      // buildings; the policy replaces it as soon as the source settles.
+      builtFromLoadedSource: this.map?.isSourceLoaded('maptiler_planet') ?? false,
+    };
+    const emptyCache: CachedBuildingGeometry = {
+      buildings: [], maxH: 1, centerMerc: [0, 0], anchor,
+    };
+    if (!this.map || !center) return emptyCache;
     if (this.map.getZoom() < 12) return emptyCache;
 
-    const center = this.map.getCenter();
     const [cx, cy] = lngLatToMercator(center.lng, center.lat);
 
     const features = this.map.querySourceFeatures('maptiler_planet', {
@@ -747,7 +797,9 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     });
     const { prisms, maxHeightM } = prismsFromTileFeatures(features);
 
-    const cached: CachedBuildingGeometry = { buildings: [], maxH: maxHeightM, centerMerc: [cx, cy] };
+    const cached: CachedBuildingGeometry = {
+      buildings: [], maxH: maxHeightM, centerMerc: [cx, cy], anchor,
+    };
 
     for (const prism of prisms) {
       // Roof footprint triangulation, Mercator-projected and centered once here
