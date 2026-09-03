@@ -10,13 +10,25 @@
 
 ## Current state
 
-- **Active checkpoint:** B1 (not started)
-- **Done:** nothing
-- **Open PRs:** none
-- **Decisions made:** none yet
-- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it)
+- **Active checkpoint:** B1 (not started). #145 (3D buildings) landed first as prerequisite
+  camera work — it is not a numbered checkpoint.
+- **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted
+- **Open PRs:** #145
+- **Decisions made:**
+  - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
+    `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
+    adds nothing to urban pedestrian shade. Deleted rather than fixed.
+  - **Shadow layer sits below `buildings-3d`**, set once at load via `beforeId`.
+    `bringNavOverlaysToFront` deliberately does not list either layer, so that order survives
+    the call it makes on every shadow recompute. Do not "fix" this with `moveLayer`.
+  - **Camera pitch lives in `useShadowTime`**, not in a component: the map arrives via a ref,
+    so a component subscribing on mount finds `null` and never re-renders to retry.
+  - 3D tilt is **55°**, and the toggle honours `prefers-reduced-motion` with `jumpTo`.
+- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it). Note #147 — the
+  chosen sidewalk is discarded at path reconstruction, so B6 is not a readout of stored state.
 - **Next action:** B1 — maneuver generation from route geometry
-- **Last verified:** 2026-08-24, 156 tests / 23 files green on main
+- **Last verified:** 2026-09-02, 192 tests / 26 files green on `feat/b-3d-buildings`.
+  #145's visual checks are **outstanding** — no browser on the dev machine (#121).
 
 ---
 
@@ -37,7 +49,7 @@ A route you have to hold in your head is a planning tool.
 ## The asset nobody else has
 
 `shadeSampling.ts:sampleBothSidewalks()` samples **±4 m perpendicular offsets** and returns
-`{left, right}` shade independently; `useNavigation.ts:571` assigns them to separate parallel
+`{left, right}` shade independently; `useNavigation.ts:984-991` assigns them to separate parallel
 edges so Dijkstra picks a *side of the street*. That means the app already knows which
 sidewalk is shaded — it just never tells anyone. Every shade-routing competitor routes on
 street centrelines.
