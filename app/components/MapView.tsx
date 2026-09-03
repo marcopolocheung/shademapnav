@@ -5,6 +5,11 @@ import type { TrainDrawData } from "../lib/trainGraph";
 import type { LatLng, SketchPoint } from "../lib/routing";
 import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFoursquareRateLimited, type FoursquarePlaceInfo } from "../services/foursquare";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
+import {
+  DEFAULT_BUILDING_HEIGHT_M,
+  LEVEL_HEIGHT_M,
+  TALL_BUILDING_THRESHOLD_M,
+} from "../lib/shade/geometry";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 
 export interface AccumulationOptions {
@@ -41,7 +46,34 @@ interface MapViewProps {
 }
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY ?? "";
-const ENABLE_3D = false;
+
+/**
+ * Height of an extruded building, mirroring `buildingHeightM()` in
+ * `app/lib/shade/geometry.ts` — including its `> 0` guards and its fallbacks.
+ *
+ * The two must agree: `geometry.ts` decides the prism that casts the shadow and
+ * this decides the box the user sees. Where they disagree the map shows a
+ * building with no shadow, or a shadow with no building. Neither is visible at
+ * pitch 0, and both read as "the shadows are broken" the moment the map tilts.
+ *
+ * `coalesce` can't express this: the `building:levels` branch multiplies, and an
+ * arithmetic sub-expression always returns a number, so `coalesce` would stop
+ * there and never reach the default. Hence the `case` chain.
+ *
+ * Typed `any` because MapLibre does not export an expression type — the same
+ * maplibre-interop exemption CLAUDE.md records for `noExplicitAny`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: MapLibre exports no expression type.
+const BUILDING_HEIGHT_EXPR: any = [
+  "case",
+  [">", ["to-number", ["get", "render_height"], 0], 0],
+  ["to-number", ["get", "render_height"], 0],
+  [">", ["to-number", ["get", "height"], 0], 0],
+  ["to-number", ["get", "height"], 0],
+  [">", ["to-number", ["get", "building:levels"], 0], 0],
+  ["*", ["to-number", ["get", "building:levels"], 0], LEVEL_HEIGHT_M],
+  DEFAULT_BUILDING_HEIGHT_M,
+];
 
 function escapeHtml(s: string): string {
   const div = document.createElement("div");
@@ -52,11 +84,15 @@ function escapeHtml(s: string): string {
 /**
  * Ensure nav overlays stay visible.
  *
- * The local shadow simulator adds its own WebGL layer during `map.on('load')`.
- * Depending on timing (especially in production builds), it can end up above
- * our route layers and visually obscure them.
+ * The shadow layer now sits below `buildings-3d`, so it can no longer cover the
+ * route. What this guards against instead is the extrusions: once the map is
+ * tilted, a building between the camera and the route would occlude the line.
+ * Route, transit and sketch overlays belong on top of the buildings.
  *
  * We defensively move key overlay layers to the top whenever we (re)apply them.
+ * Note this list deliberately contains neither `local-shadow-layer` nor
+ * `buildings-3d` — their relative order is set once at load and must survive
+ * every call here, and this runs on every shadow recompute.
  */
 function bringNavOverlaysToFront(map: maplibregl.Map) {
   const layerIds = [
@@ -612,11 +648,27 @@ export default function MapView({
         type: "fill-extrusion",
         source: "maptiler_planet",
         "source-layer": "building",
+        // Mirrors the two drops in `prismsFromTileFeatures` (app/lib/shade/geometry.ts):
+        // underground features, and tall features MapTiler flags as unreliable. Both cast
+        // no shadow, so drawing them would show a building that casts nothing.
+        filter: [
+          "all",
+          ["!=", ["get", "underground"], "true"],
+          [
+            "!",
+            ["all",
+              [">", BUILDING_HEIGHT_EXPR, TALL_BUILDING_THRESHOLD_M],
+              ["has", "hide_3d"],
+            ],
+          ],
+        ],
         paint: {
           "fill-extrusion-color": "#2a2a2a",
-          "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 0],
+          "fill-extrusion-height": BUILDING_HEIGHT_EXPR,
           "fill-extrusion-base":   ["coalesce", ["get", "render_min_height"], ["get", "min_height"], 0],
-          "fill-extrusion-opacity": 0.8,
+          // Opaque: at 0.8 the ground shadow shows through the walls, which is a milder
+          // version of the bug this layer ordering exists to fix.
+          "fill-extrusion-opacity": 1,
         },
       });
 
@@ -675,28 +727,20 @@ export default function MapView({
       );
       if (current) bringNavOverlaysToFront(map);
 
-      const TERRAIN_SOURCE_SPEC: maplibregl.RasterDEMSourceSpecification = {
-        type: "raster-dem",
-        tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
-        tileSize: 256,
-        maxzoom: 14,
-        encoding: "terrarium",
-      };
+      // Extrusions only once the camera is tilted: flat-on they add nothing over the
+      // basemap's own building fills, and they cost a draw call per frame.
+      //
+      // There is deliberately no terrain here. Terrain replaces the ground with a
+      // displaced mesh while the shadow layer's triangles stay at z = 0, so shadows
+      // float over valleys and sink into rises. Fixing that means sampling the DEM in
+      // the shadow vertex shader; elevation adds nothing to urban pedestrian shade, so
+      // the feature is gone rather than broken.
       const update3DVisibility = () => {
-        if (!ENABLE_3D) return;
         const is3D = map.getPitch() > 0;
         map.setLayoutProperty("buildings-3d", "visibility", is3D ? "visible" : "none");
-        if (is3D) {
-          if (!map.getSource("terrain-dem")) map.addSource("terrain-dem", TERRAIN_SOURCE_SPEC);
-          map.setTerrain({ source: "terrain-dem", exaggeration: 1 });
-        } else {
-          map.setTerrain(null);
-          if (map.getSource("terrain-dem")) map.removeSource("terrain-dem");
-        }
       };
       map.on("pitchend", update3DVisibility);
       update3DVisibility();
-      if (!ENABLE_3D) map.setLayoutProperty("buildings-3d", "visibility", "none");
 
       // Create local shadow layer
       const shadowLayer = createShadowLayer(map, {
@@ -709,7 +753,20 @@ export default function MapView({
       // If local renderer (CustomLayer), register it as a map layer
       const maybeCustom = shadowLayer as unknown as maplibregl.CustomLayerInterface;
       if (maybeCustom?.type === 'custom' && typeof maybeCustom?.render === 'function') {
-        if (!map.getLayer(maybeCustom.id)) map.addLayer(maybeCustom);
+        if (!map.getLayer(maybeCustom.id)) {
+          // Below the extrusions, not on top of the style. The shadow layer composites
+          // its FBO as a full-screen quad with no depth test (LocalShadowAdapter Pass D),
+          // so appending it last paints ground shadow across every building face —
+          // including faces in full sun. `fill-extrusion` writes depth and draws after,
+          // so inserting here lets buildings occlude the ground shadow correctly.
+          //
+          // Guarded because addLayer throws on a missing beforeId, and a throw inside
+          // this load handler silently costs the sketch layers and the nav route too.
+          map.addLayer(
+            maybeCustom,
+            map.getLayer("buildings-3d") ? "buildings-3d" : undefined
+          );
+        }
       }
 
       shadowLayer.on('idle', () => bringNavOverlaysToFront(map));

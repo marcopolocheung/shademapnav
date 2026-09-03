@@ -62,6 +62,8 @@ export interface ShadowTimeState {
   setSliderMode: React.Dispatch<React.SetStateAction<"time" | "day">>;
   mapCenter: [number, number] | null;
   mapZoom: number;
+  /** Camera pitch in degrees. 0 is top-down; > 0 means the 3D view is active. */
+  mapPitch: number;
   mapUtcOffsetMin: number;
   dateRef: React.MutableRefObject<Date>;
   mapUtcOffsetMinRef: React.MutableRefObject<number>;
@@ -89,6 +91,7 @@ export function useShadowTime(): ShadowTimeState {
   const [sliderMode, setSliderMode] = useState<"time" | "day">("time");
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [mapZoom, setMapZoom] = useState(2);
+  const [mapPitch, setMapPitch] = useState(0);
   const [mapUtcOffsetMin, setMapUtcOffsetMin] = useState<number>(
     () => -new Date().getTimezoneOffset()
   );
@@ -149,6 +152,11 @@ export function useShadowTime(): ShadowTimeState {
     });
     map.on("zoom", () => setMapZoom(map.getZoom()));
     setMapZoom(map.getZoom());
+    // Pitch lives here rather than in FloatingMapControls because the map arrives via a
+    // ref: a component subscribing on mount would find `mapRef.current` still null and
+    // never re-render to retry.
+    map.on("pitchend", () => setMapPitch(map.getPitch()));
+    setMapPitch(map.getPitch());
   }, []);
 
   const handleSliderChange = useCallback((m: number) => {
@@ -203,7 +211,7 @@ export function useShadowTime(): ShadowTimeState {
     accumulation, setAccumulation,
     isPlaying, setIsPlaying,
     sliderMode, setSliderMode,
-    mapCenter, mapZoom,
+    mapCenter, mapZoom, mapPitch,
     mapUtcOffsetMin,
     dateRef, mapUtcOffsetMinRef, sliderModeRef,
     handleMapReady, handleSliderChange, handleDayOfYearChange,
