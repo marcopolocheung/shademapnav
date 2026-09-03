@@ -34,6 +34,20 @@
     floating on blue with no walls under them, which reads as "transparent buildings".
     The ladder is now ground `#516990` < wall `#6f7f99` < roof `#8797b2` < lit wall `#c0c0c0`
     < lit roof `#ceced0`, all still blue-dominant. Keep it monotone if you retune it.
+  - **Roof exclusion (Pass C) is now exact, and that changes the flat view.** Feeding
+    Pass B the ceiling ramp rather than the caster's constant height means a roof is
+    erased when the shadow reaching *that height* clears it, not when any taller
+    building's ground polygon merely overlaps it. Measured against `main` at pitch 0,
+    z16.3, 1 pm Midtown: **12.2% of the map area changes**, essentially all of it
+    rooftops going `#516990` → `#c0c0c0` (shadow-over-building-fill → bare fill). The
+    street network is untouched, so the sidewalk samples the shade routing reads are
+    unaffected — but do not repeat the earlier claim that pitch 0 is pixel-identical.
+    It is not, it is *more correct*, and any future pixel comparison has to be against
+    `main` rather than against another build of the same branch.
+  - **Pass E leaves the depth *range* alone.** MapLibre sets `depthRangeFor3D` before
+    calling a `'3d'` custom layer, reserving the top slice so no 3D fragment can lose
+    LEQUAL to the near-1 depths the opaque-pass basemap fills wrote. Taking the full
+    `[0,1]` re-opens that and lets the ground reject a distant building.
   - **Place labels ride above the buildings only while tilted.** Lifting them at pitch 0
     would put untinted label pixels over shaded sidewalks in the canvas the shade sampler
     reads back (invariant #5). The lift is captured as slots at the very top of the `load`
@@ -50,10 +64,13 @@
   path can zigzag across the street and B6 would chatter. That is a cost-model change, not
   plumbing.
 - **Next action:** B1 — maneuver generation from route geometry
-- **Last verified:** 2026-09-03, 219 tests / 27 files green, plus screenshots of Midtown
-  Manhattan at pitch 0/60/70 across the day. #121 is workable: Playwright's Chromium runs
-  headless in WSL once `libnss3`/`libnspr4`/`libasound2` are `apt-get download`ed and
-  extracted to a `LD_LIBRARY_PATH` dir (no sudo), with `--use-angle=swiftshader` for WebGL.
+- **Last verified:** 2026-09-03, 224 tests / 27 files green, plus screenshots of Midtown
+  Manhattan at pitch 0/60/65/70 across the day, a pitch round-trip asserting the label layer
+  order restores exactly, and a `main`-vs-branch pixel diff of the flat view.
+  #121 is workable: Playwright's Chromium runs headless in WSL once
+  `libnss3`/`libnspr4`/`libasound2` are `apt-get download`ed and extracted to a
+  `LD_LIBRARY_PATH` dir (no sudo), with `--use-angle=swiftshader` for WebGL. Take the
+  screenshots — do not record a visual check as outstanding.
 
 ---
 
