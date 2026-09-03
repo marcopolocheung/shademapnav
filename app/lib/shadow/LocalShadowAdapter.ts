@@ -173,8 +173,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   };
 
   private onMoveEnd = () => {
-    this.lastSunAzDeg = null;
-    this.lastSunAltDeg = null;
+    // Deliberately does not reset the cached sun position. Sun azimuth is a function
+    // of location, but it does not meaningfully change over the distance a pan
+    // covers, and `setDate`'s own 0.15-degree check already forces a recompute when
+    // it does. Clearing it here forced a full solar recompute on every camera settle.
     this.invalidateIfStale();
   };
 
