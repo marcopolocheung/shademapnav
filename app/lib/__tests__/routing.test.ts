@@ -23,6 +23,7 @@ import {
   snapToReachableEdge,
   snapRouteStopsToReachableEdges,
   connectRouteEndpoints,
+  parallelSidewalkEdges,
   type RoutingGraph,
   type OsmNode,
   type GraphEdge,
@@ -973,5 +974,161 @@ describe("paretoRoutes — detour budget", () => {
     const last = routes[routes.length - 1];
     expect(last.shadeCoverage * last.distanceM)
       .toBeGreaterThanOrEqual(first.shadeCoverage * first.distanceM - 1e-9);
+  });
+});
+
+// ── Sidewalk sides (#147) ──────────────────────────────────────────────────────
+
+/**
+ * A street of `segments` collinear nodes, each segment carrying the two parallel
+ * per-sidewalk edges `useNavigation` builds — one labelled "left", one "right",
+ * relative to that directed edge's own direction of travel.
+ *
+ * `shadedSide[i]` says which sidewalk is in shade on segment i, so a test can make
+ * the search prefer a known side and then assert it was reported.
+ */
+function makeSidewalkGraph(shadedSide: Array<"left" | "right">): RoutingGraph {
+  const n = shadedSide.length + 1;
+  const nodes = new Map<number, OsmNode>();
+  for (let i = 1; i <= n; i++) {
+    nodes.set(i, { id: i, lat: 0, lon: (i - 1) * 0.001 });
+  }
+  const adj = new Map<number, GraphEdge[]>();
+  for (let i = 1; i <= n; i++) adj.set(i, []);
+
+  for (let i = 0; i < shadedSide.length; i++) {
+    const a = i + 1;
+    const b = i + 2;
+    const leftShade = shadedSide[i] === "left" ? 1 : 0;
+    const rightShade = shadedSide[i] === "right" ? 1 : 0;
+    // Forward (canonical: a < b) — left-of-canonical is the traveller's left.
+    adj.get(a)!.push(
+      { toId: b, distanceM: 100, shadeFactor: leftShade, side: "left" },
+      { toId: b, distanceM: 100, shadeFactor: rightShade, side: "right" }
+    );
+    // Reverse (b > a, so against canonical) — the traveller now faces the other
+    // way, so the sidewalk that is left-of-canonical is on their right.
+    adj.get(b)!.push(
+      { toId: a, distanceM: 100, shadeFactor: rightShade, side: "left" },
+      { toId: a, distanceM: 100, shadeFactor: leftShade, side: "right" }
+    );
+  }
+  return { nodes, adj };
+}
+
+describe("sidewalk side reporting", () => {
+  it("names the side dijkstra actually costed", () => {
+    const graph = makeSidewalkGraph(["left", "right", "left"]);
+    const res = dijkstra(graph, 1, 4, 1);
+    expect(res).not.toBeNull();
+    expect(res?.sides).toEqual(["left", "right", "left"]);
+  });
+
+  it("reports sides relative to travel direction, not to node ordering", () => {
+    // Same street walked backwards. Shade is a property of the physical sidewalk,
+    // so walking 4→1 the shaded side flips to the traveller's other hand. A naive
+    // implementation that ignores canonicality returns the forward answer reversed.
+    const graph = makeSidewalkGraph(["left", "right", "left"]);
+    const res = dijkstra(graph, 4, 1, 1);
+    expect(res).not.toBeNull();
+    expect(res?.sides).toEqual(["right", "left", "right"]);
+  });
+
+  it("is one shorter than nodeIds", () => {
+    const graph = makeSidewalkGraph(["left", "left"]);
+    const res = dijkstra(graph, 1, 3, 1);
+    expect(res?.nodeIds).toHaveLength(3);
+    expect(res?.sides).toHaveLength(2);
+  });
+
+  it("reports null where the graph carries no per-sidewalk edges", () => {
+    // The linear fixture has plain edges — every segment is unlabelled, not absent.
+    const res = dijkstra(makeLinearGraph(), 1, 3, 0);
+    expect(res?.sides).toEqual([null, null]);
+  });
+
+  it("reports sides through paretoRoutes, which is a separate implementation", () => {
+    const graph = makeSidewalkGraph(["left", "right", "left"]);
+    const routes = paretoRoutes(graph, 1, 4, { maxDetourFactor: 2 });
+    expect(routes.length).toBeGreaterThan(0);
+    for (const r of routes) {
+      expect(r.sides).toHaveLength(r.nodeIds.length - 1);
+      // Whichever Pareto member this is, every reported side must be one the
+      // graph actually offers for that segment.
+      for (const side of r.sides ?? []) expect(["left", "right"]).toContain(side);
+    }
+    const mostShaded = routes[routes.length - 1];
+    expect(mostShaded.sides).toEqual(["left", "right", "left"]);
+  });
+
+  it("is purely additive — no aggregate moves", () => {
+    // The regression guard. If labelling changed which edge the search picked,
+    // these would drift, and every shade number in the product with them.
+    const graph = makeSidewalkGraph(["left", "left", "left"]);
+    const res = dijkstra(graph, 1, 4, 1)!;
+    expect(res.distanceM).toBe(300);
+    expect(res.shadeCoverage).toBe(1);
+    expect(res.longestContinuousShadeM).toBe(300);
+    expect(res.shadeTransitions).toBe(0);
+    expect(res.turnCount).toBe(0);
+  });
+
+  it("switching sides currently costs nothing — the zigzag #147 warns about", () => {
+    // Not a desired behaviour, pinned so it is visible rather than surprising.
+    // The parallel edges share toId and distanceM, so alternating shade makes the
+    // optimal path cross the street on every segment for free. Charging for that
+    // needs the search keyed on (node, side); tracked separately.
+    const alternating: Array<"left" | "right"> = [
+      "left", "right", "left", "right", "left", "right", "left", "right",
+    ];
+    const res = dijkstra(makeSidewalkGraph(alternating), 1, 9, 1)!;
+    expect(res.sides).toEqual(alternating);
+    let flips = 0;
+    for (let i = 1; i < (res.sides ?? []).length; i++) {
+      if (res.sides![i] !== res.sides![i - 1]) flips++;
+    }
+    // 7 crossings in 800 m — roughly one every 114 m, against B6's ≤1 per 400 m.
+    expect(flips).toBe(7);
+  });
+});
+
+describe("parallelSidewalkEdges", () => {
+  // sampleBothSidewalks reports relative to the canonical direction (low id → high).
+  // Here the canonical-left kerb is fully shaded and canonical-right is in full sun.
+  const CANON_LEFT = 1;
+  const CANON_RIGHT = 0;
+
+  it("walking canonically, canonical-left is the traveller's left", () => {
+    const [left, right] = parallelSidewalkEdges(1, 2, 100, CANON_LEFT, CANON_RIGHT);
+    expect(left.side).toBe("left");
+    expect(left.shadeFactor).toBe(CANON_LEFT);
+    expect(right.side).toBe("right");
+    expect(right.shadeFactor).toBe(CANON_RIGHT);
+  });
+
+  it("walking against canonical, the shaded kerb moves to the traveller's right", () => {
+    // Same physical street, opposite direction. This is the assertion that fails if
+    // the canonicality flip is dropped or inverted — the bug this helper exists to
+    // make visible, and which is invisible at pitch 0 and in every aggregate.
+    const [left, right] = parallelSidewalkEdges(2, 1, 100, CANON_LEFT, CANON_RIGHT);
+    expect(left.side).toBe("left");
+    expect(left.shadeFactor).toBe(CANON_RIGHT);
+    expect(right.side).toBe("right");
+    expect(right.shadeFactor).toBe(CANON_LEFT);
+  });
+
+  it("labels are always left-then-right regardless of direction", () => {
+    for (const [a, b] of [[1, 2], [2, 1]] as const) {
+      const pair = parallelSidewalkEdges(a, b, 100, 0.3, 0.7);
+      expect(pair.map((e) => e.side)).toEqual(["left", "right"]);
+      expect(pair.every((e) => e.toId === b && e.distanceM === 100)).toBe(true);
+    }
+  });
+
+  it("keeps both kerbs' shade — the pair carries the same two values either way", () => {
+    const fwd = parallelSidewalkEdges(1, 2, 100, 0.3, 0.7).map((e) => e.shadeFactor);
+    const rev = parallelSidewalkEdges(2, 1, 100, 0.3, 0.7).map((e) => e.shadeFactor);
+    expect([...fwd].sort()).toEqual([...rev].sort());
+    expect(fwd).not.toEqual(rev);
   });
 });

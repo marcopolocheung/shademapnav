@@ -9,10 +9,19 @@ export interface OsmNode {
   isIntersection?: boolean; // true when node appears in ≥2 OSM ways
 }
 
+/**
+ * Which sidewalk a directed edge represents, **relative to its own direction of
+ * travel** — so "left" means the traveller's left when walking this edge, not a
+ * fixed compass side. Only present on the parallel per-sidewalk edges built in
+ * `useNavigation`; plain edges leave it undefined.
+ */
+export type SidewalkSide = "left" | "right";
+
 export interface GraphEdge {
   toId: number;
   distanceM: number;
   shadeFactor: number;
+  side?: SidewalkSide;
   highway?: string;
   surface?: string;
   cycleway?: string;
@@ -27,6 +36,17 @@ export interface RoutingGraph {
 
 export interface RouteResult {
   nodeIds: number[];
+  /**
+   * Which sidewalk the search chose for each traversed segment: `sides[i]` is the
+   * side of the edge from `nodeIds[i]` to `nodeIds[i + 1]`, so this is always one
+   * shorter than `nodeIds`. `null` where the graph carried no per-sidewalk edges
+   * (sketch routes, transit connectors, virtual snap edges).
+   *
+   * Consecutive entries that differ are a street crossing — which is the signal
+   * turn-by-turn guidance needs, and it comes from the edge the search actually
+   * costed rather than a second opinion computed later.
+   */
+  sides?: Array<SidewalkSide | null>;
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
@@ -61,6 +81,8 @@ export interface RouteLeg {
 export interface RouteOption {
   label: string; // "Shortest" | "Balanced" | "Most shaded" | "Via MRT"
   geojson: GeoJSON.Feature<GeoJSON.LineString>;
+  /** Per-segment sidewalk choice — see `RouteResult.sides`. Walk routes only. */
+  sides?: Array<SidewalkSide | null>;
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
@@ -320,6 +342,34 @@ export function snapToEdge(
   return virtualId;
 }
 
+/**
+ * The two parallel per-sidewalk edges for one street segment, labelled by the
+ * traveller's own left and right.
+ *
+ * `sampleBothSidewalks` reports `left`/`right` relative to the **canonical**
+ * direction of a segment (lower node id → higher), because that is the only
+ * direction-independent way to name the two kerbs. A directed edge needs the
+ * traveller's frame instead: walking canonically, left-of-canonical is on your
+ * left; walking against it you face the other way, so right-of-canonical is. This
+ * resolves that once, so callers never have to reason about it again — and so the
+ * flip is testable, which it is not when spelled inline at the call site.
+ */
+export function parallelSidewalkEdges(
+  fromId: number,
+  toId: number,
+  distanceM: number,
+  canonicalLeftShade: number,
+  canonicalRightShade: number
+): [GraphEdge, GraphEdge] {
+  const isCanonical = fromId < toId;
+  const travellerLeft = isCanonical ? canonicalLeftShade : canonicalRightShade;
+  const travellerRight = isCanonical ? canonicalRightShade : canonicalLeftShade;
+  return [
+    { toId, distanceM, shadeFactor: travellerLeft, side: "left" },
+    { toId, distanceM, shadeFactor: travellerRight, side: "right" },
+  ];
+}
+
 /** Cap shade saving at 70% so fully-shaded edges still cost 30% of their distance.
  *  Prevents Dijkstra from creating unbounded detours through zero-cost shaded paths. */
 const MAX_SHADE_SAVING = 0.7;
@@ -388,6 +438,7 @@ export function dijkstra(
   nodeIds.reverse();
 
   // Compute aggregate stats along the path
+  const sides: Array<SidewalkSide | null> = [];
   const SHADE_THRESH = 0.5;
   let totalDist = 0, shadedDist = 0;
   let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
@@ -398,7 +449,8 @@ export function dijkstra(
     // Use prevEdge (the exact edge Dijkstra chose) so parallel sidewalk edges
     // are resolved correctly — find() would return whichever comes first.
     const edge = prevEdge.get(nodeIds[i + 1]);
-    if (!edge || edge.toId !== nodeIds[i + 1]) continue;
+    if (!edge || edge.toId !== nodeIds[i + 1]) { sides.push(null); continue; }
+    sides.push(edge.side ?? null);
     totalDist += edge.distanceM;
     shadedDist += edge.distanceM * edge.shadeFactor;
 
@@ -429,6 +481,7 @@ export function dijkstra(
 
   return {
     nodeIds,
+    sides,
     distanceM: totalDist,
     shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
     longestContinuousShadeM,
@@ -657,6 +710,9 @@ export function paretoRoutes(
 
   const buildResult = (lbl: PLabel): RouteResult & { _key: string } => {
     const { nodeIds, edgePath } = reconstruct(lbl);
+    // edgePath[i] is the edge from nodeIds[i] to nodeIds[i + 1], so this stays
+    // one shorter than nodeIds — the alignment RouteResult.sides documents.
+    const sides: Array<SidewalkSide | null> = edgePath.map((e) => e.side ?? null);
     const SHADE_THRESH = 0.5;
     let totalDist = 0, shadedDist = 0;
     let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
@@ -693,6 +749,7 @@ export function paretoRoutes(
     return {
       _key: nodeIds.join(","),
       nodeIds,
+      sides,
       distanceM: totalDist,
       shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
       longestContinuousShadeM,
