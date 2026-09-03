@@ -1,7 +1,12 @@
 import type maplibregl from "maplibre-gl";
 
+/** Pitch the 3D view tilts to. Enough to read building height without losing the street. */
+const TILTED_PITCH_DEG = 55;
+
 interface FloatingMapControlsProps {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
+  /** Current camera pitch in degrees, from `useShadowTime`. 0 means top-down. */
+  pitch: number;
   onLocateMe: () => void;
   isLocating: boolean;
   onShare?: () => void;
@@ -10,11 +15,14 @@ interface FloatingMapControlsProps {
 
 export default function FloatingMapControls({
   mapRef,
+  pitch,
   onLocateMe,
   isLocating,
   onShare,
   shareStatus = "idle",
 }: FloatingMapControlsProps) {
+  const is3D = pitch > 0;
+
   return (
     <div className="flex flex-col gap-3">
       {/* Zoom in */}
@@ -76,13 +84,28 @@ export default function FloatingMapControls({
         )}
       </button>
 
-      {/* 3D / Reset bearing */}
+      {/* 2D / 3D */}
       <button
         type="button"
-        onClick={() => mapRef.current?.resetNorthPitch()}
-        className="w-12 h-12 rounded-2xl bg-white shadow-xl flex items-center justify-center text-slate-600 hover:text-amber-700 transition-colors"
-        aria-label="Reset view"
-        title="Reset view"
+        onClick={() => {
+          const map = mapRef.current;
+          if (!map) return;
+          const to3D = map.getPitch() === 0;
+          // Tilting is the one camera move that can provoke motion sickness, so honour
+          // the OS setting rather than easing into it.
+          const reduceMotion =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const camera = { pitch: to3D ? TILTED_PITCH_DEG : 0 };
+          if (reduceMotion) map.jumpTo(camera);
+          else map.easeTo({ ...camera, duration: 400 });
+        }}
+        className={`w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-colors ${
+          is3D ? "bg-amber-700 text-white" : "bg-white text-slate-600 hover:text-amber-700"
+        }`}
+        aria-pressed={is3D}
+        aria-label={is3D ? "Return to 2D map" : "Tilt to 3D map"}
+        title={is3D ? "Return to 2D map" : "Tilt to 3D map"}
       >
         <span className="material-symbols-outlined">3d_rotation</span>
       </button>

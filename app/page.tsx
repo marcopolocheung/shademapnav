@@ -180,7 +180,7 @@ export default function Home() {
     accumulation, setAccumulation,
     isPlaying, setIsPlaying,
     sliderMode, setSliderMode,
-    mapCenter, mapZoom, mapUtcOffsetMin,
+    mapCenter, mapZoom, mapPitch, mapUtcOffsetMin,
     handleMapReady, handleSliderChange, handleDayOfYearChange,
     adjustYear, jumpTo, getCanvas, getBounds,
     mapRef, dateRef,
@@ -709,6 +709,7 @@ export default function Home() {
       <div className="absolute bottom-20 md:top-24 md:bottom-auto right-3 z-10">
         <FloatingMapControls
           mapRef={mapRef}
+          pitch={mapPitch}
           onLocateMe={handleLocateMe}
           isLocating={isLocating}
           onShare={handleShareLink}
