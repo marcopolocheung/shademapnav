@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   type BuildingFeatureLike,
+  type PrismMesh,
+  appendPrismMesh,
   buildShadowTriangles,
   buildingHeightM,
   metersPerDegree,
@@ -200,6 +202,54 @@ describe("buildShadowTriangles", () => {
     expect(buildShadowTriangles(line, 10, DUE_SOUTH, ALT_45, mPerLat, mPerLng)).toEqual([]);
   });
 
+  it("interpolates to the analytic shadow ceiling across the whole footprint", () => {
+    // The property the renderer actually depends on: rasterizing these triangles
+    // under MAX blending yields, at every covered point, the height the caster
+    // still shades there — `heightM - distance * tan(altitude)`. Per-vertex weights
+    // are the mechanism; this is the claim. A far cap that only ever wrote its own
+    // 0, or a cap wired to the wrong end of the sweep, passes the weight test above
+    // and fails this one.
+    const H = 40;
+    const ceilings: number[] = [];
+    const tris = buildShadowTriangles(
+      squareRing(), H, DUE_SOUTH, ALT_45, mPerLat, mPerLng, ceilings
+    );
+
+    // What a MAX-blended rasterizer would leave at one point.
+    const rasterize = (lng: number, lat: number): number => {
+      let best = 0;
+      for (let t = 0; t < tris.length; t += 3) {
+        const [ax, ay] = tris[t];
+        const [bx, by] = tris[t + 1];
+        const [cx, cy] = tris[t + 2];
+        const det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+        if (Math.abs(det) < 1e-18) continue;
+        const u = ((by - cy) * (lng - cx) + (cx - bx) * (lat - cy)) / det;
+        const v = ((cy - ay) * (lng - cx) + (ax - cx) * (lat - cy)) / det;
+        const w = 1 - u - v;
+        const eps = -1e-9;
+        if (u < eps || v < eps || w < eps) continue;
+        best = Math.max(best, u * ceilings[t] + v * ceilings[t + 1] + w * ceilings[t + 2]);
+      }
+      return best * H;
+    };
+
+    // The square spans +/-HALF_M and the sun is due south at 45 degrees, so the
+    // shadow runs due north exactly H metres. Walking north from the footprint's
+    // north edge, the ceiling falls linearly from H to 0.
+    const shadow = H / Math.tan(ALT_45);
+    let checked = 0;
+    for (let northM = -HALF_M + 1; northM <= HALF_M + shadow - 1; northM += 3) {
+      const lat = LAT + northM / mPerLat;
+      // Distance back to the footprint along the sun direction, 0 while inside it.
+      const dist = Math.max(0, northM - HALF_M);
+      const expected = H * (1 - dist / shadow);
+      expect(rasterize(LNG, lat)).toBeCloseTo(expected, 6);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(10);
+  });
+
   it("weights the ceiling 1 under the caster and 0 at the shadow tip", () => {
     const ceilings: number[] = [];
     const tris = buildShadowTriangles(
@@ -216,6 +266,97 @@ describe("buildShadowTriangles", () => {
     }
     expect(ceilings).toContain(1);
     expect(ceilings).toContain(0);
+  });
+});
+
+describe("appendPrismMesh", () => {
+  /** A unit square in a planar frame, wound counter-clockwise. */
+  const ccw: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]];
+  const cw: [number, number][] = [[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]];
+  /**
+   * Its roof, pre-triangulated in the same frame. Deliberately one clockwise
+   * triangle and one counter-clockwise, so a cap that re-winds nothing and a cap
+   * that re-winds everything both fail.
+   */
+  const roofTris = [
+    0, 0, 1, 1, 1, 0, // clockwise      (signed area -1)
+    0, 0, 1, 1, 0, 1, // counter-clockwise (signed area +1)
+  ];
+
+  const build = (ring: [number, number][], h = 10): PrismMesh => {
+    const mesh: PrismMesh = { pos: [], heightM: [], normal: [] };
+    appendPrismMesh(ring, h, roofTris, mesh);
+    return mesh;
+  };
+
+  /** Signed area of triangle `t` (0-based), doubled. */
+  const area2 = (mesh: PrismMesh, t: number): number => {
+    const [x0, y0, x1, y1, x2, y2] = mesh.pos.slice(t * 6, t * 6 + 6);
+    return (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+  };
+
+  it("emits a roof cap plus two triangles per edge", () => {
+    const mesh = build(ccw);
+    // 2 roof triangles + 4 edges x 2 = 10 triangles, 30 vertices.
+    expect(mesh.heightM).toHaveLength(30);
+    expect(mesh.pos).toHaveLength(60);
+    expect(mesh.normal).toHaveLength(90);
+  });
+
+  it("puts the roof at the roofline and the walls from the ground up", () => {
+    const mesh = build(ccw, 10);
+    expect(mesh.heightM.slice(0, 6)).toEqual([10, 10, 10, 10, 10, 10]);
+    // Each wall quad runs 0,0,h / 0,h,h.
+    expect(mesh.heightM.slice(6, 12)).toEqual([0, 0, 10, 0, 10, 10]);
+  });
+
+  it("points wall normals out of the ring whichever way it is wound", () => {
+    // Checking the *set* of normals is not enough: reverse them all and the set is
+    // unchanged. Each one has to be checked against the wall it belongs to, so the
+    // test fails when a clockwise ring turns its walls inward.
+    for (const ring of [ccw, cw]) {
+      const mesh = build(ring);
+      for (let t = 2; t < mesh.heightM.length / 3; t++) {
+        const [ax, ay, bx, by] = mesh.pos.slice(t * 6, t * 6 + 4);
+        const nx = mesh.normal[t * 9];
+        const ny = mesh.normal[t * 9 + 1];
+        // The unit square's centre is (0.5, 0.5); a wall's outward normal has to
+        // point away from it.
+        const midToCentre = [0.5 - (ax + bx) / 2, 0.5 - (ay + by) / 2];
+        expect(nx * midToCentre[0] + ny * midToCentre[1]).toBeLessThan(0);
+        expect(mesh.normal[t * 9 + 2]).toBe(0);
+        expect(Math.hypot(nx, ny)).toBeCloseTo(1, 9);
+      }
+    }
+  });
+
+  it("winds every triangle the same way, so one cull mode covers roofs and walls", () => {
+    // Back-face culling is what stops a slab seen edge-on from z-fighting its own
+    // opposite wall, and it only works if the outward face of every triangle — the
+    // re-wound roof cap included — turns the same way.
+    for (const ring of [ccw, cw]) {
+      const mesh = build(ring);
+      // Both roof triangles, whichever way the caller wound them.
+      expect(area2(mesh, 0)).toBeGreaterThan(0);
+      expect(area2(mesh, 1)).toBeGreaterThan(0);
+      for (let t = 2; t < mesh.heightM.length / 3; t++) {
+        // A wall's cross product is (dy, -dx, 0) * h — the outward normal — so
+        // checking it against the stored normal checks the vertex order.
+        const [ax, ay, bx, by, , ] = mesh.pos.slice(t * 6, t * 6 + 6);
+        const [hA, , hC] = mesh.heightM.slice(t * 3, t * 3 + 3);
+        const dx = bx - ax;
+        const dy = by - ay;
+        const nx = mesh.normal[t * 9];
+        const ny = mesh.normal[t * 9 + 1];
+        const sign = hC > hA ? 1 : -1;
+        expect(Math.sign(dy * nx - dx * ny) * sign).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("skips the walls of a degenerate ring but still caps the roof", () => {
+    const mesh = build([[0, 0], [1, 0], [0, 0]]);
+    expect(mesh.heightM).toHaveLength(6); // the two roof triangles only
   });
 });
 

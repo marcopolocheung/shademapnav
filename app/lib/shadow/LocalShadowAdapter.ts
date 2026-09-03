@@ -8,9 +8,10 @@ import {
 } from '../shade/cachePolicy';
 import {
   type BuildingPrism,
+  type PrismMesh,
+  appendPrismMesh,
   buildShadowTriangles,
   metersPerDegree,
-  openRing,
   pointInPrismShadow,
   prismsFromTileFeatures,
   triangulateRing,
@@ -350,6 +351,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (!this.buildingCache) {
       this.buildingCache = this.buildBuildingGeometryCache();
       this.cacheVersion++;
+      this.dirty = true;
     }
     // The cache is now allowed to lag the viewport, so being inside the *viewport*
     // no longer means the cache holds buildings for this point. Answering from a
@@ -359,6 +361,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (!coversPoint(this.buildingCache.anchor, lng, lat)) {
       this.buildingCache = this.buildBuildingGeometryCache();
       this.cacheVersion++;
+      // The extruded shadows — and Pass E's `maxH` normalization — came from the
+      // cache just replaced. Without this the next frame draws a mesh scaled by the
+      // new `maxH` against a height texture built with the old one.
+      this.dirty = true;
       if (!coversPoint(this.buildingCache.anchor, lng, lat)) return null;
     }
     const cache = this.buildingCache;
@@ -674,7 +680,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const wasDepthTest = gl.isEnabled(gl.DEPTH_TEST);
     const prevDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
     const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
-    const prevDepthRange = gl.getParameter(gl.DEPTH_RANGE);
 
     // Compute adjusted projection matrix in Float64 to account for center offset.
     // Vertices are stored relative to centerMerc, so we pre-multiply a translation
@@ -882,7 +887,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.enable(gl.DEPTH_TEST);
       gl2.depthFunc(gl.LEQUAL);
       gl2.depthMask(true);
-      gl2.depthRange(0, 1);
+      // The depth *range* is left as MapLibre set it. For a '3d' custom layer that
+      // is `depthRangeFor3D`, which stops just short of 1 so no 3D fragment can lose
+      // LEQUAL against the near-1 depths the opaque-pass basemap fills wrote. Taking
+      // the full [0,1] here would re-open exactly that, letting the ground reject a
+      // distant building.
 
       gl2.drawArrays(gl.TRIANGLES, 0, cache.bldgVertexCount);
 
@@ -903,7 +912,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (!wasDepthTest) gl2.disable(gl.DEPTH_TEST);
     gl2.depthFunc(prevDepthFunc);
     gl2.depthMask(prevDepthMask);
-    gl2.depthRange(prevDepthRange[0], prevDepthRange[1]);
   }
 
   onRemove(_map: maplibregl.Map, gl: WebGL2RenderingContext | WebGLRenderingContext) {
@@ -1082,9 +1090,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     };
 
     // Pass E's mesh, accumulated alongside the roofs it shares its source with.
-    const meshPos: number[] = [];
-    const meshHeight: number[] = [];
-    const meshNormal: number[] = [];
+    const mesh: PrismMesh = { pos: [], heightM: [], normal: [] };
 
     for (const prism of prisms) {
       // Roof footprint triangulation, Mercator-projected and centered once here
@@ -1101,57 +1107,18 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         mercatorRoofVerts: new Float32Array(roofVerts),
       });
 
-      // Roof cap: the same triangles, lifted to the roofline and facing up.
-      // Wound positive-area so every triangle Pass E emits — roof or wall — turns
-      // its outward face the same way and one cull mode covers the lot.
-      for (let i = 0; i + 5 < roofVerts.length; i += 6) {
-        const [x0, y0, x1, y1, x2, y2] = roofVerts.slice(i, i + 6);
-        const area2 = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
-        if (area2 >= 0) {
-          meshPos.push(x0, y0, x1, y1, x2, y2);
-        } else {
-          meshPos.push(x0, y0, x2, y2, x1, y1);
-        }
-        meshHeight.push(prism.heightM, prism.heightM, prism.heightM);
-        meshNormal.push(0, 0, 1, 0, 0, 1, 0, 0, 1);
-      }
-
-      // Walls: one quad per ring edge, from the ground to the roofline.
-      const ring = openRing(prism.ring).map(([lng, lat]) => {
+      // Walls, in the same Mercator-centered frame the roof triangles are already in.
+      const ringMerc = prism.ring.map(([lng, lat]) => {
         const [x, y] = lngLatToMercator(lng, lat);
         return [x - cx, y - cy] as [number, number];
       });
-      if (ring.length < 3) continue;
-
-      // Which side of an edge faces out depends on the ring's winding, and tile
-      // rings come both ways round (inner courtyard rings are wound the other
-      // way on purpose). The shoelace sign settles it per ring.
-      let area2 = 0;
-      for (let i = 0; i < ring.length; i++) {
-        const j = (i + 1) % ring.length;
-        area2 += ring[i][0] * ring[j][1] - ring[j][0] * ring[i][1];
-      }
-      const winding = area2 > 0 ? 1 : -1;
-
-      for (let i = 0; i < ring.length; i++) {
-        const j = (i + 1) % ring.length;
-        // Walk the edge in the direction that puts the outside on the same side
-        // for every ring, so the emitted triangles wind consistently too.
-        const [ax, ay] = winding > 0 ? ring[i] : ring[j];
-        const [bx, by] = winding > 0 ? ring[j] : ring[i];
-        const nLen = Math.hypot(by - ay, bx - ax) || 1;
-        const nx = (by - ay) / nLen;
-        const ny = -(bx - ax) / nLen;
-        meshPos.push(ax, ay, bx, by, bx, by, ax, ay, bx, by, ax, ay);
-        meshHeight.push(0, 0, prism.heightM, 0, prism.heightM, prism.heightM);
-        for (let k = 0; k < 6; k++) meshNormal.push(nx, ny, 0);
-      }
+      appendPrismMesh(ringMerc, prism.heightM, roofVerts, mesh);
     }
 
-    cached.bldgPos = new Float32Array(meshPos);
-    cached.bldgHeightM = new Float32Array(meshHeight);
-    cached.bldgNormal = new Float32Array(meshNormal);
-    cached.bldgVertexCount = meshHeight.length;
+    cached.bldgPos = new Float32Array(mesh.pos);
+    cached.bldgHeightM = new Float32Array(mesh.heightM);
+    cached.bldgNormal = new Float32Array(mesh.normal);
+    cached.bldgVertexCount = mesh.heightM.length;
 
     return cached;
   }

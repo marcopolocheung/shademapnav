@@ -178,10 +178,18 @@ export function prismsFromFootprints(footprints: BuildingFootprintLike[]): Prism
  * `ceilingOut`, when supplied, receives one weight per emitted vertex: 1 where
  * the vertex sits under the caster's roofline and 0 at the shadow's tip. The
  * shift is a constant translation, so the ceiling height of the shadow — the
- * highest point a caster still shades, `heightM - distance * tan(altitude)` —
- * is affine in position, and interpolating these weights across a triangle
- * reproduces it exactly. That is what lets a wall fragment at height z ask
- * whether it is shaded: it is, iff the interpolated ceiling exceeds z.
+ * highest point a caster still shades, `heightM - distance * tan(altitude)` — is
+ * affine along the sweep, and interpolating these weights across a swept quad
+ * reproduces it. That is what lets a wall fragment at height z ask whether it is
+ * shaded: it is, iff the interpolated ceiling exceeds z.
+ *
+ * **The weights are exact only once composed under MAX blending**, which is how
+ * the renderer rasterizes them. Per triangle they are not: over the far cap the
+ * true ceiling is nonzero almost everywhere, and these weights write 0 there. That
+ * is a floor rather than an error, because the swept quad of whichever edge is
+ * nearest against the sun always covers the same point and carries the real value,
+ * and MAX keeps it. Reuse this under any other blend and the far cap will punch
+ * holes in the field.
  */
 export function buildShadowTriangles(
   ring: [number, number][],
@@ -319,4 +327,80 @@ export function pointInPolygon(lng: number, lat: number, ring: [number, number][
     if (intersects) inside = !inside;
   }
   return inside;
+}
+
+/** Flat vertex arrays for the extruded-building pass, filled by `appendPrismMesh`. */
+export interface PrismMesh {
+  /** Projected x/y per vertex. */
+  pos: number[];
+  /** Height above ground in metres per vertex. */
+  heightM: number[];
+  /** Outward unit normal per vertex; roofs point up. */
+  normal: number[];
+}
+
+/**
+ * Append one prism's walls and roof to a mesh, as triangles.
+ *
+ * Coordinates are whatever planar frame the caller projected into — the renderer
+ * uses Mercator offset to its cache centre — and heights stay in metres so the
+ * shader can scale them by the live latitude.
+ *
+ * Every triangle is emitted with positive signed area when seen from outside, so
+ * one cull mode covers walls and roofs alike. That matters twice over: a slab seen
+ * edge-on otherwise z-fights its own opposite wall, and since one of the two faces
+ * the sun and the other does not, the fight shows as a grey/blue hatch.
+ *
+ * `roofTris` is the footprint already triangulated and projected into the same
+ * frame, as flat x,y pairs — the renderer has it cached for the roof-exclusion
+ * pass and passes it straight through rather than earcutting twice.
+ */
+export function appendPrismMesh(
+  ring: [number, number][],
+  heightM: number,
+  roofTris: ArrayLike<number>,
+  out: PrismMesh
+): void {
+  // Roof cap: the same triangles, lifted to the roofline and facing up.
+  for (let i = 0; i + 5 < roofTris.length; i += 6) {
+    const [x0, y0, x1, y1, x2, y2] = [
+      roofTris[i], roofTris[i + 1], roofTris[i + 2],
+      roofTris[i + 3], roofTris[i + 4], roofTris[i + 5],
+    ];
+    const area2 = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+    if (area2 >= 0) {
+      out.pos.push(x0, y0, x1, y1, x2, y2);
+    } else {
+      out.pos.push(x0, y0, x2, y2, x1, y1);
+    }
+    out.heightM.push(heightM, heightM, heightM);
+    out.normal.push(0, 0, 1, 0, 0, 1, 0, 0, 1);
+  }
+
+  const pts = openRing(ring);
+  if (pts.length < 3) return;
+
+  // Which side of an edge faces out depends on the ring's winding, and tile rings
+  // come both ways round — an inner courtyard ring is wound the other way on
+  // purpose. The shoelace sign settles it per ring.
+  let area2 = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    area2 += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+  }
+  const winding = area2 > 0 ? 1 : -1;
+
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    // Walk the edge in the direction that puts the outside on the same side for
+    // every ring, so the emitted triangles wind consistently too.
+    const [ax, ay] = winding > 0 ? pts[i] : pts[j];
+    const [bx, by] = winding > 0 ? pts[j] : pts[i];
+    const nLen = Math.hypot(by - ay, bx - ax) || 1;
+    const nx = (by - ay) / nLen;
+    const ny = -(bx - ax) / nLen;
+    out.pos.push(ax, ay, bx, by, bx, by, ax, ay, bx, by, ax, ay);
+    out.heightM.push(0, 0, heightM, 0, heightM, heightM);
+    for (let k = 0; k < 6; k++) out.normal.push(nx, ny, 0);
+  }
 }

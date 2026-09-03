@@ -768,11 +768,20 @@ export default function MapView({
           map.addLayer(maybeCustom);
 
           // Place labels ride above the extrusions, but only while tilted.
+          //
+          // On `pitch`, not `pitchend`: the 3D toggle is a 400 ms ease, and Pass E
+          // starts drawing buildings the moment pitch leaves 0, so waiting for the
+          // ease to settle buries the labels for the whole tilt. The remembered
+          // state makes every frame of that ease free — the layer moves happen once,
+          // as pitch crosses 0, rather than on each of the ~24 events it fires.
+          let labelsLifted: boolean | null = null;
           const updateLabelDepth = () => {
-            setPlaceLabelsAboveBuildings(
-              map, placeLabelSlots, maybeCustom.id, map.getPitch() > 0
-            );
+            const lift = map.getPitch() > 0;
+            if (lift === labelsLifted) return;
+            labelsLifted = lift;
+            setPlaceLabelsAboveBuildings(map, placeLabelSlots, maybeCustom.id, lift);
           };
+          map.on("pitch", updateLabelDepth);
           map.on("pitchend", updateLabelDepth);
           updateLabelDepth();
         }
