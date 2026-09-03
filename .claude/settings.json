@@ -36,10 +36,12 @@
       "WebFetch(domain:open-meteo.com)",
       "WebFetch(domain:maplibre.org)"
     ],
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)"
+    ],
     "deny": [
       "Bash(gh pr merge*)",
-      "Bash(git push --force*)",
-      "Bash(git push -f *)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./.worktrees/**)",
