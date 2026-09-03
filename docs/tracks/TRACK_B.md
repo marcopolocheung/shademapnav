@@ -24,8 +24,13 @@
   - **Camera pitch lives in `useShadowTime`**, not in a component: the map arrives via a ref,
     so a component subscribing on mount finds `null` and never re-renders to retry.
   - 3D tilt is **55°**, and the toggle honours `prefers-reduced-motion` with `jumpTo`.
-- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it). Note #147 — the
-  chosen sidewalk is discarded at path reconstruction, so B6 is not a readout of stored state.
+- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it). Two notes for B6,
+  both #147: the sidewalk Dijkstra chose **is** retained through the search (`prevEdge`,
+  `routing.ts:345`; `paretoRoutes`' `edgePath`, `:644-656`) — it is just not returned on
+  `RouteResult`, and `GraphEdge` carries no side label, so exposing it is additive plumbing.
+  The real obstacle is that **switching sides costs nothing** in the cost model, so the optimal
+  path can zigzag across the street and B6 would chatter. That is a cost-model change, not
+  plumbing.
 - **Next action:** B1 — maneuver generation from route geometry
 - **Last verified:** 2026-09-02, 192 tests / 26 files green on `feat/b-3d-buildings`.
   #145's visual checks are **outstanding** — no browser on the dev machine (#121).
