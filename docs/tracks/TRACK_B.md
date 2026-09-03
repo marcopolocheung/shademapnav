@@ -10,11 +10,11 @@
 
 ## Current state
 
-- **Active checkpoint:** B1 (not started). #145 (3D buildings) landed first as prerequisite
-  camera work — it is not a numbered checkpoint.
+- **Active checkpoint:** B1 (not started). #145 (3D buildings) and #159 (shadows painted onto
+  them) landed first as prerequisite camera work — neither is a numbered checkpoint.
 - **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted; then
   superseded — the shadow layer now draws the buildings itself (see the decision below)
-- **Open PRs:** #145
+- **Open PRs:** #145, #159
 - **Decisions made:**
   - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
     `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
