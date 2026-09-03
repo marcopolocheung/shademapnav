@@ -12,15 +12,33 @@
 
 - **Active checkpoint:** B1 (not started). #145 (3D buildings) landed first as prerequisite
   camera work — it is not a numbered checkpoint.
-- **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted
+- **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted; then
+  superseded — the shadow layer now draws the buildings itself (see the decision below)
 - **Open PRs:** #145
 - **Decisions made:**
   - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
     `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
     adds nothing to urban pedestrian shade. Deleted rather than fixed.
-  - **Shadow layer sits below `buildings-3d`**, set once at load via `beforeId`.
-    `bringNavOverlaysToFront` deliberately does not list either layer, so that order survives
-    the call it makes on every shadow recompute. Do not "fix" this with `moveLayer`.
+  - **`buildings-3d` is gone; `LocalShadowAdapter` draws the extrusions.** A
+    `fill-extrusion` cannot be shaded, so painting shadows onto the buildings meant owning
+    the geometry. Pass E extrudes the very prisms that cast the shadows and shades each
+    fragment against the height FBO, so a building and its shadow can no longer disagree —
+    which also retires the `BUILDING_HEIGHT_EXPR` that had to mirror `buildingHeightM()`.
+    The layer is topmost and `renderingMode: '3d'`, so MapLibre puts its opaque-pass cutoff
+    there and the nav overlays above it keep testing no depth.
+    `bringNavOverlaysToFront` deliberately does not list `local-shadow-layer`. Do not "fix"
+    this with `moveLayer`.
+  - **Shaded building surfaces are lighter than the ground shadow, never equal to it.**
+    A shaded wall first came out at `#405880` against a `#516990` street — same hue, more
+    contrast the wrong way — so a tilted view looking away from the sun showed rooftops
+    floating on blue with no walls under them, which reads as "transparent buildings".
+    The ladder is now ground `#516990` < wall `#6f7f99` < roof `#8797b2` < lit wall `#c0c0c0`
+    < lit roof `#ceced0`, all still blue-dominant. Keep it monotone if you retune it.
+  - **Place labels ride above the buildings only while tilted.** Lifting them at pitch 0
+    would put untinted label pixels over shaded sidewalks in the canvas the shade sampler
+    reads back (invariant #5). The lift is captured as slots at the very top of the `load`
+    handler, before any of our own layers exist — anchoring a slot to one of ours strands
+    the style's whole trailing run of place labels above the buildings.
   - **Camera pitch lives in `useShadowTime`**, not in a component: the map arrives via a ref,
     so a component subscribing on mount finds `null` and never re-renders to retry.
   - 3D tilt is **55°**, and the toggle honours `prefers-reduced-motion` with `jumpTo`.
@@ -32,8 +50,10 @@
   path can zigzag across the street and B6 would chatter. That is a cost-model change, not
   plumbing.
 - **Next action:** B1 — maneuver generation from route geometry
-- **Last verified:** 2026-09-02, 192 tests / 26 files green on `feat/b-3d-buildings`.
-  #145's visual checks are **outstanding** — no browser on the dev machine (#121).
+- **Last verified:** 2026-09-03, 219 tests / 27 files green, plus screenshots of Midtown
+  Manhattan at pitch 0/60/70 across the day. #121 is workable: Playwright's Chromium runs
+  headless in WSL once `libnss3`/`libnspr4`/`libasound2` are `apt-get download`ed and
+  extracted to a `LD_LIBRARY_PATH` dir (no sudo), with `--use-angle=swiftshader` for WebGL.
 
 ---
 

@@ -199,6 +199,24 @@ describe("buildShadowTriangles", () => {
 
     expect(buildShadowTriangles(line, 10, DUE_SOUTH, ALT_45, mPerLat, mPerLng)).toEqual([]);
   });
+
+  it("weights the ceiling 1 under the caster and 0 at the shadow tip", () => {
+    const ceilings: number[] = [];
+    const tris = buildShadowTriangles(
+      squareRing(), 100, DUE_SOUTH, ALT_45, mPerLat, mPerLng, ceilings
+    );
+
+    expect(ceilings).toHaveLength(tris.length);
+    // The 100 m building throws a 100 m shadow at altitude 45, which puts every
+    // shifted vertex far north of the footprint it came from — so latitude alone
+    // says which end of the sweep a vertex belongs to.
+    for (let i = 0; i < tris.length; i++) {
+      const northM = (tris[i][1] - LAT) * mPerLat;
+      expect(ceilings[i]).toBe(northM < 50 ? 1 : 0);
+    }
+    expect(ceilings).toContain(1);
+    expect(ceilings).toContain(0);
+  });
 });
 
 describe("pointInPrismShadow", () => {

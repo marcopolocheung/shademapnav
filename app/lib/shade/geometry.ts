@@ -174,6 +174,14 @@ export function prismsFromFootprints(footprints: BuildingFootprintLike[]): Prism
  * which is what an L-shaped block's shadow actually looks like.
  *
  * Returns `[lng, lat]` points where every three form one triangle.
+ *
+ * `ceilingOut`, when supplied, receives one weight per emitted vertex: 1 where
+ * the vertex sits under the caster's roofline and 0 at the shadow's tip. The
+ * shift is a constant translation, so the ceiling height of the shadow — the
+ * highest point a caster still shades, `heightM - distance * tan(altitude)` —
+ * is affine in position, and interpolating these weights across a triangle
+ * reproduces it exactly. That is what lets a wall fragment at height z ask
+ * whether it is shaded: it is, iff the interpolated ceiling exceeds z.
  */
 export function buildShadowTriangles(
   ring: [number, number][],
@@ -181,7 +189,8 @@ export function buildShadowTriangles(
   azimuth: number, // radians, SunCalc convention (clockwise from south)
   altitude: number, // radians above the horizon
   mPerLat: number,
-  mPerLng: number
+  mPerLng: number,
+  ceilingOut?: number[]
 ): [number, number][] {
   const shadowLengthM = heightM / Math.tan(altitude);
   // SunCalc's azimuth points *to* the sun; a shadow falls away from it, so the
@@ -199,10 +208,15 @@ export function buildShadowTriangles(
     const j = (i + 1) % pts.length;
     out.push(pts[i], pts[j], shifted[i]);
     out.push(pts[j], shifted[j], shifted[i]);
+    ceilingOut?.push(1, 1, 0, 1, 0, 0);
   }
 
-  out.push(...triangulateRing(pts));
-  out.push(...triangulateRing(shifted));
+  const nearCap = triangulateRing(pts);
+  const farCap = triangulateRing(shifted);
+  out.push(...nearCap);
+  out.push(...farCap);
+  for (let i = 0; i < nearCap.length; i++) ceilingOut?.push(1);
+  for (let i = 0; i < farCap.length; i++) ceilingOut?.push(0);
   return out;
 }
 

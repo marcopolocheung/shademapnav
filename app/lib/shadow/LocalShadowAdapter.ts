@@ -10,6 +10,7 @@ import {
   type BuildingPrism,
   buildShadowTriangles,
   metersPerDegree,
+  openRing,
   pointInPrismShadow,
   prismsFromTileFeatures,
   triangulateRing,
@@ -24,9 +25,42 @@ import SunWorker from '../../workers/sunPosition.worker?worker';
 const SHADOW_SUPERSAMPLE = 2;
 const SHADOW_FBO_MAX_DIM = 4096;
 
+/**
+ * Metres spanned by one full unit of Mercator x/y at the equator — MapLibre's
+ * `EARTH_CIRCUMFERENCE`. A custom layer's `mainMatrix` takes x and y in [0,1]
+ * Mercator and z in the same units, so a height in metres is divided by this
+ * (times cos(latitude)) before it reaches the vertex shader.
+ */
+const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
+
+/**
+ * How far off the wall the building pass samples the shadow-ceiling field.
+ *
+ * A prism's ground shadow starts at its own sun-facing wall and its swept quads
+ * run back across its own footprint, so sampling the field directly under a wall
+ * fragment reports that every wall of every building is inside its own shadow.
+ * The sample is therefore nudged out of the caster before it is taken: toward the
+ * sun, which clears the swept quads, and along the wall's outward normal, which
+ * clears the footprint even on a wall that runs nearly parallel to the sun. That
+ * second step is what stops such a wall from dithering along the edge of its own
+ * shadow. Both are small enough to barely move within a *neighbour's* shadow.
+ */
+const WALL_SHADOW_SUN_OFFSET_M = 1.5;
+const WALL_SHADOW_NORMAL_OFFSET_M = 1.5;
+
+/** Light grey the extruded buildings are painted before any shading. */
+const BUILDING_RGB: [number, number, number] = [0.87, 0.87, 0.88];
+
 interface ShadowGeometry {
   shadowVerts: Float32Array;    // Mercator (x,y) shadow triangles
-  shadowHeights: Float32Array;  // normalized height per shadow vertex (h/maxH)
+  /**
+   * Per-vertex *shadow ceiling*, normalized by `maxH`: the highest point the
+   * caster still shades at that spot — its own height under its roofline,
+   * falling to 0 at the shadow's tip. Interpolated across a triangle this is
+   * exact (see `buildShadowTriangles`), which is what lets Pass C decide a roof
+   * and Pass E decide a wall fragment with one screen-space texture.
+   */
+  shadowHeights: Float32Array;
   roofVerts: Float32Array;      // Mercator (x,y) building footprint triangles (un-offset)
   roofHeights: Float32Array;    // normalized height per roof vertex (h/maxH)
   sunBelowHorizon: boolean;
@@ -44,6 +78,17 @@ interface CachedBuildingGeometry {
   centerMerc: [number, number];
   /** What this cache was built for — see `shouldRebuildCache`. */
   anchor: CacheAnchor;
+  /**
+   * The walls and roofs the 3D pass draws: `bldgPos` is Mercator x/y offset to
+   * `centerMerc`, `bldgHeightM` the vertex's height above ground in metres, and
+   * `bldgNormal` its outward normal in the same Mercator frame (roofs point up).
+   * Built from the very prisms that cast the shadows, so a building and its
+   * shadow can never disagree about height or footprint.
+   */
+  bldgPos: Float32Array;
+  bldgHeightM: Float32Array;
+  bldgNormal: Float32Array;
+  bldgVertexCount: number;
 }
 
 /**
@@ -58,7 +103,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   /** MapLibre style layer id */
   id = 'local-shadow-layer';
   type: 'custom' = 'custom';
-  renderingMode: '2d' = '2d';
+  /**
+   * `'3d'` because Pass E draws depth-tested extrusions, and because MapLibre reads
+   * this to place its opaque-pass cutoff: layers above the first 3D layer render
+   * with depth testing off, which is what keeps the route line drawn over a
+   * building instead of buried inside one.
+   */
+  renderingMode: '3d' = '3d';
 
   private map: maplibregl.Map | null = null;
   private gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
@@ -122,6 +173,19 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private roofUResolution: WebGLUniformLocation | null = null;
   private roofPosBuffer: WebGLBuffer | null = null;
   private roofHeightBuffer: WebGLBuffer | null = null;
+
+  // Building pass (Pass E): extruded walls + roofs, shaded by the height field
+  private bldgProgram: WebGLProgram | null = null;
+  private bldgAttrPos = -1;
+  private bldgAttrHeight = -1;
+  private bldgAttrNormal = -1;
+  private bldgUniforms: Record<string, WebGLUniformLocation | null> = {};
+  private bldgPosBuffer: WebGLBuffer | null = null;
+  private bldgHeightBuffer: WebGLBuffer | null = null;
+  private bldgNormalBuffer: WebGLBuffer | null = null;
+  /** Bumped whenever `buildingCache` is replaced, so Pass E re-uploads only then. */
+  private cacheVersion = 0;
+  private lastUploadedCacheVersion = -1;
 
   // Full-screen quad for compositing FBO texture
   private quadProgram: WebGLProgram | null = null;
@@ -285,6 +349,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
     if (!this.buildingCache) {
       this.buildingCache = this.buildBuildingGeometryCache();
+      this.cacheVersion++;
     }
     // The cache is now allowed to lag the viewport, so being inside the *viewport*
     // no longer means the cache holds buildings for this point. Answering from a
@@ -293,6 +358,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // the current camera and re-check rather than guess.
     if (!coversPoint(this.buildingCache.anchor, lng, lat)) {
       this.buildingCache = this.buildBuildingGeometryCache();
+      this.cacheVersion++;
       if (!coversPoint(this.buildingCache.anchor, lng, lat)) return null;
     }
     const cache = this.buildingCache;
@@ -418,6 +484,96 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.roofPosBuffer = gl.createBuffer();
     this.roofHeightBuffer = gl.createBuffer();
 
+    // Compile building shader (Pass E): extruded walls + roofs, lit by the sun and
+    // painted with the same shadow field the ground uses.
+    //
+    // `v_groundClip` is the vertex's *ground* position (height 0), stepped toward the
+    // sun, run through the same matrix. Dividing it by w per fragment gives the pixel
+    // the height FBO stored that column's shadow ceiling at, which is what makes a
+    // wall halfway up a building shaded by its neighbour but lit above the roofline.
+    const bldgVsSrc = `
+      attribute vec2 a_pos;
+      attribute float a_heightM;
+      attribute vec3 a_normal;
+      uniform mat4 u_matrix;
+      varying vec3 v_normal;
+      uniform float u_mercZPerMeter;
+      uniform float u_maxH;
+      uniform vec2 u_sunOffset;
+      uniform float u_normalOffset;
+      uniform vec3 u_sunDir;
+      varying float v_hNorm;
+      varying float v_facing;
+      varying vec4 v_groundClip;
+      void main() {
+        gl_Position = u_matrix * vec4(a_pos, a_heightM * u_mercZPerMeter, 1.0);
+        vec2 sampleXY = a_pos + u_sunOffset + a_normal.xy * u_normalOffset;
+        v_groundClip = u_matrix * vec4(sampleXY, 0.0, 1.0);
+        v_hNorm = a_heightM / u_maxH;
+        v_facing = dot(a_normal, u_sunDir);
+        v_normal = a_normal;
+      }
+    `;
+    const bldgFsSrc = `
+      precision mediump float;
+      uniform sampler2D u_heightTex;
+      uniform vec3 u_wallColor;
+      uniform vec3 u_shadowTint;
+      uniform float u_sunBelow;
+      uniform float u_bias;
+      uniform vec2 u_sunFlat;
+      varying float v_hNorm;
+      varying float v_facing;
+      varying vec4 v_groundClip;
+      varying vec3 v_normal;
+      const float AMBIENT = 0.62;
+      // Sky light a face still receives with the sun off it. A roof sees the whole
+      // sky, a wall about half, and a face turned toward the sun's side of the sky
+      // sees more than one turned away.
+      //
+      // Without this every shaded surface takes one flat colour, and — because that
+      // colour landed within a few percent of the street shadow it stands in — a
+      // tilted view looking *away* from the sun showed rooftops floating on blue
+      // with no walls under them. The three shaded tones below sit above the
+      // measured ground shadow (#516990) and below the lit ones, so the surfaces
+      // read apart by brightness while all of them stay blue enough to read as shade.
+      const float SKY_BASE = 0.80;
+      const float SKY_UP = 0.20;
+      const float SKY_SUNWARD = 0.14;
+      const float SHADE_TINT = 0.46;
+      void main() {
+        vec2 uv = (v_groundClip.xy / v_groundClip.w) * 0.5 + 0.5;
+        float onScreen = step(0.0, uv.x) * step(uv.x, 1.0)
+                       * step(0.0, uv.y) * step(uv.y, 1.0)
+                       * step(0.0001, v_groundClip.w);
+        float ceilN = texture2D(u_heightTex, uv).r * onScreen;
+        // Turned away from the sun, or something taller shades this height.
+        float shaded = max(step(v_facing, 0.0), step(v_hNorm + u_bias, ceilN));
+        shaded = max(shaded, u_sunBelow);
+        float sky = SKY_BASE
+                  + SKY_UP * v_normal.z
+                  + SKY_SUNWARD * max(dot(v_normal.xy, u_sunFlat), 0.0);
+        vec3 lit = u_wallColor * (AMBIENT + (1.0 - AMBIENT) * max(v_facing, 0.0));
+        vec3 dark = mix(u_wallColor * sky, u_shadowTint, SHADE_TINT);
+        gl_FragColor = vec4(mix(lit, dark, shaded), 1.0);
+      }
+    `;
+    this.bldgProgram = createProgram(gl, bldgVsSrc, bldgFsSrc);
+    this.bldgAttrPos = gl.getAttribLocation(this.bldgProgram, 'a_pos');
+    this.bldgAttrHeight = gl.getAttribLocation(this.bldgProgram, 'a_heightM');
+    this.bldgAttrNormal = gl.getAttribLocation(this.bldgProgram, 'a_normal');
+    for (const name of [
+      'u_matrix', 'u_mercZPerMeter', 'u_maxH', 'u_sunOffset', 'u_normalOffset',
+      'u_sunDir',
+      'u_heightTex', 'u_wallColor', 'u_shadowTint', 'u_sunFlat',
+      'u_sunBelow', 'u_bias',
+    ]) {
+      this.bldgUniforms[name] = gl.getUniformLocation(this.bldgProgram, name);
+    }
+    this.bldgPosBuffer = gl.createBuffer();
+    this.bldgHeightBuffer = gl.createBuffer();
+    this.bldgNormalBuffer = gl.createBuffer();
+
     // Compile quad shader for FBO texture compositing
     const quadVsSrc = `
       attribute vec2 a_pos;
@@ -457,6 +613,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       // Phase 2: Rebuild building cache only when map view changed
       if (!this.buildingCache) {
         this.buildingCache = this.buildBuildingGeometryCache();
+        this.cacheVersion++;
       }
       this.cachedGeometry = this.extrudeShadows(this.buildingCache);
       this.geomVersion++;
@@ -514,6 +671,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const prevBlendEqA = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
     const prevActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
     const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    const wasDepthTest = gl.isEnabled(gl.DEPTH_TEST);
+    const prevDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
+    const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
+    const prevDepthRange = gl.getParameter(gl.DEPTH_RANGE);
 
     // Compute adjusted projection matrix in Float64 to account for center offset.
     // Vertices are stored relative to centerMerc, so we pre-multiply a translation
@@ -528,6 +689,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     m[14] += m[2] * cx + m[6] * cy;
     m[15] += m[3] * cx + m[7] * cy;
     const matrix = new Float32Array(m);
+
+    // MapLibre hands a '3d' custom layer a read/write depth mode. Only Pass E wants
+    // it; the ground composite is a full-screen quad at NDC z = 0, and letting that
+    // write depth would put a plane in front of every building we are about to draw.
+    gl2.disable(gl.DEPTH_TEST);
+    gl2.depthMask(false);
 
     // ── Pass A: Render shadows into FBO with MAX blending ──
     gl2.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
@@ -634,6 +801,98 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
     gl2.drawArrays(gl.TRIANGLES, 0, 6);
 
+    // ── Pass E: extruded buildings, painted with the shadow field ──
+    // Flat-on there is nothing to paint — the roofs are all you would see, and the
+    // basemap already draws those — so this only runs once the camera is tilted.
+    // That also keeps the canvas the shade sampler reads (invariant #5, always at
+    // pitch 0) exactly as it was.
+    const cache = this.buildingCache;
+    if (cache && cache.bldgVertexCount > 0 && this.map.getPitch() > 0 &&
+        this.bldgProgram && this.bldgPosBuffer && this.bldgHeightBuffer &&
+        this.bldgNormalBuffer && this.heightFboTexture) {
+      if (this.cacheVersion !== this.lastUploadedCacheVersion) {
+        gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgPosBuffer);
+        gl2.bufferData(gl.ARRAY_BUFFER, cache.bldgPos, gl.STATIC_DRAW);
+        gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgHeightBuffer);
+        gl2.bufferData(gl.ARRAY_BUFFER, cache.bldgHeightM, gl.STATIC_DRAW);
+        gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgNormalBuffer);
+        gl2.bufferData(gl.ARRAY_BUFFER, cache.bldgNormal, gl.STATIC_DRAW);
+        this.lastUploadedCacheVersion = this.cacheVersion;
+      }
+
+      const lat = this.map.getCenter().lat;
+      // MapLibre scales a custom layer's z by the *centre* latitude, so this has
+      // to use the live centre rather than the one the cache was built at.
+      const mercPerMeter = 1 / (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180));
+      const az = this.lastSunAzRad ?? 0;
+      const alt = this.lastSunAltRad ?? 0;
+      // SunCalc's azimuth runs south→west; Mercator y runs north→south. Toward the
+      // sun is therefore (-sin az, cos az) — the negative of the shadow's direction.
+      const sunX = -Math.sin(az);
+      const sunY = Math.cos(az);
+      const u = this.bldgUniforms;
+      const [pr, pg, pb, alpha] = this.computeShadowColor(geo.sunBelowHorizon);
+
+      gl2.useProgram(this.bldgProgram);
+      gl2.uniformMatrix4fv(u.u_matrix, false, matrix);
+      gl2.uniform1f(u.u_mercZPerMeter, mercPerMeter);
+      gl2.uniform1f(u.u_maxH, cache.maxH);
+      gl2.uniform2f(
+        u.u_sunOffset,
+        sunX * WALL_SHADOW_SUN_OFFSET_M * mercPerMeter,
+        sunY * WALL_SHADOW_SUN_OFFSET_M * mercPerMeter,
+      );
+      gl2.uniform1f(u.u_normalOffset, WALL_SHADOW_NORMAL_OFFSET_M * mercPerMeter);
+      gl2.uniform3f(u.u_sunDir, sunX * Math.cos(alt), sunY * Math.cos(alt), Math.sin(alt));
+      // computeShadowColor premultiplies for the ground composite; the buildings mix
+      // in straight colour, so divide the constant alpha back out.
+      gl2.uniform3f(u.u_shadowTint, pr / alpha, pg / alpha, pb / alpha);
+      gl2.uniform2f(u.u_sunFlat, sunX, sunY);
+      gl2.uniform3f(u.u_wallColor, BUILDING_RGB[0], BUILDING_RGB[1], BUILDING_RGB[2]);
+      gl2.uniform1f(u.u_sunBelow, geo.sunBelowHorizon ? 1 : 0);
+      // Same slack Pass C uses: the height field is 8-bit, so a roof must not
+      // shade itself on a rounding step.
+      gl2.uniform1f(u.u_bias, 0.004);
+
+      gl2.activeTexture(gl.TEXTURE0);
+      gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
+      gl2.uniform1i(u.u_heightTex, 0);
+
+      gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgPosBuffer);
+      gl2.enableVertexAttribArray(this.bldgAttrPos);
+      gl2.vertexAttribPointer(this.bldgAttrPos, 2, gl.FLOAT, false, 0, 0);
+      gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgHeightBuffer);
+      gl2.enableVertexAttribArray(this.bldgAttrHeight);
+      gl2.vertexAttribPointer(this.bldgAttrHeight, 1, gl.FLOAT, false, 0, 0);
+      gl2.bindBuffer(gl.ARRAY_BUFFER, this.bldgNormalBuffer);
+      gl2.enableVertexAttribArray(this.bldgAttrNormal);
+      gl2.vertexAttribPointer(this.bldgAttrNormal, 3, gl.FLOAT, false, 0, 0);
+
+      // The same depth mode MapLibre gives `fill-extrusion`: opaque, self-occluding,
+      // in front of the basemap fills that wrote depth in the opaque pass. Later
+      // translucent layers (the route line) test no depth, so they still draw on top.
+      gl2.disable(gl.BLEND);
+      // Cull the far side of every building. Without this a slab seen edge-on
+      // z-fights its own opposite wall, and since one of the two is turned to the
+      // sun and the other away, the fight shows up as a grey/blue hatch.
+      // MapLibre's matrix flips y, so the outward faces come out clockwise.
+      gl2.enable(gl.CULL_FACE);
+      gl2.cullFace(gl.BACK);
+      gl2.frontFace(gl.CW);
+      gl2.enable(gl.DEPTH_TEST);
+      gl2.depthFunc(gl.LEQUAL);
+      gl2.depthMask(true);
+      gl2.depthRange(0, 1);
+
+      gl2.drawArrays(gl.TRIANGLES, 0, cache.bldgVertexCount);
+
+      gl2.disableVertexAttribArray(this.bldgAttrPos);
+      gl2.disableVertexAttribArray(this.bldgAttrHeight);
+      gl2.disableVertexAttribArray(this.bldgAttrNormal);
+      gl2.frontFace(gl.CCW);
+      gl2.enable(gl.BLEND);
+    }
+
     // ── Restore GL state ──
     if (!wasBlend) gl2.disable(gl.BLEND);
     if (wasCull) gl2.enable(gl.CULL_FACE);
@@ -641,6 +900,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     gl2.blendFuncSeparate(prevBlendSrcRGB, prevBlendDstRGB, prevBlendSrcA, prevBlendDstA);
     gl2.activeTexture(prevActiveTexture);
     gl2.bindTexture(gl.TEXTURE_2D, prevTexture);
+    if (!wasDepthTest) gl2.disable(gl.DEPTH_TEST);
+    gl2.depthFunc(prevDepthFunc);
+    gl2.depthMask(prevDepthMask);
+    gl2.depthRange(prevDepthRange[0], prevDepthRange[1]);
   }
 
   onRemove(_map: maplibregl.Map, gl: WebGL2RenderingContext | WebGLRenderingContext) {
@@ -668,6 +931,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (this.roofProgram) gl.deleteProgram(this.roofProgram);
     if (this.roofPosBuffer) gl.deleteBuffer(this.roofPosBuffer);
     if (this.roofHeightBuffer) gl.deleteBuffer(this.roofHeightBuffer);
+    if (this.bldgProgram) gl.deleteProgram(this.bldgProgram);
+    if (this.bldgPosBuffer) gl.deleteBuffer(this.bldgPosBuffer);
+    if (this.bldgHeightBuffer) gl.deleteBuffer(this.bldgHeightBuffer);
+    if (this.bldgNormalBuffer) gl.deleteBuffer(this.bldgNormalBuffer);
     if (this.quadProgram) gl.deleteProgram(this.quadProgram);
     if (this.quadBuffer) gl.deleteBuffer(this.quadBuffer);
     this.program = null;
@@ -681,6 +948,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.roofProgram = null;
     this.roofPosBuffer = null;
     this.roofHeightBuffer = null;
+    this.bldgProgram = null;
+    this.bldgPosBuffer = null;
+    this.bldgHeightBuffer = null;
+    this.bldgNormalBuffer = null;
+    this.lastUploadedCacheVersion = -1;
     this.quadProgram = null;
     this.quadBuffer = null;
     this.buildingCache = null;
@@ -786,8 +1058,14 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       // buildings; the policy replaces it as soon as the source settles.
       builtFromLoadedSource: this.map?.isSourceLoaded('maptiler_planet') ?? false,
     };
+    const emptyMesh = {
+      bldgPos: new Float32Array(),
+      bldgHeightM: new Float32Array(),
+      bldgNormal: new Float32Array(),
+      bldgVertexCount: 0,
+    };
     const emptyCache: CachedBuildingGeometry = {
-      buildings: [], maxH: 1, centerMerc: [0, 0], anchor,
+      buildings: [], maxH: 1, centerMerc: [0, 0], anchor, ...emptyMesh,
     };
     if (!this.map || !center) return emptyCache;
     if (this.map.getZoom() < 12) return emptyCache;
@@ -800,8 +1078,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const { prisms, maxHeightM } = prismsFromTileFeatures(features);
 
     const cached: CachedBuildingGeometry = {
-      buildings: [], maxH: maxHeightM, centerMerc: [cx, cy], anchor,
+      buildings: [], maxH: maxHeightM, centerMerc: [cx, cy], anchor, ...emptyMesh,
     };
+
+    // Pass E's mesh, accumulated alongside the roofs it shares its source with.
+    const meshPos: number[] = [];
+    const meshHeight: number[] = [];
+    const meshNormal: number[] = [];
 
     for (const prism of prisms) {
       // Roof footprint triangulation, Mercator-projected and centered once here
@@ -817,7 +1100,58 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         normalizedH: prism.heightM / maxHeightM,
         mercatorRoofVerts: new Float32Array(roofVerts),
       });
+
+      // Roof cap: the same triangles, lifted to the roofline and facing up.
+      // Wound positive-area so every triangle Pass E emits — roof or wall — turns
+      // its outward face the same way and one cull mode covers the lot.
+      for (let i = 0; i + 5 < roofVerts.length; i += 6) {
+        const [x0, y0, x1, y1, x2, y2] = roofVerts.slice(i, i + 6);
+        const area2 = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+        if (area2 >= 0) {
+          meshPos.push(x0, y0, x1, y1, x2, y2);
+        } else {
+          meshPos.push(x0, y0, x2, y2, x1, y1);
+        }
+        meshHeight.push(prism.heightM, prism.heightM, prism.heightM);
+        meshNormal.push(0, 0, 1, 0, 0, 1, 0, 0, 1);
+      }
+
+      // Walls: one quad per ring edge, from the ground to the roofline.
+      const ring = openRing(prism.ring).map(([lng, lat]) => {
+        const [x, y] = lngLatToMercator(lng, lat);
+        return [x - cx, y - cy] as [number, number];
+      });
+      if (ring.length < 3) continue;
+
+      // Which side of an edge faces out depends on the ring's winding, and tile
+      // rings come both ways round (inner courtyard rings are wound the other
+      // way on purpose). The shoelace sign settles it per ring.
+      let area2 = 0;
+      for (let i = 0; i < ring.length; i++) {
+        const j = (i + 1) % ring.length;
+        area2 += ring[i][0] * ring[j][1] - ring[j][0] * ring[i][1];
+      }
+      const winding = area2 > 0 ? 1 : -1;
+
+      for (let i = 0; i < ring.length; i++) {
+        const j = (i + 1) % ring.length;
+        // Walk the edge in the direction that puts the outside on the same side
+        // for every ring, so the emitted triangles wind consistently too.
+        const [ax, ay] = winding > 0 ? ring[i] : ring[j];
+        const [bx, by] = winding > 0 ? ring[j] : ring[i];
+        const nLen = Math.hypot(by - ay, bx - ax) || 1;
+        const nx = (by - ay) / nLen;
+        const ny = -(bx - ax) / nLen;
+        meshPos.push(ax, ay, bx, by, bx, by, ax, ay, bx, by, ax, ay);
+        meshHeight.push(0, 0, prism.heightM, 0, prism.heightM, prism.heightM);
+        for (let k = 0; k < 6; k++) meshNormal.push(nx, ny, 0);
+      }
     }
+
+    cached.bldgPos = new Float32Array(meshPos);
+    cached.bldgHeightM = new Float32Array(meshHeight);
+    cached.bldgNormal = new Float32Array(meshNormal);
+    cached.bldgVertexCount = meshHeight.length;
 
     return cached;
   }
@@ -882,13 +1216,15 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
     for (const bldg of cache.buildings) {
       // Shadow geometry: edge-by-edge side-wall extrusion + earcut caps
+      const ceilings: number[] = [];
       const shadowTris = buildShadowTriangles(
-        bldg.prism.ring, bldg.prism.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng
+        bldg.prism.ring, bldg.prism.heightM, sunAzimuth, sunAltitude, mPerLat, mPerLng,
+        ceilings
       );
-      for (const [lng, lat] of shadowTris) {
-        const [x, y] = lngLatToMercator(lng, lat);
+      for (let i = 0; i < shadowTris.length; i++) {
+        const [x, y] = lngLatToMercator(shadowTris[i][0], shadowTris[i][1]);
         shadowVertsList.push(x - cx, y - cy);
-        shadowHeightsList.push(bldg.normalizedH);
+        shadowHeightsList.push(bldg.normalizedH * ceilings[i]);
       }
 
       // Roof verts from cache (already triangulated and in Mercator)
