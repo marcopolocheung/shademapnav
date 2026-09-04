@@ -46,3 +46,6 @@ next-env.d.ts
 
 # local Claude dev notes
 CLAUDE.local.md
+
+# Browser-verification output (see docs/notes/browser-verification.md)
+out/
