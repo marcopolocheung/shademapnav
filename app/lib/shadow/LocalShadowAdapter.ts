@@ -408,12 +408,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.map = map;
     this.gl = gl;
 
-    // Derivatives are core in WebGL 2. WebGL 1 exposes the same operations via
-    // this extension; when it is unavailable the building shader uses a small
-    // angular feather instead of failing to compile.
-    const isWebGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
-    const hasDerivatives = isWebGL2 || gl.getExtension('OES_standard_derivatives') !== null;
-
     // Keep geometry cache in sync with streaming vector tiles.
     map.on('sourcedata', this.onSourceData);
     map.on('zoomend', this.onZoomEnd);
@@ -535,7 +529,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // than fp16 mediump's ~0.00098 epsilon near uv = 1.0. At mediump the offsets
     // would be swallowed at the top and right of the screen and the antialiasing
     // would silently stop working there. highp is core in WebGL2 fragment shaders.
-    const bldgFsSrc = `${!isWebGL2 && hasDerivatives ? '#extension GL_OES_standard_derivatives : enable\n' : ''}
+    const bldgFsSrc = `
       precision highp float;
       uniform sampler2D u_heightTex;
       uniform vec3 u_wallColor;
@@ -589,17 +583,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
                                 + step(hb, c2) + step(hb, c3));
         // Off screen there is no height field to read, and hb > 0 makes every tap
         // resolve to 0 anyway, so one multiply is equivalent to masking each tap.
-        // Corner normals make v_facing continuous between adjacent convex walls.
-        // Feather its zero crossing by about one physical pixel on either side,
-        // rather than leaving the away-facing classification as a binary seam.
-        // WebGL 1 without OES_standard_derivatives takes the deliberately subtle
-        // fixed-angular fallback assembled above.
-        ${hasDerivatives
-          ? 'float facingWidth = max(0.5 * fwidth(v_facing), 0.0001);'
-          : 'const float facingWidth = 0.015;'}
-        float facingShade = 1.0 - smoothstep(-facingWidth, facingWidth, v_facing);
-        // A real caster shadow remains fully shaded through the blended join.
-        float shaded = max(facingShade, ceilShade * onScreen);
+        // Turned away from the sun, or something taller shades this height.
+        float shaded = max(step(v_facing, 0.0), ceilShade * onScreen);
         shaded = max(shaded, u_sunBelow);
         float sky = SKY_BASE
                   + SKY_UP * v_normal.z

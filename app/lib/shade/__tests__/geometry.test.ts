@@ -310,45 +310,6 @@ describe("appendPrismMesh", () => {
     expect(mesh.heightM.slice(6, 12)).toEqual([0, 0, 10, 0, 10, 10]);
   });
 
-  it("keeps roof normals flat and gives convex wall corners outward unit bisectors", () => {
-    const mesh = build(ccw);
-    expect(mesh.normal.slice(0, 18)).toEqual([
-      0, 0, 1, 0, 0, 1, 0, 0, 1,
-      0, 0, 1, 0, 0, 1, 0, 0, 1,
-    ]);
-
-    // First wall: (0,0)->(1,0). Its start and end vertices share the outward
-    // bisectors with the preceding west wall and following east wall respectively.
-    const wall = mesh.normal.slice(18, 27);
-    const diagonal = Math.SQRT1_2;
-    expect(wall[0]).toBeCloseTo(-diagonal, 9);
-    expect(wall[1]).toBeCloseTo(-diagonal, 9);
-    expect(wall.slice(2, 3)).toEqual([0]);
-    expect(wall[3]).toBeCloseTo(diagonal, 9);
-    expect(wall[4]).toBeCloseTo(-diagonal, 9);
-    expect(wall[5]).toBe(0);
-    expect(wall[6]).toBeCloseTo(diagonal, 9);
-    expect(wall[7]).toBeCloseTo(-diagonal, 9);
-    expect(wall[8]).toBe(0);
-    expect(Math.hypot(wall[0], wall[1])).toBeCloseTo(1, 9);
-    expect(Math.hypot(wall[3], wall[4])).toBeCloseTo(1, 9);
-  });
-
-  it("keeps a hard face normal at concave wall corners", () => {
-    const concave: [number, number][] = [
-      [0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2], [0, 0],
-    ];
-    const mesh = build(concave);
-    // The re-entrant (1,1) is the end of wall 2 and start of wall 3. Each side
-    // keeps its own face normal instead of averaging across the courtyard notch.
-    const wall2End = mesh.normal.slice((2 + 2 * 2) * 9 + 3, (2 + 2 * 2) * 9 + 6);
-    const wall3Start = mesh.normal.slice((2 + 2 * 3) * 9, (2 + 2 * 3) * 9 + 3);
-    expect(wall2End).toEqual([0, 1, 0]);
-    expect(wall3Start[0]).toBe(1);
-    expect(wall3Start[1]).toBeCloseTo(0, 9);
-    expect(wall3Start[2]).toBe(0);
-  });
-
   it("points wall normals out of the ring whichever way it is wound", () => {
     // Checking the *set* of normals is not enough: reverse them all and the set is
     // unchanged. Each one has to be checked against the wall it belongs to, so the

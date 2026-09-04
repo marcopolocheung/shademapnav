@@ -369,51 +369,17 @@ export function appendPrismMesh(
   }
   const winding = area2 > 0 ? 1 : -1;
 
-  // Put every ring in the same traversal direction before deriving its face and
-  // corner normals. A convex corner can share the unit bisector of its two
-  // outward wall normals; interpolating that normal makes the sun-facing test
-  // continuous across the visible join. At a re-entrant corner the two walls
-  // look into different parts of a courtyard/notch, so keep their hard normals
-  // rather than lighting across the opening.
-  const ordered = winding > 0 ? pts : [...pts].reverse();
-  const faceNormals = ordered.map(([ax, ay], i) => {
-    const [bx, by] = ordered[(i + 1) % ordered.length];
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    // Walk the edge in the direction that puts the outside on the same side for
+    // every ring, so the emitted triangles wind consistently too.
+    const [ax, ay] = winding > 0 ? pts[i] : pts[j];
+    const [bx, by] = winding > 0 ? pts[j] : pts[i];
     const nLen = Math.hypot(by - ay, bx - ax) || 1;
-    return [(by - ay) / nLen, -(bx - ax) / nLen] as const;
-  });
-  const convex = ordered.map((_, i) => {
-    const prev = ordered[(i + ordered.length - 1) % ordered.length];
-    const corner = ordered[i];
-    const next = ordered[(i + 1) % ordered.length];
-    const incomingX = corner[0] - prev[0];
-    const incomingY = corner[1] - prev[1];
-    const outgoingX = next[0] - corner[0];
-    const outgoingY = next[1] - corner[1];
-    return incomingX * outgoingY - incomingY * outgoingX > 0;
-  });
-
-  for (let i = 0; i < ordered.length; i++) {
-    const j = (i + 1) % ordered.length;
-    const [ax, ay] = ordered[i];
-    const [bx, by] = ordered[j];
-    const [nx, ny] = faceNormals[i];
-    const [prevNx, prevNy] = faceNormals[(i + ordered.length - 1) % ordered.length];
-    const [nextNx, nextNy] = faceNormals[j];
-    const startLen = Math.hypot(prevNx + nx, prevNy + ny) || 1;
-    const endLen = Math.hypot(nx + nextNx, ny + nextNy) || 1;
-    const startNx = convex[i] ? (prevNx + nx) / startLen : nx;
-    const startNy = convex[i] ? (prevNy + ny) / startLen : ny;
-    const endNx = convex[j] ? (nx + nextNx) / endLen : nx;
-    const endNy = convex[j] ? (ny + nextNy) / endLen : ny;
+    const nx = (by - ay) / nLen;
+    const ny = -(bx - ax) / nLen;
     out.pos.push(ax, ay, bx, by, bx, by, ax, ay, bx, by, ax, ay);
     out.heightM.push(0, 0, heightM, 0, heightM, heightM);
-    out.normal.push(
-      startNx, startNy, 0,
-      endNx, endNy, 0,
-      endNx, endNy, 0,
-      startNx, startNy, 0,
-      endNx, endNy, 0,
-      startNx, startNy, 0,
-    );
+    for (let k = 0; k < 6; k++) out.normal.push(nx, ny, 0);
   }
 }
