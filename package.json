@@ -12,7 +12,8 @@
     "format:check": "biome format",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "bench": "vitest bench --run"
   },
   "dependencies": {
     "earcut": "3.2.3",
