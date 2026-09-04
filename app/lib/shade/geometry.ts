@@ -243,12 +243,24 @@ export function triangulateRing(ring: [number, number][]): [number, number][] {
   return out;
 }
 
+/** Is the point inside the triangle `a`, `b`, `c`, given as coordinate pairs? */
+export function pointInTriangle(
+  lng: number,
+  lat: number,
+  a: [number, number],
+  b: [number, number],
+  c: [number, number]
+): boolean {
+  return pointInTriangleXY(lng, lat, a[0], a[1], b[0], b[1], c[0], c[1]);
+}
+
 /**
  * Is the point inside the triangle `a`, `b`, `c`?
  *
  * Loose scalars rather than coordinate tuples because `shadowIndex` keeps its
  * triangles in a flat `Float64Array` and tests them in a hot loop — a build of a few
  * thousand prisms would otherwise materialize a tuple per vertex to throw it away.
+ * The tuple form above delegates here, so the two cannot drift apart.
  */
 export function pointInTriangleXY(
   px: number,

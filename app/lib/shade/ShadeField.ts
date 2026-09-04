@@ -19,8 +19,8 @@ import SunCalc from "suncalc";
 import {
   type PrismSet,
   metersPerDegree,
-  pointInPrismShadow,
 } from "./geometry";
+import { type IndexRegion, type ShadowIndex, buildShadowIndex } from "./shadowIndex";
 
 // ─── The published contract ───────────────────────────────────────────────────
 
@@ -95,6 +95,18 @@ export interface PrismProvider {
 
 /** Below this, `shadeAt`'s answer is a hint; callers should consult another source. */
 export const LOW_CONFIDENCE = 0.5;
+
+/**
+ * Width of the batch partition that fixes one sun position per shadow index.
+ *
+ * One index is built per (sun, projection), but `SunCalc.getPosition` varies across
+ * a route graph, so a batch has to be cut into cells that each get their own. 2 km
+ * bounds the error by construction: the sun's altitude changes by ~0.018° across a
+ * cell, which at 45° altitude is ~5 cm of shadow length and ~0.8 m at 10°. Both sit
+ * under the pixel sampler's own ~1.2 m quantization, so the cut is invisible in the
+ * agreement number while keeping the index count small.
+ */
+const SUN_CELL_M = 2000;
 
 /** Sidewalk offset, matching `shadeSampling.sampleBothSidewalks` so A3 compares like with like. */
 const SIDEWALK_OFFSET_M = 4.0;
@@ -248,6 +260,28 @@ interface Resolved {
   source: PrismProvider["source"];
 }
 
+/** The sun, and the shadows it casts, shared by every edge in one `SUN_CELL_M` cell. */
+interface SunCell {
+  sun: { azimuth: number; altitude: number };
+  /** `null` when no geometry resolved, or the sun is down for this cell. */
+  index: ShadowIndex | null;
+}
+
+/** The bbox of exactly these points — the region a caller may then query within. */
+function regionOver(points: Array<[number, number]>): IndexRegion {
+  let west = Number.POSITIVE_INFINITY;
+  let south = Number.POSITIVE_INFINITY;
+  let east = Number.NEGATIVE_INFINITY;
+  let north = Number.NEGATIVE_INFINITY;
+  for (const [lng, lat] of points) {
+    if (lng < west) west = lng;
+    if (lng > east) east = lng;
+    if (lat < south) south = lat;
+    if (lat > north) north = lat;
+  }
+  return { west, south, east, north };
+}
+
 /**
  * A `ShadeField` over building prisms.
  *
@@ -272,19 +306,8 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
    * sidewalks, so averaging a further ±4 m neighbourhood around each one would
    * smear a sidewalk across the street it belongs to.
    */
-  function pointShade(
-    resolved: Resolved,
-    lng: number,
-    lat: number,
-    sunAzimuth: number,
-    sunAltitude: number
-  ): number {
-    const { mPerLat, mPerLng } = metersPerDegree(lat);
-    return pointInPrismShadow(
-      resolved.set.prisms, lng, lat, sunAzimuth, sunAltitude, mPerLat, mPerLng
-    )
-      ? 1
-      : 0;
+  function pointShade(index: ShadowIndex, lng: number, lat: number): number {
+    return index.isShaded(lng, lat) ? 1 : 0;
   }
 
   function sampleFor(resolved: Resolved, shade: number, sunAltitude: number): ShadeSample {
@@ -314,16 +337,16 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     if (!resolved) return { shade: 0, source: "none", confidence: 0 };
 
     const { mPerLat, mPerLng } = metersPerDegree(lat);
+    const offsets = POINT_OFFSETS_M.map(
+      ([dxM, dyM]) => [lng + dxM / mPerLng, lat + dyM / mPerLat] as [number, number]
+    );
+    const index = buildShadowIndex(
+      resolved.set.prisms, sunAzimuth, sunAltitude, mPerLat, mPerLng, regionOver(offsets)
+    );
 
     let shaded = 0;
-    for (const [dxM, dyM] of POINT_OFFSETS_M) {
-      shaded += pointShade(
-        resolved,
-        lng + dxM / mPerLng,
-        lat + dyM / mPerLat,
-        sunAzimuth,
-        sunAltitude
-      );
+    for (const [sampleLng, sampleLat] of offsets) {
+      shaded += pointShade(index, sampleLng, sampleLat);
     }
 
     return sampleFor(resolved, shaded / POINT_OFFSETS_M.length, sunAltitude);
@@ -338,10 +361,11 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
   }
 
   function sampleEdgesWithSun(edges: EdgeRef[], when: Date, resolved: Resolved | null): EdgeShade[] {
-    return edges.map((edge) => {
-      const midLng = (edge.from[0] + edge.to[0]) / 2;
-      const midLat = (edge.from[1] + edge.to[1]) / 2;
-      const sun = SunCalc.getPosition(when, midLat, midLng);
+    const cells = sunCellsFor(edges, when, resolved);
+
+    return edges.map((edge, edgeIndex) => {
+      const cell = cells[edgeIndex];
+      const sun = cell.sun;
 
       if (sun.altitude <= 0) {
         const night = nightSample();
@@ -353,17 +377,17 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
 
       // One point per sample, exactly where `sampleBothSidewalks` reads its pixel.
       const walk = (offset: [number, number]) => {
-        if (!resolved) return { shade: 0, confidence: 0, source: "none" as ShadeSource };
+        if (!resolved || !cell.index) {
+          return { shade: 0, confidence: 0, source: "none" as ShadeSource };
+        }
 
         let sum = 0;
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
           sum += pointShade(
-            resolved,
+            cell.index,
             edge.from[0] + t * (edge.to[0] - edge.from[0]) + offset[0],
-            edge.from[1] + t * (edge.to[1] - edge.from[1]) + offset[1],
-            sun.azimuth,
-            sun.altitude
+            edge.from[1] + t * (edge.to[1] - edge.from[1]) + offset[1]
           );
         }
 
@@ -382,6 +406,82 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
         confidence: Math.min(left.confidence, right.confidence),
       };
     });
+  }
+
+  /**
+   * One sun cell per edge, and one shadow index per cell.
+   *
+   * `SunCalc.getPosition` was called per edge midpoint, but an index is built for a
+   * single sun and a single projection frame. Cutting the batch into `SUN_CELL_M`
+   * cells bounds that substitution instead of hand-waving it, and the index's own
+   * region filter means each cell only triangulates prisms that can reach it — so
+   * the total earcut work stays ~P rather than P per cell.
+   *
+   * Deliberately computed here rather than in `sampleEdges`: `sweep` reaches this
+   * function directly, and the partition has to depend only on `(edges, when)` for
+   * the two paths to stay identical.
+   *
+   * The `sun.altitude <= 0` short-circuit moves from per-edge to per-cell with this,
+   * so a batch straddling sunrise resolves at cell rather than edge granularity.
+   */
+  function sunCellsFor(edges: EdgeRef[], when: Date, resolved: Resolved | null): SunCell[] {
+    if (edges.length === 0) return [];
+
+    // Cell size in degrees, from the batch's own latitude — one frame for the cut.
+    const batchLat = edges.reduce((sum, e) => sum + (e.from[1] + e.to[1]) / 2, 0) / edges.length;
+    const batch = metersPerDegree(batchLat);
+    const cellLng = SUN_CELL_M / batch.mPerLng;
+    const cellLat = SUN_CELL_M / batch.mPerLat;
+
+    const groups = new Map<string, number[]>();
+    for (let i = 0; i < edges.length; i++) {
+      const midLng = (edges[i].from[0] + edges[i].to[0]) / 2;
+      const midLat = (edges[i].from[1] + edges[i].to[1]) / 2;
+      const key = `${Math.floor(midLng / cellLng)},${Math.floor(midLat / cellLat)}`;
+      const group = groups.get(key);
+      if (group === undefined) groups.set(key, [i]);
+      else group.push(i);
+    }
+
+    const out = new Array<SunCell>(edges.length);
+    for (const members of groups.values()) {
+      // The cell's own centroid, not its geometric centre: tighter when a cell holds
+      // only a corner of a route, and still a pure function of the edges.
+      let sumLng = 0;
+      let sumLat = 0;
+      for (const i of members) {
+        sumLng += (edges[i].from[0] + edges[i].to[0]) / 2;
+        sumLat += (edges[i].from[1] + edges[i].to[1]) / 2;
+      }
+      const lng = sumLng / members.length;
+      const lat = sumLat / members.length;
+
+      const sun = SunCalc.getPosition(when, lat, lng);
+      const { mPerLat, mPerLng } = metersPerDegree(lat);
+
+      let index: ShadowIndex | null = null;
+      if (resolved && sun.altitude > 0) {
+        // The region is the bbox of the four offset corners of every edge in the
+        // cell. Every sample point is a convex combination of an edge's endpoints
+        // plus one of its two sidewalk offsets, so it provably lands inside — which
+        // is the precondition `buildShadowIndex`'s region filter needs.
+        const corners: Array<[number, number]> = [];
+        for (const i of members) {
+          const { left, right } = sidewalkOffsets(edges[i]);
+          for (const end of [edges[i].from, edges[i].to]) {
+            for (const offset of [left, right]) {
+              corners.push([end[0] + offset[0], end[1] + offset[1]]);
+            }
+          }
+        }
+        index = buildShadowIndex(
+          resolved.set.prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, regionOver(corners)
+        );
+      }
+
+      for (const i of members) out[i] = { sun, index };
+    }
+    return out;
   }
 
   function sampleEdges(edges: EdgeRef[], when: Date): EdgeShade[] {
