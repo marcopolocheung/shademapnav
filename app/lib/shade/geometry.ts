@@ -243,49 +243,7 @@ export function triangulateRing(ring: [number, number][]): [number, number][] {
   return out;
 }
 
-/**
- * Is this point in the ground shadow of any prism?
- *
- * A point standing on a building's own footprint is reported as *not* shaded:
- * the renderer paints roofs lit, and a sidewalk sample that lands on a footprint
- * is a geometry-precision artefact rather than real shade.
- */
-export function pointInPrismShadow(
-  prisms: BuildingPrism[],
-  lng: number,
-  lat: number,
-  sunAzimuth: number,
-  sunAltitude: number,
-  mPerLat: number,
-  mPerLng: number
-): boolean {
-  for (const prism of prisms) {
-    if (pointInPolygon(lng, lat, prism.ring)) return false;
-  }
-
-  for (const prism of prisms) {
-    const tris = buildShadowTriangles(
-      prism.ring,
-      prism.heightM,
-      sunAzimuth,
-      sunAltitude,
-      mPerLat,
-      mPerLng
-    );
-    if (pointInTriangles(lng, lat, tris)) return true;
-  }
-
-  return false;
-}
-
-/** True when the point falls inside any of the flat triangle triples. */
-export function pointInTriangles(lng: number, lat: number, tris: [number, number][]): boolean {
-  for (let i = 0; i < tris.length; i += 3) {
-    if (pointInTriangle(lng, lat, tris[i], tris[i + 1], tris[i + 2])) return true;
-  }
-  return false;
-}
-
+/** Is the point inside the triangle `a`, `b`, `c`, given as coordinate pairs? */
 export function pointInTriangle(
   lng: number,
   lat: number,
@@ -293,12 +251,33 @@ export function pointInTriangle(
   b: [number, number],
   c: [number, number]
 ): boolean {
-  const v0x = c[0] - a[0];
-  const v0y = c[1] - a[1];
-  const v1x = b[0] - a[0];
-  const v1y = b[1] - a[1];
-  const v2x = lng - a[0];
-  const v2y = lat - a[1];
+  return pointInTriangleXY(lng, lat, a[0], a[1], b[0], b[1], c[0], c[1]);
+}
+
+/**
+ * Is the point inside the triangle `a`, `b`, `c`?
+ *
+ * Loose scalars rather than coordinate tuples because `shadowIndex` keeps its
+ * triangles in a flat `Float64Array` and tests them in a hot loop — a build of a few
+ * thousand prisms would otherwise materialize a tuple per vertex to throw it away.
+ * The tuple form above delegates here, so the two cannot drift apart.
+ */
+export function pointInTriangleXY(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number
+): boolean {
+  const v0x = cx - ax;
+  const v0y = cy - ay;
+  const v1x = bx - ax;
+  const v1y = by - ay;
+  const v2x = px - ax;
+  const v2y = py - ay;
 
   const dot00 = v0x * v0x + v0y * v0y;
   const dot01 = v0x * v1x + v0y * v1y;

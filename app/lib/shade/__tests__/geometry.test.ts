@@ -7,10 +7,10 @@ import {
   buildingHeightM,
   metersPerDegree,
   openRing,
-  pointInPrismShadow,
   prismsFromFootprints,
   prismsFromTileFeatures,
 } from "../geometry";
+import { pointInPrismShadow } from "../shadowIndex";
 
 // A 20 m square building centred on a point in Madrid. Latitude 40° is far
 // enough from the equator that the lng/lat metre scales differ noticeably, so a
