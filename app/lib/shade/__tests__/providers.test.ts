@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { BuildingFootprint } from "../../overpass";
-import { type BBox, bboxAroundPoint, createGeometryShadeField } from "../ShadeField";
+import {
+  type BBox,
+  LOW_CONFIDENCE,
+  bboxAroundPoint,
+  confidenceFor,
+  createGeometryShadeField,
+} from "../ShadeField";
 import type { BuildingFeatureLike } from "../geometry";
 import {
   type TileMapLike,
@@ -86,6 +92,30 @@ describe("createTilePrismProvider", () => {
 
     expect(createTilePrismProvider(() => map).prismsFor(inView)).toBeNull();
     expect(querySourceFeatures).not.toHaveBeenCalled();
+  });
+
+  it("reports full completeness only where the tile layer is complete", () => {
+    // Between MIN_BUILDING_ZOOM and here the source still answers, but with a
+    // decimated building layer — the case that reads as a confident sunlit street.
+    expect(createTilePrismProvider(() => fakeMap({ zoom: 16 }).map).completeness?.()).toBe(1);
+    expect(createTilePrismProvider(() => fakeMap({ zoom: 15 }).map).completeness?.()).toBe(1);
+    expect(
+      createTilePrismProvider(() => fakeMap({ zoom: 13 }).map).completeness?.(),
+    ).toBeLessThan(1);
+    expect(createTilePrismProvider(() => null).completeness?.()).toBe(0);
+  });
+
+  it("is not trusted for routing while its building layer is decimated", () => {
+    // The whole point of the multiplier: a zoomed-out tile answer has to land under
+    // LOW_CONFIDENCE so the caller consults the pixel sampler instead of routing on
+    // geometry it only half received.
+    const zoomedOut = createTilePrismProvider(() => fakeMap({ zoom: 13 }).map);
+    const highSun = Math.PI / 4;
+
+    expect(
+      confidenceFor("tiles", highSun, 100, zoomedOut.completeness?.()),
+    ).toBeLessThan(LOW_CONFIDENCE);
+    expect(confidenceFor("tiles", highSun, 100, 1)).toBeGreaterThanOrEqual(LOW_CONFIDENCE);
   });
 
   it("declines when there is no map yet", () => {

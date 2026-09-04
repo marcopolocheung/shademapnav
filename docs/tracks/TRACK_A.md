@@ -10,23 +10,23 @@
 
 ## Current state
 
-- **Active checkpoint:** A4 (routing reads the field) — **second slice only**. A4a (live
-  providers, #126) is done and on `main`; the `useNavigation.ts` swap is not.
+- **Active checkpoint:** A5. A4b (the `useNavigation.ts` swap) is landed, but read the A4b
+  notes before assuming the canvas is retired: the geometry path is **wired and dormant** in
+  practice, because the only source that can cover a route bbox is the tile provider and it is
+  not trusted at the zooms where it can. A5's per-cell provider resolution is what turns it on.
 - **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
-  A4a (#126 / PR #137) — A2, A3 and A4a only as of this re-land.
+  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b (this PR).
 - **How that went wrong, so it does not happen again:** #134→#137 were stacked, each based on
   the previous, and all four merged within 11 seconds — so #135, #136 and #137 landed on their
   *parent branches* and only #134 ever reached `main`. The tree survived at
   `origin/shade/a3-agreement` (`35f9c6e2`); this PR re-lands those seven files verbatim.
   **Do not stack Track A PRs.** Branch each from `main` and let it merge before the next starts.
-- **Blocked on:** **A4's second half is blocked on #122** — `pointInPrismShadow` rebuilds every
-  shadow polygon per query point, far too slow to sample a route graph, so the swap cannot be
-  wired until the geometry is built once and indexed. It is also gated on #121: swapping
-  `useNavigation.ts`'s shade source changes what every user sees on every route, and the
-  definition of done requires that confirmed in `npm run dev`. Do not land the swap on test
-  evidence alone; this track's stated risk #1 is a field that looks right and is quietly wrong,
-  and A3 measures agreement, not whether the app still works.
-  Also open: #128 (boundary-parallel disagreement), #120 (height reconciliation).
+- **Both of A4b's blockers cleared.** #122 closed with PR #164, which builds the shadow
+  geometry once per sun cell and indexes it (~1,000–2,200× on `sampleEdges`, measured in #166).
+  #121 was stale: PR #160 committed a working browser harness, so the swap was confirmed in a
+  real browser rather than on test evidence alone — which this track's risk #1 demands, since
+  A3 measures agreement between two models, not whether the app still works.
+  Still open: #128 (boundary-parallel disagreement), #120 (height reconciliation).
 - **The agreement number, as of this re-land** (unchanged from what #136 recorded, despite
   `geometry.ts` gaining 98 lines from #159): `150 cases · mean 2.6pp · p90 0.0pp · worst 62.5pp ·
   severe 3.3% · [madrid 2.2pp, singapore 2.3pp, kent-wa 3.4pp]`. Committed ceilings: mean 0.04,
@@ -117,23 +117,58 @@
   rounds to the nearest 1.2 m pixel), but the renderer is what the user believes — filed as #128
   with two candidate fixes for A4.
 
-- **Verification gap:** no browser check is possible on this machine — the cached Playwright
-  Chromium is missing `libnss3`/`libnspr4`/`libasound2` and there is no passwordless sudo (#121).
-  A1 substituted `tileGeometryParity.test.ts` (pre-refactor implementation held as a reference,
-  identical roof triangles, shadow triangles at five sun positions, and point-in-shadow answers
-  over a grid). A2 and A3 are pure logic with no UI.
+- **Verification gap, as it stood through A3:** no browser check was thought possible on this
+  machine (#121). A1 substituted `tileGeometryParity.test.ts` (pre-refactor implementation held
+  as a reference, identical roof triangles, shadow triangles at five sun positions, and
+  point-in-shadow answers over a grid). A2 and A3 are pure logic with no UI. **#121 is retired**
+  — see `docs/notes/browser-verification.md`.
 - **Also filed:** #122 — `pointInPrismShadow` rebuilds every prism's shadow polygon per query
   point. A3's canvas painter had to hoist that out to run at all, which is a preview of the fix
   A6 needs.
-- **Next action:** A4b — the `useNavigation.ts` swap, **once #121 clears**. Replace the
-  `edgeShadeCache` / `sampleBothSidewalks` block (`useNavigation.ts:956`) with
-  `field.sampleEdges()`, keep the pixel path behind a `confidence < LOW_CONFIDENCE` fallback, call
-  `field.ready(bbox)` alongside `fetchRoutingGraph`, and drop the pre-sampling `fitBounds`
-  (`:879`) once the field is authoritative. ⚠️ `useNavigation.ts` is a contested file — keep the
-  diff surgical, say so in the PR's first sentence, and coordinate with Track E.
-  If A4b stays blocked, A6 (time sweep) is the next unblocked checkpoint and is pure logic.
-- **Last verified:** 2026-08-24, 245 tests / 28 files green on `feat/a4-live-prism-providers`
-  (baseline on `main` was 156 / 23)
+**A4b — the swap**
+- **The canvas readback is now conditional, not removed.** `ShadeField.coverage(bbox, when)` is
+  asked *before* the camera is touched; only when it comes back under `LOW_CONFIDENCE` does the
+  pipeline flatten, `fitBounds` and read pixels. So the pre-sampling fit is gone on the covered
+  path and unchanged on the fallback path — the cost of the fallback is that its 1.5 s idle wait
+  no longer overlaps the graph fetch.
+- **Overpass can never answer for `calculateRoute`, by arithmetic.** `calculateRoute`'s bbox
+  padding floors at 0.005° (~555 m per side); add the 400 m query pad and the smallest possible
+  probe bbox gives `bboxRadiusM × 1.25 = 1575 m`, over `MAX_FETCH_RADIUS_M` (1500). True even
+  for a zero-length route. So routing geometry can only ever come from tiles until the bbox is
+  split — **A5**.
+- **Tiles cover only when the whole padded bbox is on screen**, i.e. at low zoom — which is
+  exactly where MapTiler decimates its building layer. Measured in Chromium, same Midtown route
+  and time, varying only zoom: shade came back **83%/85% at z16.3** (canvas) but **53%/66% at
+  z14** and **0%/9%/15% at z13** on geometry, because `prismsFor` returned a non-empty but
+  half-empty prism set and nothing docked it. That is this track's risk #1 exactly — a field
+  that looks right and is quietly wrong.
+- **So `PrismProvider.completeness()` was added** (a fourth doubt in `confidenceFor`): the tile
+  provider reports 1 at z ≥ 15 and `DECIMATED_COMPLETENESS` (0.5) below, putting a zoomed-out
+  tile answer at 0.4 — under `LOW_CONFIDENCE`, so routing consults the pixel sampler instead.
+  Re-measured after the fix: z14 and z13 both fall back 100% and report 73–75% / 35–40%, in
+  family with the canvas path rather than contradicting it. The net effect on shipped behaviour
+  is therefore **no change to any route number**, which is the honest outcome for a checkpoint
+  whose data source is not yet good enough where it is available.
+- **One `sampleEdges` call for the whole graph.** #164 already partitions internally into 2 km
+  sun cells with one region-filtered index each, so slicing the batch outside would rebuild
+  those indices and re-triangulate every prism whose shadow straddles a slice edge. Progress and
+  `yieldToBrowser` moved to the cheap fill loop that applies the per-edge fallback.
+- **Provenance is aggregated over the chosen path, never the graph** (`shadeProvenance.ts`). A
+  graph has thousands of edges and a route uses dozens; a route whose own edges are geometric
+  says so even when most of the graph fell back. Unsampled virtual/connector edges count their
+  distance under `"none"` but are **excluded from the confidence statistics** — every route
+  starts and ends on a virtual snap node, so counting them would label every route in the app
+  low-confidence.
+- `CANVAS_CONFIDENCE = 0.6` is a prior below the tile prior, not a measurement. A3 compares the
+  field and the sampler over *identical* prisms, so it cannot speak to the sampler's accuracy.
+- **Next action:** A5 — per-cell provider resolution is the unlock, not the worker. Resolving a
+  provider per 2 km sun cell (the partition #164 already builds internally) would let tiles
+  answer at street zoom for the cells the user is looking at, which is the only configuration in
+  which the geometry path both fires and has good data. Until then A4b is mechanism, provenance
+  and honesty, not a live change of source. A6 (time sweep) is pure logic and unblocked.
+- **Last verified:** 2026-09-04, 330 tests / 32 files green on `shade/a4b-routing-reads-field`
+  (baseline on `main` was 306 / 31). Agreement unchanged from the re-land:
+  `150 cases · mean 2.6pp · p90 0.0pp · worst 62.5pp · severe 3.3%`.
 
 ---
 

@@ -33,6 +33,12 @@ export interface RoutingRunMetrics {
   graphNodeCount: number;
   /** Total directed edges iterated during shade sampling (both directions). */
   graphDirectedEdges: number;
+  /**
+   * Share of sampled edges (0–1) the geometric field could not answer confidently,
+   * so the pixel sampler answered instead. A4b demotes the canvas to a fallback;
+   * this is how you tell whether it actually got demoted on a given route.
+   */
+  shadeFallbackShare: number;
   routes: RouteMetricSnapshot[];
 
   // ── Derived KPIs ──────────────────────────────────────────────────────────
@@ -89,6 +95,7 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
     console.table({
       "Graph fetch (ms)": phases.graphFetch.toFixed(1),
       "Canvas read (ms)": phases.canvasRead.toFixed(1),
+      "Canvas fallback (%)": (m.shadeFallbackShare * 100).toFixed(1),
       "Shade sample (ms)": phases.shadeSample.toFixed(1),
       "Dijkstra (ms)": phases.dijkstra.toFixed(1),
       "Total (ms)": phases.total.toFixed(1),

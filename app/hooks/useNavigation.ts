@@ -17,10 +17,28 @@ import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { routeToGPX, routeToGeoJSON, downloadBlob } from "../lib/exportRoute";
 import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN_SUN_EXPOSURE, buildTrainDrawData } from "../lib/trainGraph";
 import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
+import {
+  LOW_CONFIDENCE, QUERY_PAD_M, bboxAroundEdges, createGeometryShadeField, edgeSampleCount,
+} from "../lib/shade/ShadeField";
+import type { EdgeRef, ShadeField, ShadeSource } from "../lib/shade/ShadeField";
+import { createOverpassPrismProvider, createTilePrismProvider } from "../lib/shade/providers";
+import { summarizeShadeSource } from "../lib/shadeProvenance";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { travelTimeSeconds } from "../lib/travelMode";
 import { routeBounds } from "../lib/routeBounds";
+
+/**
+ * How much to trust the pixel sampler when it answers instead of the field.
+ *
+ * A prior, not a measurement — deliberately below the tile prior (0.8), because the
+ * canvas reads whatever the renderer painted at whatever zoom the camera happened to
+ * be at. `SOURCE_BASE_CONFIDENCE` carries the same caveat for the geometric sources.
+ * A3's agreement harness cannot justify a number here: it compares the field and the
+ * sampler over *identical* prisms, so it measures their disagreement, not the
+ * sampler's accuracy. That needs the corpus #121 was blocking.
+ */
+const CANVAS_CONFIDENCE = 0.6;
 
 /** Tilting is the one camera move that can provoke motion sickness. */
 function prefersReducedMotion(): boolean {
@@ -114,6 +132,22 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const ghostElRef = useRef<HTMLDivElement | null>(null);
   /** The pitch to hand back to the user once a flat shade readback is done. */
   const pitchRestoreRef = useRef<number | null>(null);
+
+  /**
+   * Shade from building geometry, tiles first and Overpass behind for reach.
+   *
+   * Lazily built rather than `useRef(createGeometryShadeField(...))`, whose argument
+   * would be re-evaluated on every render and thrown away. `maplibregl.Map` satisfies
+   * `TileMapLike` structurally, so the provider reads the live map through a getter
+   * without any of it being plumbed through props.
+   */
+  const shadeFieldRef = useRef<ShadeField | null>(null);
+  if (!shadeFieldRef.current) {
+    shadeFieldRef.current = createGeometryShadeField([
+      createTilePrismProvider(() => mapRef.current),
+      createOverpassPrismProvider(),
+    ]);
+  }
 
   waypointARef.current = waypointA;
   waypointBRef.current = waypointB;
@@ -585,27 +619,39 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const bbox = sketchBoundingBox(simplified, 0.005);
       setRouteProgress({ message: "Fetching walk network" });
 
-      // Flatten before reading the bounds: a tilted camera sees further, so the
-      // in-view test has to be asked of the camera the canvas will be read from.
-      const flattened = flattenForShadeReadback(map);
-      const currentBounds = map.getBounds();
-      const bboxInView =
-        currentBounds.getWest() <= bbox.west &&
-        currentBounds.getEast() >= bbox.east &&
-        currentBounds.getSouth() <= bbox.south &&
-        currentBounds.getNorth() >= bbox.north;
-
-      if (!bboxInView) {
-        map.fitBounds(
-          [[bbox.west, bbox.south], [bbox.east, bbox.north]] as [[number, number], [number, number]],
-          { padding: 50, duration: 0 }
-        );
-      }
+      const shadeBbox = bboxAroundEdges(
+        [{ from: [bbox.west, bbox.south], to: [bbox.east, bbox.north] }],
+        QUERY_PAD_M,
+      )!;
+      const field = shadeFieldRef.current!;
 
       const [graph] = await Promise.all([
         fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east),
-        bboxInView && !flattened ? Promise.resolve() : waitForMapIdle(map),
+        field.ready(shadeBbox).catch(() => {}),
       ]);
+
+      const coverage = field.coverage(shadeBbox, dateRef.current);
+      const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
+
+      if (needsCanvas) {
+        // Flatten before reading the bounds: a tilted camera sees further, so the
+        // in-view test has to be asked of the camera the canvas will be read from.
+        const flattened = flattenForShadeReadback(map);
+        const currentBounds = map.getBounds();
+        const bboxInView =
+          currentBounds.getWest() <= bbox.west &&
+          currentBounds.getEast() >= bbox.east &&
+          currentBounds.getSouth() <= bbox.south &&
+          currentBounds.getNorth() >= bbox.north;
+
+        if (!bboxInView) {
+          map.fitBounds(
+            [[bbox.west, bbox.south], [bbox.east, bbox.north]] as [[number, number], [number, number]],
+            { padding: 50, duration: 0 }
+          );
+        }
+        if (!bboxInView || flattened) await waitForMapIdle(map);
+      }
 
       const gaps = findSketchGaps(simplified, graph);
       if (gaps.length > 0) {
@@ -615,15 +661,19 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         );
       }
 
-      setRouteProgress({ message: "Reading shadow layer" });
-      const canvas = map.getCanvas();
-      const tmp = document.createElement("canvas");
-      tmp.width = canvas.width;
-      tmp.height = canvas.height;
-      const ctx2d = tmp.getContext("2d")!;
-      ctx2d.drawImage(canvas, 0, 0);
-      const imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
-      const dpr = window.devicePixelRatio || 1;
+      let imageData: ImageData | null = null;
+      let dpr = 1;
+      if (needsCanvas) {
+        setRouteProgress({ message: "Reading shadow layer" });
+        const canvas = map.getCanvas();
+        const tmp = document.createElement("canvas");
+        tmp.width = canvas.width;
+        tmp.height = canvas.height;
+        const ctx2d = tmp.getContext("2d")!;
+        ctx2d.drawImage(canvas, 0, 0);
+        imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
+        dpr = window.devicePixelRatio || 1;
+      }
 
       // MapLibre transform — correct under rotation/tilt (see calculateRoute).
       const projectToScreen = (lng: number, lat: number): [number, number] => {
@@ -632,19 +682,51 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       };
 
       setRouteProgress({ message: "Sampling street shade" });
+      // Sketch routing has no per-sidewalk graph — it folds both sides into one
+      // `shadeFactor` — so there is no provenance to surface here. The source still
+      // has to be the same one `calculateRoute` uses: two definitions of shade in one
+      // app is worse than a sketch card without a label.
+      const sketchRefs: EdgeRef[] = [];
+      const sketchEdges: GraphEdge[][] = [];
+      const sketchDistances: number[] = [];
+      const sketchSeen = new Map<string, number>();
+
       for (const [fromId, edges] of graph.adj) {
         const fromNode = graph.nodes.get(fromId);
         if (!fromNode) continue;
         for (const edge of edges) {
           const toNode = graph.nodes.get(edge.toId);
           if (!toNode) continue;
-          const samples = Math.max(3, Math.ceil(edge.distanceM / 25));
-          const shade = sampleBothSidewalks(
-            projectToScreen, imageData, dpr,
-            [fromNode.lon, fromNode.lat], [toNode.lon, toNode.lat], samples
-          );
-          edge.shadeFactor = Math.max(shade.left, shade.right);
+          const key = `${Math.min(fromId, edge.toId)},${Math.max(fromId, edge.toId)}`;
+          const existing = sketchSeen.get(key);
+          if (existing !== undefined) {
+            sketchEdges[existing].push(edge);
+            continue;
+          }
+          const loNode = fromId < edge.toId ? fromNode : toNode;
+          const hiNode = fromId < edge.toId ? toNode : fromNode;
+          sketchSeen.set(key, sketchRefs.length);
+          sketchEdges.push([edge]);
+          sketchDistances.push(edge.distanceM);
+          sketchRefs.push({
+            from: [loNode.lon, loNode.lat],
+            to: [hiNode.lon, hiNode.lat],
+          });
         }
+      }
+
+      const sketchShade = sketchRefs.length > 0 ? field.sampleEdges(sketchRefs, dateRef.current) : [];
+      for (let i = 0; i < sketchRefs.length; i++) {
+        let { left, right } = sketchShade[i];
+        if (sketchShade[i].confidence < LOW_CONFIDENCE && imageData) {
+          ({ left, right } = sampleBothSidewalks(
+            projectToScreen, imageData, dpr,
+            sketchRefs[i].from, sketchRefs[i].to,
+            edgeSampleCount(sketchDistances[i]),
+          ));
+        }
+        const shadeFactor = Math.max(left, right);
+        for (const edge of sketchEdges[i]) edge.shadeFactor = shadeFactor;
       }
 
       setRouteProgress({ message: "Finding route choices" });
@@ -712,7 +794,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setRouteProgress(null);
     }
   }, [
-    sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
+    sketchPoints, mapRef, dateRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
     flattenForShadeReadback, restorePitchAfterShadeReadback,
   ]);
 
@@ -943,40 +1025,67 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       const tFetch = performance.now();
       updateProgress({ message: "Fetching walk network" });
-      // Flatten before reading the bounds: a tilted camera sees further, so the
-      // in-view test has to be asked of the camera the canvas will be read from.
-      const flattened = flattenForShadeReadback(map);
-      const currentBounds = map.getBounds();
-      const bboxInView =
-        currentBounds.getWest() <= west &&
-        currentBounds.getEast() >= east &&
-        currentBounds.getSouth() <= south &&
-        currentBounds.getNorth() >= north;
 
-      if (!bboxInView) {
-        map.fitBounds(
-          [[west, south], [east, north]] as [[number, number], [number, number]],
-          { padding: 50, duration: 0 }
-        );
-      }
+      // The area the field must be able to speak for: every node the graph fetch can
+      // return, padded exactly as `sampleEdges` will pad internally. Loading one area
+      // and resolving another makes a provider decline geometry it actually holds.
+      const shadeBbox = bboxAroundEdges(
+        [{ from: [west, south], to: [east, north] }],
+        QUERY_PAD_M,
+      )!;
+      const field = shadeFieldRef.current!;
 
       const [graph] = await Promise.all([
         fetchRoutingGraph(south, west, north, east, calcSignal),
-        bboxInView && !flattened ? Promise.resolve() : waitForMapIdle(map),
+        // A failed preload is not a failed route — Overpass rate-limits, and the
+        // answer to that is low coverage and the canvas, not an error.
+        field.ready(shadeBbox).catch(() => {}),
       ]);
       graphFetchMs = performance.now() - tFetch;
+      if (myGen !== calcGenRef.current) return;
 
-      const tCanvas = performance.now();
-      updateProgress({ message: "Reading shadow layer" });
-      const canvas = map.getCanvas();
-      const tmp = document.createElement("canvas");
-      tmp.width = canvas.width;
-      tmp.height = canvas.height;
-      const ctx2d = tmp.getContext("2d")!;
-      ctx2d.drawImage(canvas, 0, 0);
-      const imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
-      const dpr = window.devicePixelRatio || 1;
-      canvasReadMs = performance.now() - tCanvas;
+      // Does the field cover this route? Asking before touching the camera is the
+      // whole point of A4b: when geometry can answer, the mid-calculation `fitBounds`
+      // jump and the full-canvas readback are both pure cost. The camera work stays
+      // exactly as PR #160 left it on the path that still needs pixels.
+      const coverage = field.coverage(shadeBbox, dateRef.current);
+      const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
+
+      let imageData: ImageData | null = null;
+      let dpr = 1;
+
+      if (needsCanvas) {
+        // Flatten before reading the bounds: a tilted camera sees further, so the
+        // in-view test has to be asked of the camera the canvas will be read from.
+        const flattened = flattenForShadeReadback(map);
+        const currentBounds = map.getBounds();
+        const bboxInView =
+          currentBounds.getWest() <= west &&
+          currentBounds.getEast() >= east &&
+          currentBounds.getSouth() <= south &&
+          currentBounds.getNorth() >= north;
+
+        if (!bboxInView) {
+          map.fitBounds(
+            [[west, south], [east, north]] as [[number, number], [number, number]],
+            { padding: 50, duration: 0 }
+          );
+        }
+        if (!bboxInView || flattened) await waitForMapIdle(map);
+        if (myGen !== calcGenRef.current) return;
+
+        const tCanvas = performance.now();
+        updateProgress({ message: "Reading shadow layer" });
+        const canvas = map.getCanvas();
+        const tmp = document.createElement("canvas");
+        tmp.width = canvas.width;
+        tmp.height = canvas.height;
+        const ctx2d = tmp.getContext("2d")!;
+        ctx2d.drawImage(canvas, 0, 0);
+        imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
+        dpr = window.devicePixelRatio || 1;
+        canvasReadMs = performance.now() - tCanvas;
+      }
 
       // Project lng/lat → CSS pixels with MapLibre's transform so shade sampling
       // stays correct under any camera orientation. A hand-rolled web-mercator
@@ -995,31 +1104,26 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       const tShade = performance.now();
       let directedEdgeCount = 0;
-      const edgeShadeCache = new Map<string, { left: number; right: number }>();
-      const edgeShadeKeys = new Set<string>();
+      const edgeShadeCache = new Map<
+        string,
+        { left: number; right: number; source: ShadeSource; confidence: number }
+      >();
+
+      // One canonical (low id → high id) `EdgeRef` per undirected street segment,
+      // with parallel arrays for its cache key and length. The field takes the whole
+      // batch at once: it partitions internally into 2 km sun cells and builds one
+      // region-filtered shadow index per cell, so slicing this up here would only
+      // rebuild those indices and re-triangulate every prism whose shadow straddles
+      // a slice boundary.
+      const edgeRefs: EdgeRef[] = [];
+      const edgeKeys: string[] = [];
+      const edgeDistances: number[] = [];
+      const seenEdges = new Set<string>();
 
       for (const [fromId, edges] of graph.adj) {
         if (fromId < 0) continue;
         const fromNode = graph.nodes.get(fromId);
         if (!fromNode) continue;
-        for (const edge of edges) {
-          if (edge.toId < 0) continue;
-          if (!graph.nodes.has(edge.toId)) continue;
-          const lo = Math.min(fromId, edge.toId);
-          const hi = Math.max(fromId, edge.toId);
-          edgeShadeKeys.add(`${lo},${hi}`);
-        }
-      }
-
-      let sampledShadeEdges = 0;
-      updateProgress({
-        message: "Sampling street shade",
-        current: sampledShadeEdges,
-        total: edgeShadeKeys.size,
-      });
-      for (const [fromId, edges] of graph.adj) {
-        if (fromId < 0) continue;
-        const fromNode = graph.nodes.get(fromId)!;
         for (const edge of edges) {
           if (edge.toId < 0) continue;
           const toNode = graph.nodes.get(edge.toId);
@@ -1028,23 +1132,63 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           const lo = Math.min(fromId, edge.toId);
           const hi = Math.max(fromId, edge.toId);
           const key = `${lo},${hi}`;
-          if (edgeShadeCache.has(key)) continue;
-          const samples = Math.max(3, Math.ceil(edge.distanceM / 25));
-          const canonFrom: [number, number] = fromId < edge.toId
-            ? [fromNode.lon, fromNode.lat] : [toNode.lon, toNode.lat];
-          const canonTo: [number, number] = fromId < edge.toId
-            ? [toNode.lon, toNode.lat] : [fromNode.lon, fromNode.lat];
-          edgeShadeCache.set(key, sampleBothSidewalks(projectToScreen, imageData, dpr, canonFrom, canonTo, samples));
-          sampledShadeEdges++;
-          if (sampledShadeEdges === edgeShadeKeys.size || sampledShadeEdges % 100 === 0) {
-            updateProgress({
-              message: "Sampling street shade",
-              current: sampledShadeEdges,
-              total: edgeShadeKeys.size,
-            });
-            await yieldToBrowser();
-            if (myGen !== calcGenRef.current) return;
-          }
+          if (seenEdges.has(key)) continue;
+          seenEdges.add(key);
+          const loNode = fromId < edge.toId ? fromNode : toNode;
+          const hiNode = fromId < edge.toId ? toNode : fromNode;
+          edgeKeys.push(key);
+          edgeDistances.push(edge.distanceM);
+          edgeRefs.push({
+            from: [loNode.lon, loNode.lat],
+            to: [hiNode.lon, hiNode.lat],
+          });
+        }
+      }
+
+      updateProgress({
+        message: "Sampling street shade",
+        current: 0,
+        total: edgeRefs.length,
+      });
+      const fieldShade = edgeRefs.length > 0 ? field.sampleEdges(edgeRefs, dateRef.current) : [];
+      if (myGen !== calcGenRef.current) return;
+
+      // Per edge: trust the geometry, or fall back to pixels for that edge alone.
+      // When the canvas was never read — the field covered the route — a weak edge
+      // keeps the field's answer and its real confidence, and the route says so
+      // rather than pretending to a certainty nothing measured.
+      let canvasFallbackEdges = 0;
+      for (let i = 0; i < edgeRefs.length; i++) {
+        const sample = fieldShade[i];
+        if (sample.confidence >= LOW_CONFIDENCE || !imageData) {
+          edgeShadeCache.set(edgeKeys[i], {
+            left: sample.left,
+            right: sample.right,
+            source: sample.source,
+            confidence: sample.confidence,
+          });
+        } else {
+          const pixels = sampleBothSidewalks(
+            projectToScreen, imageData, dpr,
+            edgeRefs[i].from, edgeRefs[i].to,
+            edgeSampleCount(edgeDistances[i]),
+          );
+          edgeShadeCache.set(edgeKeys[i], {
+            ...pixels,
+            source: "canvas",
+            confidence: CANVAS_CONFIDENCE,
+          });
+          canvasFallbackEdges++;
+        }
+        const done = i + 1;
+        if (done === edgeRefs.length || done % 100 === 0) {
+          updateProgress({
+            message: "Sampling street shade",
+            current: done,
+            total: edgeRefs.length,
+          });
+          await yieldToBrowser();
+          if (myGen !== calcGenRef.current) return;
         }
       }
       shadeSampleMs = performance.now() - tShade;
@@ -1070,6 +1214,19 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       }
       const routingGraph: RoutingGraph = { nodes: graph.nodes, adj: routingAdj };
       const spatialGrid = new SpatialGrid(routingGraph.nodes);
+
+      /**
+       * Length of the segment between two consecutive nodes on a chosen path.
+       *
+       * Both sidewalk edges of a segment carry the same `distanceM`, so the first
+       * match is the answer. Checking the reverse direction covers the virtual snap
+       * edges, which are wired one way into their host segment.
+       */
+      const edgeDistanceFor = (from: number, to: number): number => {
+        const forward = routingAdj.get(from)?.find((e) => e.toId === to);
+        if (forward) return forward.distanceM;
+        return routingAdj.get(to)?.find((e) => e.toId === from)?.distanceM ?? 0;
+      };
 
       updateProgress({ message: "Snapping stops to walkable streets" });
       const MAX_SNAP_DIST_M = 100;
@@ -1124,6 +1281,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           shadeTransitions: result.shadeTransitions,
           detourRatio: result.detourRatio,
           turnCount: result.turnCount,
+          shadeSource: summarizeShadeSource(result.nodeIds, edgeShadeCache, edgeDistanceFor),
         }));
       } else {
         const nodeChain = snappedStops.ids;
@@ -1144,6 +1302,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           let totalDist = 0;
           let totalShadeDist = 0;
           const allCoords: [number, number][] = [];
+          // `segResult` is scoped to the leg loop, but provenance is a property of the
+          // whole route — so the node ids have to outlive the leg that produced them.
+          const allNodeIds: number[] = [];
           const legs: RouteLeg[] = [];
           let failed = false;
           let failedLeg: number | null = null;
@@ -1171,6 +1332,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             const legCoords = segGeojson.geometry.coordinates as [number, number][];
             const stitchedCoords = allCoords.length > 0 ? legCoords.slice(1) : legCoords;
             allCoords.push(...stitchedCoords);
+            allNodeIds.push(
+              ...(allNodeIds.length > 0 ? segResult.nodeIds.slice(1) : segResult.nodeIds),
+            );
             legs.push({
               type: "walk",
               geojson: segGeojson,
@@ -1199,6 +1363,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                 detourRatio: 1.0,
                 turnCount: 0,
                 legs,
+                shadeSource: summarizeShadeSource(allNodeIds, edgeShadeCache, edgeDistanceFor),
                 partial: {
                   completedLegs: failedLeg - 1,
                   failedLeg,
@@ -1229,6 +1394,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             detourRatio: 1.0,
             turnCount: 0,
             legs,
+            shadeSource: summarizeShadeSource(allNodeIds, edgeShadeCache, edgeDistanceFor),
           });
         }
 
@@ -1421,6 +1587,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         },
         graphNodeCount: graph.nodes.size,
         graphDirectedEdges: directedEdgeCount,
+        shadeFallbackShare: edgeRefs.length > 0 ? canvasFallbackEdges / edgeRefs.length : 0,
         routes: routeSnapshots,
         routeComputeMs: performance.now() - t0,
         shadeCoverageGainPp,

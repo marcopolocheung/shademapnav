@@ -1,4 +1,5 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
+import { describeShadeProvenance } from "../lib/shadeProvenance";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { routeLegSummary } from "../lib/routeLegSummary";
 
@@ -20,6 +21,8 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
   const transitions = r.shadeTransitions === 0 ? "continuous" : `${r.shadeTransitions} break${r.shadeTransitions === 1 ? "" : "s"}`;
   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
   const shadePct = Math.round(r.shadeCoverage * 100);
+  // Absent on sketch and transit routes, whose shade was not sampled per sidewalk.
+  const shadeSource = r.shadeSource ? describeShadeProvenance(r.shadeSource) : null;
   const isPartial = !!r.partial;
 
   return (
@@ -92,6 +95,12 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             {formatDist(r.distanceM)}
           </span>
         </div>
+
+        {shadeSource && (
+          <div className="mt-1 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
+            {shadeSource}
+          </div>
+        )}
 
         {/* Metrics grid — only on selected */}
         {selected && (

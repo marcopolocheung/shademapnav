@@ -11,6 +11,7 @@ import {
   confidenceFor,
   edgeSampleCount,
   createGeometryShadeField,
+  QUERY_PAD_M,
   sidewalkOffsets,
   staticPrismProvider,
 } from "../ShadeField";
@@ -338,6 +339,70 @@ describe("ready", () => {
     await createGeometryShadeField([provider, withoutLoad]).ready(WIDE_COVERAGE);
 
     expect(loaded).toEqual([WIDE_COVERAGE]);
+  });
+});
+
+// ─── coverage ─────────────────────────────────────────────────────────────────
+
+describe("coverage", () => {
+  const area = bboxAroundPoint(LNG, LAT, 200);
+
+  it("reports the source that would answer, without building any geometry", () => {
+    const result = fieldOverOneBuilding().coverage(area, NOON);
+
+    expect(result.source).toBe("tiles");
+    expect(result.confidence).toBe(confidenceFor("tiles", sun.altitude, 1));
+  });
+
+  it("agrees with what sampleEdges then reports for the same area and time", () => {
+    const field = fieldOverOneBuilding();
+    const edge: EdgeRef = { from: acrossShadow(-50), to: acrossShadow(50) };
+
+    const promised = field.coverage(bboxAroundEdges([edge], QUERY_PAD_M)!, NOON);
+    const delivered = field.sampleEdges([edge], NOON)[0];
+
+    expect(promised.source).toBe(delivered.source);
+    expect(promised.confidence).toBe(delivered.confidence);
+  });
+
+  it("reports no confidence at all when no provider covers the area", () => {
+    const elsewhere = bboxAroundPoint(LNG + 40, LAT, 200);
+
+    expect(fieldOverOneBuilding().coverage(elsewhere, NOON)).toEqual({
+      source: "none",
+      confidence: 0,
+    });
+  });
+
+  it("is fully confident after sunset, when no geometry is needed to answer", () => {
+    // Not the same "none" as an uncovered area: the sun being down is an
+    // astronomical certainty, and a caller must not fall back on it.
+    expect(fieldOverOneBuilding().coverage(area, NIGHT)).toEqual({
+      source: "none",
+      confidence: 1,
+    });
+  });
+
+  it("docks a source whose geometry is only partly there", () => {
+    // A provider that answers with a decimated set is the failure this guards: it
+    // has buildings, so the no-geometry factor says nothing, and without the
+    // completeness multiplier the field would route on it at the full tile prior.
+    const partial = {
+      ...staticPrismProvider(oneBuilding(), WIDE_COVERAGE, "tiles"),
+      completeness: () => 0.5,
+    };
+    const result = createGeometryShadeField([partial]).coverage(area, NOON);
+
+    expect(result.source).toBe("tiles");
+    expect(result.confidence).toBeLessThan(LOW_CONFIDENCE);
+  });
+
+  it("docks a source that covers the area but holds no buildings", () => {
+    const empty = staticPrismProvider({ prisms: [], maxHeightM: 0 }, WIDE_COVERAGE, "overpass");
+    const result = createGeometryShadeField([empty]).coverage(area, NOON);
+
+    expect(result.source).toBe("overpass");
+    expect(result.confidence).toBeLessThan(LOW_CONFIDENCE);
   });
 });
 
