@@ -40,6 +40,11 @@ targets. It is a tool you run by hand, before a PR that changes what the map dra
   pitch (#154). Calculates the same route flat and tilted and compares the shade percentages
   the route cards report; also checks the camera went flat for the readback and got its tilt
   back afterwards.
+- **`scripts/verify/terminator_aa.py`** — captures Midtown at 12:30 and 15:30 using the
+  public 3D toggle's fixed 55° pitch. Compare `main` and the change with
+  `--compare before after`: flat frames must be pixel-identical, while the fixed wall crops
+  must gain intermediate terminator tones. The report also records the blue-dominant routing
+  predicate fraction; the fractional PCF band is expected to be classified sunlit.
 
 Run them against a dev server:
 
@@ -47,6 +52,13 @@ Run them against a dev server:
 npm run dev &
 LD_LIBRARY_PATH=$HOME/miniconda3/lib \
   ~/miniconda3/bin/python scripts/verify/shade_readback.py --out out/
+
+# Capture the candidate and main on separate dev-server ports, then compare them.
+LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+  ~/miniconda3/bin/python scripts/verify/terminator_aa.py --out out/after
+LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+  ~/miniconda3/bin/python scripts/verify/terminator_aa.py \
+  --compare out/before out/after
 ```
 
 Screenshots and a JSON report land in `--out` (gitignored). Put the numbers in the PR body;
