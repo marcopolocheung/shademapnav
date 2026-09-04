@@ -1,6 +1,7 @@
 import SunCalc from "suncalc";
 import { fetchBuildingFootprintsAround, type BuildingFootprint } from "../overpass";
-import { metersPerDegree, pointInPrismShadow, prismsFromFootprints } from "../shade/geometry";
+import { metersPerDegree, prismsFromFootprints } from "../shade/geometry";
+import { buildShadowIndex } from "../shade/shadowIndex";
 
 export interface OffscreenShadeResult {
   shadeFraction: number;
@@ -41,11 +42,15 @@ export function computeBuildingShadeFraction(
     [0, 4],
   ];
 
+  // One build for all five offsets. They already shared this sun and this projection
+  // frame, so these are the same shadows the per-query path rebuilt five times over.
+  const shadows = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, null);
+
   let shaded = 0;
   for (const [dxM, dyM] of offsetsM) {
     const sampleLng = lng + dxM / mPerLng;
     const sampleLat = lat + dyM / mPerLat;
-    if (pointInPrismShadow(prisms, sampleLng, sampleLat, sun.azimuth, sun.altitude, mPerLat, mPerLng)) {
+    if (shadows.isShaded(sampleLng, sampleLat)) {
       shaded++;
     }
   }
