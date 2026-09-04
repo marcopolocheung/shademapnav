@@ -5,11 +5,6 @@ import type { TrainDrawData } from "../lib/trainGraph";
 import type { LatLng, SketchPoint } from "../lib/routing";
 import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFoursquareRateLimited, type FoursquarePlaceInfo } from "../services/foursquare";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
-import {
-  DEFAULT_BUILDING_HEIGHT_M,
-  LEVEL_HEIGHT_M,
-  TALL_BUILDING_THRESHOLD_M,
-} from "../lib/shade/geometry";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 
 export interface AccumulationOptions {
@@ -47,34 +42,6 @@ interface MapViewProps {
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY ?? "";
 
-/**
- * Height of an extruded building, mirroring `buildingHeightM()` in
- * `app/lib/shade/geometry.ts` — including its `> 0` guards and its fallbacks.
- *
- * The two must agree: `geometry.ts` decides the prism that casts the shadow and
- * this decides the box the user sees. Where they disagree the map shows a
- * building with no shadow, or a shadow with no building. Neither is visible at
- * pitch 0, and both read as "the shadows are broken" the moment the map tilts.
- *
- * `coalesce` can't express this: the `building:levels` branch multiplies, and an
- * arithmetic sub-expression always returns a number, so `coalesce` would stop
- * there and never reach the default. Hence the `case` chain.
- *
- * Typed `any` because MapLibre does not export an expression type — the same
- * maplibre-interop exemption CLAUDE.md records for `noExplicitAny`.
- */
-// biome-ignore lint/suspicious/noExplicitAny: MapLibre exports no expression type.
-const BUILDING_HEIGHT_EXPR: any = [
-  "case",
-  [">", ["to-number", ["get", "render_height"], 0], 0],
-  ["to-number", ["get", "render_height"], 0],
-  [">", ["to-number", ["get", "height"], 0], 0],
-  ["to-number", ["get", "height"], 0],
-  [">", ["to-number", ["get", "building:levels"], 0], 0],
-  ["*", ["to-number", ["get", "building:levels"], 0], LEVEL_HEIGHT_M],
-  DEFAULT_BUILDING_HEIGHT_M,
-];
-
 function escapeHtml(s: string): string {
   const div = document.createElement("div");
   div.textContent = s;
@@ -84,16 +51,90 @@ function escapeHtml(s: string): string {
 /**
  * Ensure nav overlays stay visible.
  *
- * The shadow layer now sits below `buildings-3d`, so it can no longer cover the
- * route. What this guards against instead is the extrusions: once the map is
- * tilted, a building between the camera and the route would occlude the line.
- * Route, transit and sketch overlays belong on top of the buildings.
+ * The shadow layer draws the tilted buildings itself, and it writes depth doing
+ * so, so a building between the camera and the route would occlude the line.
+ * Route, transit and sketch overlays belong on top of it.
  *
  * We defensively move key overlay layers to the top whenever we (re)apply them.
- * Note this list deliberately contains neither `local-shadow-layer` nor
- * `buildings-3d` — their relative order is set once at load and must survive
- * every call here, and this runs on every shadow recompute.
+ * Note this list deliberately omits `local-shadow-layer`: it has to stay below
+ * the overlays, and this runs on every shadow recompute.
  */
+/**
+ * Vector-tile source layers whose symbols are *places* — what a person is looking
+ * for on the map, not what the map is made of.
+ *
+ * These are lifted above the shadow layer so a building never hides them. The
+ * layers left behind (`transportation_name`, `water_name`, contours) are the ones
+ * whose whole job is to label the ground, and seeing a street name printed across
+ * the tower standing on it is a large part of what reads as "transparent
+ * buildings".
+ */
+const PLACE_LABEL_SOURCE_LAYERS = new Set([
+  "poi",
+  "outdoor_poi",
+  "place",
+  "park",
+  "aerodrome_label",
+  "mountain_peak",
+]);
+
+/**
+ * A place-label layer and the layer it originally sat immediately below.
+ *
+ * Capture this before *any* of our own layers are added, so no successor is one of
+ * them. `bringNavOverlaysToFront` reshuffles ours on every shadow recompute, and a
+ * slot anchored to one would restore its label above the buildings rather than
+ * below — which, since the style's last layers are a solid run of place labels,
+ * strands the whole run. A label that was last in the basemap has no successor and
+ * restores to just under the shadow layer, the top of the basemap now.
+ */
+type PlaceLabelSlot = { id: string; beforeId: string | undefined };
+
+/** The place-label layers of the current style, each with the slot it came from. */
+function findPlaceLabelSlots(map: maplibregl.Map): PlaceLabelSlot[] {
+  const order = map.getLayersOrder();
+  const slots: PlaceLabelSlot[] = [];
+  for (let i = 0; i < order.length; i++) {
+    const layer = map.getLayer(order[i]);
+    if (layer?.type !== "symbol") continue;
+    if (!PLACE_LABEL_SOURCE_LAYERS.has(layer.sourceLayer ?? "")) continue;
+    slots.push({ id: order[i], beforeId: order[i + 1] });
+  }
+  return slots;
+}
+
+/**
+ * Float the basemap's place labels over the buildings, or put them back.
+ *
+ * Only while the camera is tilted. Everything above the first 3D layer is drawn
+ * by MapLibre with depth testing off, so a layer lifted up here is unconditionally
+ * visible over the extrusions — but flat-on there are no extrusions to hide behind,
+ * and the flat view is the one the shade sampler reads back off the canvas
+ * (invariant #5), where an untinted label over a shaded sidewalk would score as
+ * open sun. Restoring walks the slots backwards so each layer's recorded successor
+ * is already home by the time it is used.
+ */
+function setPlaceLabelsAboveBuildings(
+  map: maplibregl.Map,
+  slots: PlaceLabelSlot[],
+  shadowLayerId: string,
+  above: boolean
+) {
+  const move = (id: string, beforeId?: string) => {
+    if (!map.getLayer(id)) return;
+    if (beforeId && !map.getLayer(beforeId)) return;
+    map.moveLayer(id, beforeId);
+  };
+  if (above) {
+    for (const slot of slots) move(slot.id);
+  } else {
+    for (let i = slots.length - 1; i >= 0; i--) {
+      move(slots[i].id, slots[i].beforeId ?? shadowLayerId);
+    }
+  }
+  bringNavOverlaysToFront(map);
+}
+
 function bringNavOverlaysToFront(map: maplibregl.Map) {
   const layerIds = [
     // Main walking route
@@ -643,34 +684,9 @@ export default function MapView({
     map.on("moveend", refreshSunViz);
 
     map.on("load", async () => {
-      map.addLayer({
-        id: "buildings-3d",
-        type: "fill-extrusion",
-        source: "maptiler_planet",
-        "source-layer": "building",
-        // Mirrors the two drops in `prismsFromTileFeatures` (app/lib/shade/geometry.ts):
-        // underground features, and tall features MapTiler flags as unreliable. Both cast
-        // no shadow, so drawing them would show a building that casts nothing.
-        filter: [
-          "all",
-          ["!=", ["get", "underground"], "true"],
-          [
-            "!",
-            ["all",
-              [">", BUILDING_HEIGHT_EXPR, TALL_BUILDING_THRESHOLD_M],
-              ["has", "hide_3d"],
-            ],
-          ],
-        ],
-        paint: {
-          "fill-extrusion-color": "#2a2a2a",
-          "fill-extrusion-height": BUILDING_HEIGHT_EXPR,
-          "fill-extrusion-base":   ["coalesce", ["get", "render_min_height"], ["get", "min_height"], 0],
-          // Opaque: at 0.8 the ground shadow shows through the walls, which is a milder
-          // version of the bug this layer ordering exists to fix.
-          "fill-extrusion-opacity": 1,
-        },
-      });
+      // Captured first, while the style still holds nothing but the basemap — see
+      // `PlaceLabelSlot`.
+      const placeLabelSlots = findPlaceLabelSlots(map);
 
       // Sketch drawing layer — always present, hidden by default
       map.addSource("sketch-line", {
@@ -727,20 +743,11 @@ export default function MapView({
       );
       if (current) bringNavOverlaysToFront(map);
 
-      // Extrusions only once the camera is tilted: flat-on they add nothing over the
-      // basemap's own building fills, and they cost a draw call per frame.
-      //
       // There is deliberately no terrain here. Terrain replaces the ground with a
       // displaced mesh while the shadow layer's triangles stay at z = 0, so shadows
       // float over valleys and sink into rises. Fixing that means sampling the DEM in
       // the shadow vertex shader; elevation adds nothing to urban pedestrian shade, so
       // the feature is gone rather than broken.
-      const update3DVisibility = () => {
-        const is3D = map.getPitch() > 0;
-        map.setLayoutProperty("buildings-3d", "visibility", is3D ? "visible" : "none");
-      };
-      map.on("pitchend", update3DVisibility);
-      update3DVisibility();
 
       // Create local shadow layer
       const shadowLayer = createShadowLayer(map, {
@@ -754,18 +761,29 @@ export default function MapView({
       const maybeCustom = shadowLayer as unknown as maplibregl.CustomLayerInterface;
       if (maybeCustom?.type === 'custom' && typeof maybeCustom?.render === 'function') {
         if (!map.getLayer(maybeCustom.id)) {
-          // Below the extrusions, not on top of the style. The shadow layer composites
-          // its FBO as a full-screen quad with no depth test (LocalShadowAdapter Pass D),
-          // so appending it last paints ground shadow across every building face —
-          // including faces in full sun. `fill-extrusion` writes depth and draws after,
-          // so inserting here lets buildings occlude the ground shadow correctly.
+          // Topmost, because this one layer draws both the ground shadow and the
+          // tilted buildings, in that order and in one pass — so the buildings cover
+          // the ground shadow without needing a separate style layer above it.
+          // `bringNavOverlaysToFront` then lifts the route back over both.
+          map.addLayer(maybeCustom);
+
+          // Place labels ride above the extrusions, but only while tilted.
           //
-          // Guarded because addLayer throws on a missing beforeId, and a throw inside
-          // this load handler silently costs the sketch layers and the nav route too.
-          map.addLayer(
-            maybeCustom,
-            map.getLayer("buildings-3d") ? "buildings-3d" : undefined
-          );
+          // On `pitch`, not `pitchend`: the 3D toggle is a 400 ms ease, and Pass E
+          // starts drawing buildings the moment pitch leaves 0, so waiting for the
+          // ease to settle buries the labels for the whole tilt. The remembered
+          // state makes every frame of that ease free — the layer moves happen once,
+          // as pitch crosses 0, rather than on each of the ~24 events it fires.
+          let labelsLifted: boolean | null = null;
+          const updateLabelDepth = () => {
+            const lift = map.getPitch() > 0;
+            if (lift === labelsLifted) return;
+            labelsLifted = lift;
+            setPlaceLabelsAboveBuildings(map, placeLabelSlots, maybeCustom.id, lift);
+          };
+          map.on("pitch", updateLabelDepth);
+          map.on("pitchend", updateLabelDepth);
+          updateLabelDepth();
         }
       }
 
