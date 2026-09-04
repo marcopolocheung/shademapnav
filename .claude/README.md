@@ -106,14 +106,36 @@ which is short on purpose.
 
 ## Permissions
 
-`settings.json` pre-approves the four gates and read-only `git`/`gh`, and denies what the
-guardrails already forbid in prose — most importantly **`gh pr merge`**. "Never merge; every
-PR stays open for the repo owner" is this repo's firmest rule, and it is now mechanical. Also
-denied: force-push, reads of `.env*`, and anything under `.worktrees/` or `oldbuild/`.
+`settings.json` pre-approves the four gates and read-only `git`/`gh`, and denies outright only
+what should never happen at all: reads of `.env*`, and anything under `.worktrees/` or
+`oldbuild/`.
 
-Deliberately **not** denied: `git rebase` and `git merge`. The cross-track playbook tells the
-second session to rebase once the first PR opens, so denying them would block sanctioned work.
-Over-denying is how a config gets switched off.
+Two rules are **`ask`, not `deny`**. `gh pr merge` prompts because the owner merges their own
+PRs — that is a decision to confirm, not something to make mechanically impossible.
+Force-push prompts because the guardrail it encodes ("never rewrite published history") is
+aimed at `main`, while a blanket deny also blocks the topic-branch rebase the cross-track
+playbook explicitly tells the second session to do. A prompt gives the same stop-and-think
+without making sanctioned work impossible. `git rebase` and `git merge` are not restricted at
+all, for the same reason.
+
+Over-denying is how a config gets switched off wholesale, which protects nothing.
+
+## Attribution
+
+```json
+"attribution": { "commit": "", "pr": "", "sessionUrl": false }
+```
+
+Three empty/false values, which is the documented way to turn attribution off entirely: no
+`Co-Authored-By` trailer on commits, no attribution line in PR bodies, no session link. The
+repo owner is the sole contributor on this project and the history should say so.
+
+This replaces the deprecated `includeCoAuthoredBy: false`. Note the interaction: once `commit`
+or `pr` is set, Claude Code ignores `includeCoAuthoredBy` entirely and falls back to its
+*default* text for whichever of the two you left unset — so set both, not one.
+
+Scope note: this is project settings, so it covers this repo only. To apply it everywhere, put
+the same block in `~/.claude/settings.json`.
 
 ## Maintaining this
 
