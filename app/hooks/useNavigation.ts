@@ -22,6 +22,41 @@ import { partialRouteNotice } from "../lib/partialRoute";
 import { travelTimeSeconds } from "../lib/travelMode";
 import { routeBounds } from "../lib/routeBounds";
 
+/** Tilting is the one camera move that can provoke motion sickness. */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** How long to let the camera settle before reading the canvas anyway. */
+const CAMERA_SETTLE_TIMEOUT_MS = 1500;
+
+/**
+ * Wait for the map to settle before the readback — but not forever. The timeline's
+ * play mode advances the date every 50 ms, and each advance repaints the shadow
+ * layer, so `idle` never arrives while it runs. `preserveDrawingBuffer` (invariant
+ * #3) means the canvas still holds the last drawn frame, so sampling a frame late
+ * beats hanging the calculation.
+ */
+function waitForMapIdle(map: maplibregl.Map): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let timer: ReturnType<typeof setTimeout>;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      map.off("idle", finish);
+      resolve();
+    };
+    timer = setTimeout(finish, CAMERA_SETTLE_TIMEOUT_MS);
+    map.once("idle", finish);
+  });
+}
+
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
   dateRef: React.MutableRefObject<Date>;
@@ -77,6 +112,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const dragActiveRef = useRef(false);
   const ghostElRef = useRef<HTMLDivElement | null>(null);
+  /** The pitch to hand back to the user once a flat shade readback is done. */
+  const pitchRestoreRef = useRef<number | null>(null);
 
   waypointARef.current = waypointA;
   waypointBRef.current = waypointB;
@@ -94,13 +131,49 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  /**
+   * Flatten the camera before a shade readback. Returns whether it moved, because a
+   * camera that moved has to settle before the canvas is read.
+   *
+   * `isBlueDominantShadowPixel` calls any blue-dominant pixel shaded, and the shadow
+   * layer now paints the buildings with that same field — a shaded wall (`#6f7f99`)
+   * and a shaded roof (`#8797b2`) both satisfy the predicate. So a tilted readback
+   * puts building surfaces under the sample points and scores an occluded sidewalk
+   * as shaded (#154). Pass E already skips drawing buildings at pitch 0 *because* it
+   * assumes this readback is flat (`LocalShadowAdapter.ts`, "always at pitch 0");
+   * this is what makes that true. Bearing needs no such handling — `map.project`
+   * is correct under rotation, and only pitch produces occlusion.
+   *
+   * A second calculation starting while the first is still flat must not record 0
+   * as the pitch to go back to, so an already-pending restore is left alone.
+   */
+  const flattenForShadeReadback = useCallback((map: maplibregl.Map): boolean => {
+    if (map.getPitch() === 0) return false;
+    if (pitchRestoreRef.current === null) pitchRestoreRef.current = map.getPitch();
+    map.jumpTo({ pitch: 0 });
+    return true;
+  }, []);
+
+  /** Hand the user's tilt back. Safe to call when nothing was flattened. */
+  const restorePitchAfterShadeReadback = useCallback((map: maplibregl.Map | null) => {
+    const pitch = pitchRestoreRef.current;
+    if (pitch === null || !map) return;
+    pitchRestoreRef.current = null;
+    // Tilting is the one camera move that can provoke motion sickness.
+    if (prefersReducedMotion()) map.jumpTo({ pitch });
+    else map.easeTo({ pitch, duration: 400 });
+  }, []);
+
   const cancelInFlightCalculation = useCallback(() => {
     calcGenRef.current++;
     calcAbortRef.current?.abort();
+    // The abandoned calculation's `finally` sees a bumped generation and leaves the
+    // camera alone, so cancelling is what gives the tilt back.
+    restorePitchAfterShadeReadback(mapRef.current);
     setIsCalculating(false);
     setRouteProgress(null);
     setRoutePreview(null);
-  }, []);
+  }, [mapRef, restorePitchAfterShadeReadback]);
 
   const fitMapToRoute = useCallback((route: RouteOption) => {
     const map = mapRef.current;
@@ -512,6 +585,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const bbox = sketchBoundingBox(simplified, 0.005);
       setRouteProgress({ message: "Fetching walk network" });
 
+      // Flatten before reading the bounds: a tilted camera sees further, so the
+      // in-view test has to be asked of the camera the canvas will be read from.
+      const flattened = flattenForShadeReadback(map);
       const currentBounds = map.getBounds();
       const bboxInView =
         currentBounds.getWest() <= bbox.west &&
@@ -519,17 +595,16 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         currentBounds.getSouth() <= bbox.south &&
         currentBounds.getNorth() >= bbox.north;
 
+      if (!bboxInView) {
+        map.fitBounds(
+          [[bbox.west, bbox.south], [bbox.east, bbox.north]] as [[number, number], [number, number]],
+          { padding: 50, duration: 0 }
+        );
+      }
+
       const [graph] = await Promise.all([
         fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east),
-        bboxInView
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              map.fitBounds(
-                [[bbox.west, bbox.south], [bbox.east, bbox.north]] as [[number, number], [number, number]],
-                { padding: 50, duration: 0 }
-              );
-              map.once("idle", resolve);
-            }),
+        bboxInView && !flattened ? Promise.resolve() : waitForMapIdle(map),
       ]);
 
       const gaps = findSketchGaps(simplified, graph);
@@ -632,10 +707,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     } catch (e) {
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
+      restorePitchAfterShadeReadback(mapRef.current);
       setIsCalculating(false);
       setRouteProgress(null);
     }
-  }, [sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute]);
+  }, [
+    sketchPoints, mapRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
+    flattenForShadeReadback, restorePitchAfterShadeReadback,
+  ]);
 
   const handleSketchFinish = useCallback(() => {
     setDrawMode(false);
@@ -864,6 +943,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
       const tFetch = performance.now();
       updateProgress({ message: "Fetching walk network" });
+      // Flatten before reading the bounds: a tilted camera sees further, so the
+      // in-view test has to be asked of the camera the canvas will be read from.
+      const flattened = flattenForShadeReadback(map);
       const currentBounds = map.getBounds();
       const bboxInView =
         currentBounds.getWest() <= west &&
@@ -871,17 +953,16 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         currentBounds.getSouth() <= south &&
         currentBounds.getNorth() >= north;
 
+      if (!bboxInView) {
+        map.fitBounds(
+          [[west, south], [east, north]] as [[number, number], [number, number]],
+          { padding: 50, duration: 0 }
+        );
+      }
+
       const [graph] = await Promise.all([
         fetchRoutingGraph(south, west, north, east, calcSignal),
-        bboxInView
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              map.fitBounds(
-                [[west, south], [east, north]] as [[number, number], [number, number]],
-                { padding: 50, duration: 0 }
-              );
-              map.once("idle", resolve);
-            }),
+        bboxInView && !flattened ? Promise.resolve() : waitForMapIdle(map),
       ]);
       graphFetchMs = performance.now() - tFetch;
 
@@ -1363,12 +1444,18 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setNavError(e instanceof Error ? e.message : "Routing failed");
     } finally {
       if (calcGenRef.current === myGen) {
+        // A superseded calculation leaves the camera flat on purpose — the one
+        // that replaced it owns the restore, and still holds the original pitch.
+        restorePitchAfterShadeReadback(mapRef.current);
         setIsCalculating(false);
         setRouteProgress(null);
         setRoutePreview(null);
       }
     }
-  }, [additionalWaypoints, mapRef, dateRef, fitMapToRoute]);
+  }, [
+    additionalWaypoints, mapRef, dateRef, fitMapToRoute,
+    flattenForShadeReadback, restorePitchAfterShadeReadback,
+  ]);
 
   const handleCalculateRoute = useCallback(() => {
     const useSketch = drawModeRef.current && sketchPointsRef.current.length >= 2;
