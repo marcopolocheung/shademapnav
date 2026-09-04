@@ -183,13 +183,13 @@ export function prismsFromFootprints(footprints: BuildingFootprintLike[]): Prism
  * reproduces it. That is what lets a wall fragment at height z ask whether it is
  * shaded: it is, iff the interpolated ceiling exceeds z.
  *
- * **The weights are exact only once composed under MAX blending**, which is how
- * the renderer rasterizes them. Per triangle they are not: over the far cap the
+ * **The weights are exact only once composed by taking the per-pixel maximum**,
+ * which is how the renderer rasterizes them. Per triangle they are not: over the far cap the
  * true ceiling is nonzero almost everywhere, and these weights write 0 there. That
  * is a floor rather than an error, because the swept quad of whichever edge is
  * nearest against the sun always covers the same point and carries the real value,
- * and MAX keeps it. Reuse this under any other blend and the far cap will punch
- * holes in the field.
+ * and the maximum keeps it. Reuse this without maximum composition and the far
+ * cap will punch holes in the field.
  */
 export function buildShadowTriangles(
   ring: [number, number][],
