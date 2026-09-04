@@ -524,14 +524,20 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         v_normal = a_normal;
       }
     `;
+    // `highp`, not the `mediump` the other shaders use: the PCF taps below offset
+    // `uv` by half a texel, which on a 4096-wide height FBO is ~0.00012 — smaller
+    // than fp16 mediump's ~0.00098 epsilon near uv = 1.0. At mediump the offsets
+    // would be swallowed at the top and right of the screen and the antialiasing
+    // would silently stop working there. highp is core in WebGL2 fragment shaders.
     const bldgFsSrc = `
-      precision mediump float;
+      precision highp float;
       uniform sampler2D u_heightTex;
       uniform vec3 u_wallColor;
       uniform vec3 u_shadowTint;
       uniform float u_sunBelow;
       uniform float u_bias;
       uniform vec2 u_sunFlat;
+      uniform vec2 u_texelSize;
       varying float v_hNorm;
       varying float v_facing;
       varying vec4 v_groundClip;
@@ -556,9 +562,29 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         float onScreen = step(0.0, uv.x) * step(uv.x, 1.0)
                        * step(0.0, uv.y) * step(uv.y, 1.0)
                        * step(0.0001, v_groundClip.w);
-        float ceilN = texture2D(u_heightTex, uv).r * onScreen;
+        // 4-tap PCF over the height field. Passes A–D get their smooth edges from
+        // rasterizing at SHADOW_SUPERSAMPLE× and downsampling through a LINEAR
+        // texture, but this pass makes a per-fragment step() decision that no
+        // amount of MSAA can soften, so the boundary painted across walls and
+        // roofs came out as a staircase while the ground shadow beside it was
+        // smooth. Threshold each tap and average the results — averaging the
+        // *heights* first (i.e. a LINEAR filter) would invent a mid-height caster
+        // between a tall neighbour and open sky that shades nothing real, and
+        // would drag Pass C, which thresholds the same texture, along with it.
+        // The taps are already paid for: the FBO is 2× the canvas, so a ±½-texel
+        // offset lands on the four texel centres under this pixel.
+        vec2 halfTexel = u_texelSize * 0.5;
+        float c0 = texture2D(u_heightTex, uv + vec2(-halfTexel.x, -halfTexel.y)).r;
+        float c1 = texture2D(u_heightTex, uv + vec2( halfTexel.x, -halfTexel.y)).r;
+        float c2 = texture2D(u_heightTex, uv + vec2(-halfTexel.x,  halfTexel.y)).r;
+        float c3 = texture2D(u_heightTex, uv + vec2( halfTexel.x,  halfTexel.y)).r;
+        float hb = v_hNorm + u_bias;
+        float ceilShade = 0.25 * (step(hb, c0) + step(hb, c1)
+                                + step(hb, c2) + step(hb, c3));
+        // Off screen there is no height field to read, and hb > 0 makes every tap
+        // resolve to 0 anyway, so one multiply is equivalent to masking each tap.
         // Turned away from the sun, or something taller shades this height.
-        float shaded = max(step(v_facing, 0.0), step(v_hNorm + u_bias, ceilN));
+        float shaded = max(step(v_facing, 0.0), ceilShade * onScreen);
         shaded = max(shaded, u_sunBelow);
         float sky = SKY_BASE
                   + SKY_UP * v_normal.z
@@ -576,7 +602,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       'u_matrix', 'u_mercZPerMeter', 'u_maxH', 'u_sunOffset', 'u_normalOffset',
       'u_sunDir',
       'u_heightTex', 'u_wallColor', 'u_shadowTint', 'u_sunFlat',
-      'u_sunBelow', 'u_bias',
+      'u_sunBelow', 'u_bias', 'u_texelSize',
     ]) {
       this.bldgUniforms[name] = gl.getUniformLocation(this.bldgProgram, name);
     }
@@ -862,6 +888,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       // Same slack Pass C uses: the height field is 8-bit, so a roof must not
       // shade itself on a rounding step.
       gl2.uniform1f(u.u_bias, 0.004);
+      // The PCF taps step by half a texel of the *height FBO*, not of the canvas:
+      // SHADOW_FBO_MAX_DIM clamps the supersample factor below 2× on hi-DPR
+      // displays, and the two dimensions diverge from there.
+      gl2.uniform2f(u.u_texelSize, 1 / w, 1 / h);
 
       gl2.activeTexture(gl.TEXTURE0);
       gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
