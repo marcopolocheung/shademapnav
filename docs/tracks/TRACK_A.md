@@ -10,20 +10,25 @@
 
 ## Current state
 
-- **Active checkpoint:** A4 (routing reads the field) — **first slice only**. Live providers
-  (#126) are done and open as a PR; the `useNavigation.ts` swap is deliberately not in it.
-- **Done:** A1 (#123 / PR #124), A2 (#125 / PR #127), A3 (#129 / PR #130), A4a (#126 / PR #131).
-- **Open PRs, stacked in order — merge oldest first:**
-  #124 (A1) → #127 (A2, based on A1) → #130 (A3, based on A2) → #131 (A4a, based on A3). Each imports the previous one's module, so none can branch from `main`; GitHub retargets
-  each to `main` as its parent merges.
-- **Blocked on:** **A4's second half is blocked on #121.** Swapping `useNavigation.ts`'s shade
-  source changes what every user sees on every route, and the definition of done requires that
-  confirmed in `npm run dev` — which no agent session can do until the browser libs are installed.
-  Do not land the swap on test evidence alone; this track's stated risk #1 is a field that looks
-  right and is quietly wrong, and A3 measures agreement, not whether the app still works.
-  Also open: #128 (boundary-parallel disagreement), #120 (height reconciliation), #122 (per-query
-  polygon rebuild).
-- **The agreement number, as of this PR:** `150 cases · mean 2.6pp · p90 0.0pp · worst 62.5pp ·
+- **Active checkpoint:** A4 (routing reads the field) — **second slice only**. A4a (live
+  providers, #126) is done and on `main`; the `useNavigation.ts` swap is not.
+- **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
+  A4a (#126 / PR #137) — A2, A3 and A4a only as of this re-land.
+- **How that went wrong, so it does not happen again:** #134→#137 were stacked, each based on
+  the previous, and all four merged within 11 seconds — so #135, #136 and #137 landed on their
+  *parent branches* and only #134 ever reached `main`. The tree survived at
+  `origin/shade/a3-agreement` (`35f9c6e2`); this PR re-lands those seven files verbatim.
+  **Do not stack Track A PRs.** Branch each from `main` and let it merge before the next starts.
+- **Blocked on:** **A4's second half is blocked on #122** — `pointInPrismShadow` rebuilds every
+  shadow polygon per query point, far too slow to sample a route graph, so the swap cannot be
+  wired until the geometry is built once and indexed. It is also gated on #121: swapping
+  `useNavigation.ts`'s shade source changes what every user sees on every route, and the
+  definition of done requires that confirmed in `npm run dev`. Do not land the swap on test
+  evidence alone; this track's stated risk #1 is a field that looks right and is quietly wrong,
+  and A3 measures agreement, not whether the app still works.
+  Also open: #128 (boundary-parallel disagreement), #120 (height reconciliation).
+- **The agreement number, as of this re-land** (unchanged from what #136 recorded, despite
+  `geometry.ts` gaining 98 lines from #159): `150 cases · mean 2.6pp · p90 0.0pp · worst 62.5pp ·
   severe 3.3% · [madrid 2.2pp, singapore 2.3pp, kent-wa 3.4pp]`. Committed ceilings: mean 0.04,
   p90 0.05, severe share 0.04. **These come down as the field improves; raising one is a product
   decision, not a way to make a failure go away.**
