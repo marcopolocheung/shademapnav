@@ -6,6 +6,7 @@ import type { SavedRoute } from "../../lib/savedRoutes";
 import { downloadBlob } from "../../lib/exportRoute";
 import { geocodeReverse } from "../../lib/nominatim";
 import { fetchRoutingGraph } from "../../lib/overpass";
+import { sampleBothSidewalks } from "../../lib/shadeSampling";
 import { useNavigation } from "../useNavigation";
 
 vi.mock("../../lib/nominatim", () => ({
@@ -17,6 +18,48 @@ vi.mock("../../lib/overpass", async () => {
     "../../lib/overpass",
   );
   return { ...actual, fetchRoutingGraph: vi.fn(), fetchStationEntrances: vi.fn() };
+});
+
+/**
+ * The shade field, swappable per test. `vi.hoisted` because `vi.mock`'s factory runs
+ * when `useNavigation` is first imported, before this file's own consts initialise.
+ */
+const shadeStub = vi.hoisted(() => ({
+  coverage: { source: "tiles" as string, confidence: 0.8 },
+  /** Per-edge answers, in the order `sampleEdges` was handed them. */
+  edgeShade: [] as Array<{ left: number; right: number; source: string; confidence: number }>,
+  readyError: null as Error | null,
+  readyGate: null as Promise<void> | null,
+  sampledBatchSizes: [] as number[],
+}));
+
+vi.mock("../../lib/shade/ShadeField", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/shade/ShadeField")>(
+    "../../lib/shade/ShadeField",
+  );
+  return {
+    ...actual,
+    createGeometryShadeField: () => ({
+      shadeAt: () => ({ shade: 0, source: "none", confidence: 0 }),
+      sweep: () => [],
+      coverage: () => shadeStub.coverage,
+      sampleEdges: (edges: unknown[]) => {
+        shadeStub.sampledBatchSizes.push(edges.length);
+        return edges.map((_, i) => shadeStub.edgeShade[i] ?? shadeStub.edgeShade[0]);
+      },
+      ready: async () => {
+        if (shadeStub.readyGate) await shadeStub.readyGate;
+        if (shadeStub.readyError) throw shadeStub.readyError;
+      },
+    }),
+  };
+});
+
+vi.mock("../../lib/shadeSampling", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/shadeSampling")>(
+    "../../lib/shadeSampling",
+  );
+  return { ...actual, sampleBothSidewalks: vi.fn(actual.sampleBothSidewalks) };
 });
 
 vi.mock("../../lib/exportRoute", async () => {
@@ -302,12 +345,42 @@ async function runRouteWith(map: unknown) {
   return result;
 }
 
+/** The field answers confidently from tiles unless a test says otherwise. */
+function resetShadeStub() {
+  shadeStub.coverage = { source: "tiles", confidence: 0.8 };
+  shadeStub.edgeShade = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
+  shadeStub.readyError = null;
+  shadeStub.readyGate = null;
+  shadeStub.sampledBatchSizes = [];
+  vi.mocked(sampleBothSidewalks).mockClear();
+}
+
+/** Three nodes in a line — two undirected edges, so "only that edge" is testable. */
+function threeNodeGraph() {
+  return {
+    nodes: new Map([
+      [1, { id: 1, lat: 1.3, lon: 103.8 }],
+      [2, { id: 2, lat: 1.3005, lon: 103.8005 }],
+      [3, { id: 3, lat: 1.301, lon: 103.801 }],
+    ]),
+    adj: new Map([
+      [1, [{ toId: 2, distanceM: 75 }]],
+      [2, [{ toId: 1, distanceM: 75 }, { toId: 3, distanceM: 75 }]],
+      [3, [{ toId: 2, distanceM: 75 }]],
+    ]),
+  };
+}
+
 describe("flat shade readback (#154)", () => {
   let restoreCanvas: () => void;
 
   beforeEach(() => {
     restoreCanvas = stubCanvas2d();
     vi.mocked(fetchRoutingGraph).mockResolvedValue(twoNodeGraph() as never);
+    resetShadeStub();
+    // These tests are about the canvas path, so keep the field unable to answer.
+    shadeStub.coverage = { source: "none", confidence: 0 };
+    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
   });
 
   afterEach(() => restoreCanvas());
@@ -360,14 +433,17 @@ describe("flat shade readback (#154)", () => {
     expect(fitBeforeRead).toBeGreaterThan(log.indexOf("jumpTo(0)"));
   });
 
-  it("gives the tilt back when the graph fetch fails", async () => {
+  it("leaves the camera alone entirely when the graph fetch fails", async () => {
+    // A4b moved the flatten after the graph fetch, so a fetch that never returns a
+    // graph no longer disturbs the camera at all. That is strictly stronger than
+    // #154's guarantee — there is no tilt to give back because none was taken.
     vi.mocked(fetchRoutingGraph).mockRejectedValue(new Error("Overpass is down"));
     const { map, log } = fakeMap({ pitch: 60, boundsAtPitch: wideBounds });
 
     await runRouteWith(map);
 
-    expect(log).toContain("jumpTo(0)");
-    expect(log).toContain("easeTo(60)");
+    expect(log).not.toContain("jumpTo(0)");
+    expect(map.getPitch()).toBe(60);
   });
 
   it("reads the canvas anyway when idle never arrives", async () => {
@@ -382,5 +458,141 @@ describe("flat shade readback (#154)", () => {
 
     expect(log).toContain("getCanvas@pitch0");
     expect(log).toContain("easeTo(45)");
+  });
+});
+
+
+describe("routing reads the shade field (A4b)", () => {
+  let restoreCanvas: () => void;
+
+  beforeEach(() => {
+    restoreCanvas = stubCanvas2d();
+    vi.mocked(fetchRoutingGraph).mockResolvedValue(twoNodeGraph() as never);
+    resetShadeStub();
+  });
+
+  afterEach(() => restoreCanvas());
+
+  const wideBounds = () => ({ west: 100, south: -1, east: 107, north: 5 });
+
+  // A box far too small to contain the route, so the canvas path is obliged to fit
+  // the camera onto it before reading. That is what makes the next test's claim mean
+  // something: with geometry available, that fit must not happen.
+  const narrowBounds = () => ({ west: 103.7999, south: 1.2999, east: 103.8001, north: 1.3001 });
+
+  it("never touches the canvas or the camera when geometry covers the route", async () => {
+    const { map, log } = fakeMap({ pitch: 0, boundsAtPitch: narrowBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(log.some((entry) => entry.startsWith("getCanvas@"))).toBe(false);
+    expect(vi.mocked(sampleBothSidewalks)).not.toHaveBeenCalled();
+    // The only fit is `fitMapToRoute` showing the finished route.
+    expect(log.filter((entry) => entry === "fitBounds")).toHaveLength(1);
+    expect(result.current.navRoutes.length).toBeGreaterThan(0);
+  });
+
+  it("does fit and read when geometry cannot answer, so the last test discriminates", async () => {
+    shadeStub.coverage = { source: "none", confidence: 0 };
+    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    const { map, log } = fakeMap({ pitch: 0, boundsAtPitch: narrowBounds });
+
+    await runRouteWith(map);
+
+    expect(log.some((entry) => entry.startsWith("getCanvas@"))).toBe(true);
+    expect(log.filter((entry) => entry === "fitBounds")).toHaveLength(2);
+  });
+
+  it("routes on the field's own left/right values", async () => {
+    shadeStub.edgeShade = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    // Fully shaded sidewalks on the only edge there is, so the route inherits it.
+    expect(result.current.navRoutes[0].shadeCoverage).toBe(1);
+    expect(result.current.navRoutes[0].shadeSource?.dominant).toBe("tiles");
+  });
+
+  it("falls back to pixels for a weak edge and only that edge", async () => {
+    vi.mocked(fetchRoutingGraph).mockResolvedValue(threeNodeGraph() as never);
+    shadeStub.coverage = { source: "tiles", confidence: 0.2 }; // so a canvas exists
+    shadeStub.edgeShade = [
+      { left: 1, right: 1, source: "tiles", confidence: 0.8 },
+      { left: 0, right: 0, source: "tiles", confidence: 0.2 },
+    ];
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(vi.mocked(sampleBothSidewalks)).toHaveBeenCalledTimes(1);
+    expect(result.current.navRoutes[0].shadeSource?.bySource.canvas).toBeGreaterThan(0);
+    expect(result.current.navRoutes[0].shadeSource?.bySource.tiles).toBeGreaterThan(0);
+  });
+
+  it("still routes, from the map view, when no geometry resolves at all", async () => {
+    shadeStub.coverage = { source: "none", confidence: 0 };
+    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(result.current.navRoutes.length).toBeGreaterThan(0);
+    expect(result.current.navRoutes[0].shadeSource?.dominant).toBe("canvas");
+  });
+
+  it("hands the whole edge set to the field in one batch", async () => {
+    vi.mocked(fetchRoutingGraph).mockResolvedValue(threeNodeGraph() as never);
+    shadeStub.edgeShade = [{ left: 0, right: 0, source: "tiles", confidence: 0.8 }];
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    await runRouteWith(map);
+
+    // Slicing the batch would rebuild the field's internal per-cell shadow indices.
+    expect(shadeStub.sampledBatchSizes).toEqual([2]);
+  });
+
+  it("routes anyway when the geometry preload fails", async () => {
+    // Overpass rate-limits constantly; that is a reason to fall back, not to fail.
+    shadeStub.readyError = new Error("429 Too Many Requests");
+    shadeStub.coverage = { source: "none", confidence: 0 };
+    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(result.current.navError).toBeNull();
+    expect(result.current.navRoutes.length).toBeGreaterThan(0);
+  });
+
+  it("writes nothing when cancelled during the geometry preload", async () => {
+    let openGate: () => void = () => {};
+    shadeStub.readyGate = new Promise<void>((resolve) => {
+      openGate = resolve;
+    });
+    const { map, log } = fakeMap({ pitch: 60, boundsAtPitch: wideBounds });
+
+    const { result } = renderHook(() =>
+      useNavigation({
+        mapRef: { current: map as never },
+        dateRef: { current: new Date("2026-08-16T04:00:00Z") },
+        setDate: vi.fn(),
+      }),
+    );
+    act(() => result.current.handleSetWaypointA([103.8, 1.3], "Start"));
+    act(() => result.current.handleSetWaypointB([103.801, 1.301], "End"));
+    await act(async () => {
+      result.current.handleCalculateRoute();
+    });
+
+    act(() => result.current.handleClearWaypointA());
+    await act(async () => {
+      openGate();
+    });
+
+    expect(result.current.navRoutes).toEqual([]);
+    // Nothing was flattened, so the finally has no tilt to give back.
+    expect(log).not.toContain("jumpTo(0)");
+    expect(map.getPitch()).toBe(60);
   });
 });

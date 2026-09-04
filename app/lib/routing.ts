@@ -1,6 +1,7 @@
 // Pure TypeScript routing utilities — no browser dependencies
 import type { PartialRouteInfo } from "./partialRoute";
 import type { TrainDrawData } from "./trainGraph";
+import type { ShadeProvenance } from "./shadeProvenance";
 
 export interface OsmNode {
   id: number;
@@ -53,6 +54,8 @@ export interface RouteResult {
   shadeTransitions: number;
   detourRatio: number;
   turnCount: number;
+  /** Where `shadeCoverage` came from. Set by the caller that sampled; see `shadeProvenance.ts`. */
+  shadeSource?: ShadeProvenance;
 }
 
 export interface TransitLeg {
@@ -95,6 +98,8 @@ export interface RouteOption {
   mrtEntrances?: [[number, number], [number, number]]; // [boardEntrance, alightEntrance] in [lng, lat]
   trainDrawData?: TrainDrawData; // multi-colored polylines, stops, transfers for MapView
   partial?: PartialRouteInfo; // present when only completed legs are shown
+  /** Where `shadeCoverage` came from. Absent on sketch and transit routes. */
+  shadeSource?: ShadeProvenance;
 }
 
 export interface DijkstraOptions {

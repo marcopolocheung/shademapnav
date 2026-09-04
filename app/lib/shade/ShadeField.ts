@@ -67,9 +67,25 @@ export interface BBox {
   north: number;
 }
 
+/**
+ * Whether any source can speak for an area — asked *before* sampling it.
+ *
+ * `sampleEdges` already reports a source and a confidence per edge, but only after
+ * doing the work. A caller that must decide something up front — A4b decides whether
+ * to read the map canvas at all, which costs a camera move and a full-canvas
+ * readback — needs the same answer in advance, and this is the cheap half of
+ * `sampleEdges`: resolve a provider, score it, do no geometry.
+ */
+export interface Coverage {
+  source: ShadeSource;
+  confidence: number;
+}
+
 export interface ShadeField {
   shadeAt(lng: number, lat: number, when: Date): ShadeSample;
   sampleEdges(edges: EdgeRef[], when: Date): EdgeShade[];
+  /** Which source, if any, could answer for this whole bbox. No geometry is built. */
+  coverage(bbox: BBox, when: Date): Coverage;
   /** N times in one pass. Naive today; A6 makes it cheaper than N× `sampleEdges`. */
   sweep(edges: EdgeRef[], times: Date[]): EdgeShade[][];
   /** Preload geometry so subsequent synchronous queries can answer. */
@@ -89,6 +105,17 @@ export interface PrismProvider {
   source: "tiles" | "overpass";
   prismsFor(bbox: BBox): PrismSet | null;
   load?(bbox: BBox): Promise<void>;
+  /**
+   * How complete this source's geometry is *right now*, as a 0–1 multiplier on its
+   * base confidence. Absent means 1.
+   *
+   * `prismsFor` answers a yes/no question — can I speak for this area at all — and
+   * that binary is too coarse for a source whose coverage degrades continuously.
+   * MapTiler thins its building layer as you zoom out: still non-empty, so
+   * `dataFactor` sees buildings and says nothing, while half the block is missing
+   * and the field reports a sunlit street under a tower it never received.
+   */
+  completeness?(): number;
 }
 
 // ─── Tunables, all of them documented ─────────────────────────────────────────
@@ -153,8 +180,12 @@ const POINT_OFFSETS_M: Array<[number, number]> = [
  * cover that is not practical, and past a couple of hundred metres the answer is
  * dominated by terrain and haze this model does not have, so the request is capped
  * and `confidenceFor` docks the answer near the horizon instead.
+ *
+ * Exported because a caller that preloads with `ready()` has to pad its bbox by the
+ * same amount `sampleEdges` will: load one area and resolve another and the provider
+ * declines an area it actually holds.
  */
-const QUERY_PAD_M = 400;
+export const QUERY_PAD_M = 400;
 
 /** Below this sun altitude, shadow geometry stops being trustworthy. See `confidenceFor`. */
 const LOW_SUN_ALTITUDE_RAD = (10 * Math.PI) / 180;
@@ -192,6 +223,10 @@ const NO_GEOMETRY_FACTOR = 0.4;
  *    empty plaza or one whose buildings never loaded. The field cannot tell those
  *    apart, so it says so.
  *
+ * 4. **How complete the source's geometry is right now.** Reported by the provider —
+ *    see `PrismProvider.completeness`. A tile source zoomed out far enough to be
+ *    served a decimated building layer is not the same source it is at street zoom.
+ *
  * Note what this deliberately does *not* dock: a point that simply sits outside every
  * shadow. Once buildings are loaded, "the sun reaches here" is a confident answer, and
  * treating it as a doubt would send almost every sunlit sample to the fallback path.
@@ -199,7 +234,8 @@ const NO_GEOMETRY_FACTOR = 0.4;
 export function confidenceFor(
   source: PrismProvider["source"],
   sunAltitudeRad: number,
-  prismsAvailable: number
+  prismsAvailable: number,
+  completeness = 1
 ): number {
   const base = SOURCE_BASE_CONFIDENCE[source];
 
@@ -210,7 +246,7 @@ export function confidenceFor(
 
   const dataFactor = prismsAvailable > 0 ? 1 : NO_GEOMETRY_FACTOR;
 
-  return base * horizonFactor * dataFactor;
+  return base * horizonFactor * dataFactor * Math.max(0, Math.min(1, completeness));
 }
 
 // ─── Geometry helpers ─────────────────────────────────────────────────────────
@@ -258,6 +294,8 @@ export function bboxAroundEdges(edges: EdgeRef[], padM: number): BBox | null {
 interface Resolved {
   set: PrismSet;
   source: PrismProvider["source"];
+  /** The provider's own completeness at the moment it answered. */
+  completeness: number;
 }
 
 /** The sun, and the shadows it casts, shared by every edge in one `SUN_CELL_M` cell. */
@@ -293,7 +331,9 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
   function resolve(bbox: BBox): Resolved | null {
     for (const provider of providers) {
       const set = provider.prismsFor(bbox);
-      if (set) return { set, source: provider.source };
+      if (set) {
+        return { set, source: provider.source, completeness: provider.completeness?.() ?? 1 };
+      }
     }
     return null;
   }
@@ -314,7 +354,9 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     return {
       shade,
       source: resolved.source,
-      confidence: confidenceFor(resolved.source, sunAltitude, resolved.set.prisms.length),
+      confidence: confidenceFor(
+        resolved.source, sunAltitude, resolved.set.prisms.length, resolved.completeness,
+      ),
     };
   }
 
@@ -492,6 +534,31 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
   return {
     shadeAt,
     sampleEdges,
+
+    coverage(bbox, when) {
+      const lng = (bbox.west + bbox.east) / 2;
+      const lat = (bbox.south + bbox.north) / 2;
+
+      // Below the horizon there is nothing to resolve and nothing to doubt: the
+      // whole area is shaded, and `sampleEdges` will say so without consulting a
+      // provider. Reporting full confidence here is what lets a caller skip a
+      // fallback path it would never have used.
+      const sun = SunCalc.getPosition(when, lat, lng);
+      if (sun.altitude <= 0) {
+        const night = nightSample();
+        return { source: night.source, confidence: night.confidence };
+      }
+
+      const resolved = resolve(bbox);
+      if (!resolved) return { source: "none", confidence: 0 };
+
+      return {
+        source: resolved.source,
+        confidence: confidenceFor(
+          resolved.source, sun.altitude, resolved.set.prisms.length, resolved.completeness,
+        ),
+      };
+    },
 
     sweep(edges, times) {
       // Resolving geometry once across all times is the only saving here so far.
