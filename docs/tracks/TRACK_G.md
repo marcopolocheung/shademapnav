@@ -10,22 +10,33 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** G1 (not started)
-- **Done:** nothing
-- **Open PRs:** none (6 open Dependabot PRs are unrelated and unreviewed: #119, #117, #112, #82, #81, #80)
-- **Decisions made:** none yet
-- **Blocked on:** nothing. G1 needs `VITE_MAPTILER_API_KEY` as a repo secret — ask the owner early
-- **Next action:** G1 — one browser smoke test
-- **Last verified:** 2026-08-24, 156 tests / 23 files green on main
+- **Active checkpoint:** G1 (in review) → G2 next
+- **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app: shadows paint
+  (imported `isBlueDominantShadowPixel`, 54% of sampled pixels at 09:00 vs 0% before the first
+  shadow pass), the timeline drag retimes them (54% → 29% at noon), and a stubbed-Overpass
+  two-point route puts ~1.9k route-line pixels on the canvas. 49 s locally, one retry then fail.
+- **Open PRs:** #165 (a docs-only refresh of this brief, unmerged — it proposes a new G0 routing
+  quality eval and marks G4 delivered), plus the G1 PR. 7 unrelated Dependabot PRs.
+- **Decisions made:** the smoke test seeds state through the existing share-link params
+  (`?lat/lng/z/date/time/a/b`) rather than driving the geocoder, and stubs `/api/overpass` with a
+  synthetic street grid — real MapTiler tiles are kept, because buildings and therefore shadows
+  come from them. CI skips the whole job with a `::notice` when the secret is absent, and uploads
+  no Playwright artifacts (traces record tile URLs, which carry the key).
+- **Blocked on:** `VITE_MAPTILER_API_KEY` as a repo secret. Until the owner adds it the e2e job
+  skips in CI — the test is verified locally, not in CI.
+- **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
+  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
+- **Last verified:** 2026-09-04, 342 tests / 33 files green on main (the 156 / 23 figure this
+  block used to claim was six weeks stale)
 
 ---
 
 ## Why this track exists
 
-**Nothing has ever executed this app in a browser automatically.** The vitest suite runs in
-`environment: "node"`. Never covered by any check: shadow rendering, timeline drag, end-to-end
-route calculation, the streaming route preview, camera-free shade probes, GeoTIFF export, the
-PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
+**Until G1, nothing had ever executed this app in a browser automatically.** The vitest suite
+runs in `environment: "node"`. G1's smoke test now covers shadow rendering, the timeline drag
+and one end-to-end route calculation. Still covered by no check: the streaming route preview,
+camera-free shade probes, GeoTIFF export, the PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
 that TTI and route-calc timings are missing because no browser binary was available.
 
 With one agent making one PR at a time, that was survivable. With six tracks in parallel it
@@ -63,7 +74,7 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 
 ## Checkpoints
 
-### G1 — Browser smoke test ← **start here**
+### G1 — Browser smoke test ✅ **done**
 **Goal.** One automated run that actually loads the app. Closes **#35**.
 **Approach.** Playwright with a WebGL-capable Chromium (`--use-gl=angle --use-angle=swiftshader`
 for headless WebGL2), `VITE_MAPTILER_API_KEY` as a repo secret, running against `vite preview`
@@ -75,7 +86,7 @@ line renders.
 forks aren't broken; runtime under ~3 minutes; flake budget stated (retry once, then fail).
 **Files.** `e2e/**` (new), `.github/workflows/ci.yml`, `playwright.config.ts`. **Size.** Large.
 
-### G2 — Route benchmark
+### G2 — Route benchmark ← **start here**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.
 **Approach.** A scripted 2-point and 5-point calculation in the G1 browser, reading
 `window.__shadeMapMetrics.summary`. Commit the baseline into

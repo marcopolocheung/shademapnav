@@ -36,3 +36,36 @@ jobs:
       # No secrets needed: Vite inlines absent VITE_* vars as undefined, and the
       # MapTiler key is only read at runtime for tile fetches.
       - run: npm run build
+
+  e2e:
+    name: browser smoke test
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Fork PRs and clones without repo access get no secret. Rather than a red
+      # X they get a skip with a reason: the test needs real MapTiler tiles,
+      # because buildings — and therefore shadows — come from the basemap source.
+      HAS_MAPTILER_KEY: ${{ secrets.VITE_MAPTILER_API_KEY != '' }}
+      VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - if: env.HAS_MAPTILER_KEY != 'true'
+        run: echo "::notice title=Browser smoke test skipped::VITE_MAPTILER_API_KEY is not available to this run (fork PR, or the secret is unset). The smoke test needs real basemap tiles to render buildings and shadows."
+
+      - if: env.HAS_MAPTILER_KEY == 'true'
+        run: npm ci
+
+      - if: env.HAS_MAPTILER_KEY == 'true'
+        run: npx playwright install --with-deps chromium
+
+      # Playwright builds and serves dist/ itself (see playwright.config.ts).
+      # No artifact upload: traces record tile URLs, and those carry the key.
+      - if: env.HAS_MAPTILER_KEY == 'true'
+        run: npm run e2e

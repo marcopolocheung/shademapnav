@@ -49,3 +49,9 @@ CLAUDE.local.md
 
 # Browser-verification output (see docs/notes/browser-verification.md)
 out/
+
+# playwright
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache

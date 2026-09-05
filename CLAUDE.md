@@ -22,6 +22,7 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # biome lint — blocks on errors, ~180 known findings are "warn"
 npm run format     # biome format --write (never yet run repo-wide; see biome.json)
 npm run build      # vite build → dist/
+npm run e2e        # playwright test — one browser smoke test; skips without VITE_MAPTILER_API_KEY
 ```
 
 Lint config is `biome.json` (Biome replaced ESLint, whose config had zero rules and
@@ -150,7 +151,9 @@ Map instance flows up once via `onMapReady(map)` into a ref (never state).
 - Run `/gates` — all four, in order, with the real output. It records the result that the
   `Stop` hook and the status line read, so the session cannot end on an unearned "tests pass".
 - UI/map changes: also verify in `npm run dev` (shadows render, slider drags, route
-  calculates). Nothing in `npm test` runs a browser — it never has. If you can't look, say the
-  check is outstanding rather than letting four green gates imply it.
+  calculates). `npm test` never opens a browser; the only automated browser run is
+  `npm run e2e`, one smoke test that loads the built app, checks shadows paint and retime,
+  and calculates a route. It covers that path and nothing else, so if you can't look, say the
+  check is outstanding rather than letting green gates imply it.
 - Before a PR opens: `/checkpoint` walks the definition of done and gets a cold review from
   the `verifier` agent.
