@@ -1,22 +1,20 @@
 import { defineConfig } from "@playwright/test";
 import { loadEnv } from "vite";
 
-// The smoke test needs real MapTiler vector tiles: building footprints come from
-// the basemap source (`querySourceFeatures("maptiler_planet")`), and with no
-// buildings there are no shadows to assert on. Without the key the suite skips
-// with a message rather than failing, so forks and secret-less runs stay green.
-// `loadEnv` reads the same sources the build does — the `.env` files locally, the
-// environment in CI — so nobody has to export the key twice.
+// The `smoke-live` project needs real MapTiler vector tiles. `loadEnv` reads the
+// same sources the build does — the `.env` files locally, the environment in CI —
+// so nobody has to export the key twice.
 export const hasMapTilerKey = !!loadEnv("production", process.cwd(), "VITE_")
   .VITE_MAPTILER_API_KEY;
 
-if (!hasMapTilerKey) {
-  // Playwright's reporters print a bare "1 skipped"; say why.
-  console.warn(
-    "[e2e] VITE_MAPTILER_API_KEY is not set — skipping the browser smoke test. " +
-      "It needs real MapTiler tiles: buildings, and therefore shadows, come from them."
-  );
-}
+// Say which projects will run. A reader who sees one test instead of two should
+// not have to guess why.
+console.log(
+  hasMapTilerKey
+    ? "[e2e] running `smoke` (fixture basemap) and `smoke-live` (real MapTiler tiles)."
+    : "[e2e] running `smoke` (fixture basemap). `smoke-live` needs VITE_MAPTILER_API_KEY " +
+        "and is skipped — it is the only check on MapTiler's real building schema."
+);
 
 const PORT = 4173;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -40,10 +38,15 @@ export default defineConfig({
     trace: "retain-on-failure",
     browserName: "chromium",
     // Fixed viewport: the app switches layout at Tailwind's `md`, and the pixel
-    // assertions below count samples off a canvas of exactly this size.
+    // assertions count samples off a canvas of exactly this size.
     viewport: { width: 1280, height: 900 },
     deviceScaleFactor: 1,
     timezoneId: "America/New_York",
+    // The production build registers `sw.js` (app/main.tsx), and `page.route`
+    // does not intercept requests a service worker makes. Without this the
+    // fixture basemap style could be served from the worker's cache instead of
+    // from the test.
+    serviceWorkers: "block",
     launchOptions: {
       // Headless WebGL2 for MapLibre and the shadow renderer: ANGLE over
       // SwiftShader is the only software path that gives a real GL2 context.
@@ -54,21 +57,27 @@ export default defineConfig({
       ],
     },
   },
+  projects: [
+    // Keyless, so it runs on every PR including forks. Serves a synthetic
+    // basemap style with a `maptiler_planet` geojson source.
+    { name: "smoke" },
+    // Same assertions, real tiles. The only check that the app still parses
+    // MapTiler's actual building schema.
+    ...(hasMapTilerKey ? [{ name: "smoke-live" }] : []),
+  ],
   // Runs against the production build, not the dev server: `import.meta.env.DEV`
   // picks the prod Overpass path, and only the built bundle proves the app the
   // deploy ships actually boots.
-  webServer: hasMapTilerKey
-    ? {
-        // --host pins the bind address to the one the poll below dials. Left to
-        // default, `vite preview` binds the name `localhost`, which on Node 17+
-        // can resolve to ::1 while Playwright waits on 127.0.0.1 and times out.
-        command: `npm run build && npm run start -- --host 127.0.0.1 --port ${PORT} --strictPort`,
-        url: BASE_URL,
-        // Never reuse: a preview server already on this port would serve an old
-        // dist/ and quietly skip the build, so the test would pass against code
-        // that is not the code in the tree.
-        reuseExistingServer: false,
-        timeout: 240_000,
-      }
-    : undefined,
+  webServer: {
+    // --host pins the bind address to the one the poll below dials. Left to
+    // default, `vite preview` binds the name `localhost`, which on Node 17+
+    // can resolve to ::1 while Playwright waits on 127.0.0.1 and times out.
+    command: `npm run build && npm run start -- --host 127.0.0.1 --port ${PORT} --strictPort`,
+    url: BASE_URL,
+    // Never reuse: a preview server already on this port would serve an old
+    // dist/ and quietly skip the build, so the test would pass against code
+    // that is not the code in the tree.
+    reuseExistingServer: false,
+    timeout: 240_000,
+  },
 });

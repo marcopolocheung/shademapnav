@@ -43,10 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # Fork PRs and clones without repo access get no secret. Rather than a red
-      # X they get a skip with a reason: the test needs real MapTiler tiles,
-      # because buildings — and therefore shadows — come from the basemap source.
-      HAS_MAPTILER_KEY: ${{ secrets.VITE_MAPTILER_API_KEY != '' }}
+      # Not required. The `smoke` project serves a synthetic basemap style, so it
+      # runs everywhere including fork PRs, which never receive secrets. Where the
+      # secret does exist it adds the `smoke-live` project, the only check that the
+      # app still parses MapTiler's real building schema.
       VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -56,22 +56,19 @@ jobs:
           node-version: 20
           cache: npm
 
-      # A warning, not a notice: this job goes green either way, and a green box
-      # for a test that never ran is exactly the unearned pass the rest of this
-      # repo's verification is built to prevent. Say so where a reviewer looks.
-      - if: env.HAS_MAPTILER_KEY != 'true'
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # Playwright builds and serves dist/ itself (see playwright.config.ts), and
+      # prints which projects it is running. No artifact upload: `smoke-live`
+      # traces record tile URLs, and those carry the key.
+      - run: npm run e2e
+
+      - if: always()
         run: |
-          echo "::warning title=Browser smoke test did NOT run::VITE_MAPTILER_API_KEY is not available to this run (fork PR, or the secret is unset). This job is green because it was skipped, not because the smoke test passed."
-          echo "### Browser smoke test skipped" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`VITE_MAPTILER_API_KEY\` is unavailable here, so the smoke test did not run. It needs real basemap tiles: buildings, and therefore shadows, come from them. This job's green tick means skipped, not passed." >> "$GITHUB_STEP_SUMMARY"
-
-      - if: env.HAS_MAPTILER_KEY == 'true'
-        run: npm ci
-
-      - if: env.HAS_MAPTILER_KEY == 'true'
-        run: npx playwright install --with-deps chromium
-
-      # Playwright builds and serves dist/ itself (see playwright.config.ts).
-      # No artifact upload: traces record tile URLs, and those carry the key.
-      - if: env.HAS_MAPTILER_KEY == 'true'
-        run: npm run e2e
+          if [ -n "${VITE_MAPTILER_API_KEY}" ]; then
+            echo "Ran \`smoke\` (fixture basemap) and \`smoke-live\` (real MapTiler tiles)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Ran \`smoke\` (fixture basemap). \`smoke-live\` needs \`VITE_MAPTILER_API_KEY\`, which is unavailable here (fork PR, or the secret is unset)." >> "$GITHUB_STEP_SUMMARY"
+          fi

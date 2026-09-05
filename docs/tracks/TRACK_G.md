@@ -11,25 +11,33 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 ## Current state
 
 - **Active checkpoint:** G1 (in review, PR #177) → G2 next
-- **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app: shadows paint
-  (imported `isBlueDominantShadowPixel`, 54% of sampled pixels at 09:00 vs 0.0% on the first
-  readable frame), the timeline drag retimes them (mask diff 0.42 after the drag against a 0.000
-  noise floor over 4 s without one, landing on 12:00 in the URL), and a stubbed-Overpass
-  two-point route puts ~1.9k route-line pixels on the canvas against 0 before the click.
-  ~45 s locally, one retry then fail. **Its CI path has never executed** — see Blocked on.
+- **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app, running in CI on
+  every PR: shadows paint (imported `isBlueDominantShadowPixel`, 27.8% of sampled pixels at 09:00
+  against 0.000% on the first readable frame), the timeline drag retimes them (mask diff 0.307
+  after the drag against a 0.000 noise floor over 4 s without one, landing on 12:00 in the URL),
+  and a stubbed-Overpass two-point route puts route-line pixels on the canvas against 0 before
+  the click. ~17 s locally, one retry then fail.
 - **Open PRs:** #165 (a docs-only refresh of this brief, unmerged — it proposes a new G0 routing
   quality eval and marks G4 delivered), plus the G1 PR. 7 unrelated Dependabot PRs.
 - **Decisions made:** the smoke test seeds state through the existing share-link params
   (`?lat/lng/z/date/time/a/b`) rather than driving the geocoder, and stubs `/api/overpass` with a
-  synthetic street grid — real MapTiler tiles are kept, because buildings and therefore shadows
-  come from them. CI skips the whole job with a `::notice` when the secret is absent, and uploads
-  no Playwright artifacts (traces record tile URLs, which carry the key).
-- **Blocked on:** `VITE_MAPTILER_API_KEY` as a repo secret. Until the owner adds it the e2e job
-  skips in CI — the test is verified locally, not in CI.
+  synthetic street grid. It runs as two projects. `smoke` intercepts the MapTiler style request
+  and serves a synthetic style whose `maptiler_planet` **geojson** source carries the building
+  footprints — maplibre 5.9.0 resolves a tile's layers as `_geojsonTileLayer || [sourceLayer]`,
+  so every `querySourceFeatures("maptiler_planet", { sourceLayer: "building" })` caller works
+  unchanged and no production code moved. That project needs no key, so it runs on forks. Its
+  fixture palette is pure greys, because a blue-dominant basemap would make the unshaded baseline
+  score as shade and the whole assertion vacuous. `smoke-live` repeats the same assertions
+  against real tiles wherever the secret exists — the only check on MapTiler's real `building`
+  schema. CI uploads no Playwright artifacts (`smoke-live` traces record tile URLs, which carry
+  the key).
+- **Blocked on:** nothing. `VITE_MAPTILER_API_KEY` as a repo secret (#173) now only adds the
+  `smoke-live` project; it is no longer the difference between a real run and a green skip.
 - **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
   browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
-- **Last verified:** 2026-09-04, 342 tests / 33 files green on main (the 156 / 23 figure this
-  block used to claim was six weeks stale)
+- **Last verified:** 2026-09-05, four gates green plus `npm run e2e` (`smoke` project) on the
+  G1 branch; removing the fixture's `maptiler_planet` fill layer turns the run red on the
+  shadow poll, which is what proves the buildings come from the fixture
 
 ---
 
@@ -51,9 +59,10 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 
 ## What already exists
 
-- **CI** (`.github/workflows/ci.yml`): lint → typecheck → test → build on every PR and push to
-  `main`. No secrets required today — the build inlines missing `VITE_*` as `undefined` and the
-  test suite is hermetic. **G1 changes that; keep the no-secret path working for forks.**
+- **CI** (`.github/workflows/ci.yml`): lint → typecheck → test → build, then the browser smoke
+  test, on every PR and push to `main`. Still no secrets required — the build inlines missing
+  `VITE_*` as `undefined`, the test suite is hermetic, and the smoke test's keyless project
+  stubs every request it makes. **Keep it that way: fork PRs never receive secrets.**
 - **Biome** (`biome.json`) — recommended set as errors, with `noNonNullAssertion`,
   `noExplicitAny`, `noApproximativeNumericConstant` off by design; a11y and
   `useExhaustiveDependencies` at `warn` (~127 + 17 findings).
