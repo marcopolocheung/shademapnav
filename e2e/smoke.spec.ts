@@ -10,6 +10,7 @@ const CENTER = { lat: 40.754, lng: -73.984, zoom: 17 };
 const WAYPOINT_A: [number, number] = [-73.9855, 40.753];
 const WAYPOINT_B: [number, number] = [-73.9825, 40.755];
 const START_TIME = "09:00";
+const START_MINUTES = 9 * 60;
 // Straight-line A→B is ~340 m, under the 500 m threshold that pulls the transit
 // graph in — one fewer network dependency for the same route assertion.
 const SHARE_URL =
@@ -22,6 +23,7 @@ const SHARE_URL =
 // every shadow in the frame.
 const DRAG_PX_PER_MIN = 2;
 const DRAG_MINUTES = 180;
+const INERTIA_CUTOFF_MS = 80;
 
 // Every 8th pixel in both axes: ~18k samples off a 1280×900 canvas, enough to
 // measure a shadow field without shipping 4.6 MB per read across CDP.
@@ -54,6 +56,18 @@ async function sampleMapCanvas(page: Page, step: number): Promise<number[]> {
     }
     return out;
   }, step);
+}
+
+/**
+ * Fraction of samples whose shaded state differs between two frames. Throws on a
+ * length mismatch: a resized canvas would otherwise read as "everything changed"
+ * and pass the shadows-moved assertion for the wrong reason.
+ */
+function maskDiff(before: boolean[], after: boolean[]): number {
+  if (before.length !== after.length) {
+    throw new Error(`canvas sample count changed: ${before.length} then ${after.length}`);
+  }
+  return after.filter((shaded, i) => shaded !== before[i]).length / after.length;
 }
 
 /** The app's own shade predicate, imported rather than restated (invariant #5). */
@@ -105,6 +119,11 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
       body: overpassGridResponse,
     })
   );
+  // The cloud-cover badge's forecast fetch is the one other third party the app
+  // touches on load. It feeds no assertion here, and the caller already treats a
+  // failure as "no data", so cut it rather than leave an unmocked call in a test
+  // that claims to be deterministic.
+  await page.route("**api.open-meteo.com/**", (route) => route.abort());
 
   await page.goto(SHARE_URL);
   await expect(page.locator("canvas.maplibregl-canvas")).toBeVisible();
@@ -114,7 +133,7 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
   await expect
     .poll(
       async () => shadedFraction(shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))),
-      { timeout: 60_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
+      { timeout: 50_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
     )
     .toBeGreaterThan(0.02);
 
@@ -125,11 +144,11 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
     .poll(
       async () => {
         const next = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
-        const drift = next.filter((shaded, i) => shaded !== morningMask[i]).length / next.length;
+        const drift = maskDiff(morningMask, next);
         morningMask = next;
         return drift;
       },
-      { timeout: 30_000, message: "the shadow field never stopped changing on its own" }
+      { timeout: 15_000, message: "the shadow field never stopped changing on its own" }
     )
     .toBeLessThan(0.005);
 
@@ -146,16 +165,32 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
   await page.mouse.move(startX, y);
   await page.mouse.down();
   await page.mouse.move(startX - DRAG_MINUTES * DRAG_PX_PER_MIN, y, { steps: 12 });
+  // Pause before releasing. TimelineSlider launches momentum only when the
+  // pointer comes up within 80 ms of the last move, and a flung slider coasts
+  // for an unpredictable number of minutes — which would make the end time a
+  // function of how fast the machine running the test happens to be.
+  await page.waitForTimeout(INERTIA_CUTOFF_MS * 2);
   await page.mouse.up();
 
+  // The app mirrors date and time back into the URL on every change, so this is
+  // the clock the drag actually landed on. ±2 min absorbs per-frame rounding.
   await expect
     .poll(
-      async () => {
-        const noonMask = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
-        return noonMask.filter((shaded, i) => shaded !== morningMask[i]).length / noonMask.length;
+      () => {
+        const [h, m] = (new URL(page.url()).searchParams.get("time") ?? "0:0")
+          .split(":")
+          .map(Number);
+        return Math.abs(h * 60 + m - (START_MINUTES + DRAG_MINUTES));
       },
-      { timeout: 30_000, message: "the shadow field did not change after dragging the timeline" }
+      { timeout: 10_000, message: "the drag did not land on the expected clock time" }
     )
+    .toBeLessThanOrEqual(2);
+
+  await expect
+    .poll(async () => maskDiff(morningMask, shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))), {
+      timeout: 20_000,
+      message: "the shadow field did not change after dragging the timeline",
+    })
     .toBeGreaterThan(0.01);
 
   // 3. A two-point route calculates and its line reaches the canvas. The share
@@ -171,13 +206,13 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
             .__shadeMapMetrics;
           return Boolean(metrics?.latest);
         }),
-      { timeout: 60_000, message: "no routing run was ever recorded on window.__shadeMapMetrics" }
+      { timeout: 40_000, message: "no routing run was ever recorded on window.__shadeMapMetrics" }
     )
     .toBe(true);
 
   await expect
     .poll(() => countRouteLinePixels(page), {
-      timeout: 30_000,
+      timeout: 20_000,
       message: "the route line never appeared on the map canvas",
     })
     .toBeGreaterThan(routeLinePixelsBefore + 200);

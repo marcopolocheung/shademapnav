@@ -27,7 +27,10 @@ export default defineConfig({
   // than that is noise, and noisy CI is worse than no CI.
   retries: 1,
   workers: 1,
-  timeout: 120_000,
+  // The test's polls sum to 155 s, so the per-test ceiling sits above that: a
+  // slow run should fail on the poll's own message, not on a generic test
+  // timeout that says nothing about which step gave up. A passing run takes ~50 s.
+  timeout: 180_000,
   expect: { timeout: 30_000 },
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
   use: {
@@ -56,7 +59,10 @@ export default defineConfig({
     ? {
         command: `npm run build && npm run start -- --port ${PORT} --strictPort`,
         url: BASE_URL,
-        reuseExistingServer: !process.env.CI,
+        // Never reuse: a preview server already on this port would serve an old
+        // dist/ and quietly skip the build, so the test would pass against code
+        // that is not the code in the tree.
+        reuseExistingServer: false,
         timeout: 240_000,
       }
     : undefined,

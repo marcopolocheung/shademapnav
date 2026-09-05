@@ -10,11 +10,13 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** G1 (in review) → G2 next
+- **Active checkpoint:** G1 (in review, PR #177) → G2 next
 - **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app: shadows paint
-  (imported `isBlueDominantShadowPixel`, 54% of sampled pixels at 09:00 vs 0% before the first
-  shadow pass), the timeline drag retimes them (54% → 29% at noon), and a stubbed-Overpass
-  two-point route puts ~1.9k route-line pixels on the canvas. 49 s locally, one retry then fail.
+  (imported `isBlueDominantShadowPixel`, 54% of sampled pixels at 09:00 vs 0.0% on the first
+  readable frame), the timeline drag retimes them (mask diff 0.42 after the drag against a 0.000
+  noise floor over 4 s without one, landing on 12:00 in the URL), and a stubbed-Overpass
+  two-point route puts ~1.9k route-line pixels on the canvas against 0 before the click.
+  ~45 s locally, one retry then fail. **Its CI path has never executed** — see Blocked on.
 - **Open PRs:** #165 (a docs-only refresh of this brief, unmerged — it proposes a new G0 routing
   quality eval and marks G4 delivered), plus the G1 PR. 7 unrelated Dependabot PRs.
 - **Decisions made:** the smoke test seeds state through the existing share-link params
@@ -74,7 +76,7 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 
 ## Checkpoints
 
-### G1 — Browser smoke test ✅ **done**
+### G1 — Browser smoke test ✅ **landed — but its CI path still waits on the secret**
 **Goal.** One automated run that actually loads the app. Closes **#35**.
 **Approach.** Playwright with a WebGL-capable Chromium (`--use-gl=angle --use-angle=swiftshader`
 for headless WebGL2), `VITE_MAPTILER_API_KEY` as a repo secret, running against `vite preview`
@@ -85,6 +87,9 @@ line renders.
 **Acceptance.** Green in CI on a PR; skipped-with-a-clear-message when the secret is absent, so
 forks aren't broken; runtime under ~3 minutes; flake budget stated (retry once, then fail).
 **Files.** `e2e/**` (new), `.github/workflows/ci.yml`, `playwright.config.ts`. **Size.** Large.
+**Delivered against acceptance:** the skip path is green in real CI (notice printed, three steps
+skipped) and the flake budget and runtime hold locally; "green in CI" for the *test* path is
+outstanding until #173 adds the secret, and nothing here can close that from inside a PR.
 
 ### G2 — Route benchmark ← **start here**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.

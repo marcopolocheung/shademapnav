@@ -25,6 +25,12 @@ npm run build      # vite build → dist/
 npm run e2e        # playwright test — one browser smoke test; skips without VITE_MAPTILER_API_KEY
 ```
 
+`npm run e2e` needs its browser installed once: `npx playwright install --with-deps chromium`
+(CI does this itself). Without sudo — WSL, say — download `libnss3`, `libnspr4` and
+`libasound2`, `dpkg-deb -x` them into a scratch dir, and point `LD_LIBRARY_PATH` at its
+`usr/lib/x86_64-linux-gnu`; the cached Chromium then starts and MapLibre's WebGL2 renders
+on SwiftShader.
+
 Lint config is `biome.json` (Biome replaced ESLint, whose config had zero rules and
 matched zero `.ts` files). Rules the codebase intentionally violates — `noNonNullAssertion`
 (`routing.ts` leans on `!`), `noExplicitAny` (maplibre interop), `noApproximativeNumericConstant`
