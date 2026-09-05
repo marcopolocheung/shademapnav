@@ -48,6 +48,14 @@ targets. It is a tool you run by hand, before a PR that changes what the map dra
   pitch (#154). Calculates the same route flat and tilted and compares the shade percentages
   the route cards report; also checks the camera went flat for the readback and got its tilt
   back afterwards.
+- **`scripts/verify/wall_shadow_alignment.py`** — compares Pass E before and after a wall
+  ceiling-threshold change in a fixed Tribeca scene. Its diagnostic framebuffer writes the
+  shaded decision to red, roof/wall to green, sun-facing status to blue, and zero alpha for
+  every Pass E fragment. A fully covered building pixel therefore has `A == 0`; a valid
+  ground probe has `A == 255`, and no pixel between it and the wall may have `A == 0`.
+  The disagreement metric skips the one- or two-pixel MSAA silhouette fringe rather than
+  classifying it. A separate strict count requires every intervening pixel to have
+  `A == 255`; that count must clear the sample-size gate.
 
 Run them against a dev server:
 
@@ -59,6 +67,46 @@ LD_LIBRARY_PATH=$HOME/miniconda3/lib \
 
 Screenshots and a JSON report land in `--out` (gitignored). Put the numbers in the PR body;
 do not commit the PNGs.
+
+### Wall/ground terminator comparison
+
+Capture the baseline from an unmodified `main` server before starting the feature server.
+The verifier fixes the viewport at 1200×900, timezone at `America/New_York`, pitch at 55°,
+bearing at 0°, and the scene URL at z17 in Tribeca; it also rejects a comparison whose
+recorded configuration differs. Because strict alpha rejection leaves relatively few whole
+pixels exactly at an antialiased silhouette, each run aggregates six deterministic subpixel
+raster phases of that same camera; no blended pixel is admitted as either wall or ground.
+Repeat the pair three times to rule out a lucky tile or rendering frame:
+
+```bash
+# Terminal 1, from an unmodified main worktree
+npm run dev -- --host 127.0.0.1 --port 5173
+
+# Terminal 2, from the feature worktree
+for run in 1 2 3; do
+  LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+    ~/miniconda3/bin/python scripts/verify/wall_shadow_alignment.py \
+      --url http://127.0.0.1:5173 --out out/wall-shadow --tag before-$run
+done
+
+# Stop the main server, then start the feature server on the identical host and port.
+npm run dev -- --host 127.0.0.1 --port 5173
+
+for run in 1 2 3; do
+  LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+    ~/miniconda3/bin/python scripts/verify/wall_shadow_alignment.py \
+      --url http://127.0.0.1:5173 --out out/wall-shadow --tag after-$run \
+      --baseline out/wall-shadow/before-$run.json
+done
+```
+
+Every baseline and comparison requires at least 10,000 Pass E pixels, 1,000 wall pixels,
+and 1,000 strict wall-base samples whose entire probe path has `A == 255`. Every comparison
+additionally requires exactly zero
+lit→shaded flips, exactly zero roof differences, a shaded→lit fraction from 0.3% through
+2.0% of compared Pass E pixels, and a wall-base disagreement rate at least 0.2 percentage
+points below its paired baseline. The lower flip bound catches a no-op; the upper bound
+catches a lift mistakenly applied to whole faces.
 
 ## What still cannot be checked
 
