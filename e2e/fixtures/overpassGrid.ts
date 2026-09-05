@@ -5,8 +5,9 @@
  *
  * The smoke test stubs Overpass with this rather than hitting the real API:
  * the public instance rate-limits, times out under load, and returns a
- * different graph every month. Real tiles are what the test is checking; the
- * road graph only has to exist and connect the two waypoints.
+ * different graph every month. The road graph only has to exist and connect the
+ * two waypoints; the buildings it is routed among come from `basemapStyle.ts`
+ * (or, in the `smoke-live` project, from real MapTiler tiles).
  */
 
 const SOUTH = 40.7515;

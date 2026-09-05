@@ -27,9 +27,9 @@ export default defineConfig({
   workers: 1,
   // The test's polls sum to 195 s, so the per-test ceiling sits above that: a
   // slow run should fail on the poll's own message, not on a generic test
-  // timeout that says nothing about which step gave up. A passing run takes ~45 s;
-  // the ceilings are sized for a 2-core runner rendering on SwiftShader, and a
-  // poll that passes early costs nothing.
+  // timeout that says nothing about which step gave up. A passing `smoke` run
+  // takes ~17 s locally and ~50 s on a 2-core GitHub runner rendering on
+  // SwiftShader; `smoke-live` adds ~45 s. A poll that passes early costs nothing.
   timeout: 240_000,
   expect: { timeout: 30_000 },
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
@@ -43,9 +43,11 @@ export default defineConfig({
     deviceScaleFactor: 1,
     timezoneId: "America/New_York",
     // The production build registers `sw.js` (app/main.tsx), and `page.route`
-    // does not intercept requests a service worker makes. Without this the
-    // fixture basemap style could be served from the worker's cache instead of
-    // from the test.
+    // does not intercept requests a service worker makes. The MapTiler style is
+    // cross-origin, which `sw.js` declines outright — but the `/api/overpass`
+    // stub is same-origin and escapes the worker only because one line of
+    // `shouldHandle` skips `/api/`. Blocking the worker stops that stub's fate
+    // resting on a line in unrelated code.
     serviceWorkers: "block",
     launchOptions: {
       // Headless WebGL2 for MapLibre and the shadow renderer: ANGLE over

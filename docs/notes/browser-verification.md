@@ -21,6 +21,10 @@ LD_LIBRARY_PATH=$HOME/miniconda3/lib \
 # Chromium 136.0.7103.25
 ```
 
+On a sudo-less box *without* miniconda, the older route still works: download the `libnss3`,
+`libnspr4` and `libasound2` debs, `dpkg-deb -x` them into a scratch directory, and point
+`LD_LIBRARY_PATH` at its `usr/lib/x86_64-linux-gnu`.
+
 WebGL needs a software rasteriser, since WSL exposes no GPU:
 
 ```
