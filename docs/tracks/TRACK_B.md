@@ -11,10 +11,11 @@
 ## Current state
 
 - **Active checkpoint:** B1 (not started). #145 (3D buildings) and #159 (shadows painted onto
-  them) landed first as prerequisite camera work — neither is a numbered checkpoint.
+  them) landed first as prerequisite camera work — neither is a numbered checkpoint. PR #178
+  is open for the wall/ground shadow-terminator correction.
 - **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted; then
   superseded — the shadow layer now draws the buildings itself (see the decision below)
-- **Open PRs:** #145, #159
+- **Open PRs:** #178
 - **Decisions made:**
   - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
     `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
@@ -56,6 +57,11 @@
   - **Camera pitch lives in `useShadowTime`**, not in a component: the map arrives via a ref,
     so a component subscribing on mount finds `null` and never re-renders to retry.
   - 3D tilt is **55°**, and the toggle honours `prefers-reduced-motion` with `jumpTo`.
+  - **Wall sample nudges are ceiling-neutral away from the near cap.** Pass E still samples
+    1.5 m toward the sun and 1.5 m along the wall normal to escape its own footprint, but its
+    wall-only threshold rises by each offset's sunward component times `tan(alt)`. Roofs take
+    exactly zero lift. Near-cap residuals and purely transverse normal offsets remain explicit
+    limitations; #176 owns making the nudge texel-adaptive.
 - **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it). Two notes for B6,
   both #147: the sidewalk Dijkstra chose **is** retained through the search (`prevEdge`,
   `routing.ts:345`; `paretoRoutes`' `edgePath`, `:644-656`) — it is just not returned on
@@ -64,9 +70,12 @@
   path can zigzag across the street and B6 would chatter. That is a cost-model change, not
   plumbing.
 - **Next action:** B1 — maneuver generation from route geometry
-- **Last verified:** 2026-09-03, 224 tests / 27 files green, plus screenshots of Midtown
-  Manhattan at pitch 0/60/65/70 across the day, a pitch round-trip asserting the label layer
-  order restores exactly, and a `main`-vs-branch pixel diff of the flat view.
+- **Last verified:** 2026-09-05 on PR #178: lint and typecheck green, 347 tests / 33 files
+  green, and the production build green. Three identical Tribeca z17 / pitch-55 browser
+  pairs each compared 4,060,451 stable Pass E pixels: 22,169 shaded→lit (0.546%), zero
+  lit→shaded, zero roof differences, 1,166 strict wall-base paths, and wall-base disagreement
+  improved 15.015% → 14.524% across 11,009 whole wall/ground samples; ordinary z17–18 renders
+  kept walls variably lit and the PR #171 rooftop case unchanged.
   #121 is workable: Playwright's Chromium runs headless in WSL once
   `libnss3`/`libnspr4`/`libasound2` are `apt-get download`ed and extracted to a
   `LD_LIBRARY_PATH` dir (no sudo), with `--use-angle=swiftshader` for WebGL. Take the
