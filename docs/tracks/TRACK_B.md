@@ -13,9 +13,10 @@
 - **Active checkpoint:** B1 — PR #181 open for #179 on `feat/b1-maneuver-generation`.
   Pure maneuver generation only; live position tracking and UI follow in B3/B4.
 - **Done:** B1 implementation and its captured-route tests; prerequisite camera work #148
-  (the PR for #145) and #159 merged, as did #150 (chosen sidewalk plumbing) and #171
-  (roof depth precision). No numbered checkpoint before B1.
-- **Open PRs:** #181 (B1); #178 (wall/ground shadow alignment, separate camera work).
+  (the PR for #145) and #159 merged, as did #150 (chosen sidewalk plumbing), #171
+  (roof depth precision) and #178 (wall/ground shadow alignment). No numbered checkpoint
+  before B1.
+- **Open PRs:** #181 (B1).
 - **Decisions made:**
   - **B1 consumes ordered walking nodes** via `generateManeuvers(nodes, legIndex = 0)` in
     `app/lib/guidance/maneuvers.ts`; distances are cumulative haversine meters along the
@@ -73,6 +74,11 @@
   - **Camera pitch lives in `useShadowTime`**, not in a component: the map arrives via a ref,
     so a component subscribing on mount finds `null` and never re-renders to retry.
   - 3D tilt is **55°**, and the toggle honours `prefers-reduced-motion` with `jumpTo`.
+  - **Wall sample nudges are ceiling-neutral away from the near cap.** Pass E still samples
+    1.5 m toward the sun and 1.5 m along the wall normal to escape its own footprint, but its
+    wall-only threshold rises by each offset's sunward component times `tan(alt)`. Roofs take
+    exactly zero lift. Near-cap residuals and purely transverse normal offsets remain explicit
+    limitations; #176 owns making the nudge texel-adaptive.
 - **Blocked on:** nothing for B1. For B6, `ShadeField.sampleEdges` already returns per-side
   shade and confidence (`app/lib/shade/ShadeField.ts`), and #168 uses it in navigation;
   no A2 stub is needed. `GraphEdge.side` and `RouteResult`/`RouteOption.sides` also exist
@@ -85,7 +91,14 @@
   5.57 s; lint has 52 existing warnings and 8 infos (capped output), with no errors in
   the changed files. Cold verifier: no findings, independently reran all four gates.
   CI's coverage command also passed; `maneuvers.ts` has 100% statement/branch/function/line
-  coverage. B1 has no UI/map change, so no browser check applies.
+  coverage. B1 has no UI/map change, so no browser check applies. The branch has since
+  merged main (`9ccde54`, picking up #177 and #178) to clear a docs-only conflict in this
+  file; the gates have not been rerun on the merge commit.
+  Prior shadow verification (2026-09-05, #178): three identical Tribeca z17 / pitch-55
+  browser pairs each compared 4,060,451 stable Pass E pixels — 22,169 shaded→lit (0.546%),
+  zero lit→shaded, zero roof differences, 1,166 strict wall-base paths, and wall-base
+  disagreement improved 15.015% → 14.524% across 11,009 whole wall/ground samples; ordinary
+  z17–18 renders kept walls variably lit and the PR #171 rooftop case unchanged.
   Prior camera verification (2026-09-03): screenshots of Midtown Manhattan at pitch
   0/60/65/70 across the day, a pitch round-trip asserting exact label order restoration,
   and a `main`-vs-branch pixel diff of the flat view.

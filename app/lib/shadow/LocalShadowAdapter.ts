@@ -17,7 +17,7 @@ import {
 } from '../shade/geometry';
 import { buildShadowIndex } from '../shade/shadowIndex';
 import SunWorker from '../../workers/sunPosition.worker?worker';
-import { normalizedShadowHeightBias } from './heightField';
+import { normalizedCeilingLift, normalizedShadowHeightBias } from './heightField';
 
 // Shadow-edge antialiasing via supersampling: the shadow FBO is rendered at
 // SHADOW_SUPERSAMPLE× the canvas resolution, then box-downsampled by the LINEAR
@@ -46,6 +46,16 @@ const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
  * clears the footprint even on a wall that runs nearly parallel to the sun. That
  * second step is what stops such a wall from dithering along the edge of its own
  * shadow. Both are small enough to barely move within a *neighbour's* shadow.
+ *
+ * Nudging toward the sun means nudging closer to every caster, so the field reads a
+ * *higher* ceiling there — by exactly the sunward part of the step times tan(alt),
+ * since within any caster's shadow the ceiling falls at that slope and the per-pixel
+ * MAX preserves it. The wall pass therefore raises its own threshold by the same
+ * amount (`normalizedCeilingLift`, uploaded as `u_ceilLift`), which makes the nudge
+ * geometrically free: the wall's terminator lands where the ground shadow at its
+ * base says it should, while the sample still escapes the near cap. Left
+ * uncompensated, the raised ceiling meets an unraised threshold and every wall
+ * shades 1–2 m too high — which is what made a shadow step as it crossed onto a wall.
  */
 const WALL_SHADOW_SUN_OFFSET_M = 1.5;
 const WALL_SHADOW_NORMAL_OFFSET_M = 1.5;
@@ -518,7 +528,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       uniform vec2 u_sunOffset;
       uniform float u_normalOffset;
       uniform vec3 u_sunDir;
+      uniform vec2 u_sunFlat;
+      uniform vec2 u_ceilLift;
       varying float v_hNorm;
+      varying float v_ceilLift;
       varying float v_facing;
       varying vec4 v_groundClip;
       void main() {
@@ -526,6 +539,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         float isWall = 1.0 - step(0.5, a_normal.z);
         vec2 sampleXY = a_pos
                       + isWall * (u_sunOffset + a_normal.xy * u_normalOffset);
+        // The sample sits closer to every caster, so the ceiling it reads is higher
+        // by the sunward part of that step times tan(alt). Raise the threshold to
+        // match, and the nudge costs nothing: x is the sun step's share, y the
+        // normal step's, projected onto the sun. Roofs take isWall = 0 and no lift.
+        v_ceilLift = isWall * (u_ceilLift.x + u_ceilLift.y * dot(a_normal.xy, u_sunFlat));
         v_groundClip = u_matrix * vec4(sampleXY, 0.0, 1.0);
         v_hNorm = a_heightM / u_maxH;
         v_facing = dot(a_normal, u_sunDir);
@@ -541,6 +559,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       uniform float u_bias;
       uniform vec2 u_sunFlat;
       varying float v_hNorm;
+      varying float v_ceilLift;
       varying float v_facing;
       varying vec4 v_groundClip;
       varying vec3 v_normal;
@@ -566,7 +585,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
                        * step(0.0001, v_groundClip.w);
         float ceilN = texture2D(u_heightTex, uv).r * onScreen;
         // Turned away from the sun, or something taller shades this height.
-        float shaded = max(step(v_facing, 0.0), step(v_hNorm + u_bias, ceilN));
+        float shaded = max(step(v_facing, 0.0),
+                           step(v_hNorm + v_ceilLift + u_bias, ceilN));
         shaded = max(shaded, u_sunBelow);
         float sky = SKY_BASE
                   + SKY_UP * v_normal.z
@@ -584,7 +604,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       'u_matrix', 'u_mercZPerMeter', 'u_maxH', 'u_sunOffset', 'u_normalOffset',
       'u_sunDir',
       'u_heightTex', 'u_wallColor', 'u_shadowTint', 'u_sunFlat',
-      'u_sunBelow', 'u_bias',
+      'u_sunBelow', 'u_bias', 'u_ceilLift',
     ]) {
       this.bldgUniforms[name] = gl.getUniformLocation(this.bldgProgram, name);
     }
@@ -874,6 +894,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         sunY * WALL_SHADOW_SUN_OFFSET_M * mercPerMeter,
       );
       gl2.uniform1f(u.u_normalOffset, WALL_SHADOW_NORMAL_OFFSET_M * mercPerMeter);
+      // The height each step's sunward component buys back, so the nudged sample
+      // decides what an un-nudged one at the fragment's own base would have.
+      gl2.uniform2f(
+        u.u_ceilLift,
+        normalizedCeilingLift(WALL_SHADOW_SUN_OFFSET_M, alt, cache.maxH),
+        normalizedCeilingLift(WALL_SHADOW_NORMAL_OFFSET_M, alt, cache.maxH),
+      );
       gl2.uniform3f(u.u_sunDir, sunX * Math.cos(alt), sunY * Math.cos(alt), Math.sin(alt));
       // computeShadowColor premultiplies for the ground composite; the buildings mix
       // in straight colour, so divide the constant alpha back out.
