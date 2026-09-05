@@ -27,10 +27,12 @@ export default defineConfig({
   // than that is noise, and noisy CI is worse than no CI.
   retries: 1,
   workers: 1,
-  // The test's polls sum to 155 s, so the per-test ceiling sits above that: a
+  // The test's polls sum to 195 s, so the per-test ceiling sits above that: a
   // slow run should fail on the poll's own message, not on a generic test
-  // timeout that says nothing about which step gave up. A passing run takes ~50 s.
-  timeout: 180_000,
+  // timeout that says nothing about which step gave up. A passing run takes ~45 s;
+  // the ceilings are sized for a 2-core runner rendering on SwiftShader, and a
+  // poll that passes early costs nothing.
+  timeout: 240_000,
   expect: { timeout: 30_000 },
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
   use: {
@@ -57,7 +59,10 @@ export default defineConfig({
   // deploy ships actually boots.
   webServer: hasMapTilerKey
     ? {
-        command: `npm run build && npm run start -- --port ${PORT} --strictPort`,
+        // --host pins the bind address to the one the poll below dials. Left to
+        // default, `vite preview` binds the name `localhost`, which on Node 17+
+        // can resolve to ::1 while Playwright waits on 127.0.0.1 and times out.
+        command: `npm run build && npm run start -- --host 127.0.0.1 --port ${PORT} --strictPort`,
         url: BASE_URL,
         // Never reuse: a preview server already on this port would serve an old
         // dist/ and quietly skip the build, so the test would pass against code

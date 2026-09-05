@@ -133,7 +133,7 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
   await expect
     .poll(
       async () => shadedFraction(shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))),
-      { timeout: 50_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
+      { timeout: 90_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
     )
     .toBeGreaterThan(0.02);
 

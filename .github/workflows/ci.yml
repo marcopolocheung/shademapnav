@@ -56,8 +56,14 @@ jobs:
           node-version: 20
           cache: npm
 
+      # A warning, not a notice: this job goes green either way, and a green box
+      # for a test that never ran is exactly the unearned pass the rest of this
+      # repo's verification is built to prevent. Say so where a reviewer looks.
       - if: env.HAS_MAPTILER_KEY != 'true'
-        run: echo "::notice title=Browser smoke test skipped::VITE_MAPTILER_API_KEY is not available to this run (fork PR, or the secret is unset). The smoke test needs real basemap tiles to render buildings and shadows."
+        run: |
+          echo "::warning title=Browser smoke test did NOT run::VITE_MAPTILER_API_KEY is not available to this run (fork PR, or the secret is unset). This job is green because it was skipped, not because the smoke test passed."
+          echo "### Browser smoke test skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`VITE_MAPTILER_API_KEY\` is unavailable here, so the smoke test did not run. It needs real basemap tiles: buildings, and therefore shadows, come from them. This job's green tick means skipped, not passed." >> "$GITHUB_STEP_SUMMARY"
 
       - if: env.HAS_MAPTILER_KEY == 'true'
         run: npm ci
