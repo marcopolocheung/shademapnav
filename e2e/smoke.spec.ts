@@ -111,16 +111,27 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
 
   // 1. Shadows paint. Poll rather than wait a fixed time: tile fetches and the
   //    first shadow pass are both slower under SwiftShader than on a GPU.
-  let morningMask: boolean[] = [];
   await expect
     .poll(
-      async () => {
-        morningMask = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
-        return shadedFraction(morningMask);
-      },
+      async () => shadedFraction(shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))),
       { timeout: 60_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
     )
     .toBeGreaterThan(0.02);
+
+  // Let the field settle before it becomes the reference frame: a half-finished
+  // first shadow pass would otherwise read as the drag's doing.
+  let morningMask = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+  await expect
+    .poll(
+      async () => {
+        const next = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+        const drift = next.filter((shaded, i) => shaded !== morningMask[i]).length / next.length;
+        morningMask = next;
+        return drift;
+      },
+      { timeout: 30_000, message: "the shadow field never stopped changing on its own" }
+    )
+    .toBeLessThan(0.005);
 
   // 2. Dragging the timeline moves the shadows. Compare masks, not totals: at a
   //    different hour the same *amount* of shade can fall somewhere else.
