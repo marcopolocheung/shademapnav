@@ -127,6 +127,21 @@ export function haversineMeters(
   return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
 }
 
+/** Initial geographic bearing in [0, 360) degrees, clockwise from north.
+ * Shared by routing turn counts and walking guidance. Coordinates are [lng, lat].
+ * Longitude degrees shrink with latitude, so raw atan2(dLng, dLat) distorts turns.
+ */
+export function bearingDegrees(a: [number, number], b: [number, number]): number {
+  const toRad = Math.PI / 180;
+  const lat1 = a[1] * toRad;
+  const lat2 = b[1] * toRad;
+  const dLon = (b[0] - a[0]) * toRad;
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2)
+    - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (Math.atan2(y, x) / toRad + 360) % 360;
+}
+
 /** Simple array-based binary min-heap. */
 class MinHeap<T> {
   private data: T[] = [];
@@ -473,7 +488,7 @@ export function dijkstra(
     // Turn counting
     const fn = graph.nodes.get(nodeIds[i])!;
     const tn = graph.nodes.get(nodeIds[i + 1])!;
-    const bearing = Math.atan2(tn.lon - fn.lon, tn.lat - fn.lat) * (180 / Math.PI);
+    const bearing = bearingDegrees([fn.lon, fn.lat], [tn.lon, tn.lat]);
     if (prevBearing !== null) {
       let delta = Math.abs(bearing - prevBearing);
       if (delta > 180) delta = 360 - delta;
@@ -741,7 +756,7 @@ export function paretoRoutes(
       const fn = graph.nodes.get(nodeIds[i]);
       const tn = graph.nodes.get(nodeIds[i + 1]);
       if (fn && tn) {
-        const bearing = Math.atan2(tn.lon - fn.lon, tn.lat - fn.lat) * (180 / Math.PI);
+        const bearing = bearingDegrees([fn.lon, fn.lat], [tn.lon, tn.lat]);
         if (prevBearing !== null) {
           let delta = Math.abs(bearing - prevBearing);
           if (delta > 180) delta = 360 - delta;
