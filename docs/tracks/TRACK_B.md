@@ -10,12 +10,12 @@
 
 ## Current state
 
-- **Active checkpoint:** B1 — implemented for #179 on `feat/b1-maneuver-generation`,
-  awaiting review. Pure maneuver generation only; live position tracking and UI follow in B3/B4.
+- **Active checkpoint:** B1 — PR #181 open for #179 on `feat/b1-maneuver-generation`.
+  Pure maneuver generation only; live position tracking and UI follow in B3/B4.
 - **Done:** B1 implementation and its captured-route tests; prerequisite camera work #148
   (the PR for #145) and #159 merged, as did #150 (chosen sidewalk plumbing) and #171
   (roof depth precision). No numbered checkpoint before B1.
-- **Open PRs:** B1 PR pending; #178 (wall/ground shadow alignment, separate camera work).
+- **Open PRs:** #181 (B1); #178 (wall/ground shadow alignment, separate camera work).
 - **Decisions made:**
   - **B1 consumes ordered walking nodes** via `generateManeuvers(nodes, legIndex = 0)` in
     `app/lib/guidance/maneuvers.ts`; distances are cumulative haversine meters along the
@@ -83,7 +83,9 @@
 - **Last verified:** 2026-09-05, main `fb47c18` baseline: 342 tests / 33 files green.
   B1 branch: all four gates green, 376 tests / 34 files (34 new guidance tests), build
   5.57 s; lint has 52 existing warnings and 8 infos (capped output), with no errors in
-  the changed files. B1 has no UI/map change, so no browser check applies.
+  the changed files. Cold verifier: no findings, independently reran all four gates.
+  CI's coverage command also passed; `maneuvers.ts` has 100% statement/branch/function/line
+  coverage. B1 has no UI/map change, so no browser check applies.
   Prior camera verification (2026-09-03): screenshots of Midtown Manhattan at pitch
   0/60/65/70 across the day, a pitch round-trip asserting exact label order restoration,
   and a `main`-vs-branch pixel diff of the flat view.
