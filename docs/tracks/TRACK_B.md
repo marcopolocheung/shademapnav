@@ -10,13 +10,30 @@
 
 ## Current state
 
-- **Active checkpoint:** B1 (not started). #145 (3D buildings) and #159 (shadows painted onto
-  them) landed first as prerequisite camera work — neither is a numbered checkpoint. PR #178
-  is open for the wall/ground shadow-terminator correction.
-- **Done:** #145 — 3D enabled, shadows ordered below the extrusions, terrain deleted; then
-  superseded — the shadow layer now draws the buildings itself (see the decision below)
-- **Open PRs:** #178
+- **Active checkpoint:** B1 — PR #181 open for #179 on `feat/b1-maneuver-generation`.
+  Pure maneuver generation only; live position tracking and UI follow in B3/B4.
+- **Done:** B1 implementation and its captured-route tests; prerequisite camera work #148
+  (the PR for #145) and #159 merged, as did #150 (chosen sidewalk plumbing), #171
+  (roof depth precision) and #178 (wall/ground shadow alignment). No numbered checkpoint
+  before B1.
+- **Open PRs:** #181 (B1).
 - **Decisions made:**
+  - **B1 consumes ordered walking nodes** via `generateManeuvers(nodes, legIndex = 0)` in
+    `app/lib/guidance/maneuvers.ts`; distances are cumulative haversine meters along the
+    supplied path, local to that leg. Use each walking leg separately: transit options'
+    top-level GeoJSON joins disconnected walking legs. Do not derive walk guidance from it.
+  - **The supposed bearing helper did not exist.** B1 extracts `bearingDegrees` in
+    `routing.ts` for both turn counters and guidance, correcting raw longitude/latitude
+    degree differences to geographic bearings. Routing still counts turns at >30°;
+    guidance uses <20° continue, [20°,50°) slight, [50°,120°] turn, >120° sharp.
+    Positive deltas mean right; an exact 180° reversal deterministically means sharp-left.
+    Geographic angles can change the displayed turn count, but do not change route costs.
+  - **Continue instructions are omitted**, including small successive bends; real adjacent
+    turns are retained even when close together. Consecutive duplicate positions are skipped.
+    Empty paths yield no maneuvers; stationary paths yield only arrival at 0 m.
+    `guidance/types.ts` publishes the full contract, with street names and shade hints left
+    unset until B2/B6. The Madrid fixture records actual OSM nodes, source timestamps,
+    way IDs and capture inputs; its 281 m path yields five turns plus depart/arrive.
   - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
     `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
     adds nothing to urban pedestrian shade. Deleted rather than fixed.
@@ -62,20 +79,29 @@
     wall-only threshold rises by each offset's sunward component times `tan(alt)`. Roofs take
     exactly zero lift. Near-cap residuals and purely transverse normal offsets remain explicit
     limitations; #176 owns making the nudge texel-adaptive.
-- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stub it). Two notes for B6,
-  both #147: the sidewalk Dijkstra chose **is** retained through the search (`prevEdge`,
-  `routing.ts:345`; `paretoRoutes`' `edgePath`, `:644-656`) — it is just not returned on
-  `RouteResult`, and `GraphEdge` carries no side label, so exposing it is additive plumbing.
-  The real obstacle is that **switching sides costs nothing** in the cost model, so the optimal
-  path can zigzag across the street and B6 would chatter. That is a cost-model change, not
-  plumbing.
-- **Next action:** B1 — maneuver generation from route geometry
-- **Last verified:** 2026-09-05 on PR #178: lint and typecheck green, 347 tests / 33 files
-  green, and the production build green. Three identical Tribeca z17 / pitch-55 browser
-  pairs each compared 4,060,451 stable Pass E pixels: 22,169 shaded→lit (0.546%), zero
-  lit→shaded, zero roof differences, 1,166 strict wall-base paths, and wall-base disagreement
-  improved 15.015% → 14.524% across 11,009 whole wall/ground samples; ordinary z17–18 renders
-  kept walls variably lit and the PR #171 rooftop case unchanged.
+- **Blocked on:** nothing for B1. For B6, `ShadeField.sampleEdges` already returns per-side
+  shade and confidence (`app/lib/shade/ShadeField.ts`), and #168 uses it in navigation;
+  no A2 stub is needed. `GraphEdge.side` and `RouteResult`/`RouteOption.sides` also exist
+  after #150. Remaining integration work: switching sides costs nothing (#151), and
+  endpoint connectors currently shift sidewalk labels against final GeoJSON (#180).
+- **Next action:** B2 — retain street names on graph edges and thread them into maneuvers,
+  after B1 is reviewed and available on main; always branch from main, never stack open PRs.
+- **Last verified:** 2026-09-05, main `fb47c18` baseline: 342 tests / 33 files green.
+  B1 branch: all four gates green, 376 tests / 34 files (34 new guidance tests), build
+  5.57 s; lint has 52 existing warnings and 8 infos (capped output), with no errors in
+  the changed files. Cold verifier: no findings, independently reran all four gates.
+  CI's coverage command also passed; `maneuvers.ts` has 100% statement/branch/function/line
+  coverage. B1 has no UI/map change, so no browser check applies. The branch has since
+  merged main (`9ccde54`, picking up #177 and #178) to clear a docs-only conflict in this
+  file; the gates have not been rerun on the merge commit.
+  Prior shadow verification (2026-09-05, #178): three identical Tribeca z17 / pitch-55
+  browser pairs each compared 4,060,451 stable Pass E pixels — 22,169 shaded→lit (0.546%),
+  zero lit→shaded, zero roof differences, 1,166 strict wall-base paths, and wall-base
+  disagreement improved 15.015% → 14.524% across 11,009 whole wall/ground samples; ordinary
+  z17–18 renders kept walls variably lit and the PR #171 rooftop case unchanged.
+  Prior camera verification (2026-09-03): screenshots of Midtown Manhattan at pitch
+  0/60/65/70 across the day, a pitch round-trip asserting exact label order restoration,
+  and a `main`-vs-branch pixel diff of the flat view.
   #121 is workable: Playwright's Chromium runs headless in WSL once
   `libnss3`/`libnspr4`/`libasound2` are `apt-get download`ed and extracted to a
   `LD_LIBRARY_PATH` dir (no sudo), with `--use-angle=swiftshader` for WebGL. Take the
@@ -111,7 +137,10 @@ street centrelines.
 
 - `RouteOption.geojson` + `legs: RouteLeg[]` (`routing.ts:48-76`) — geometry and per-leg data.
 - `RouteResult.turnCount` — turns are already counted, so the bearing math exists in spirit.
-- `routeProgress.ts` (33 lines) + `routeBounds.ts` — progress and bounds helpers, used by `DirectionsPanel`.
+- `routeProgress.ts` + `routeBounds.ts` — route-calculation progress and bounds helpers,
+  used by `DirectionsPanel`; neither tracks a walker's progress (that is B3).
+- `guidance/maneuvers.ts` + `guidance/types.ts` — B1's pure walking-node maneuver generator
+  and published contract; the captured Madrid fixture is in `guidance/__tests__/fixtures/`.
 - `useAppState.ts` — the `IDLE → PLACE_DETAIL → DIRECTIONS → NAVIGATING → ARRIVAL` FSM, with `START_NAVIGATION`/`ARRIVE` actions already wired.
 - `MapView.tsx` layer conventions: `nav-route` source/layer (`:660-664`), train layers (`:1214+`), sketch layers (`:624-646`). Add guidance layers the same way.
 - `partialRoute.ts` — the "this leg couldn't be routed" state B8 must render.
@@ -159,9 +188,9 @@ export interface GuidanceState {
 
 ### B1 — Maneuver generation (pure)
 **Goal.** Route node list → `Maneuver[]`.
-**Approach.** `app/lib/guidance/maneuvers.ts`. Bearing per segment; classify the delta at each node (thresholds: <20° continue, 20–50° slight, 50–120° turn, >120° sharp); collapse consecutive `continue`s; emit `depart`/`arrive`. Reuse the bearing helper behind `turnCount` in `routing.ts` rather than writing a second one.
+**Approach.** `app/lib/guidance/maneuvers.ts`. Bearing per segment; classify the delta at each node (thresholds: <20° continue, 20–50° slight, 50–120° turn, >120° sharp); omit redundant `continue`s; emit `depart`/`arrive`. Share `bearingDegrees` with both `turnCount` paths in `routing.ts` (B1 extracted their duplicated inline formula).
 **Acceptance.** Unit tests: a straight line yields depart+arrive only; an L yields one turn with the correct sign; a staircase of small deltas doesn't emit a maneuver per node; a real captured route fixture produces a human-plausible list.
-**Files.** `app/lib/guidance/**` (new). **Size.** Medium. **No UI.**
+**Files.** `app/lib/guidance/**` (new); minimal shared-bearing extraction in `app/lib/routing.ts`. **Size.** Medium. **No UI.**
 
 ### B2 — Street names in the graph
 **Goal.** Instructions that name a street.
@@ -191,7 +220,7 @@ export interface GuidanceState {
 **Goal.** "Cross now — the north side is shaded for the next 300 m."
 **Approach.** Track A's `ShadeField.sampleEdges` gives `{left, right}` for edges ahead. Emit a `cross` maneuver only when: the side delta exceeds a threshold (start 0.25), the shaded run ahead exceeds a minimum length (start 150 m), a legal crossing exists nearby (`highway=crossing` in the graph), and solar intensity × (1 − cloud cover) is high enough to matter (`computeSolarIntensity` + `weather.ts`).
 **Acceptance.** No cue chatter on a fixture route (≤1 cue per 400 m); zero cues at night or under heavy cloud; every cue traceable to the field sample that triggered it. **Never suggest crossing where no crossing is mapped** — this is a safety-shaped feature, and the honest failure is to stay quiet.
-**Files.** `app/lib/guidance/cues.ts` (new). **Size.** Medium. **Needs A2; stub the field until then.**
+**Files.** `app/lib/guidance/cues.ts` (new). **Size.** Medium. **A2 is available on main; use `ShadeField.sampleEdges`.**
 
 ### B7 — Voice + arrival summary
 **Goal.** Eyes-up guidance, and the sentence Track F will share.
