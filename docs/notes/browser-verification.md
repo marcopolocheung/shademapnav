@@ -1,9 +1,12 @@
 # Browser verification
 
-`npm test` runs under `environment: "node"` and has never executed a browser. Shadow
+`npm test` runs under `environment: "node"` and never executes a browser. Shadow
 rendering, timeline drag, end-to-end route calculation, the streaming preview and the
 GeoTIFF export are untested by the four gates and always have been. Issue #121 recorded
 that as impossible on this machine. **It is not.**
+
+Two things now cover part of it: `npm run e2e`, a Playwright smoke test that runs in CI on
+every PR, and the hand-run Python scripts below. This note is about the second.
 
 ## Running Chromium here
 
@@ -18,6 +21,10 @@ LD_LIBRARY_PATH=$HOME/miniconda3/lib \
 # Chromium 136.0.7103.25
 ```
 
+On a sudo-less box *without* miniconda, the older route still works: download the `libnss3`,
+`libnspr4` and `libasound2` debs, `dpkg-deb -x` them into a scratch directory, and point
+`LD_LIBRARY_PATH` at its `usr/lib/x86_64-linux-gnu`.
+
 WebGL needs a software rasteriser, since WSL exposes no GPU:
 
 ```
@@ -26,12 +33,13 @@ WebGL needs a software rasteriser, since WSL exposes no GPU:
 
 ## Why Python, and why not in CI
 
-The working toolchain here is `~/miniconda3/bin/playwright`, not npm — `node_modules` has no
-Playwright at all. Adding one would pull a package into `npm ci` on every CI run and pin a
-Chromium revision that has to match the local cache, risking the four gates for no gain:
-these checks will never run in CI, which has no GPU and no MapTiler key.
+These scripts predate `npm run e2e` and are written against `~/miniconda3/bin/playwright`.
+`node_modules` now has `@playwright/test` too — the smoke test uses it, and it renders on the
+same SwiftShader path in CI, so "no GPU in CI" is no longer the obstacle it was. What keeps
+these particular scripts out is what they are: exploratory probes that print numbers for a
+human to read, not assertions. Porting them would mean deciding what each one should assert.
 
-So `scripts/verify/` is deliberately outside `vitest.config.ts`'s glob and outside Biome's
+So `scripts/verify/` stays deliberately outside `vitest.config.ts`'s glob and outside Biome's
 targets. It is a tool you run by hand, before a PR that changes what the map draws.
 
 ## The scripts

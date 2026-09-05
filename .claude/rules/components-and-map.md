@@ -53,7 +53,9 @@ standard, not desktop aesthetics:
 
 ## Verification
 
-Tests run in `environment: "node"` and nothing has ever driven this app in a browser
-automatically. A component or map change is **not done** until it has been confirmed in
-`npm run dev` — shadows render, the slider drags, a route calculates. If you cannot run a
-browser, say the check is outstanding rather than letting the test suite imply it passed.
+Tests run in `environment: "node"`. The one automated browser run is `npm run e2e`
+(Playwright, skipped without `VITE_MAPTILER_API_KEY`), and it covers exactly one path:
+load, shadows paint, drag the timeline, calculate a route. A component or map change
+outside that path is **not done** until it has been confirmed in `npm run dev` — shadows
+render, the slider drags, a route calculates. If you cannot run a browser, say the check is
+outstanding rather than letting the test suite imply it passed.

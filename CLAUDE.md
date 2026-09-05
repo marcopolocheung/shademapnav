@@ -22,7 +22,20 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # biome lint — blocks on errors, ~180 known findings are "warn"
 npm run format     # biome format --write (never yet run repo-wide; see biome.json)
 npm run build      # vite build → dist/
+npm run e2e        # playwright test — one browser smoke test; no API key needed
 ```
+
+`npm run e2e` needs its browser installed once: `npx playwright install --with-deps chromium`
+(CI does this itself). Without sudo — WSL, say — Chromium fails to start on missing `libnss3`
+and friends; every one of them ships inside the miniconda install already on this machine, so
+`LD_LIBRARY_PATH=$HOME/miniconda3/lib npx playwright test` is enough, and MapLibre's WebGL2
+renders on SwiftShader. See `docs/notes/browser-verification.md`.
+
+It runs two projects. `smoke` serves a synthetic basemap style whose `maptiler_planet` geojson
+source carries the building footprints (`e2e/fixtures/basemapStyle.ts`), so it needs no key and
+runs on every PR, forks included. `smoke-live` repeats the same assertions against real MapTiler
+tiles and appears only when `VITE_MAPTILER_API_KEY` is set — it is the only check that the app
+still parses MapTiler's real `building` schema.
 
 Lint config is `biome.json` (Biome replaced ESLint, whose config had zero rules and
 matched zero `.ts` files). Rules the codebase intentionally violates — `noNonNullAssertion`
@@ -32,8 +45,9 @@ are `warn` so they surface without blocking. Everything else in Biome's recommen
 is an error and will fail CI.
 
 CI (`.github/workflows/ci.yml`) runs lint → typecheck → test → build on every PR to
-`main` and every push to `main`. It needs no secrets: the build inlines missing
-`VITE_*` vars as `undefined`, and the test suite is hermetic (no network, no env).
+`main` and every push to `main`, then the browser smoke test. It needs no secrets: the
+build inlines missing `VITE_*` vars as `undefined`, the test suite is hermetic (no
+network, no env), and the smoke test's `smoke` project stubs every request it makes.
 
 Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
 (place popups). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
@@ -150,7 +164,9 @@ Map instance flows up once via `onMapReady(map)` into a ref (never state).
 - Run `/gates` — all four, in order, with the real output. It records the result that the
   `Stop` hook and the status line read, so the session cannot end on an unearned "tests pass".
 - UI/map changes: also verify in `npm run dev` (shadows render, slider drags, route
-  calculates). Nothing in `npm test` runs a browser — it never has. If you can't look, say the
-  check is outstanding rather than letting four green gates imply it.
+  calculates). `npm test` never opens a browser; the only automated browser run is
+  `npm run e2e`, one smoke test that loads the built app, checks shadows paint and retime,
+  and calculates a route. It runs in CI on every PR. It covers that path and nothing else, so
+  if you can't look, say the check is outstanding rather than letting green gates imply it.
 - Before a PR opens: `/checkpoint` walks the definition of done and gets a cold review from
   the `verifier` agent.
