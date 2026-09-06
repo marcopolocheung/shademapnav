@@ -2,6 +2,7 @@ import type { RouteOption, RouteLeg } from "../lib/routing";
 import { describeShadeProvenance } from "../lib/shadeProvenance";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { routeLegSummary } from "../lib/routeLegSummary";
+import { routeExposureLine } from "../lib/routeTradeoff";
 
 function formatDist(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
@@ -94,6 +95,10 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
           <span className="text-[10px] tabular-nums w-12 text-right" style={{ color: "var(--md-on-surface-variant)" }}>
             {formatDist(r.distanceM)}
           </span>
+        </div>
+
+        <div className="mt-1 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
+          {routeExposureLine(r)}
         </div>
 
         {shadeSource && (

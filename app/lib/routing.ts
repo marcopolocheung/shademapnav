@@ -51,6 +51,14 @@ export interface RouteResult {
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
+  /**
+   * Longest unbroken run of *sunlit* edges, in meters.
+   *
+   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * entirely depending on whether the sun arrives as one long crossing or as many
+   * short gaps, and it is the long unbroken stretch a walker actually feels.
+   */
+  longestContinuousSunM: number;
   shadeTransitions: number;
   detourRatio: number;
   turnCount: number;
@@ -89,6 +97,14 @@ export interface RouteOption {
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
+  /**
+   * Longest unbroken run of *sunlit* edges, in meters.
+   *
+   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * entirely depending on whether the sun arrives as one long crossing or as many
+   * short gaps, and it is the long unbroken stretch a walker actually feels.
+   */
+  longestContinuousSunM: number;
   shadeTransitions: number;
   detourRatio: number;
   turnCount: number;
@@ -462,6 +478,7 @@ export function dijkstra(
   const SHADE_THRESH = 0.5;
   let totalDist = 0, shadedDist = 0;
   let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+  let longestContinuousSunM = 0, currentSunStreakM = 0;
   let prevShaded: boolean | null = null;
   let turnCount = 0, prevBearing: number | null = null;
 
@@ -479,8 +496,11 @@ export function dijkstra(
     if (isShaded) {
       currentStreakM += edge.distanceM;
       longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+      currentSunStreakM = 0;
     } else {
       currentStreakM = 0;
+      currentSunStreakM += edge.distanceM;
+      longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
     }
     if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
     prevShaded = isShaded;
@@ -505,6 +525,7 @@ export function dijkstra(
     distanceM: totalDist,
     shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
     longestContinuousShadeM,
+    longestContinuousSunM,
     shadeTransitions,
     detourRatio,
     turnCount,
@@ -736,6 +757,7 @@ export function paretoRoutes(
     const SHADE_THRESH = 0.5;
     let totalDist = 0, shadedDist = 0;
     let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+    let longestContinuousSunM = 0, currentSunStreakM = 0;
     let prevShaded: boolean | null = null;
     let turnCount = 0, prevBearing: number | null = null;
 
@@ -747,8 +769,11 @@ export function paretoRoutes(
       if (isShaded) {
         currentStreakM += edge.distanceM;
         longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+        currentSunStreakM = 0;
       } else {
         currentStreakM = 0;
+        currentSunStreakM += edge.distanceM;
+        longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
       }
       if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
       prevShaded = isShaded;
@@ -773,6 +798,7 @@ export function paretoRoutes(
       distanceM: totalDist,
       shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
       longestContinuousShadeM,
+      longestContinuousSunM,
       shadeTransitions,
       detourRatio: straightLineDistM > 0 ? totalDist / straightLineDistM : 1.0,
       turnCount,

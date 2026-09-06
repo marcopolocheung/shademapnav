@@ -414,6 +414,8 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
     const result = dijkstra(g, 1, 3, 0);
     expect(result!.shadeTransitions).toBe(0);
     expect(result!.longestContinuousShadeM).toBe(0);
+    // both edges sunny and contiguous → the whole path is one exposed stretch
+    expect(result!.longestContinuousSunM).toBeCloseTo(result!.distanceM, 5);
   });
 
   it("one sunny edge then one shaded edge → 1 transition, streak = shaded edge distance", () => {
@@ -434,6 +436,7 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
     const result = dijkstra(g, 1, 3, 0);
     expect(result!.shadeTransitions).toBe(1);
     expect(result!.longestContinuousShadeM).toBeCloseTo(100, 5);
+    expect(result!.longestContinuousSunM).toBeCloseTo(100, 5);
   });
 
   it("fully-shaded path has 0 transitions and streak = total distance", () => {
@@ -442,6 +445,7 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
     const result = dijkstra(g, 1, 3, 1.0);
     expect(result!.shadeTransitions).toBe(0);
     expect(result!.longestContinuousShadeM).toBeCloseTo(200, 5);
+    expect(result!.longestContinuousSunM).toBe(0);
   });
 
   it("fully-sunny path has 0 transitions and streak = 0", () => {
@@ -450,6 +454,32 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
     const result = dijkstra(g, 1, 3, 0.0);
     expect(result!.shadeTransitions).toBe(0);
     expect(result!.longestContinuousShadeM).toBe(0);
+    expect(result!.longestContinuousSunM).toBeCloseTo(result!.distanceM, 5);
+  });
+
+  it("sun streak measures the longest run, not the total sun", () => {
+    // 1→2 sun 100 m, 2→3 shade 100 m, 3→4 sun 200 m. Total sun is 300 m,
+    // but the longest unbroken exposure is the 200 m run — the number that
+    // distinguishes one crossing from several short gaps.
+    const g: RoutingGraph = {
+      nodes: new Map([
+        [1, { id: 1, lat: 0.0, lon: 0.000 }],
+        [2, { id: 2, lat: 0.0, lon: 0.001 }],
+        [3, { id: 3, lat: 0.0, lon: 0.002 }],
+        [4, { id: 4, lat: 0.0, lon: 0.003 }],
+      ]),
+      adj: new Map([
+        [1, [{ toId: 2, distanceM: 100, shadeFactor: 0.0 }]],
+        [2, [{ toId: 1, distanceM: 100, shadeFactor: 0.0 },
+             { toId: 3, distanceM: 100, shadeFactor: 1.0 }]],
+        [3, [{ toId: 2, distanceM: 100, shadeFactor: 1.0 },
+             { toId: 4, distanceM: 200, shadeFactor: 0.0 }]],
+        [4, [{ toId: 3, distanceM: 200, shadeFactor: 0.0 }]],
+      ]),
+    };
+    const result = dijkstra(g, 1, 4, 0)!;
+    expect(result.longestContinuousSunM).toBeCloseTo(200, 5);
+    expect(result.longestContinuousShadeM).toBeCloseTo(100, 5);
   });
 });
 
@@ -585,7 +615,7 @@ describe("TransitLeg type (compile-time check)", () => {
     const r: RouteOption = {
       label: "Shortest",
       geojson: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
-      distanceM: 200, shadeCoverage: 0.3, longestContinuousShadeM: 100,
+      distanceM: 200, shadeCoverage: 0.3, longestContinuousShadeM: 100, longestContinuousSunM: 60,
       shadeTransitions: 1, detourRatio: 1.0, turnCount: 2,
     };
     expect(r.transitLeg).toBeUndefined();
@@ -600,7 +630,7 @@ describe("TransitLeg type (compile-time check)", () => {
     const r: RouteOption = {
       label: "Via Transit",
       geojson: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
-      distanceM: 1550, shadeCoverage: 0.1, longestContinuousShadeM: 0,
+      distanceM: 1550, shadeCoverage: 0.1, longestContinuousShadeM: 0, longestContinuousSunM: 0,
       shadeTransitions: 0, detourRatio: 1.0, turnCount: 0,
       transitLeg: leg,
     };
@@ -1069,6 +1099,7 @@ describe("sidewalk side reporting", () => {
     expect(res.distanceM).toBe(300);
     expect(res.shadeCoverage).toBe(1);
     expect(res.longestContinuousShadeM).toBe(300);
+    expect(res.longestContinuousSunM).toBe(0);
     expect(res.shadeTransitions).toBe(0);
     expect(res.turnCount).toBe(0);
   });
