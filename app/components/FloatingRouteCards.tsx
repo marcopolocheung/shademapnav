@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { RouteOption } from "../lib/routing";
 import { shortestRoute } from "../lib/routeTradeoff";
 import RouteCard from "./RouteCard";
@@ -11,6 +12,8 @@ interface FloatingRouteCardsProps {
   onExportRoute?: (routeIndex: number, format: "gpx" | "geojson") => void;
   solarIntensity?: number | null;
   onStartNavigation?: () => void;
+  /** The hourly exposure strip, rendered under the tradeoff line. */
+  exposureStrip?: ReactNode;
 }
 
 function routeKey(route: RouteOption): string {
@@ -26,6 +29,7 @@ export default function FloatingRouteCards({
   onExportRoute,
   solarIntensity,
   onStartNavigation,
+  exposureStrip,
 }: FloatingRouteCardsProps) {
   if (routes.length === 0) return null;
   const baselineRoute = shortestRoute(routes);
@@ -66,6 +70,7 @@ export default function FloatingRouteCards({
           route={selectedRoute}
           baselineRoute={completeBaselineRoute ?? undefined}
         />
+        {exposureStrip}
 
         {/* Route cards */}
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md-scrollbar">

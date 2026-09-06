@@ -1692,5 +1692,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     // Derived
     selectedNavRoute, navTrainDrawData, navMrtEntrances,
     filteredRoutes, canTransit,
+    // The geometry shade field, shared so a day sweep reuses this cache
+    // rather than building a second one and re-fetching the same prisms.
+    shadeField: shadeFieldRef.current,
   };
 }
