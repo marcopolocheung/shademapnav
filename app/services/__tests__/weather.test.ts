@@ -54,12 +54,14 @@ describe("parseWeatherHours", () => {
         relative_humidity_2m: [55, 58],
         wind_speed_10m: [3.2, 2.9],
         apparent_temperature: [35.1, 34.2],
+        shortwave_radiation: [812, 640],
       },
     });
 
     expect(hours).toHaveLength(2);
     expect(hours[0].time.toISOString()).toBe("2026-08-08T14:00:00.000Z");
     expect(hours[0].uvIndex).toBe(7.2);
+    expect(hours[0].shortwaveWm2).toBe(812);
     expect(hours[1].apparentTempC).toBe(34.2);
   });
 
@@ -72,6 +74,7 @@ describe("parseWeatherHours", () => {
     expect(hour.cloudPct).toBe(15);
     expect(hour.uvIndex).toBeNull();
     expect(hour.tempC).toBeNull();
+    expect(hour.shortwaveWm2).toBeNull();
   });
 
   it("drops an hour whose timestamp will not parse", () => {

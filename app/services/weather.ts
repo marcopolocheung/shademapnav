@@ -8,6 +8,7 @@ const HOURLY_VARIABLES = [
   "relative_humidity_2m",
   "wind_speed_10m",
   "apparent_temperature",
+  "shortwave_radiation",
 ] as const;
 
 interface OpenMeteoResponse {
@@ -19,6 +20,7 @@ interface OpenMeteoResponse {
     relative_humidity_2m?: number[];
     wind_speed_10m?: number[];
     apparent_temperature?: number[];
+    shortwave_radiation?: number[];
   };
 }
 
@@ -68,6 +70,7 @@ export function parseWeatherHours(response: OpenMeteoResponse): WeatherHour[] {
       humidityPct: value(response.hourly?.relative_humidity_2m, i),
       windMs: value(response.hourly?.wind_speed_10m, i),
       apparentTempC: value(response.hourly?.apparent_temperature, i),
+      shortwaveWm2: value(response.hourly?.shortwave_radiation, i),
     });
   }
 

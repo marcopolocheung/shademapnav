@@ -10,6 +10,23 @@ function directSunMeters(route: RouteOption): number {
   return Math.max(0, route.distanceM * (1 - route.shadeCoverage));
 }
 
+/**
+ * The trip split into sunlit and shaded minutes at walking pace.
+ *
+ * Shaded minutes are not idle time for a UV model — see `app/lib/heat/dose.ts` —
+ * so both halves are reported rather than only the exposed one.
+ */
+export function routeExposureMinutes(route: RouteOption): {
+  sunMinutes: number;
+  shadeMinutes: number;
+} {
+  const sunM = directSunMeters(route);
+  return {
+    sunMinutes: sunM / WALK_SPEED_MPS / 60,
+    shadeMinutes: Math.max(0, route.distanceM - sunM) / WALK_SPEED_MPS / 60,
+  };
+}
+
 function formatDeltaMinutes(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   if (minutes <= 0) return "same time";
