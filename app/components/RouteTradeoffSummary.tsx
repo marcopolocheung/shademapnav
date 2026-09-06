@@ -1,5 +1,5 @@
 import type { RouteOption } from "../lib/routing";
-import { routeTradeoffLine } from "../lib/routeTradeoff";
+import { routeExposureLine, routeTradeoffLine } from "../lib/routeTradeoff";
 
 interface RouteTradeoffSummaryProps {
   route?: RouteOption;
@@ -30,6 +30,9 @@ export default function RouteTradeoffSummary({
       </div>
       <div className="text-sm font-semibold leading-snug" style={{ color: "var(--md-primary)" }}>
         {routeTradeoffLine(route, baselineRoute)}
+      </div>
+      <div className="text-xs leading-snug" style={{ color: "var(--md-on-surface-variant)" }}>
+        {routeExposureLine(route)}
       </div>
     </div>
   );

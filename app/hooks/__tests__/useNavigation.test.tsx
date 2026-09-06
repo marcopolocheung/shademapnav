@@ -90,6 +90,7 @@ function route(label = "Shortest", shadeCoverage = 0.4): RouteOption {
     distanceM: 1000,
     shadeCoverage,
     longestContinuousShadeM: 120,
+    longestContinuousSunM: 40,
     shadeTransitions: 2,
     detourRatio: 1,
     turnCount: 3,

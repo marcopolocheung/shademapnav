@@ -17,6 +17,7 @@ function route(geojson: GeoJSON.Feature<GeoJSON.LineString>): RouteOption {
     distanceM: 100,
     shadeCoverage: 0.5,
     longestContinuousShadeM: 0,
+    longestContinuousSunM: 0,
     shadeTransitions: 0,
     detourRatio: 1,
     turnCount: 0,
