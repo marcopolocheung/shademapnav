@@ -3,9 +3,10 @@
 **Method version `shade-radiation-v1`.** Implemented in `app/lib/heat/score.ts`.
 **Status: experimental.** The app labels it so, and this page explains why.
 
-This is the companion to [`heat-model.md`](./heat-model.md), which covers UV dose. The
-two answer different questions: dose is about *sunburn*, this score is about *how hard
-the walk is on you right now*.
+This is the companion to [`heat-model.md`](./heat-model.md), which covers UV dose and
+arrives with PR #189. The two answer different questions: dose is about *sunburn*, this
+score is about *how hard the walk is on you right now*. UV index belongs to the first
+and not to the second — see "Why radiation and not UV index" below.
 
 ## What the app shows
 
