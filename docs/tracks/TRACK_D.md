@@ -10,10 +10,13 @@
 
 ## Current state
 
-- **Active checkpoint:** D2 — D1 is in review (PR #186 on `feat/d1-hourly-exposure`)
-- **Done:** D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the
-  selected route under the tradeoff line, in both route surfaces. Closes #47.
-- **Open PRs:** #186 (D1), #185 (exposure units — direct-sun minutes and longest sun stretch)
+- **Active checkpoint:** D3 — D2 is in review (PR #188 on `feat/d2-weather-hours`)
+- **Done:**
+  - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
+    route under the tradeoff line, in both route surfaces. Closes #47.
+  - D2 — `weather.ts` fetches all six hourly variables in one cached call and returns
+    `WeatherHour[]`; the cloud badge now shares that request.
+- **Open PRs:** #188 (D2)
 - **Decisions made:**
   - D1 samples Track A's `ShadeField.sweep`, not the canvas, so the day sweep never moves the
     camera. One hour per animation frame until A6 makes a sweep cheaper than N samples.
@@ -21,12 +24,19 @@
     only fills in the measurements.
   - The strip is passed into `DirectionsPanel` and `FloatingRouteCards` as a rendered node,
     so the mobile and desktop surfaces share one instance and one sweep.
+  - **`WeatherHour`'s measured fields are `number | null`, not `number`** — a deviation from
+    this brief's original sketch. Open-Meteo can omit a variable, and a dose computed from a
+    fabricated `uvIndex: 0` would read as a safe hour rather than an unknown one. D3 must
+    handle null rather than assume a number.
+  - The forecast cache is keyed by location (~1.1 km cells) with a 1-hour TTL, not by target
+    hour: one response already spans 8 days, so moving the timeline is a cache hit.
 - **Blocked on:** nothing (D6 still wants A6)
-- **Next action:** D2 — generalize `weather.ts` to one cached hourly `WeatherHour[]`
-- **Known limitation to close in D2/D4:** "Shadiest around 7 PM" is true but weakly useful
-  near sunset, where everything ties at fully shaded. Weighting the series by
-  `computeSolarIntensity` (or D2's UV) is what makes the recommendation mean something.
-- **Last verified:** 2026-09-05, 393 tests / 35 files green; D1 confirmed in a browser
+- **Next action:** D3 — `app/lib/heat/dose.ts`, plus `docs/notes/heat-model.md`
+- **Known limitation to close in D4/D6:** "Shadiest around 7 PM" is true but weakly useful
+  near sunset, where everything ties at fully shaded. Weighting the D1 series by
+  `computeSolarIntensity` or D2's UV is what makes the recommendation mean something —
+  the inputs now exist.
+- **Last verified:** 2026-09-05, 411 tests / 35 files green. D1 confirmed in a browser
   (Playwright, fixture basemap): the strip fills, and tapping 5 PM retimes the map.
 
 ---
