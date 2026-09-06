@@ -17,7 +17,11 @@ import {
 } from '../shade/geometry';
 import { buildShadowIndex } from '../shade/shadowIndex';
 import SunWorker from '../../workers/sunPosition.worker?worker';
-import { normalizedCeilingLift, normalizedShadowHeightBias } from './heightField';
+import {
+  ceilingFieldScale,
+  normalizedCeilingLift,
+  normalizedShadowHeightBias,
+} from './heightField';
 
 // Shadow-edge antialiasing via supersampling: the shadow FBO is rendered at
 // SHADOW_SUPERSAMPLE× the canvas resolution, then box-downsampled by the LINEAR
@@ -172,6 +176,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private heightAttrPos = -1;
   private heightAttrH = -1;
   private heightUMatrix: WebGLUniformLocation | null = null;
+  private heightUFieldScale: WebGLUniformLocation | null = null;
   private shadowHeightBuffer: WebGLBuffer | null = null;
   private heightFbo: WebGLFramebuffer | null = null;
   private heightFboTexture: WebGLTexture | null = null;
@@ -182,7 +187,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private roofAttrH = -1;
   private roofUMatrix: WebGLUniformLocation | null = null;
   private roofUHeightTex: WebGLUniformLocation | null = null;
-  private roofUResolution: WebGLUniformLocation | null = null;
+  private roofUFieldScale: WebGLUniformLocation | null = null;
   private roofUBias: WebGLUniformLocation | null = null;
   private roofPosBuffer: WebGLBuffer | null = null;
   private roofHeightBuffer: WebGLBuffer | null = null;
@@ -454,9 +459,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       in vec2 a_pos;
       in float a_height;
       uniform mat4 u_matrix;
+      uniform float u_fieldScale;
       out highp float v_height;
       void main() {
         gl_Position = u_matrix * vec4(a_pos, 0.0, 1.0);
+        // Zoom the field out far enough to hold the footprints of the buildings
+        // Pass E draws, which under a tilted camera reach past the viewport.
+        gl_Position.xy /= u_fieldScale;
         v_height = a_height;
       }
     `;
@@ -471,6 +480,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.heightAttrPos = gl.getAttribLocation(this.heightProgram, 'a_pos');
     this.heightAttrH = gl.getAttribLocation(this.heightProgram, 'a_height');
     this.heightUMatrix = gl.getUniformLocation(this.heightProgram, 'u_matrix');
+    this.heightUFieldScale = gl.getUniformLocation(this.heightProgram, 'u_fieldScale');
     this.shadowHeightBuffer = gl.createBuffer();
 
     // Compile roof exclusion shader (Pass C): conditionally erases self-shadow
@@ -478,20 +488,26 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       attribute vec2 a_pos;
       attribute float a_height;
       uniform mat4 u_matrix;
+      uniform float u_fieldScale;
       varying float v_height;
+      varying vec4 v_fieldClip;
       void main() {
         gl_Position = u_matrix * vec4(a_pos, 0.0, 1.0);
+        // This pass erases from the screen-aligned shadow FBO but reads the widened
+        // ceiling field, so the two positions are no longer the same pixel.
+        v_fieldClip = gl_Position;
+        v_fieldClip.xy /= u_fieldScale;
         v_height = a_height;
       }
     `;
     const roofFsSrc = `
       precision highp float;
       uniform sampler2D u_heightTex;
-      uniform vec2 u_resolution;
       uniform float u_bias;
       varying float v_height;
+      varying vec4 v_fieldClip;
       void main() {
-        vec2 uv = gl_FragCoord.xy / u_resolution;
+        vec2 uv = (v_fieldClip.xy / v_fieldClip.w) * 0.5 + 0.5;
         float maxIncoming = texture2D(u_heightTex, uv).r;
         if (maxIncoming <= v_height + u_bias) {
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -505,7 +521,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.roofAttrH = gl.getAttribLocation(this.roofProgram, 'a_height');
     this.roofUMatrix = gl.getUniformLocation(this.roofProgram, 'u_matrix');
     this.roofUHeightTex = gl.getUniformLocation(this.roofProgram, 'u_heightTex');
-    this.roofUResolution = gl.getUniformLocation(this.roofProgram, 'u_resolution');
+    this.roofUFieldScale = gl.getUniformLocation(this.roofProgram, 'u_fieldScale');
     this.roofUBias = gl.getUniformLocation(this.roofProgram, 'u_bias');
     this.roofPosBuffer = gl.createBuffer();
     this.roofHeightBuffer = gl.createBuffer();
@@ -530,6 +546,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       uniform vec3 u_sunDir;
       uniform vec2 u_sunFlat;
       uniform vec2 u_ceilLift;
+      uniform float u_fieldScale;
       varying float v_hNorm;
       varying float v_ceilLift;
       varying float v_facing;
@@ -545,6 +562,10 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         // normal step's, projected onto the sun. Roofs take isWall = 0 and no lift.
         v_ceilLift = isWall * (u_ceilLift.x + u_ceilLift.y * dot(a_normal.xy, u_sunFlat));
         v_groundClip = u_matrix * vec4(sampleXY, 0.0, 1.0);
+        // The field was rasterized zoomed out by this much, so index it the same way.
+        // Without it a fragment whose footprint falls outside the viewport — every
+        // near, tall building under a tilted camera — reads no ceiling and renders lit.
+        v_groundClip.xy /= u_fieldScale;
         v_hNorm = a_heightM / u_maxH;
         v_facing = dot(a_normal, u_sunDir);
         v_normal = a_normal;
@@ -604,7 +625,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       'u_matrix', 'u_mercZPerMeter', 'u_maxH', 'u_sunOffset', 'u_normalOffset',
       'u_sunDir',
       'u_heightTex', 'u_wallColor', 'u_shadowTint', 'u_sunFlat',
-      'u_sunBelow', 'u_bias', 'u_ceilLift',
+      'u_sunBelow', 'u_bias', 'u_ceilLift', 'u_fieldScale',
     ]) {
       this.bldgUniforms[name] = gl.getUniformLocation(this.bldgProgram, name);
     }
@@ -732,6 +753,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     m[15] += m[3] * cx + m[7] * cy;
     const matrix = new Float32Array(m);
     const heightBias = normalizedShadowHeightBias(this.buildingCache?.maxH ?? 1);
+    // MapLibre scales a custom layer's z by the *centre* latitude, so this follows the
+    // live centre rather than the one the cache was built at — as Pass E does.
+    const mercPerMeter =
+      1 / (EARTH_CIRCUMFERENCE_M * Math.cos((this.map.getCenter().lat * Math.PI) / 180));
+    const fieldScale = ceilingFieldScale(m, (this.buildingCache?.maxH ?? 0) * mercPerMeter);
 
     // MapLibre hands a '3d' custom layer a read/write depth mode. Only Pass E wants
     // it; the ground composite is a full-screen quad at NDC z = 0, and letting that
@@ -782,6 +808,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
 
       gl2.useProgram(this.heightProgram);
       gl2.uniformMatrix4fv(this.heightUMatrix, false, matrix);
+      gl2.uniform1f(this.heightUFieldScale, fieldScale);
 
       // Bind shadow position buffer (same geometry as Pass A)
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -814,7 +841,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.activeTexture(gl.TEXTURE0);
       gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
       gl2.uniform1i(this.roofUHeightTex, 0);
-      gl2.uniform2f(this.roofUResolution, w, h);
+      gl2.uniform1f(this.roofUFieldScale, fieldScale);
       gl2.uniform1f(this.roofUBias, heightBias);
 
       // Bind roof position buffer
@@ -871,10 +898,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         this.lastUploadedCacheVersion = this.cacheVersion;
       }
 
-      const lat = this.map.getCenter().lat;
-      // MapLibre scales a custom layer's z by the *centre* latitude, so this has
-      // to use the live centre rather than the one the cache was built at.
-      const mercPerMeter = 1 / (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180));
       const az = this.lastSunAzRad ?? 0;
       const alt = this.lastSunAltRad ?? 0;
       // SunCalc's azimuth runs south→west; Mercator y runs north→south. Toward the
@@ -909,6 +932,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.uniform3f(u.u_wallColor, BUILDING_RGB[0], BUILDING_RGB[1], BUILDING_RGB[2]);
       gl2.uniform1f(u.u_sunBelow, geo.sunBelowHorizon ? 1 : 0);
       gl2.uniform1f(u.u_bias, heightBias);
+      gl2.uniform1f(u.u_fieldScale, fieldScale);
 
       gl2.activeTexture(gl.TEXTURE0);
       gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
