@@ -68,3 +68,8 @@ and redundant texture uploads cost battery, not just milliseconds.
 **You cannot verify a render change with tests.** `npm test` runs in `environment: "node"` and
 has never executed this code in a browser. A shadow change is not done until it has been seen
 in `npm run dev`. Say so plainly rather than letting a green suite imply otherwise.
+
+When "seen it" is not enough — the change is about *where* a shadow lands —
+`scripts/verify/shadow_truth.py` ray-traces the prisms the renderer just used and diffs them
+against the frame, per pixel, per surface. It turns "looks wrong" into a percentage and a
+mismatch mask. `docs/notes/browser-verification.md` has the invocation and its limits.

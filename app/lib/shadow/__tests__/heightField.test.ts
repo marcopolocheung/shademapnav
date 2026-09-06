@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_CEILING_FIELD_SCALE,
   SHADOW_HEIGHT_BIAS_M,
+  ceilingFieldScale,
   normalizedCeilingLift,
   normalizedShadowHeightBias,
 } from "../heightField";
@@ -184,5 +186,129 @@ describe("normalizedCeilingLift", () => {
         10 * normalizedShadowHeightBias(MAX_H_M),
       );
     }
+  });
+});
+
+describe("ceilingFieldScale", () => {
+  /**
+   * A pinhole camera `distance` above the origin, tilted back by `pitchRad` about
+   * the x axis — MapLibre's camera in the small. Returned column-major, so
+   * `m[col * 4 + row]`, which is how the mainMatrix reaches the shaders.
+   */
+  function cameraMatrix(pitchRad: number, distance: number): number[] {
+    const near = distance / 100;
+    const far = distance * 100;
+    const f = 1 / Math.tan(Math.PI / 6); // 60 degree vertical field of view
+    const c = Math.cos(pitchRad);
+    const s = Math.sin(pitchRad);
+    // View: tilt the world back, then push it `distance` down the camera's -z.
+    const view = [
+      [1, 0, 0, 0],
+      [0, c, s, 0],
+      [0, -s, c, -distance],
+      [0, 0, 0, 1],
+    ];
+    const proj = [
+      [f, 0, 0, 0],
+      [0, f, 0, 0],
+      [0, 0, (far + near) / (near - far), (2 * far * near) / (near - far)],
+      [0, 0, -1, 0],
+    ];
+    const m: number[] = [];
+    for (let col = 0; col < 4; col++) {
+      for (let row = 0; row < 4; row++) {
+        let sum = 0;
+        for (let k = 0; k < 4; k++) sum += proj[row][k] * view[k][col];
+        m.push(sum);
+      }
+    }
+    return m;
+  }
+
+  /** NDC of a world point, or null when it sits behind the camera. */
+  function project(m: number[], x: number, y: number, z: number): [number, number] | null {
+    const clip = [0, 1, 3].map(
+      (row) => m[row] * x + m[4 + row] * y + m[8 + row] * z + m[12 + row],
+    );
+    if (clip[2] <= 1e-9) return null;
+    return [clip[0] / clip[2], clip[1] / clip[2]];
+  }
+
+  const DISTANCE = 1000;
+  const MAX_H = 120;
+
+  /**
+   * The contract, stated as the shaders use it: every fragment that reaches the
+   * screen must find its own footprint inside the widened field. Walks a grid of
+   * ground positions, keeps the ones whose roofline is on screen, and checks where
+   * the ground under them lands.
+   */
+  function worstFootprintReach(m: number[]): number {
+    let worst = 0;
+    for (let x = -4000; x <= 4000; x += 25) {
+      for (let y = -4000; y <= 4000; y += 25) {
+        const top = project(m, x, y, MAX_H);
+        if (!top || Math.abs(top[0]) > 1 || Math.abs(top[1]) > 1) continue;
+        const foot = project(m, x, y, 0);
+        if (!foot) return Number.POSITIVE_INFINITY;
+        worst = Math.max(worst, Math.abs(foot[0]), Math.abs(foot[1]));
+      }
+    }
+    return worst;
+  }
+
+  it("asks for no widening from a camera looking straight down", () => {
+    // Looking down, a roof projects *outside* its own footprint, so the field
+    // already covers everything and the scale must not cost any resolution.
+    expect(ceilingFieldScale(cameraMatrix(0, DISTANCE), MAX_H)).toBe(1);
+  });
+
+  it("covers the footprint of every on-screen roofline once tilted", () => {
+    for (const deg of [15, 30, 45, 55, 60]) {
+      const m = cameraMatrix((deg * Math.PI) / 180, DISTANCE);
+      const scale = ceilingFieldScale(m, MAX_H);
+      const reach = worstFootprintReach(m);
+      // The grid samples the interior, so it can only ever under-report the worst
+      // corner the function solves for exactly. Coverage is the contract.
+      expect(reach).toBeLessThanOrEqual(scale + 1e-6);
+    }
+  });
+
+  it("does not spend resolution a gentle tilt has not asked for", () => {
+    // Widening costs ground resolution one-for-one, so a 15 degree camera must not
+    // pay anything like what a 60 degree one does.
+    expect(ceilingFieldScale(cameraMatrix(Math.PI / 12, DISTANCE), MAX_H)).toBeLessThan(1.2);
+    expect(ceilingFieldScale(cameraMatrix(Math.PI / 3, DISTANCE), MAX_H)).toBeGreaterThan(1.2);
+  });
+
+  it("shows the unwidened field really does miss those footprints", () => {
+    // The bug this exists to fix: at 60 degrees the ground under a visible roof
+    // leaves the viewport, the lookup falls outside the field, and Pass E's
+    // `onScreen` guard forces the fragment lit.
+    expect(worstFootprintReach(cameraMatrix(Math.PI / 3, DISTANCE))).toBeGreaterThan(1);
+  });
+
+  it("grows with the building height it has to reach back from", () => {
+    const m = cameraMatrix(Math.PI / 3, DISTANCE);
+    const scales = [0, 30, 60, 120, 240].map((h) => ceilingFieldScale(m, h));
+    expect(scales[0]).toBe(1);
+    for (let i = 1; i < scales.length; i++) {
+      expect(scales[i]).toBeGreaterThanOrEqual(scales[i - 1]);
+    }
+  });
+
+  it("stays inside the cap however extreme the camera", () => {
+    for (const deg of [70, 80, 85]) {
+      const scale = ceilingFieldScale(cameraMatrix((deg * Math.PI) / 180, DISTANCE), 400);
+      expect(scale).toBeLessThanOrEqual(MAX_CEILING_FIELD_SCALE);
+      expect(scale).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("leaves the field alone when there is nothing to solve", () => {
+    // A singular matrix has no footprint homography, and a scene with no buildings
+    // has no footprints to reach. Both leave the field exactly as it was.
+    expect(ceilingFieldScale(new Array(16).fill(0), MAX_H)).toBe(1);
+    expect(ceilingFieldScale(cameraMatrix(Math.PI / 3, DISTANCE), 0)).toBe(1);
   });
 });
