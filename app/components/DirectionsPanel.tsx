@@ -81,8 +81,8 @@ export interface DirectionsPanelProps {
   onBack: () => void;
   onStartNavigation?: () => void;
   hideRouteCards?: boolean;
-  /** The hourly exposure strip, rendered under the tradeoff line. */
-  exposureStrip?: ReactNode;
+  /** The dose line and hourly exposure strip, rendered under the tradeoff line. */
+  exposureSlot?: ReactNode;
   routeMode?: 'walk' | 'transit';
   onRouteModeChange?: (mode: 'walk' | 'transit') => void;
   canTransit?: boolean;
@@ -112,7 +112,7 @@ export default function DirectionsPanel({
   onBack,
   onStartNavigation,
   hideRouteCards = false,
-  exposureStrip,
+  exposureSlot,
   routeMode = 'walk', onRouteModeChange,
   canTransit = true,
   shadePreference = 0.5, onShadePreferenceChange,
@@ -433,7 +433,7 @@ export default function DirectionsPanel({
             route={selectedRoute}
             baselineRoute={completeBaselineRoute ?? undefined}
           />
-          {exposureStrip}
+          {exposureSlot}
           <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Route options">
             {routes.map((r, i) => (
               <RouteCard

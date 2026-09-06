@@ -12,6 +12,7 @@ import SearchBar from "./components/SearchBar";
 import FloatingMapControls from "./components/FloatingMapControls";
 import FloatingRouteCards from "./components/FloatingRouteCards";
 import HourlyExposureStrip from "./components/HourlyExposureStrip";
+import SunDoseLine from "./components/SunDoseLine";
 import QuickActions from "./components/QuickActions";
 import DirectionsPanel from "./components/DirectionsPanel";
 import NavigationStatusPanel from "./components/NavigationStatusPanel";
@@ -27,7 +28,8 @@ import { useNavigation } from "./hooks/useNavigation";
 import { useHourlyExposure } from "./hooks/useHourlyExposure";
 import { useAppState } from "./hooks/useAppState";
 import { useAgent } from "./hooks/useAgent";
-import { fetchCloudCoverForecast } from "./services/weather";
+import { fetchCloudCoverForecast, fetchWeatherForecast, nearestWeatherHour } from "./services/weather";
+import type { WeatherHour } from "./lib/heat/types";
 
 const MapView = lazy(() => import("./components/MapView"));
 const SHADE_LEGEND_STORAGE_KEY = "shademapnav:shadeLegendDismissed";
@@ -216,6 +218,8 @@ export default function Home() {
     filteredRoutes, canTransit, shadeField,
   } = nav;
 
+  const [weatherHour, setWeatherHour] = useState<WeatherHour | null>(null);
+
   // "When should I go?" for the selected route. One strip, rendered in whichever
   // of the two route surfaces the current breakpoint shows.
   const hourlyExposure = useHourlyExposure(
@@ -224,12 +228,15 @@ export default function Home() {
     date,
     mapUtcOffsetMin,
   );
-  const exposureStrip = (
-    <HourlyExposureStrip
-      exposure={hourlyExposure}
-      currentHour={toMapLocal(date, mapUtcOffsetMin).hours}
-      onPickHour={setDate}
-    />
+  const exposureSlot = (
+    <>
+      <SunDoseLine route={filteredRoutes[selectedRouteIndex]} weather={weatherHour} />
+      <HourlyExposureStrip
+        exposure={hourlyExposure}
+        currentHour={toMapLocal(date, mapUtcOffsetMin).hours}
+        onPickHour={setDate}
+      />
+    </>
   );
 
   const { phase, selectedPlace, dispatch } = useAppState();
@@ -407,20 +414,28 @@ export default function Home() {
   useEffect(() => {
     if (!weatherLatKey || !weatherLngKey) {
       setCloudCoverPct(null);
+      setWeatherHour(null);
       return;
     }
 
     const ctrl = new AbortController();
-    fetchCloudCoverForecast(
-      Number(weatherLatKey),
-      Number(weatherLngKey),
-      new Date(weatherHourMs),
-      ctrl.signal
-    )
-      .then((forecast) => setCloudCoverPct(forecast?.cloudCoverPct ?? null))
+    const target = new Date(weatherHourMs);
+    const lat = Number(weatherLatKey);
+    const lng = Number(weatherLngKey);
+
+    // Two reads of one cached forecast (D2), not two requests.
+    Promise.all([
+      fetchCloudCoverForecast(lat, lng, target, ctrl.signal),
+      fetchWeatherForecast(lat, lng, { signal: ctrl.signal }),
+    ])
+      .then(([cloud, hours]) => {
+        setCloudCoverPct(cloud?.cloudCoverPct ?? null);
+        setWeatherHour(nearestWeatherHour(hours, target));
+      })
       .catch((err) => {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
           setCloudCoverPct(null);
+          setWeatherHour(null);
         }
       });
 
@@ -599,7 +614,7 @@ export default function Home() {
             isCalculating={isCalculating}
             routeProgress={routeProgress}
             routes={filteredRoutes}
-            exposureStrip={exposureStrip}
+            exposureSlot={exposureSlot}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
             error={navError}
@@ -720,7 +735,7 @@ export default function Home() {
           onSaveRoute={handleOpenSaveModal}
           onExportRoute={handleExportRoute}
           solarIntensity={routeSolarIntensity}
-          exposureStrip={exposureStrip}
+          exposureSlot={exposureSlot}
           onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
         />
       )}

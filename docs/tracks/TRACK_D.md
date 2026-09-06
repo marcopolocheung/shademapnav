@@ -10,13 +10,16 @@
 
 ## Current state
 
-- **Active checkpoint:** D3 — D2 is in review (PR #188 on `feat/d2-weather-hours`)
+- **Active checkpoint:** D4 — D3 is in review (PR #189 on `feat/d3-uv-dose`)
 - **Done:**
   - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
     route under the tradeoff line, in both route surfaces. Closes #47.
   - D2 — `weather.ts` fetches all six hourly variables in one cached call and returns
     `WeatherHour[]`; the cloud badge now shares that request.
-- **Open PRs:** #188 (D2)
+  - D3 — `app/lib/heat/dose.ts` turns exposed minutes into a SED and burn-fraction
+    interval; `SunDoseLine` shows it under the tradeoff line and links to the method.
+    `docs/notes/heat-model.md` is the method. Closes #63.
+- **Open PRs:** #189 (D3)
 - **Decisions made:**
   - D1 samples Track A's `ShadeField.sweep`, not the canvas, so the day sweep never moves the
     camera. One hour per animation frame until A6 makes a sweep cheaper than N samples.
@@ -30,14 +33,25 @@
     handle null rather than assume a number.
   - The forecast cache is keyed by location (~1.1 km cells) with a 1-hour TTL, not by target
     hour: one response already spans 8 days, so moving the timeline is a cache hit.
+  - **`dose()` takes shaded minutes too, not just sunlit ones** — a deviation from the
+    brief's `dose(sunMinutes, uv, profile)` sketch. Counting only direct sun would report a
+    fully shaded route as zero dose, which is the exact claim the checkpoint forbids. Shade
+    is charged 20–50% of the ambient rate; narrowing that band needs A9's sky view factor.
+  - **Every dose figure is an interval**, per the acceptance criteria, so `SunDose` carries
+    `Range`s rather than the sketch's `sed: number`. `uncertainty` is derived from the
+    band's own width, not asserted.
+  - Skin type is hard-coded to II and labelled as such everywhere it shows, until D5.
 - **Blocked on:** nothing (D6 still wants A6)
-- **Next action:** D3 — `app/lib/heat/dose.ts`, plus `docs/notes/heat-model.md`
+- **Next action:** D4 — `app/lib/heat/score.ts`, a route-level heat score beside the tradeoff line
 - **Known limitation to close in D4/D6:** "Shadiest around 7 PM" is true but weakly useful
   near sunset, where everything ties at fully shaded. Weighting the D1 series by
   `computeSolarIntensity` or D2's UV is what makes the recommendation mean something —
   the inputs now exist.
-- **Last verified:** 2026-09-05, 411 tests / 35 files green. D1 confirmed in a browser
-  (Playwright, fixture basemap): the strip fills, and tapping 5 PM retimes the map.
+- **Last verified:** 2026-09-06, 429 tests / 36 files green. D1 confirmed in a browser
+  (Playwright, fixture basemap): the strip fills, and tapping 5 PM retimes the map. D3
+  confirmed the same way, both paths: with a stubbed forecast the line reads
+  "16–29% of a fair-skin burn" (hand-checked: 0.49–0.57 SED), and with Open-Meteo
+  unreachable it renders nothing while the rest of the panel still works.
 
 ---
 
