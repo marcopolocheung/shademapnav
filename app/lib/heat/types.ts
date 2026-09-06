@@ -33,16 +33,28 @@ export interface Range {
 
 /**
  * A UV dose estimate for one trip. Ranges throughout, because the inputs are
- * ranges: published MED values for a phototype span a factor of ~1.5, and the
- * share of ambient UV that reaches you in building shade is a wider band still.
+ * ranges — chiefly the share of ambient UV still reaching you in building shade.
+ *
+ * `sed` and `fullSunEquivalentMinutes` are physical quantities and describe the
+ * trip. `burnFraction` describes a *person*, and is null unless a caller supplies
+ * a real profile: see `dose()` for why nothing may default one into existence.
  */
 export interface SunDose {
   /** Standard erythemal doses accumulated on this trip. 1 SED = 100 J/m². */
   sed: Range;
-  /** That dose as a share of one minimal erythemal dose for this skin type. */
-  burnFraction: Range;
-  /** Minutes of *continued full sun* at this UV before one MED. Null in the dark. */
-  burnMinutes: Range | null;
+  /**
+   * The same dose expressed as minutes of unbroken full sun at this UV index.
+   *
+   * Person-independent, and the only figure this app displays: it says how much
+   * sun the trip is worth without asserting anything about whose skin it lands on.
+   */
+  fullSunEquivalentMinutes: Range;
+  /**
+   * Dose as a share of one minimal erythemal dose. **Null without a profile**, and
+   * weakly founded even with one — Fitzpatrick type correlates with MED at only
+   * r ≈ 0.5–0.69. See docs/notes/heat-model.md before showing this to anyone.
+   */
+  burnFraction: Range | null;
   uncertainty: "low" | "medium" | "high";
   /** Versioned so the UI can link to the method that produced this number. */
   method: "sed-uvi-v1";

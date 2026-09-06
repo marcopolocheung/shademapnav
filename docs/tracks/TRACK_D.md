@@ -16,9 +16,9 @@
     route under the tradeoff line, in both route surfaces. Closes #47.
   - D2 — `weather.ts` fetches all six hourly variables in one cached call and returns
     `WeatherHour[]`; the cloud badge now shares that request.
-  - D3 — `app/lib/heat/dose.ts` turns exposed minutes into a SED and burn-fraction
-    interval; `SunDoseLine` shows it under the tradeoff line and links to the method.
-    `docs/notes/heat-model.md` is the method. Closes #63.
+  - D3 — `app/lib/heat/dose.ts` turns exposed minutes into a SED and a full-sun
+    equivalent; `SunDoseLine` shows it under the tradeoff line, marked **experimental**
+    and linked to `docs/notes/heat-model.md`. Closes #63.
 - **Open PRs:** #189 (D3)
 - **Decisions made:**
   - D1 samples Track A's `ShadeField.sweep`, not the canvas, so the day sweep never moves the
@@ -40,7 +40,19 @@
   - **Every dose figure is an interval**, per the acceptance criteria, so `SunDose` carries
     `Range`s rather than the sketch's `sed: number`. `uncertainty` is derived from the
     band's own width, not asserted.
-  - Skin type is hard-coded to II and labelled as such everywhere it shows, until D5.
+  - **No burn percentage is displayed, and `dose()` will not compute one without an
+    explicit profile** (null is the default). Owner review asked for the research behind
+    the number; it does not hold up. Fitzpatrick type predicts measured MED at only
+    r ≈ 0.5–0.69, the scale is self-reported and prone to recall bias, and published MED
+    figures are in solar-simulator units that do not convert cleanly to SED. Asking the
+    user their skin type would **not** fix this — the weak link is phototype → MED. The
+    UI shows a person-independent full-sun equivalent instead. **D5's profile must not
+    resurrect the burn percentage without new evidence.**
+  - `SHADE_UV_TRANSMISSION` widened to 0.2–0.6. Clear-sky diffuse is 50–62% of global
+    erythemal UV, higher than the earlier draft assumed. The band is our derivation from
+    cited values, not a measured figure, and it is the weakest number in the model.
+  - The dose line carries an **Experimental** badge. Every constant is now cited in
+    `docs/notes/heat-model.md`, including what the sources do *not* support.
 - **Blocked on:** nothing (D6 still wants A6)
 - **Next action:** D4 — `app/lib/heat/score.ts`, a route-level heat score beside the tradeoff line
 - **Known limitation to close in D4/D6:** "Shadiest around 7 PM" is true but weakly useful

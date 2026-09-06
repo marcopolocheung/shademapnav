@@ -1,77 +1,103 @@
-# How ShadeMapNav estimates UV dose
+# How ShadeMapNav estimates UV exposure
 
 **Method version `sed-uvi-v1`.** Implemented in `app/lib/heat/dose.ts`.
+**Status: experimental.** The app labels it so, and this page explains why.
 
-This page exists because the app shows a number about your skin, and a number about
-your skin that arrives without its assumptions is worse than no number. Everything
-below is what the estimate assumes, and what it cannot know.
+This page exists because the app shows a number connected to sunburn, and such a
+number arriving without its assumptions is worse than no number at all.
 
-## What is being estimated
+## What the app actually shows
 
-**Erythemal UV dose** — the sunburn-weighted ultraviolet energy reaching unprotected
-skin over the course of one trip. Not heat, not temperature, not total solar energy.
+One sentence: *"About 4–6 min of full sun."*
 
-Two units appear:
+That is the trip's UV dose restated as an equivalent duration of unbroken direct sun
+at the same UV index. It is a **physical** quantity. It says how much sun the trip is
+worth; it says nothing about whose skin it lands on.
 
-- **SED** (standard erythemal dose), where 1 SED = 100 J/m² of erythemally weighted
-  UV. A physical quantity, independent of who is exposed.
-- **MED** (minimal erythemal dose) — the dose at which skin of a given phototype
-  begins to redden. Person-dependent, which is why "40% of a burn" needs a skin type
-  attached to mean anything.
+The app deliberately does **not** show a percentage of a sunburn. Why not is the most
+important section on this page.
 
-## The arithmetic
+## The part that is well founded
 
-One UV index unit is defined as 25 mW/m² of erythemally weighted irradiance. So a
-minute of full sun at UV index *u* delivers:
+Two definitions, both standardised and both verifiable:
+
+- **UV Index.** One UVI unit is an erythemally weighted irradiance of **25 mW/m²**.
+  The scale comes from early Canadian work where a typical midday summer erythemal
+  irradiance of 250 mW/m² became UVI 10. Formulated on the CIE reference action
+  spectrum for UV-induced erythema, and standardised by WHO, WMO, UNEP and ICNIRP.
+  [WHO/WMO Global Solar UV Index][uvi] [Bentham][bentham]
+- **SED.** One standard erythemal dose is an erythemal radiant exposure of
+  **100 J/m²**, defined by the CIE and **independent of skin type**. [CIE, via
+  Bentham][bentham]
+
+From those, a minute of full sun at UV index *u* delivers:
 
 ```
 u × 0.025 W/m² × 60 s = u × 1.5 J/m² = u × 0.015 SED
 ```
 
 That constant is `SED_PER_MINUTE_PER_UVI`. A 30-minute walk in full sun at UV 8
-accumulates about `8 × 0.015 × 30 = 3.6 SED`.
+accumulates about 3.6 SED. This arithmetic is not in doubt.
 
-Dose is then compared against the MED band for a Fitzpatrick phototype:
+## The part that is a derivation, not a measurement
 
-| Phototype | MED (SED) | Roughly |
-| --- | --- | --- |
-| I | 1.5 – 2.5 | Always burns, never tans |
-| II | 2.0 – 3.0 | Usually burns, tans minimally |
-| III | 3.0 – 4.0 | Sometimes burns, tans uniformly |
-| IV | 4.0 – 5.0 | Rarely burns, tans easily |
-| V | 5.0 – 7.0 | Very rarely burns |
-| VI | 8.0 – 12.0 | Never burns |
+**Shade is not a UV shield.** Under clear skies the diffuse component is roughly
+**50–62%** of global erythemal UV, rising toward 93% under heavy cloud. A building
+shadow removes the direct beam and leaves most of the rest. [Parisi, diffuse UV
+review][parisi] [Modeling erythemal UV diffuse fraction][diffuse]
 
-The app defaults to **type II** and says so wherever it shows a figure. Until Track D's
-D5 ships a profile, that default is an assumption about you that may well be wrong —
-if your skin is darker or more sensitive than type II, the displayed share of a burn
-is correspondingly too high or too low.
+Purpose-built shade structures block 97.1–99.9% of *direct* radiation to the head and
+neck, and their overall protection factor depends on the sky view still visible from
+underneath, the roof transmittance, the diffuse share, and surface albedo. A street
+shaded by one building has a far larger sky view than a purpose-built canopy, so it
+keeps a correspondingly larger share of the diffuse component. [Shade structure
+protection factor model][shade-pf] [Religi et al.][religi]
 
-## Shade is not a UV shield
+`SHADE_UV_TRANSMISSION` is set to **0.2–0.6** — the diffuse share multiplied by a
+plausible range of street sky-view fractions. **This is our derivation from the cited
+values, not a figure any of those papers reports.** It is the least defensible number
+in the model, and Track A's sky view factor (A9) is what would replace it with
+something computed per location rather than assumed.
 
-Roughly half of the erythemal UV reaching the ground is **diffuse** — scattered by the
-atmosphere rather than arriving straight from the sun. A building shadow blocks the
-direct beam and very little of the rest.
+The band's width is why every output is an interval.
 
-The model therefore charges shaded minutes **20–50%** of the ambient rate
-(`SHADE_UV_TRANSMISSION`), never zero. A route this app calls fully shaded still
-accumulates dose.
+## Why there is no "percentage of a burn"
 
-That band is wide because the real answer depends on how much sky the spot can still
-see — a narrow street canyon transmits far less than an open plaza with one building
-between you and the sun. The app does not model sky view factor yet; Track A's A9
-would supply it, and until then the interval stays honest by staying wide.
+A burn percentage requires the **minimal erythemal dose** — the exposure at which an
+individual's skin visibly reddens. Unlike SED, MED is a property of a person, and the
+only practical way an app could guess it is from a Fitzpatrick phototype.
+
+That link is too weak to build a displayed number on:
+
+- Measured correlation between Fitzpatrick type and MED runs **r ≈ 0.5–0.69** —
+  explaining roughly a quarter to a half of the variance. [Sánchez et al.,
+  Colombia][med-colombia]
+- The Fitzpatrick scale's "reliability and validity have been called into question,
+  mainly because it is subjective and prone to recall bias." Some studies find no
+  favourable correlation with MED at all. [ibid.][med-colombia]
+- Published MED values are measured with solar simulators and reported in
+  broadband units — 22 mJ/cm² for types I–II, 33 and 43 mJ/cm² for III and IV in the
+  Colombian sample — which do **not** convert cleanly into erythemally weighted SED
+  without the source spectrum. [ibid.][med-colombia]
+- MED also varies with population, prior sun acclimatisation and measurement method,
+  so a single table cannot serve a global user base. [Skin type, MED and
+  acclimatisation][acclim]
+
+Asking the user their skin type would not repair this. The weak link is
+phototype → MED, not our guess at the phototype. So `MED_SED` exists in the code as a
+starting point for a future profile feature, `dose()` refuses to produce a
+`burnFraction` unless a caller passes a real profile, and no UI passes one.
+
+An earlier draft of this feature defaulted to type II and rendered "16–29% of a
+fair-skin burn". That number was removed. It is recorded here because the failure is
+instructive: a range and a disclaimer made a poorly founded figure *look* rigorous.
 
 ## Why every figure is an interval
 
-Two inputs are bands, not numbers: the MED for a phototype (a factor of ~1.5 between
-published values) and the diffuse share reaching shaded skin (a factor of 2.5). A
-single number computed from the midpoints would imply a precision the inputs do not
-contain. So `dose()` returns `{ low, high }` throughout, and the reported band is the
-widest defensible one — the smallest dose against the most tolerant threshold, and the
-largest dose against the least tolerant.
-
-`uncertainty` is derived from that band's own width rather than asserted:
+The shade transmission band spans a factor of three, so a single number computed from
+its midpoint would imply precision the input does not contain. `dose()` returns
+`{ low, high }` throughout, and `uncertainty` is derived from that band's own width
+rather than asserted:
 
 | Ratio of high to low | Reported as |
 | --- | --- |
@@ -80,49 +106,58 @@ largest dose against the least tolerant.
 | above | high |
 
 A mostly shaded trip lands in "high" for a real reason: most of its estimate rests on
-the diffuse-transmission assumption, which is the crudest thing in the model.
+the transmission assumption, which is the crudest thing in the model.
 
 ## What this model does not include
 
 Each of these would move the answer, and none is modelled:
 
-- **Altitude.** Erythemal UV rises roughly 10% per 1000 m. A mountain trip is
-  underestimated.
+- **Altitude.** Erythemal UV rises with elevation. A mountain trip is underestimated.
 - **Surface albedo.** Fresh snow can nearly double effective exposure; sand and water
-  raise it materially. Not counted.
-- **Clothing, sunscreen, a hat, shade you carry.** The estimate is for unprotected
-  skin. Anything you wear makes it an overestimate.
-- **Which skin is exposed,** and the fact that horizontal and vertical surfaces of a
-  body receive different irradiance. Treated as a single exposed surface.
-- **Tree canopy,** separately from building shade. Canopy is not yet a shade source
+  raise it materially. Not counted, though the shade-structure literature treats it
+  as a real term.
+- **Clothing, sunscreen, hats, a carried parasol.** The estimate is for unprotected
+  skin, so anything worn makes it an overestimate.
+- **Body geometry.** Horizontal and vertical surfaces of a person receive different
+  irradiance; this treats exposure as a single surface.
+- **Tree canopy** as distinct from building shade — canopy is not yet a shade source
   in the engine at all (Track A, A7).
-- **Cloud** at the moment of the trip beyond what the forecast's UV index already
-  incorporates. Open-Meteo's `uv_index` is a clear-sky-corrected forecast, not a
-  measurement of the sky above you.
+- **Sky view factor** per location, which is exactly what would narrow the widest
+  band in the model (Track A, A9).
+- **Cloud at the moment of the trip**, beyond what the forecast's UV index already
+  incorporates. Open-Meteo's `uv_index` is a forecast, not a measurement of the sky
+  above you.
 - **Ozone, aerosol and pollution variation** beyond what the forecast carries.
-- **Reflection off glass façades,** which in a dense downtown is not negligible.
+- **Reflection off glass façades**, which in a dense downtown is not negligible.
 
 ## What this is not
 
-This is **not medical advice, and not a safe-exposure budget.** It is a geometric and
-meteorological estimate of one physical quantity, presented with its error bars.
+This is **not medical advice and not a safe-exposure budget.**
 
 - The WHO is explicit that shade is *incomplete* UV protection.
-- A "burn fraction" below 1 is not a guarantee of no harm: UV damage accumulates over
-  a lifetime, and erythema is a threshold for visible reddening, not for injury.
+- Erythema is the threshold for visible reddening, not for injury. UV damage
+  accumulates over a lifetime, and a low dose is not a guarantee of no harm.
 - Nothing here models skin cancer risk, photosensitising medication, or any medical
-  condition. Someone with a reason to care about UV should be guided by their
+  condition. Anyone with a clinical reason to care about UV should be guided by their
   clinician, not by this app.
 
-The app must never phrase the output as permission — "you have 20 minutes left" is a
-sentence this model cannot support. What it can say is "this trip is roughly a third
-of a fair-skin burn, give or take, and here is why that is uncertain".
+"You have 20 minutes left" is a sentence this model cannot support, and the app must
+never phrase its output as permission.
 
-## Provenance
+## Sources
 
-- UV index → irradiance: 1 UVI ≡ 25 mW/m² erythemally weighted (WMO/WHO definition,
-  as used in the Global Solar UV Index).
-- SED: 1 SED ≡ 100 J/m² erythemally weighted (CIE).
-- MED by phototype: the commonly published CIE-aligned bands, given here as intervals.
+[uvi]: https://dermnetnz.org/topics/global-solar-ultraviolet-index "Global solar ultraviolet index. DermNet. Accessed 2026-09-06."
+[bentham]: https://support.bentham.co.uk/support/solutions/articles/5000619299-erythemal-radiant-exposure-and-uv-index "Bentham Instruments. Erythemal radiant exposure and UV index. Accessed 2026-09-06."
+[parisi]: https://onlinelibrary.wiley.com/doi/10.1111/php.70084 "Parisi et al. Measurement and modeling of diffuse ultraviolet radiation: A review. Photochemistry and Photobiology."
+[diffuse]: https://acp.copernicus.org/preprints/acp-2017-524/acp-2017-524.pdf "Modeling erythemal ultraviolet diffuse fraction. Atmospheric Chemistry and Physics preprint, 2017."
+[shade-pf]: https://www.sciencedirect.com/science/article/abs/pii/S0360132318306280 "Development of a model for calculating the solar ultraviolet protection factor of small to medium sized built shade structures. Building and Environment."
+[religi]: https://onlinelibrary.wiley.com/doi/10.1111/php.12949 "Religi et al. Body Anatomical UV Protection Predicted by Shade Structures: A Modeling Study. Photochemistry and Photobiology, 2018."
+[med-colombia]: https://www.sciencedirect.com/science/article/pii/S1578219020301505 "Minimal Erythema Dose: Correlation with Fitzpatrick Skin Type and Concordance Between Methods of Erythema Assessment in a Patient Sample in Colombia. Actas Dermo-Sifiliográficas, 2020."
+[acclim]: https://pubmed.ncbi.nlm.nih.gov/7287960/ "Skin type, minimal erythema dose (MED), and sunlight acclimatization. J Am Acad Dermatol."
+
+- UV index → irradiance and SED: [WHO/WMO Global Solar UV Index][uvi], [Bentham][bentham]
+- Diffuse fraction of erythemal UV: [Parisi review][parisi], [ACP diffuse fraction][diffuse]
+- Shade protection factors and sky view: [Shade structure PF model][shade-pf], [Religi et al.][religi]
+- Fitzpatrick ↔ MED correlation and its limits: [Colombian MED study][med-colombia], [acclimatisation study][acclim]
 - UV index forecast: Open-Meteo hourly `uv_index`, fetched once per location per hour
   (`app/services/weather.ts`).
