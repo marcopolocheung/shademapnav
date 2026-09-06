@@ -47,6 +47,19 @@
     folding it in would rank a long shaded walk worse than a short scorching one silently.
   - `HeatScore` lives in `score.ts`, not `heat/types.ts`, only to avoid a certain conflict
     with #189 in a file both branches append to. Worth collapsing once #189 lands.
+  - **`WeatherHour.windMs` was km/h.** Open-Meteo answers in km/h unless asked, and D4 is the
+    first consumer to divide by that number — inside Steadman's own formula, where the unit
+    is m/s. `weather.ts` now sends `wind_speed_unit=ms` and a test pins it.
+  - **The shade-only score does not borrow the word "Heat".** 70 on the felt-temperature ramp
+    is ≈35 °C; 70 in shade-only mode is 70% of the walk in sun. The UI reads "61% of this walk
+    is in sun · no weather forecast — heat not scored" instead, and `heatBand()` puts UTCI's
+    category name in front of the scored number so a first-time reader gets a word, not an
+    index. The category is published; the even 20 points between categories are not.
+  - `useWeatherHour` deliberately passes **no `AbortSignal`**. `fetchWeatherForecast` memoizes
+    the *promise*, so aborting on cleanup cancelled the fetch for every other consumer and
+    stranded the next effect run on the already-rejecting cached entry — the heat line stuck
+    on "no forecast" after a pan or an hour-crossing drag. A stale-result flag is the correct
+    cancellation for a shared cache, and a signal-aware test pins the regression.
 - **Blocked on:** nothing (D6 still wants A6)
 - **Next action:** D5 — `SettingsPanel.tsx`, `app/lib/heat/profile.ts`. Both `dose()` and
   `heatScore()` already take their person-dependent inputs as an explicit argument with no
@@ -54,10 +67,13 @@
 - **Known limitation to close in D4/D6:** "Shadiest around 7 PM" is true but weakly useful
   near sunset, where everything ties at fully shaded. D4's `sunPenaltyC` is the weighting the
   D1 series needs — it goes to zero after dark, which is exactly the tie-break missing today.
-- **Last verified:** 2026-09-06, 428 tests / 36 files green. D4 confirmed in a browser
-  (Playwright, fixture basemap) on both paths: with a stubbed 900 W/m² / 34 °C apparent
-  forecast the card reads "EXPERIMENTAL · Heat 70 · feels about 35 °C walking this", and with
-  Open-Meteo unreachable it reads "sun exposure only — no weather forecast".
+- **Last verified:** 2026-09-06, 440 tests / 37 files green. D4 confirmed in a browser
+  (Playwright, fixture basemap) on all four paths: with a stubbed 900 W/m² / 34 °C apparent
+  forecast the card reads "EXPERIMENTAL · strong heat stress / Heat 69 · feels about 35 °C
+  walking this"; with wind missing it drops to "about 34 °C — air temperature only"; with
+  Open-Meteo unreachable it stops saying "Heat" at all and reads "61% of this walk is in sun
+  · no weather forecast — heat not scored"; and at 375×667 the mobile sheet scores the row
+  rather than degrading it. The method link's hit box measures 108×44 px.
 
 ---
 

@@ -10,12 +10,18 @@ and not to the second — see "Why radiation and not UV index" below.
 
 ## What the app shows
 
-One line under the route tradeoff: *"Heat 75 vs 60 · feels about 36 °C walking this"*.
+Two lines under the route tradeoff:
 
-The first number is the selected route, the second the shortest one. The score is
-**ordinal**: it ranks the options you are choosing between, at this hour, at this
-place. Comparing it to a score from another day or another city is not a comparison
-of anything.
+> **Strong heat stress · Heat 75 vs 60**
+> feels about 36 °C walking this
+
+The word is the published thing — a UTCI heat-stress category. The number is ours: the
+selected route first, the shortest one second. It is **ordinal**, and it ranks the
+options you are choosing between at this hour, at this place. Comparing it to a score
+from another day or another city is not a comparison of anything.
+
+With no forecast the row says something else entirely — see "Degraded mode" below. It
+does not print the word "Heat" over a number that means a different thing.
 
 ## The score is an intensity, not a dose
 
@@ -37,6 +43,10 @@ boundaries:
 | 32 °C | 60 | end of *moderate heat stress* |
 | 38 °C | 80 | end of *strong heat stress* |
 | ≥ 46 °C | 100 | *extreme heat stress* |
+
+`heatBand()` maps a score back to the category name so the UI can print the word next
+to the number. The categories are the defensible part; the even 20 points between them
+are not, which is why the word leads and the number follows.
 
 The **temperatures** are Bröde et al. 2012, as published by Copernicus. The **scores**
 attached to them are ours — an even 20 points per category, chosen so the number reads
@@ -67,10 +77,14 @@ shading — it assumes the sun reaches you, which is precisely the assumption th
 exists to question. So `score.ts` removes that term and adds a shade-aware penalty of
 its own. Without it, a fully shaded route would still be charged for sunshine.
 
-Removing the term needs the wind speed the formula divides by. When wind is missing,
-the model falls back to dry-bulb `temperature_2m` — which never contained a solar term
-— and lowers its confidence, because humidity and wind are then not in the number at
-all.
+Removing the term needs the wind speed the formula divides by, **in metres per second**.
+Open-Meteo answers in km/h unless asked otherwise, so `weather.ts` sends
+`wind_speed_unit=ms`; without it the wind term is wrong by a factor of 3.6 and the
+subtraction comes out too small.
+
+When wind is missing entirely, the model falls back to dry-bulb `temperature_2m` —
+which never contained a solar term — and says so on screen ("about 36 °C — air
+temperature only"), because humidity and wind are then not in the number at all.
 
 ### `sunFraction` — how much of the trip is exposed
 
@@ -107,12 +121,16 @@ request D2 already makes.
 ## Degraded mode
 
 With no forecast — or a forecast missing radiation or temperature — the score falls
-back to `shade-only`: the sunlit share of the trip, times 100, and nothing else. It is
-**not comparable** to a felt-temperature score, so the mode travels with the number and
-the UI says *"sun exposure only — no weather forecast"* instead of a temperature.
+back to `shade-only`: the sunlit share of the trip, times 100, and nothing else.
 
-`confidence` reports which rung the estimate is on: 0.6 with apparent temperature,
-0.45 with dry-bulb only, 0.3 in shade-only mode.
+That number is **not comparable** to a felt-temperature score. 70 on the UTCI ramp is
+about 35 °C; 70 in shade-only mode is 70% of the walk in sun. So the UI stops using the
+word "Heat" for it altogether and reads *"70% of this walk is in sun · no weather
+forecast — heat not scored"*. `mode` carries the same distinction in the data.
+
+`confidence` records which rung the estimate is on: 0.6 with apparent temperature,
+0.45 with dry-bulb only, 0.3 in shade-only mode. All three rungs are distinguishable on
+screen without it, so nothing currently reads the field.
 
 ## What this model does not include
 

@@ -148,6 +148,10 @@ export function fetchWeatherForecast(
     forecast_days: "7",
     past_days: "1",
     timezone: "UTC",
+    // Open-Meteo defaults wind to km/h. `WeatherHour.windMs` says m/s, and the heat
+    // model divides by it inside Steadman's apparent-temperature term — a unit the
+    // field name asserts has to actually be the unit the response carries.
+    wind_speed_unit: "ms",
   });
 
   const hours = fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {

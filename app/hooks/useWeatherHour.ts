@@ -30,14 +30,25 @@ export function useWeatherHour(
       return;
     }
 
-    const ctrl = new AbortController();
-    fetchWeatherForecast(Number(latKey), Number(lngKey), { signal: ctrl.signal })
-      .then((hours) => setHour(nearestWeatherHour(hours, new Date(targetMs))))
-      .catch((err) => {
-        if (!(err instanceof DOMException && err.name === "AbortError")) setHour(null);
+    // Deliberately no AbortSignal. The promise this awaits is the *shared* cache
+    // entry, so aborting it on cleanup cancels the fetch for every other consumer
+    // and poisons the cached entry for the effect run that immediately replaces
+    // this one — which showed up as the heat line stranded on "no forecast" after
+    // a pan or a slider drag that crossed an hour boundary mid-fetch. Ignoring a
+    // stale result is the correct cancellation here; the request is one the app
+    // wanted anyway and is now cached.
+    let current = true;
+    fetchWeatherForecast(Number(latKey), Number(lngKey))
+      .then((hours) => {
+        if (current) setHour(nearestWeatherHour(hours, new Date(targetMs)));
+      })
+      .catch(() => {
+        if (current) setHour(null);
       });
 
-    return () => ctrl.abort();
+    return () => {
+      current = false;
+    };
   }, [latKey, lngKey, targetMs]);
 
   return hour;

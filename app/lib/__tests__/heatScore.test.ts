@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   feltToScore,
+  heatBand,
   heatScore,
   MAX_SUN_FELT_C,
   SCORE_ANCHORS,
@@ -27,10 +28,15 @@ const HALF_HOUR_IN_SUN = { sunMinutes: 30, shadeMinutes: 0 };
 const HALF_HOUR_IN_SHADE = { sunMinutes: 0, shadeMinutes: 30 };
 
 describe("feltToScore", () => {
-  it("returns each anchor's score exactly at its temperature", () => {
-    for (const [feltC, score] of SCORE_ANCHORS) {
-      expect(feltToScore(feltC)).toBeCloseTo(score, 10);
-    }
+  it("puts UTCI's published category boundaries where the scale claims they are", () => {
+    // Written out rather than looped over SCORE_ANCHORS: a loop over the table would
+    // pass no matter what the table said. These are Copernicus's thresholds.
+    expect(feltToScore(9)).toBe(0);
+    expect(feltToScore(26)).toBe(40);
+    expect(feltToScore(32)).toBe(60);
+    expect(feltToScore(38)).toBe(80);
+    expect(feltToScore(46)).toBe(100);
+    expect(SCORE_ANCHORS).toHaveLength(5);
   });
 
   it("flattens outside the anchored range rather than extrapolating", () => {
@@ -91,6 +97,8 @@ describe("heatScore", () => {
   it("removes the apparent temperature's own solar term before adding its own", () => {
     // Steadman adds 0.70 × 0.1 × (900 − 550) / (0.75 × 2 + 10) ≈ 2.13 °C of sun to
     // the 34 °C apparent temperature. A shaded walk should not be charged for it.
+    // The 2 is metres per second: `weather.ts` requests `wind_speed_unit=ms`, and
+    // this arithmetic is wrong by ~3.6× on the wind term if that ever stops being true.
     const shaded = heatScore(HALF_HOUR_IN_SHADE, weather());
 
     expect(shaded.feltC as number).toBeCloseTo(31.87, 2);
@@ -180,5 +188,41 @@ describe("heatScore", () => {
 
   it("carries its method version so the UI can link to the right page", () => {
     expect(heatScore(HALF_HOUR_IN_SUN, weather()).method).toBe("shade-radiation-v1");
+  });
+
+  it("reports only the inputs it actually used", () => {
+    // Apparent temperature is present but unusable without radiation. Naming it in
+    // `inputs.ambientC` would describe a shade-only result as if it had read a
+    // temperature.
+    const result = heatScore(HALF_HOUR_IN_SUN, weather({ shortwaveWm2: null }));
+
+    expect(result.mode).toBe("shade-only");
+    expect(result.inputs.ambientC).toBeNull();
+    expect(result.inputs.ambientIsApparent).toBe(false);
+    expect(result.inputs.sunPenaltyC).toBe(0);
+  });
+});
+
+describe("heatBand", () => {
+  it("names the UTCI category each score band falls in", () => {
+    expect(heatBand(0)).toBe("no heat stress");
+    expect(heatBand(39)).toBe("no heat stress");
+    expect(heatBand(40)).toBe("moderate heat stress");
+    expect(heatBand(59)).toBe("moderate heat stress");
+    expect(heatBand(60)).toBe("strong heat stress");
+    expect(heatBand(79)).toBe("strong heat stress");
+    expect(heatBand(80)).toBe("very strong heat stress");
+    expect(heatBand(99)).toBe("very strong heat stress");
+    expect(heatBand(100)).toBe("extreme heat stress");
+  });
+
+  it("changes name exactly where the score scale changes category", () => {
+    // The bands and the anchors have to agree, or the word contradicts the number.
+    for (const [feltC, score] of SCORE_ANCHORS.slice(1)) {
+      expect(heatBand(feltToScore(feltC)), `${feltC} °C`).not.toBe(
+        heatBand(feltToScore(feltC) - 1)
+      );
+      expect(score % 20).toBe(0);
+    }
   });
 });

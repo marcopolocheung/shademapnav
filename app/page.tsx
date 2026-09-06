@@ -605,7 +605,6 @@ export default function Home() {
             isCalculating={isCalculating}
             routeProgress={routeProgress}
             routes={filteredRoutes}
-            weather={heatWeather}
             exposureStrip={exposureStrip}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
@@ -792,6 +791,7 @@ export default function Home() {
               isCalculating={isCalculating}
               routeProgress={routeProgress}
               routes={filteredRoutes}
+              weather={heatWeather}
               selectedRouteIndex={selectedRouteIndex}
               onSelectRoute={setSelectedRouteIndex}
               error={navError}

@@ -112,6 +112,24 @@ function finite(n: number | null | undefined): number | null {
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 
+/**
+ * The UTCI heat-stress category a score falls in.
+ *
+ * The category is the published thing; the 0–100 interpolation between categories is
+ * the part this model invented. A bare "70" means nothing to someone who has never
+ * seen the app, and the word costs nothing — see docs/notes/heat-score.md.
+ *
+ * "No heat stress" covers everything below the moderate boundary. Below 9 °C UTCI
+ * describes *cold* stress, which this model does not attempt.
+ */
+export function heatBand(score: number): string {
+  if (score < 40) return "no heat stress";
+  if (score < 60) return "moderate heat stress";
+  if (score < 80) return "strong heat stress";
+  if (score < 100) return "very strong heat stress";
+  return "extreme heat stress";
+}
+
 /** Piecewise-linear interpolation through `SCORE_ANCHORS`, flat outside its ends. */
 export function feltToScore(feltC: number): number {
   const first = SCORE_ANCHORS[0];
@@ -172,16 +190,21 @@ export function heatScore(
     ? Math.min(MAX_SUN_FELT_C, shortwaveWm2 * SUN_FELT_C_PER_WM2)
     : 0;
 
+  const usable = shadeAmbientC !== null && Number.isFinite(shortwaveWm2);
+
+  // `inputs` reports what the model *used*, not what the forecast happened to carry:
+  // a shade-only result naming an ambient temperature it never read would misdescribe
+  // its own degradation.
   const inputs = {
     sunFraction,
     sunMinutes,
-    ambientC,
-    ambientIsApparent: useApparent,
+    ambientC: usable ? ambientC : null,
+    ambientIsApparent: usable && useApparent,
     shortwaveWm2: Number.isFinite(shortwaveWm2) ? shortwaveWm2 : null,
-    sunPenaltyC,
+    sunPenaltyC: usable ? sunPenaltyC : 0,
   };
 
-  if (shadeAmbientC === null || !Number.isFinite(shortwaveWm2)) {
+  if (!usable) {
     return {
       score: Math.round(sunFraction * 100),
       method: "shade-radiation-v1",
@@ -192,7 +215,7 @@ export function heatScore(
     };
   }
 
-  const feltC = shadeAmbientC + sunFraction * sunPenaltyC;
+  const feltC = (shadeAmbientC as number) + sunFraction * sunPenaltyC;
 
   return {
     score: Math.round(feltToScore(feltC)),
