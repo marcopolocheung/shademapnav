@@ -108,8 +108,50 @@ lit→shaded flips, exactly zero roof differences, a shaded→lit fraction from 
 points below its paired baseline. The lower flip bound catches a no-op; the upper bound
 catches a lift mistakenly applied to whole faces.
 
+### Ray-traced ground truth (`shadow_truth.py`)
+
+The two verifiers above compare a frame with *another frame*. This one compares a frame
+with geometry: it asks the page for the prisms the renderer just used, ray-traces them
+itself, and diffs the two answers per pixel. Use it when the complaint is "the shadow looks
+wrong" and you need to know where and by how much, rather than whether one build differs
+from another.
+
+```bash
+npm run dev &
+
+LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+  ~/miniconda3/bin/python scripts/verify/shadow_truth.py \
+    --url http://localhost:5173 --out out/shadow-truth --tag before --step 2
+
+# after the change, same scene and camera:
+LD_LIBRARY_PATH=$HOME/miniconda3/lib \
+  ~/miniconda3/bin/python scripts/verify/shadow_truth.py \
+    --url http://localhost:5173 --out out/shadow-truth --tag after --step 2 \
+    --baseline out/shadow-truth/before.json
+```
+
+It prints a wrong-pixel fraction per surface — ground, wall, roof — split by direction
+(`lit-where-shaded` versus `shaded-where-lit`), and writes three images: the traced truth,
+the renderer's decision, and a mismatch mask on black. The mask is the point: a defect that
+is invisible in a log shows up there as a shape. Cyan/magenta blobs hugging vertical building
+edges read differently from one filling a whole roof, and that difference is what tells the
+two known failure modes apart.
+
+`--step 2` samples every second pixel and runs about four times faster; a dense scene at
+`--step 1` takes a few minutes. `--lat/--lng/--zoom/--pitch/--bearing/--date/--time` move the
+scene. Needs `numpy` and `pillow` as well as playwright.
+
+Read the numbers with its limits in mind. The truth is the renderer's own geometry traced
+exactly, so it validates the shaders, not the buildings — a pixel the two disagree about the
+*identity* of is excluded and counted as `surfaceMismatch`. Ground pixels are classified with
+`isBlueDominantShadowPixel`, so they carry that predicate's noise over a coloured basemap;
+wall and roof pixels do not, because the building pass is patched to state its decision in
+the alpha channel. Treat a couple of percent as the floor: silhouette pixels and the field's
+own raster resolution live there.
+
 ## What still cannot be checked
 
-Nothing here measures whether the shade numbers are *right* — only whether they are
-self-consistent. Real accuracy needs the pixel sampler's answer recorded over real cities
-against ground truth, which no fixture in this repo has.
+Nothing here measures whether the shade numbers are *right* against the real world — only
+whether they are self-consistent, or consistent with the geometry the renderer was handed.
+Real accuracy needs the pixel sampler's answer recorded over real cities against surveyed
+ground truth, which no fixture in this repo has.
