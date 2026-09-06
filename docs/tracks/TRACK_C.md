@@ -12,13 +12,13 @@ run in parallel with any other.
 
 ## Current state
 
-- **Active checkpoint:** C1 (not started)
-- **Done:** nothing in this track — but see "What's already true" — the 2026-07 project review's complaints are **partly stale**; re-verify before acting on them
-- **Open PRs:** none
-- **Decisions made:** none yet
-- **Blocked on:** nothing
-- **Next action:** C1 — the eval harness. No other checkpoint lands first.
-- **Last verified:** 2026-08-24, 156 tests / 23 files green on main
+- **Active checkpoint:** C2 (ground the write phase) — C1's harness is in review (PR #191, `feat/c1-agent-eval-harness`)
+- **Done:** C1 — 18 scenarios + a sabotage suite at `app/lib/agent/__tests__/` — but see "What's already true": the 2026-07 project review's complaints are **partly stale**; re-verify before acting on them
+- **Open PRs:** #191 (C1)
+- **Decisions made:** scenarios are data (`__tests__/scenarios/*.ts`), the runner is one file — `vi.mock` is hoisted per test file, so a per-scenario test file would duplicate the mocks. Assertions read a `Trace`, never the answer's wording; the only string check is *which scripted turn came back*. `groundingViolations` searches only the names a scenario declares (`grounded`/`decoys`), so it can't decay into prose matching.
+- **Blocked on:** nothing. C3 still needs Track A's `ShadeField` (A2/A6) — stub when you get there.
+- **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59 by observation in `npm run dev`.
+- **Last verified:** 2026-09-06, 439 tests / 36 files green on `feat/c1-agent-eval-harness` (main baseline was 411/35 — the brief's old "156 tests / 23 files" was stale by ~250 tests)
 
 ---
 
