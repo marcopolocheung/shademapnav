@@ -10,13 +10,24 @@
 
 ## Current state
 
-- **Active checkpoint:** D1 (not started)
-- **Done:** nothing — but `app/lib/bestTime.ts` is **already written and tested**; D1 is wiring, not building
-- **Open PRs:** none
-- **Decisions made:** none yet
-- **Blocked on:** nothing (D1 works with today's sampler; D6 wants A6)
-- **Next action:** D1 — render the hourly exposure series that already exists
-- **Last verified:** 2026-08-24, 156 tests / 23 files green on main
+- **Active checkpoint:** D2 — D1 is in review (PR #186 on `feat/d1-hourly-exposure`)
+- **Done:** D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the
+  selected route under the tradeoff line, in both route surfaces. Closes #47.
+- **Open PRs:** #186 (D1), #185 (exposure units — direct-sun minutes and longest sun stretch)
+- **Decisions made:**
+  - D1 samples Track A's `ShadeField.sweep`, not the canvas, so the day sweep never moves the
+    camera. One hour per animation frame until A6 makes a sweep cheaper than N samples.
+  - `bestTime.ts` keeps ownership of the schedule (which hours, labels, timezone); the hook
+    only fills in the measurements.
+  - The strip is passed into `DirectionsPanel` and `FloatingRouteCards` as a rendered node,
+    so the mobile and desktop surfaces share one instance and one sweep.
+- **Blocked on:** nothing (D6 still wants A6)
+- **Next action:** D2 — generalize `weather.ts` to one cached hourly `WeatherHour[]`
+- **Known limitation to close in D2/D4:** "Shadiest around 7 PM" is true but weakly useful
+  near sunset, where everything ties at fully shaded. Weighting the series by
+  `computeSolarIntensity` (or D2's UV) is what makes the recommendation mean something.
+- **Last verified:** 2026-09-05, 393 tests / 35 files green; D1 confirmed in a browser
+  (Playwright, fixture basemap): the strip fills, and tapping 5 PM retimes the map.
 
 ---
 

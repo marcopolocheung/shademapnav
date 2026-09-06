@@ -7,6 +7,7 @@ import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
 import RouteCard from "./RouteCard";
 import RouteTradeoffSummary from "./RouteTradeoffSummary";
+import type { ReactNode } from "react";
 import SavedRoutesSection from "./SavedRoutesSection";
 
 const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) {
@@ -80,6 +81,8 @@ export interface DirectionsPanelProps {
   onBack: () => void;
   onStartNavigation?: () => void;
   hideRouteCards?: boolean;
+  /** The hourly exposure strip, rendered under the tradeoff line. */
+  exposureStrip?: ReactNode;
   routeMode?: 'walk' | 'transit';
   onRouteModeChange?: (mode: 'walk' | 'transit') => void;
   canTransit?: boolean;
@@ -109,6 +112,7 @@ export default function DirectionsPanel({
   onBack,
   onStartNavigation,
   hideRouteCards = false,
+  exposureStrip,
   routeMode = 'walk', onRouteModeChange,
   canTransit = true,
   shadePreference = 0.5, onShadePreferenceChange,
@@ -429,6 +433,7 @@ export default function DirectionsPanel({
             route={selectedRoute}
             baselineRoute={completeBaselineRoute ?? undefined}
           />
+          {exposureStrip}
           <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Route options">
             {routes.map((r, i) => (
               <RouteCard
