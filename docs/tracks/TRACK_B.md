@@ -227,6 +227,9 @@ export interface GuidanceState {
 **Approach.** Web Speech API (`speechSynthesis`) — announce at distance thresholds, never repeat, always have a mute. Arrival: "You walked 78% in shade — about 4 minutes of direct sun." Fires `ARRIVE` automatically within a geofence of the destination.
 **Acceptance.** Speech degrades silently where unsupported; announcements don't fire twice; the summary's numbers come from the actual tracked path, not the planned route (if the user detoured, say what they actually did).
 **Files.** `app/lib/guidance/voice.ts` (new), arrival component. **Size.** Medium.
+**Two tracks are waiting on B7's arrival sentence:** it is Track F's documented unpark
+condition (with D1, which has landed), and Track P's P3 demo recording ends on it. Neither
+should be started with a mocked summary.
 
 ### B8 — Leg and stop browsing
 **Goal.** Step through a multi-stop journey. Closes **#66**.

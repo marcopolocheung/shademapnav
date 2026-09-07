@@ -355,6 +355,9 @@ confident sentence in the UI or in an assistant answer.
 **Acceptance.** A 14-hour sweep over a 3 km route costs < 2× a single-hour sample; results match 14 individual `sampleEdges` calls exactly.
 **Files.** `app/lib/shade/ShadeField.ts`, tests.
 **Size.** Medium. **This is Track D's dependency — D1 can ship before it, D6 can't.**
+**It also gates Track H entirely.** H1 prices every edge at its own traversal time, which
+means N time buckets per route; without the sweep that is N× a full sample and will not run
+at interactive speed. H is blocked until this lands — see `docs/tracks/TRACK_H.md`.
 
 ### A7 — Canopy v1 (Overpass trees)
 **Goal.** Stop under-reporting shade on the streets shade-seekers actually use. Closes **#46**.
