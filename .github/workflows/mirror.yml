@@ -1,0 +1,115 @@
+name: Public mirror
+
+# `origin` is private; github.com/marcopolocheung/shademapnav is what the world
+# sees. It used to be pushed by hand, and by #199 it had silently fallen ten
+# commits behind — long enough that the "how this was calculated" link the heat
+# and UV rows render into the UI 404'd in production. The manual step is the
+# thing that failed, so this replaces it.
+on:
+  push:
+    branches: [main]
+  # The link and secret checks run here too, so a bad link or a committed key is
+  # caught before it reaches `main` rather than turning the mirror red after it.
+  pull_request:
+    branches: [main]
+  # For the first push after enabling this, and for re-running one that failed.
+  workflow_dispatch:
+
+# Never cancel a mirror mid-push: a superseded run has already published, or is
+# about to, and two racing pushes is worse than one late one.
+concurrency:
+  group: mirror-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MIRROR_REPO: marcopolocheung/shademapnav
+
+jobs:
+  mirror:
+    name: check, then push main to the public repo
+    runs-on: ubuntu-latest
+    # Deliberately not gated on the CI workflow. A faithful mirror of a red
+    # `main` is still faithful, and coupling to `workflow_run` means one flaky
+    # browser run stops mirroring with no one noticing — which is the exact
+    # silent drift this job exists to end. `main` is already gated by PR CI.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The push needs real history, not the default single commit.
+          fetch-depth: 0
+          # Required. checkout otherwise leaves an `extraheader` in the local git
+          # config carrying GITHUB_TOKEN, which takes precedence over the
+          # credential in a push URL — so the mirror push would authenticate as
+          # this repo's token, which has no access to the public repo, and 403.
+          persist-credentials: false
+
+      # One list, used by both link checks below. The trailing-dot trim keeps a
+      # URL written at the end of a sentence from becoming a bogus path.
+      - name: Collect the public doc URLs the app links to
+        run: |
+          grep -rhoE "https://github\.com/${MIRROR_REPO}/blob/main/[A-Za-z0-9._/-]+" app/ \
+            | sed 's/[.]*$//' | sort -u > /tmp/doc-urls.txt
+          echo "Links found in app/:"; cat /tmp/doc-urls.txt
+
+      # Catches "link added, doc not written" at review time. The mirror
+      # publishes whatever is on `main`; it cannot publish a file that isn't there.
+      - name: Check each linked doc exists in this tree
+        run: |
+          status=0
+          while read -r url; do
+            path="${url#*/blob/main/}"
+            if [ -f "$path" ]; then
+              echo "ok      $path"
+            else
+              echo "::error::app/ links to $path, which does not exist in this commit."
+              status=1
+            fi
+          done < /tmp/doc-urls.txt
+          exit $status
+
+      # Publishing is not reversible, so this runs before the push. See the
+      # script for what it does and does not cover.
+      - name: Check nothing private is about to be published
+        run: ./scripts/mirror-guard.sh "${GITHUB_SHA}"
+
+      - name: Push main
+        if: github.event_name != 'pull_request'
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ -z "${MIRROR_TOKEN}" ]; then
+            echo "::error::MIRROR_TOKEN is not set, so the public repo is not being updated." \
+                 "Create a fine-grained PAT scoped to ${MIRROR_REPO} with Contents: Read and write," \
+                 "and add it as the MIRROR_TOKEN repository secret. See docs/tracks/README.md."
+            exit 1
+          fi
+          # Only `main`. Not --mirror and not --all: feature branches, dependabot
+          # branches and any future private branch stay in this repo.
+          #
+          # No --force. This repo is the only writer, so the push is always a
+          # fast-forward; if it ever is not, the public repo has a commit that
+          # `main` does not and a human needs to look at it.
+          git push "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPO}.git" \
+            "${GITHUB_SHA}:refs/heads/main"
+
+      # #199 was not "the mirror is stale" in the abstract — it was a link in the
+      # UI that 404'd. So the job ends by checking the thing that actually broke.
+      - name: Check each linked doc resolves on the public mirror
+        if: github.event_name != 'pull_request'
+        run: |
+          status=0
+          while read -r url; do
+            raw="https://raw.githubusercontent.com/${MIRROR_REPO}/main/${url#*/blob/main/}"
+            # --fail is what makes --retry cover an HTTP 404: without it curl
+            # calls a 404 a successful transfer and returns immediately, so the
+            # raw CDN gets no chance to catch up with the push that just landed.
+            code=$(curl -s -o /dev/null -w '%{http_code}' --fail \
+                     --retry 3 --retry-delay 3 --retry-all-errors "$raw" || true)
+            if [ "$code" = "200" ]; then
+              echo "ok      $url"
+            else
+              echo "::error::$url is $code on the public mirror. The app links to a doc nobody can read."
+              status=1
+            fi
+          done < /tmp/doc-urls.txt
+          exit $status
