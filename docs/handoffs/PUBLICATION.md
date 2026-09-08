@@ -80,6 +80,11 @@ appears without its method.**
 - What the project is, what it does not do, and what is measured versus assumed.
 - **No badge wall.** `ROADMAP.md` §2 anti-goals: every badge is a claim a reviewer can test.
 
+**Check the public repo itself before you write** — #216. It was showing failing workflow runs
+on `main` and three open Dependabot PRs, because the mirror received `.github/` and ran it.
+Mitigated on 2026-09-08, but one part is open and **nothing was checking this**. Add it to
+acceptance: *a reviewer arriving at the mirror sees no failing runs and no open PRs.*
+
 **Check before you write:** #52 (LICENSE) may still be open. A public repo calling itself
 open-source with no LICENSE undercuts the README on sight. If it is open, either take it here as
 a third small PR or note it as blocking.
