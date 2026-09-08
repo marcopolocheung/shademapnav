@@ -1,7 +1,7 @@
 ---
 name: track
 description: Boot a ShadeMapNav track session — load the brief, confirm the baseline, pick the next checkpoint, and start work. One session owns one track for its whole life.
-argument-hint: <a|b|c|d|e|f|g> [checkpoint id, e.g. A3]
+argument-hint: <a|b|c|d|e|f|g|h|p> [checkpoint id, e.g. A3]
 arguments: [track, checkpoint]
 disable-model-invocation: true
 allowed-tools:
@@ -19,6 +19,8 @@ file an issue against that track instead.
 
 1. Read, in this order:
    - `CLAUDE.md` (root) — commands, hard invariants, repo map
+   - `docs/ROADMAP.md` §3 (the order of work) — it says whether your track's next checkpoint
+     is actually the right thing to do, and what is blocking what
    - `docs/notes/AUTONOMOUS_GOAL.md` §Mission, §4 (dependencies + seams), §5 (the loop)
    - `docs/tracks/README.md` — how a session is run, when to fan out
    - `docs/tracks/TRACK_$track.md` — **your brief. This is your context. Read all of it.**

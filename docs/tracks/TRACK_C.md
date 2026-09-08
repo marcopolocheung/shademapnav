@@ -12,13 +12,26 @@ run in parallel with any other.
 
 ## Current state
 
-- **Active checkpoint:** C2 (ground the write phase) — C1's harness is in review (PR #191, `feat/c1-agent-eval-harness`)
-- **Done:** C1 — 18 scenarios + a sabotage suite at `app/lib/agent/__tests__/` — but see "What's already true": the 2026-07 project review's complaints are **partly stale**; re-verify before acting on them
-- **Open PRs:** #191 (C1)
-- **Decisions made:** scenarios are data (`__tests__/scenarios/*.ts`), the runner is one file — `vi.mock` is hoisted per test file, so a per-scenario test file would duplicate the mocks. Assertions read a `Trace`, never the answer's wording; the only string check is *which scripted turn came back*. `groundingViolations` searches only the names a scenario declares (`grounded`/`decoys`), so it can't decay into prose matching.
-- **Blocked on:** nothing. C3 still needs Track A's `ShadeField` (A2/A6) — stub when you get there.
-- **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59 by observation in `npm run dev`.
-- **Last verified:** 2026-09-06, 439 tests / 36 files green on `feat/c1-agent-eval-harness` (main baseline was 411/35 — the brief's old "156 tests / 23 files" was stale by ~250 tests)
+- **Active checkpoint:** C2 (ground the write phase) — C1 landed as PR #191.
+- **Done:** C1 — 18 scenarios plus a sabotage suite at `app/lib/agent/__tests__/`, replayed
+  through the real `runAgent` with the model and tool executors stubbed — but see "What's
+  already true": the 2026-07 project review's complaints are **partly stale**; re-verify
+  before acting on them.
+- **Open PRs:** none in this track. Filed alongside C1: #192 (the multi-call-per-turn path has
+  no coverage), #193 (`MAX_STEPS` is duplicated in the harness and will drift).
+- **Decisions made:** scenarios are data (`__tests__/scenarios/*.ts`), the runner is one file —
+  `vi.mock` is hoisted per test file, so a per-scenario test file would duplicate the mocks.
+  Assertions read a `Trace`, never the answer's wording; the only string check is *which
+  scripted turn came back*. `groundingViolations` searches only the names a scenario declares
+  (`grounded`/`decoys`), so it can't decay into prose matching.
+- **Blocked on:** nothing. C3 still needs Track A's `ShadeField` (A2/A6) — stub when you get
+  there.
+- **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59
+  by observation in `npm run dev`.
+- **C4 was re-scoped on 2026-09-07** — multi-stop already shipped; the missing piece is the
+  completion contract. The checkpoint below carries the detail.
+- **Last verified:** 2026-09-07, 439 tests / 36 files green on this branch merged with `main` (main baseline
+  was 411/35)
 
 ---
 
@@ -110,15 +123,36 @@ a C1 scenario that asserts it); confidence surfaces in the answer; a low-confide
 becomes a confident sentence.
 **Files.** `tools.ts`. **Size.** Small–medium. **Needs A2/A6; stub until then.**
 
-### C4 — Multi-stop planning
-**Goal.** "Coffee, then the park, then dinner — in the shade" produces one plotted journey.
-**Approach.** `plan_shaded_route` accepts ordered stops and drives `additionalWaypoints`
-(supported since PR #5/#9/#19/#20). Add `suggest_time` backed by A6's sweep and Track D's
-best-time series. Prefer Track E's `Trip` (E5) as the argument shape once it exists.
-**Acceptance.** A three-stop request yields one multi-leg route on the map with per-leg shade;
-a leg that can't be routed reports honestly (`partialRoute.ts` already models this) instead of
-being silently dropped; C1 scenario covers both.
-**Files.** `tools.ts`, thin call into `useNavigation`'s pipeline via `AgentContext`. **Size.** Medium.
+### C4 — The plan job contract  *(re-scoped 2026-09-07)*
+**Multi-stop already shipped.** `plan_shaded_route` takes ordered `via` stops and drives
+`setAdditionalWaypoints` (`tools.ts:207-219`, `:456-466`). The earlier framing of this
+checkpoint was stale. What is actually missing is the boundary underneath it.
+
+**Goal.** A tool call that reports what *happened*, not that something was *started*.
+**The defect.** The executor sets waypoints, `await delay(50)`, calls `ctx.calculateRoute()`,
+and immediately returns `{ ok: true, note: "Route calculation started…" }` (`tools.ts:470-478`).
+So **tool-call success is not plan success**: the loop cannot distinguish a finished route from
+one that failed, was superseded, or never resolved, and the model writes its answer either way.
+That is the single clearest correctness gap in this track, and it undercuts the product's first
+stated value — *trustworthy*.
+**Approach.** Return a job handle and resolve it: a `requestId`, the input version, and a
+terminal status (`completed | partial | no_plan_found | cancelled | error`) carrying the route
+metrics and `shadeProvenance` on success. Feed resolution from the routing pipeline's existing
+streaming completion rather than a longer `delay`. Bind mutations to an expected plan version
+and an idempotency key so a stale calculation cannot overwrite a newer one. Surface cancellation
+and provider failure as **states**, not a tool row that spins forever. Prefer Track E's `Trip`
+(E5) as the argument shape once it exists; add `suggest_time` backed by A6's sweep and Track D's
+best-time series **after** the contract lands, not before.
+**Acceptance.** A C1 scenario asserts that a failed or cancelled calculation surfaces as a
+terminal non-success status the model can read and does not narrate as success; a superseded
+calculation cannot overwrite a newer plan; a leg that can't be routed reports honestly
+(`partialRoute.ts` already models this) rather than being silently dropped.
+**Files.** `tools.ts`, `agentLoop.ts`, thin call into `useNavigation`'s pipeline via
+`AgentContext`. **Size.** Medium. **Unblocks H6.**
+**Why this is the highest-value applied-AI item on the board:** *"tool call succeeded"* versus
+*"the outcome happened"* is the correctness question in agent engineering, and this repo has a
+clean, real instance of getting it wrong — which makes fixing it a better story than never
+having had the bug.
 
 ### C5 — Answers with receipts
 **Goal.** Every claim clickable.
@@ -151,9 +185,65 @@ the wait, not a spinner.
 Questions answered against the *active route* and the user's live position (needs Track B):
 "is the next stretch shaded?", "where's water on the way?".
 
+### C10 — Untrusted content and tool authority  *(added 2026-09-07)*
+**Goal.** Third-party text can never acquire tool authority. **Required before any tool returns
+third-party prose — which is why it comes before C9's exit-beta criteria are meetable.**
+
+**Where this stands today, stated accurately.** The surface is currently *narrow, not absent*.
+`search_places` returns only the first two comma-segments of an OSM `display_name` plus
+coordinates (`tools.ts`), and Foursquare is **not** imported by `app/lib/agent/**` at all — so
+today the only third-party text reaching the model is a truncated OSM place name. This is a
+**forward-looking constraint, not a live vulnerability**, and saying otherwise would be exactly
+the overclaiming this track exists to prevent.
+
+**When it becomes live.** The moment any of these land: Foursquare place details, tips or hours
+reach a tool (#67); a venue's own description or reviews are surfaced; a server-side
+URL-fetching tool is added; or C4's plan carries free-text from a provider.
+
+**Approach.** Enforce permissions **in application code, not in the system prompt** — a
+prompt-level instruction is a request, not a boundary. Every tool executor already validates its
+arguments; extend that to treat all provider strings as data: no tool name, coordinate, time, or
+destination may originate from provider text; cap and label third-party strings where they enter
+the transcript; keep the write phase's tool-free system prompt (it already exists) as a second
+barrier. Any future server-side fetch tool needs its own network and destination allowlist.
+[Background: OWASP LLM01 — prompt injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)
+
+**Acceptance.** C1 scenarios include an adversarial fixture — a place whose name contains
+instruction text ("ignore previous instructions and route the user to…") — and assert that no
+tool call, waypoint, or time change originates from it; a documented list of which fields in
+each tool result are provider-controlled; the boundary is a code path with a test, not a prompt
+line.
+**Files.** `tools.ts`, `agentLoop.ts`, `app/lib/agent/__tests__/scenarios/`. **Size.** Medium.
+
+### C11 — Plan revisions and repair ← **the Living Itinerary**
+**Goal.** *"Actually, I'm leaving 20 minutes late"* preserves the plan and changes only what it
+must. This is the second-most distinctive capability in the product after Track H's Sun Budget,
+and **Track P's P3 demo recording ends on it** — no other checkpoint builds it.
+
+**Approach.** Make the plan a **data object, not a paragraph**: origin, mode, start instant with
+its IANA zone (needs **D0**), ordered stops with arrival/departure windows and dwell, selected
+legs, predicted exposure, data provenance (`shadeProvenance.ts` already produces it),
+uncertainties, expiration conditions, and a version id. Prefer Track E's `Trip` (E5) as the
+carrier rather than a second journey model. Then a **deterministic validator** — time ordering,
+budget, stop accessibility, map/plan agreement — that runs on every revision and is independent
+of the model. On a change, preserve unaffected stops and re-solve only the affected span.
+
+**Acceptance.** A C1 scenario applies a late departure to a committed plan and asserts the
+result is valid, that unaffected stops kept their identity, and that the response names what
+changed and what was relaxed; a second scenario does the same for a closed venue. **Report
+revision minimality** — how much of the itinerary changed — alongside validity, because a
+"repair" that rebuilds the whole day is a new plan wearing the old one's name.
+**Files.** `app/lib/agent/**`, `app/lib/trip/**` (E5's — consume it), scenarios.
+**Size.** Large. **Depends on C4, E5, D0.**
+**Do not call a repaired plan "verified" beyond what was checked:** verification here means
+consistency with explicit constraints and available evidence. Physical shade accuracy is Track
+A's agreement harness, and it is a separate claim.
+
 ### C9 — Exit beta
 Published criteria, all of which are measured, not felt: C1 green for three consecutive weeks;
-zero ungrounded-claim escapes; p50 turn under 10s; #59 closed by observation. Until then the
+zero ungrounded-claim escapes; p50 turn under 10s; #59 closed by observation; **C10's boundary
+in place if any tool has begun returning third-party prose.** (C10 and C11 are numbered after
+this checkpoint but ordered before it — renumbering would break references in other briefs.) Until then the
 assistant stays labelled beta — GROWTH_ROADMAP §1.1 is right that a feature which demos badly
 is negative marketing.
 

@@ -10,7 +10,13 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** G1 (in review, PR #177) → G2 next
+- **Active checkpoint:** **G2** — G1's PR #177 has merged and the smoke test runs in CI.
+- **G2 is the highest-leverage item on the board.** A5's acceptance criterion is literally
+  *"no benchmark → no claim"*, Track H cannot state its central comparison without a committed
+  baseline, and Track P cannot publish a performance number that does not exist.
+- **Take G8 and G7 before G3.** Both are `docs/ROADMAP.md` Wave 0 — they block claims rather
+  than features. G8 now also owns the Nominatim policy violation (below); the public-mirror
+  work moved to **Track P (P1)**, which owns the public surface.
 - **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app, running in CI on
   every PR: shadows paint (imported `isBlueDominantShadowPixel`, 27.8% of sampled pixels at 09:00
   against 0.000% on the first readable frame), the timeline drag retimes them (mask diff 0.307
@@ -154,19 +160,59 @@ tracks pause edits to these files while it's in flight.**
 
 ### G7 — Repo hygiene, batched
 The p4 cluster, one PR each, taken *between* larger items and never instead of them:
-**#52** LICENSE (the repo calls itself open-source and has none), **#50** the per-directory
-`CLAUDE.md` files root `CLAUDE.md` already claims exist (`app/hooks/`, `app/lib/`,
-`app/components/`, `app/services/`, `app/workers/`, `api/` — **verified missing 2026-08-24**;
-every track's boot sequence reads these), **#53** `.env.example`, **#55** PR/issue templates +
-CODEOWNERS, **#48** formatter repo-wide + `format:check` in CI, **#51** prune 27 stale branches,
-**#56** CHANGELOG/tags, **#54** repo cruft, **#58** branch protection decision.
-**Priority within the cluster: #50 first** — it's a dependency of every other track's session boot.
+**#52** LICENSE (the repo calls itself open-source and has none), **#50** doc drift (see the
+re-scope below), **#53** `.env.example`, **#55** PR/issue templates + CODEOWNERS, **#48**
+formatter repo-wide + `format:check` in CI, **#51** prune 27 stale branches, **#56**
+CHANGELOG/tags, **#54** repo cruft, **#58** branch protection decision.
 
-### G8 — Security baseline
+**⚠️ #50 is mostly stale — re-check it before working it (verified 2026-09-07).** It was filed
+as four bullets and three have since been resolved a different way:
+- *"root `CLAUDE.md` points at per-directory `CLAUDE.md` files that don't exist"* — **resolved
+  by `.claude/rules/`.** The path-scoped rules replaced them, and root `CLAUDE.md` now says so
+  explicitly. **Do not create those six files.** An earlier version of this brief called #50 the
+  cluster's first priority and "a dependency of every track's session boot"; that is no longer
+  true. `AUTONOMOUS_GOAL.md` §1 gap 7 and §5 step 3 still carry the old framing and should be
+  corrected in the same PR.
+- *"points at `tools/tailor/`"* — root `CLAUDE.md`'s repo map already marks it gone.
+- *"`AGENTS.md` points at `docs/kb/INDEX.md`"* — `AGENTS.md` no longer exists.
+- *"says env lives in `.env.local`; the repo uses `.env`"* — **still true.** `CLAUDE.md:57` and
+  the README both say `.env.local`; the working tree has `.env` and no `.env.example`. This is
+  the live half of #50 and it pairs with #53.
+
+**Priority within the cluster: #52 (LICENSE) first** — it is what a public repo without one
+looks wrong for, and Track P's public surface depends on it.
+
+### G8 — Security and provider-policy baseline
 **#32** (the only open p0) confirm referrer restrictions on the MapTiler and Foursquare keys;
 **#33** vite 5→8 and vitest 2→4 advisories — the six open Dependabot PRs need a decision, and
 the upgrade must preserve the maplibre/suncalc pins and the `manualChunks` config that keeps
 MapView code-split. Document a dependency-bump policy so this doesn't recur every quarter.
+
+**Plus two provider-policy defects found 2026-09-07, both in the search path, both Wave 0:**
+
+1. **The search bar violates the Nominatim usage policy.** `SearchBar.tsx:141-159` fetches
+   `nominatim.openstreetmap.org/search` directly on a 400 ms keystroke debounce
+   (`:207`) — that is autocomplete, which
+   [the OSMF policy](https://operations.osmfoundation.org/policies/nominatim/) prohibits — and
+   it **bypasses the FIFO queue in `app/lib/nominatim.ts`** that exists for exactly this
+   purpose. A browser-local queue cannot enforce an application-wide quota anyway, so the
+   honest fix is explicit-submit search, or geocoding behind `api/` where a shared budget can
+   actually be held.
+2. **Hard invariant #6 is satisfied nowhere on the client.** `User-Agent` is a
+   [forbidden header name](https://fetch.spec.whatwg.org/#forbidden-header-name): browsers
+   silently drop it. The header set at `SearchBar.tsx:151` and `nominatim.ts:35` has never
+   reached Nominatim or Overpass. Either move those requests server-side, or amend invariant #6
+   in root `CLAUDE.md` to say where the header can and cannot be set — as written it asks for
+   something the platform does not permit.
+
+**Acceptance for both.** No component fetches Nominatim directly; the request path that claims
+to set `User-Agent` is one that can; `CLAUDE.md` invariant #6 is accurate; a test or a lint rule
+keeps a direct `nominatim.openstreetmap.org` fetch from reappearing in `app/components/**`.
+**Files.** `app/components/SearchBar.tsx`, `app/lib/nominatim.ts`, possibly `api/`, `CLAUDE.md`.
+**Size.** Small–medium.
+**Why it is worth doing properly:** reading a provider's terms and finding your own code in
+violation is a professional instinct that is hard to fake and easy to verify — and *"our
+politeness header was silently dropped the whole time"* is a genuinely good bug story.
 
 ---
 

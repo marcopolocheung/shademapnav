@@ -1,7 +1,8 @@
 # Running a track — the operating playbook
 
-`docs/notes/AUTONOMOUS_GOAL.md` says *what* to build and in what order. This file says
-*how a session is run*: how to start one, when to spawn subagents, when not to, and how one
+**`docs/ROADMAP.md` says *what* to build and in what order, and why each item is worth doing** —
+read it when choosing work. `docs/notes/AUTONOMOUS_GOAL.md` says what the mission and guardrails
+are. This file says *how a session is run*: how to start one, when to spawn subagents, when not to, and how one
 session hands off to the next.
 
 **Read this once per session, at boot. It is short on purpose.**
@@ -31,6 +32,9 @@ session hands off to the next.
 /track b
 ```
 
+Tracks are `a`–`h` plus `p`. `h` (Sun Budget) is gated on A6+G2; `p` (Publication) is
+unblocked and owns the cheapest work on the board — see `docs/ROADMAP.md` §3.
+
 …or to resume a specific checkpoint:
 
 ```
@@ -49,8 +53,9 @@ checkout), paste this instead:
 
 ```
 You own Track B (Live Navigation) for this session. Read, in order: CLAUDE.md,
-docs/tracks/README.md, docs/tracks/TRACK_B.md. Start from the "Current state" block in
-the brief, take the next unfinished checkpoint, and work it end to end per
+docs/ROADMAP.md (what to build and why), docs/tracks/README.md, docs/tracks/TRACK_B.md.
+Start from the "Current state" block in the brief, take the next unfinished checkpoint —
+unless docs/ROADMAP.md's Wave 0 says something blocks it — and work it end to end per
 AUTONOMOUS_GOAL.md §5 — branch, implement with tests, run all four gates, push, open a PR
 with gh, never merge. Update the brief's Current state block in the same PR. Do not work on
 another track's files; file issues against those tracks instead. Don't ask me what to do
@@ -128,14 +133,19 @@ rule 3 above says implementation stays in the session, and the roster now enforc
 Real parallelism comes from **multiple sessions, one per track** (separate terminals), not
 from subagents inside one session. Which pairs are safe to run at the same time:
 
-| | A | B | C | D | E | G |
-|---|---|---|---|---|---|---|
-| **A** Shade Engine | — | ✅ | ✅ | ⚠️ A6/D1 share the sweep API | ⚠️ both edit `routing.ts` | ⚠️ G4 owns A's fixtures |
-| **B** Navigation | ✅ | — | ✅ | ✅ | ⚠️ both want `Trip` + `useNavigation` | ✅ |
-| **C** Copilot | ✅ | ✅ | — | ✅ | ✅ | ✅ |
-| **D** Heat & Timing | ⚠️ | ✅ | ✅ | — | ✅ | ✅ |
-| **E** Journeys & Modes | ⚠️ | ⚠️ | ✅ | ✅ | — | ⚠️ G6 splits E's files |
-| **G** Proving Ground | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | — |
+**Track P is safe alongside everything** — it owns `README.md` and `docs/notes/**` and touches
+no application code.
+
+| | A | B | C | D | E | G | H |
+|---|---|---|---|---|---|---|---|
+| **A** Shade Engine | — | ✅ | ✅ | ⚠️ A6/D1 share the sweep API | ⚠️ both edit `routing.ts` | ⚠️ G4 owns A's fixtures | ⚠️ both edit `routing.ts`; H consumes A6 |
+| **B** Navigation | ✅ | — | ✅ | ✅ | ⚠️ both want `Trip` + `useNavigation` | ✅ | ✅ |
+| **C** Copilot | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ (H6 consumes C's job contract) |
+| **D** Heat & Timing | ⚠️ | ✅ | ✅ | — | ✅ | ✅ | ✅ (H supplies minutes, D converts) |
+| **E** Journeys & Modes | ⚠️ | ⚠️ | ✅ | ✅ | — | ⚠️ G6 splits E's files | ⚠️ both edit `routing.ts`; H5 consumes `Trip` |
+| **G** Proving Ground | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | — | ⚠️ H4 shares G's fixtures |
+| **H** Sun Budget | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ | — |
+| **P** Publication | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ✅ = run simultaneously without coordination. ⚠️ = coordinate: agree in an issue who edits the
 shared file first, and let the second session rebase after the first PR opens.

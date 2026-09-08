@@ -10,13 +10,23 @@
 
 ## Current state
 
-- **Active checkpoint:** D3 — D2 is in review (PR #188 on `feat/d2-weather-hours`)
+- **Active checkpoint:** D3 and D4 are both **in review** (PR #189, PR #196). D2 **merged** as
+  PR #188. Next unstarted checkpoint is D5.
 - **Done:**
   - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
     route under the tradeoff line, in both route surfaces. Closes #47.
   - D2 — `weather.ts` fetches all six hourly variables in one cached call and returns
     `WeatherHour[]`; the cloud badge now shares that request.
-- **Open PRs:** #188 (D2)
+- **Open PRs:** #189 (D3, issue #63), #196 (D4, issue #194).
+- **⚠️ D3 and D4 are not actually done, and it is not a code problem.** Both acceptance criteria
+  require the method to be *linked from the UI*, and those links point at
+  `docs/notes/heat-model.md` on the **public mirror**, which lags `origin/main` — so the link
+  404s in production (**#199**). That fix is **Track P's P1**. A health-adjacent number with a
+  dead method link is worse than no number: do not mark D3/D4 done until the link resolves
+  publicly.
+- **D0 (real timezones) is new and comes before D6.** See the checkpoint below.
+- **Also open against this track:** #197 — the D1 hourly strip **never renders on mobile**. A
+  shipped feature nobody on a phone can see; fix it before D5.
 - **Decisions made:**
   - D1 samples Track A's `ShadeField.sweep`, not the canvas, so the day sweep never moves the
     camera. One hour per animation frame until A6 makes a sweep cheaper than N samples.
@@ -36,7 +46,7 @@
   near sunset, where everything ties at fully shaded. Weighting the D1 series by
   `computeSolarIntensity` or D2's UV is what makes the recommendation mean something —
   the inputs now exist.
-- **Last verified:** 2026-09-05, 411 tests / 35 files green. D1 confirmed in a browser
+- **Last verified:** 2026-09-07, 411 tests / 35 files green on main. D1 confirmed in a browser
   (Playwright, fixture basemap): the strip fills, and tapping 5 PM retimes the map.
 
 ---
@@ -109,6 +119,27 @@ export function heatScore(route: RouteOption, weather: WeatherHour, profile: Use
 ---
 
 ## Checkpoints
+
+### D0 — Real timezones  *(added 2026-09-07; take before D6)*
+**Goal.** Civil time that is actually civil time. **This track's charter is "when should I go";
+a wrong local hour makes every answer it gives wrong.**
+**The defect.** `app/lib/timezone.ts:8` is `Math.round(lng / 15) * 60` — the UTC offset guessed
+from longitude, rounded to whole hours, with no DST. Its own docstring admits ±90 min for
+India (+5:30), Iran (+3:30) and China (uniform +8 across ~60° of longitude). D1's acceptance
+already claims "timezone correct away from the user's own", and it is not.
+**Approach.** Resolve a geographic IANA zone, then apply date-specific offset rules including
+DST. Keep `toMapLocal` / `fromMapLocal`'s signatures so no caller changes — the helpers and
+their tests are fine; only the offset source is wrong. **Budget the bundle cost against G3**: if
+a full tz-boundary dataset blows it, ship a coarse zone lookup plus a documented accuracy
+statement and say which one shipped. A stated ±15 min is honest; a silent ±90 min is not.
+**Acceptance.** DST-transition tests pass for three zones with different rules (US, EU, southern
+hemisphere); India and China are correct; the existing `timezone.test.ts` cases still pass; the
+bundle delta is recorded; if the lookup is coarse, the UI or the method doc says so.
+**Files.** `app/lib/timezone.ts`, its tests. **Size.** Medium.
+**Why it matters beyond correctness:** time zones are the canonical "did they actually think
+about this" question, and here the time axis *is* the product's differentiator — a shade
+recommendation for "7 PM" that is really 7:30 PM is wrong about the one thing the app claims to
+know.
 
 ### D1 — Ship the orphan
 **Goal.** The hourly exposure chart reaches a user. Closes **#47**.
