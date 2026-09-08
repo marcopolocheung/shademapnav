@@ -12,11 +12,16 @@ import {
   appendPrismMesh,
   buildShadowTriangles,
   metersPerDegree,
-  pointInPrismShadow,
   prismsFromTileFeatures,
   triangulateRing,
 } from '../shade/geometry';
+import { buildShadowIndex } from '../shade/shadowIndex';
 import SunWorker from '../../workers/sunPosition.worker?worker';
+import {
+  ceilingFieldScale,
+  normalizedCeilingLift,
+  normalizedShadowHeightBias,
+} from './heightField';
 
 // Shadow-edge antialiasing via supersampling: the shadow FBO is rendered at
 // SHADOW_SUPERSAMPLE× the canvas resolution, then box-downsampled by the LINEAR
@@ -45,6 +50,16 @@ const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
  * clears the footprint even on a wall that runs nearly parallel to the sun. That
  * second step is what stops such a wall from dithering along the edge of its own
  * shadow. Both are small enough to barely move within a *neighbour's* shadow.
+ *
+ * Nudging toward the sun means nudging closer to every caster, so the field reads a
+ * *higher* ceiling there — by exactly the sunward part of the step times tan(alt),
+ * since within any caster's shadow the ceiling falls at that slope and the per-pixel
+ * MAX preserves it. The wall pass therefore raises its own threshold by the same
+ * amount (`normalizedCeilingLift`, uploaded as `u_ceilLift`), which makes the nudge
+ * geometrically free: the wall's terminator lands where the ground shadow at its
+ * base says it should, while the sample still escapes the near cap. Left
+ * uncompensated, the raised ceiling meets an unraised threshold and every wall
+ * shades 1–2 m too high — which is what made a shadow step as it crossed onto a wall.
  */
 const WALL_SHADOW_SUN_OFFSET_M = 1.5;
 const WALL_SHADOW_NORMAL_OFFSET_M = 1.5;
@@ -156,11 +171,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private fboWidth = 0;
   private fboHeight = 0;
 
-  // Height pass (Pass B): renders shadow geometry with height-as-grayscale
+  // Height pass (Pass B): renders the normalized shadow ceiling into a depth texture
   private heightProgram: WebGLProgram | null = null;
   private heightAttrPos = -1;
   private heightAttrH = -1;
   private heightUMatrix: WebGLUniformLocation | null = null;
+  private heightUFieldScale: WebGLUniformLocation | null = null;
   private shadowHeightBuffer: WebGLBuffer | null = null;
   private heightFbo: WebGLFramebuffer | null = null;
   private heightFboTexture: WebGLTexture | null = null;
@@ -171,7 +187,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private roofAttrH = -1;
   private roofUMatrix: WebGLUniformLocation | null = null;
   private roofUHeightTex: WebGLUniformLocation | null = null;
-  private roofUResolution: WebGLUniformLocation | null = null;
+  private roofUFieldScale: WebGLUniformLocation | null = null;
+  private roofUBias: WebGLUniformLocation | null = null;
   private roofPosBuffer: WebGLBuffer | null = null;
   private roofHeightBuffer: WebGLBuffer | null = null;
 
@@ -386,11 +403,15 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       [0, 4],
     ];
 
+    // One build for all five offsets. They already shared this sun and this projection
+    // frame, so these are the same shadows the per-query path rebuilt five times over.
+    const shadows = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, null);
+
     let shaded = 0;
     for (const [dxM, dyM] of offsetsM) {
       const sampleLng = lng + dxM / mPerLng;
       const sampleLat = lat + dyM / mPerLat;
-      if (pointInPrismShadow(prisms, sampleLng, sampleLat, sun.azimuth, sun.altitude, mPerLat, mPerLng)) {
+      if (shadows.isShaded(sampleLng, sampleLat)) {
         shaded++;
       }
     }
@@ -431,28 +452,35 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.u_matrix = gl.getUniformLocation(this.program, 'u_matrix');
     this.u_color = gl.getUniformLocation(this.program, 'u_color');
 
-    // Compile height shader (Pass B): outputs normalized height as grayscale
-    const heightVsSrc = `
-      attribute vec2 a_pos;
-      attribute float a_height;
+    // Compile height shader (Pass B): writes the normalized ceiling as fragment depth.
+    // `#version` has to be the first thing in the source — not every driver tolerates
+    // the leading newline a normally-indented template literal would put in front of it.
+    const heightVsSrc = `#version 300 es
+      in vec2 a_pos;
+      in float a_height;
       uniform mat4 u_matrix;
-      varying float v_height;
+      uniform float u_fieldScale;
+      out highp float v_height;
       void main() {
         gl_Position = u_matrix * vec4(a_pos, 0.0, 1.0);
+        // Zoom the field out far enough to hold the footprints of the buildings
+        // Pass E draws, which under a tilted camera reach past the viewport.
+        gl_Position.xy /= u_fieldScale;
         v_height = a_height;
       }
     `;
-    const heightFsSrc = `
-      precision mediump float;
-      varying float v_height;
+    const heightFsSrc = `#version 300 es
+      precision highp float;
+      in highp float v_height;
       void main() {
-        gl_FragColor = vec4(v_height, v_height, v_height, 1.0);
+        gl_FragDepth = v_height;
       }
     `;
     this.heightProgram = createProgram(gl, heightVsSrc, heightFsSrc);
     this.heightAttrPos = gl.getAttribLocation(this.heightProgram, 'a_pos');
     this.heightAttrH = gl.getAttribLocation(this.heightProgram, 'a_height');
     this.heightUMatrix = gl.getUniformLocation(this.heightProgram, 'u_matrix');
+    this.heightUFieldScale = gl.getUniformLocation(this.heightProgram, 'u_fieldScale');
     this.shadowHeightBuffer = gl.createBuffer();
 
     // Compile roof exclusion shader (Pass C): conditionally erases self-shadow
@@ -460,21 +488,28 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       attribute vec2 a_pos;
       attribute float a_height;
       uniform mat4 u_matrix;
+      uniform float u_fieldScale;
       varying float v_height;
+      varying vec4 v_fieldClip;
       void main() {
         gl_Position = u_matrix * vec4(a_pos, 0.0, 1.0);
+        // This pass erases from the screen-aligned shadow FBO but reads the widened
+        // ceiling field, so the two positions are no longer the same pixel.
+        v_fieldClip = gl_Position;
+        v_fieldClip.xy /= u_fieldScale;
         v_height = a_height;
       }
     `;
     const roofFsSrc = `
-      precision mediump float;
+      precision highp float;
       uniform sampler2D u_heightTex;
-      uniform vec2 u_resolution;
+      uniform float u_bias;
       varying float v_height;
+      varying vec4 v_fieldClip;
       void main() {
-        vec2 uv = gl_FragCoord.xy / u_resolution;
+        vec2 uv = (v_fieldClip.xy / v_fieldClip.w) * 0.5 + 0.5;
         float maxIncoming = texture2D(u_heightTex, uv).r;
-        if (maxIncoming <= v_height + 0.004) {
+        if (maxIncoming <= v_height + u_bias) {
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         } else {
           discard;
@@ -486,7 +521,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.roofAttrH = gl.getAttribLocation(this.roofProgram, 'a_height');
     this.roofUMatrix = gl.getUniformLocation(this.roofProgram, 'u_matrix');
     this.roofUHeightTex = gl.getUniformLocation(this.roofProgram, 'u_heightTex');
-    this.roofUResolution = gl.getUniformLocation(this.roofProgram, 'u_resolution');
+    this.roofUFieldScale = gl.getUniformLocation(this.roofProgram, 'u_fieldScale');
+    this.roofUBias = gl.getUniformLocation(this.roofProgram, 'u_bias');
     this.roofPosBuffer = gl.createBuffer();
     this.roofHeightBuffer = gl.createBuffer();
 
@@ -508,20 +544,35 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       uniform vec2 u_sunOffset;
       uniform float u_normalOffset;
       uniform vec3 u_sunDir;
+      uniform vec2 u_sunFlat;
+      uniform vec2 u_ceilLift;
+      uniform float u_fieldScale;
       varying float v_hNorm;
+      varying float v_ceilLift;
       varying float v_facing;
       varying vec4 v_groundClip;
       void main() {
         gl_Position = u_matrix * vec4(a_pos, a_heightM * u_mercZPerMeter, 1.0);
-        vec2 sampleXY = a_pos + u_sunOffset + a_normal.xy * u_normalOffset;
+        float isWall = 1.0 - step(0.5, a_normal.z);
+        vec2 sampleXY = a_pos
+                      + isWall * (u_sunOffset + a_normal.xy * u_normalOffset);
+        // The sample sits closer to every caster, so the ceiling it reads is higher
+        // by the sunward part of that step times tan(alt). Raise the threshold to
+        // match, and the nudge costs nothing: x is the sun step's share, y the
+        // normal step's, projected onto the sun. Roofs take isWall = 0 and no lift.
+        v_ceilLift = isWall * (u_ceilLift.x + u_ceilLift.y * dot(a_normal.xy, u_sunFlat));
         v_groundClip = u_matrix * vec4(sampleXY, 0.0, 1.0);
+        // The field was rasterized zoomed out by this much, so index it the same way.
+        // Without it a fragment whose footprint falls outside the viewport — every
+        // near, tall building under a tilted camera — reads no ceiling and renders lit.
+        v_groundClip.xy /= u_fieldScale;
         v_hNorm = a_heightM / u_maxH;
         v_facing = dot(a_normal, u_sunDir);
         v_normal = a_normal;
       }
     `;
     const bldgFsSrc = `
-      precision mediump float;
+      precision highp float;
       uniform sampler2D u_heightTex;
       uniform vec3 u_wallColor;
       uniform vec3 u_shadowTint;
@@ -529,6 +580,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       uniform float u_bias;
       uniform vec2 u_sunFlat;
       varying float v_hNorm;
+      varying float v_ceilLift;
       varying float v_facing;
       varying vec4 v_groundClip;
       varying vec3 v_normal;
@@ -554,7 +606,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
                        * step(0.0001, v_groundClip.w);
         float ceilN = texture2D(u_heightTex, uv).r * onScreen;
         // Turned away from the sun, or something taller shades this height.
-        float shaded = max(step(v_facing, 0.0), step(v_hNorm + u_bias, ceilN));
+        float shaded = max(step(v_facing, 0.0),
+                           step(v_hNorm + v_ceilLift + u_bias, ceilN));
         shaded = max(shaded, u_sunBelow);
         float sky = SKY_BASE
                   + SKY_UP * v_normal.z
@@ -572,7 +625,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       'u_matrix', 'u_mercZPerMeter', 'u_maxH', 'u_sunOffset', 'u_normalOffset',
       'u_sunDir',
       'u_heightTex', 'u_wallColor', 'u_shadowTint', 'u_sunFlat',
-      'u_sunBelow', 'u_bias',
+      'u_sunBelow', 'u_bias', 'u_ceilLift', 'u_fieldScale',
     ]) {
       this.bldgUniforms[name] = gl.getUniformLocation(this.bldgProgram, name);
     }
@@ -612,7 +665,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     if (!this.map || !this.program || !this.positionBuffer || !this.u_matrix || !this.u_color) return;
     if (!this.quadProgram || !this.quadBuffer) return;
 
-    // gl.MAX requires WebGL2 (guaranteed by MapLibre)
+    // The depth ceiling texture and gl.MAX both require WebGL2 (guaranteed by MapLibre).
     const gl2 = gl as WebGL2RenderingContext;
 
     if (this.dirty) {
@@ -640,7 +693,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const ssH = Math.min(ch * SHADOW_SUPERSAMPLE, SHADOW_FBO_MAX_DIM);
     const w = ssW;
     const h = ssH;
-    this.ensureFBO(gl, w, h);
+    this.ensureFBO(gl2, w, h);
     if (!this.fbo) return;
 
     // Phase 3: Only re-upload buffers when geometry actually changed
@@ -680,6 +733,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const wasDepthTest = gl.isEnabled(gl.DEPTH_TEST);
     const prevDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
     const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
+    const prevDepthClear = gl.getParameter(gl.DEPTH_CLEAR_VALUE);
+    // MapLibre narrows the depth range for a '3d' custom layer to leave room for the
+    // sublayers above it. `gl_FragDepth` is clamped to that range, so Pass B has to
+    // widen it or every ceiling near the top of the height scale clamps to one value.
+    const prevDepthRange = gl.getParameter(gl.DEPTH_RANGE) as Float32Array;
 
     // Compute adjusted projection matrix in Float64 to account for center offset.
     // Vertices are stored relative to centerMerc, so we pre-multiply a translation
@@ -694,6 +752,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     m[14] += m[2] * cx + m[6] * cy;
     m[15] += m[3] * cx + m[7] * cy;
     const matrix = new Float32Array(m);
+    const heightBias = normalizedShadowHeightBias(this.buildingCache?.maxH ?? 1);
+    // MapLibre scales a custom layer's z by the *centre* latitude, so this follows the
+    // live centre rather than the one the cache was built at — as Pass E does.
+    const mercPerMeter =
+      1 / (EARTH_CIRCUMFERENCE_M * Math.cos((this.map.getCenter().lat * Math.PI) / 180));
+    const fieldScale = ceilingFieldScale(m, (this.buildingCache?.maxH ?? 0) * mercPerMeter);
 
     // MapLibre hands a '3d' custom layer a read/write depth mode. Only Pass E wants
     // it; the ground composite is a full-screen quad at NDC z = 0, and letting that
@@ -730,15 +794,21 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         this.heightFbo && this.heightFboTexture &&
         this.roofProgram && this.roofPosBuffer && this.roofHeightBuffer) {
 
-      // ── Pass B: Render shadow geometry into height FBO with MAX blending ──
-      // Each fragment outputs the normalized height of the shadow caster as grayscale.
+      // ── Pass B: Render shadow geometry into a depth-only ceiling FBO ──
+      // GREATER retains the tallest normalized shadow ceiling at every pixel.
       gl2.bindFramebuffer(gl.FRAMEBUFFER, this.heightFbo);
       gl2.viewport(0, 0, w, h);
-      gl2.clearColor(0, 0, 0, 0);
-      gl2.clear(gl.COLOR_BUFFER_BIT);
+      gl2.enable(gl.DEPTH_TEST);
+      gl2.depthMask(true);
+      gl2.depthFunc(gl.GREATER);
+      gl2.depthRange(0, 1);
+      gl2.clearDepth(0);
+      gl2.clear(gl.DEPTH_BUFFER_BIT);
+      gl2.disable(gl.BLEND);
 
       gl2.useProgram(this.heightProgram);
       gl2.uniformMatrix4fv(this.heightUMatrix, false, matrix);
+      gl2.uniform1f(this.heightUFieldScale, fieldScale);
 
       // Bind shadow position buffer (same geometry as Pass A)
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -750,10 +820,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.enableVertexAttribArray(this.heightAttrH);
       gl2.vertexAttribPointer(this.heightAttrH, 1, gl.FLOAT, false, 0, 0);
 
-      // MAX blending so the tallest shadow caster wins at each pixel
-      gl2.blendEquation(gl2.MAX);
-      gl2.blendFunc(gl.ONE, gl.ONE);
-
       gl2.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
 
       // ── Pass C: Render roof footprints into shadow FBO with destination-out ──
@@ -761,6 +827,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
       gl2.viewport(0, 0, w, h);
       // Do NOT clear — we want to selectively erase from existing shadow
+      gl2.disable(gl.DEPTH_TEST);
+      gl2.depthMask(false);
+      // Hand MapLibre's range back before Pass E, whose extrusions have to interleave
+      // with the sublayers drawn above this one.
+      gl2.depthRange(prevDepthRange[0], prevDepthRange[1]);
+      gl2.enable(gl.BLEND);
 
       gl2.useProgram(this.roofProgram);
       gl2.uniformMatrix4fv(this.roofUMatrix, false, matrix);
@@ -769,7 +841,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.activeTexture(gl.TEXTURE0);
       gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
       gl2.uniform1i(this.roofUHeightTex, 0);
-      gl2.uniform2f(this.roofUResolution, w, h);
+      gl2.uniform1f(this.roofUFieldScale, fieldScale);
+      gl2.uniform1f(this.roofUBias, heightBias);
 
       // Bind roof position buffer
       gl2.bindBuffer(gl.ARRAY_BUFFER, this.roofPosBuffer);
@@ -825,10 +898,6 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         this.lastUploadedCacheVersion = this.cacheVersion;
       }
 
-      const lat = this.map.getCenter().lat;
-      // MapLibre scales a custom layer's z by the *centre* latitude, so this has
-      // to use the live centre rather than the one the cache was built at.
-      const mercPerMeter = 1 / (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180));
       const az = this.lastSunAzRad ?? 0;
       const alt = this.lastSunAltRad ?? 0;
       // SunCalc's azimuth runs south→west; Mercator y runs north→south. Toward the
@@ -848,6 +917,13 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
         sunY * WALL_SHADOW_SUN_OFFSET_M * mercPerMeter,
       );
       gl2.uniform1f(u.u_normalOffset, WALL_SHADOW_NORMAL_OFFSET_M * mercPerMeter);
+      // The height each step's sunward component buys back, so the nudged sample
+      // decides what an un-nudged one at the fragment's own base would have.
+      gl2.uniform2f(
+        u.u_ceilLift,
+        normalizedCeilingLift(WALL_SHADOW_SUN_OFFSET_M, alt, cache.maxH),
+        normalizedCeilingLift(WALL_SHADOW_NORMAL_OFFSET_M, alt, cache.maxH),
+      );
       gl2.uniform3f(u.u_sunDir, sunX * Math.cos(alt), sunY * Math.cos(alt), Math.sin(alt));
       // computeShadowColor premultiplies for the ground composite; the buildings mix
       // in straight colour, so divide the constant alpha back out.
@@ -855,9 +931,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       gl2.uniform2f(u.u_sunFlat, sunX, sunY);
       gl2.uniform3f(u.u_wallColor, BUILDING_RGB[0], BUILDING_RGB[1], BUILDING_RGB[2]);
       gl2.uniform1f(u.u_sunBelow, geo.sunBelowHorizon ? 1 : 0);
-      // Same slack Pass C uses: the height field is 8-bit, so a roof must not
-      // shade itself on a rounding step.
-      gl2.uniform1f(u.u_bias, 0.004);
+      gl2.uniform1f(u.u_bias, heightBias);
+      gl2.uniform1f(u.u_fieldScale, fieldScale);
 
       gl2.activeTexture(gl.TEXTURE0);
       gl2.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
@@ -909,9 +984,12 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     gl2.blendFuncSeparate(prevBlendSrcRGB, prevBlendDstRGB, prevBlendSrcA, prevBlendDstA);
     gl2.activeTexture(prevActiveTexture);
     gl2.bindTexture(gl.TEXTURE_2D, prevTexture);
-    if (!wasDepthTest) gl2.disable(gl.DEPTH_TEST);
+    if (wasDepthTest) gl2.enable(gl.DEPTH_TEST);
+    else gl2.disable(gl.DEPTH_TEST);
     gl2.depthFunc(prevDepthFunc);
     gl2.depthMask(prevDepthMask);
+    gl2.clearDepth(prevDepthClear);
+    gl2.depthRange(prevDepthRange[0], prevDepthRange[1]);
   }
 
   onRemove(_map: maplibregl.Map, gl: WebGL2RenderingContext | WebGLRenderingContext) {
@@ -1003,8 +1081,11 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     ];
   }
 
-  private ensureFBO(gl: WebGL2RenderingContext | WebGLRenderingContext, w: number, h: number) {
+  private ensureFBO(gl: WebGL2RenderingContext, w: number, h: number) {
     if (this.fbo && this.fboWidth === w && this.fboHeight === h) return;
+
+    const prevFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
 
     // Clean up old resources
     if (this.fbo) gl.deleteFramebuffer(this.fbo);
@@ -1026,21 +1107,50 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fboTexture, 0);
 
-    // Height FBO (same size, same format)
+    // Height FBO: depth-only because the ceiling is a scalar maximum, not colour.
     this.heightFbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.heightFbo);
 
     this.heightFboTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.heightFboTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.DEPTH_COMPONENT24,
+      w,
+      h,
+      0,
+      gl.DEPTH_COMPONENT,
+      gl.UNSIGNED_INT,
+      null,
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.heightFboTexture, 0);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.NONE);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_ATTACHMENT,
+      gl.TEXTURE_2D,
+      this.heightFboTexture,
+      0,
+    );
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    // A depth-only FBO that fails completeness draws nothing and reports nothing, so
+    // the ceiling field reads as zero and every roof comes out lit. Say so once per
+    // resize rather than leaving that to be diagnosed from the picture.
+    const heightFboStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (heightFboStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      console.warn(
+        `[shadow] height framebuffer incomplete (0x${heightFboStatus.toString(16)}) at ${w}x${h}; roofs will render unshaded`,
+      );
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, prevFBO);
+    gl.bindTexture(gl.TEXTURE_2D, prevTexture);
 
     this.fboWidth = w;
     this.fboHeight = h;

@@ -36,3 +36,45 @@ jobs:
       # No secrets needed: Vite inlines absent VITE_* vars as undefined, and the
       # MapTiler key is only read at runtime for tile fetches.
       - run: npm run build
+
+  e2e:
+    name: browser smoke test
+    needs: verify
+    runs-on: ubuntu-latest
+    # Above Playwright's own worst case, so a stuck run fails on the poll's
+    # message rather than being killed by GitHub with nothing to say: two
+    # projects x two attempts x the 240 s per-test ceiling is 16 min, plus the
+    # build the webServer runs and the install steps.
+    timeout-minutes: 25
+    env:
+      # Not required. The `smoke` project serves a synthetic basemap style, so it
+      # runs everywhere including fork PRs, which never receive secrets. Where the
+      # secret does exist it adds the `smoke-live` project, the only check that the
+      # app still parses MapTiler's real building schema.
+      VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # Playwright builds and serves dist/ itself (see playwright.config.ts), and
+      # prints which projects it is running. No artifact upload: `smoke-live`
+      # traces record tile URLs, and those carry the key.
+      - run: npm run e2e
+
+      # Deliberately not `if: always()`. Saying which projects ran after a failed
+      # run is the same shape of reassuring-but-untrue summary this job used to
+      # print when it skipped everything.
+      - run: |
+          if [ -n "${VITE_MAPTILER_API_KEY}" ]; then
+            echo "Ran \`smoke\` (fixture basemap) and \`smoke-live\` (real MapTiler tiles)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Ran \`smoke\` (fixture basemap). \`smoke-live\` needs \`VITE_MAPTILER_API_KEY\`, which is unavailable here (fork PR, or the secret is unset)." >> "$GITHUB_STEP_SUMMARY"
+          fi

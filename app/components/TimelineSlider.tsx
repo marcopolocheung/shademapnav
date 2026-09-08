@@ -236,6 +236,9 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
   return (
     <div
       ref={containerRef}
+      // The browser smoke test drags this element; Tailwind classes are not a
+      // selector anyone should have to keep working.
+      data-testid="timeline-slider"
       className="relative w-full h-11 overflow-hidden cursor-grab active:cursor-grabbing select-none"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

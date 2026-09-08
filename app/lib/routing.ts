@@ -1,6 +1,7 @@
 // Pure TypeScript routing utilities — no browser dependencies
 import type { PartialRouteInfo } from "./partialRoute";
 import type { TrainDrawData } from "./trainGraph";
+import type { ShadeProvenance } from "./shadeProvenance";
 
 export interface OsmNode {
   id: number;
@@ -50,9 +51,19 @@ export interface RouteResult {
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
+  /**
+   * Longest unbroken run of *sunlit* edges, in meters.
+   *
+   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * entirely depending on whether the sun arrives as one long crossing or as many
+   * short gaps, and it is the long unbroken stretch a walker actually feels.
+   */
+  longestContinuousSunM: number;
   shadeTransitions: number;
   detourRatio: number;
   turnCount: number;
+  /** Where `shadeCoverage` came from. Set by the caller that sampled; see `shadeProvenance.ts`. */
+  shadeSource?: ShadeProvenance;
 }
 
 export interface TransitLeg {
@@ -86,6 +97,14 @@ export interface RouteOption {
   distanceM: number;
   shadeCoverage: number; // 0–1
   longestContinuousShadeM: number;
+  /**
+   * Longest unbroken run of *sunlit* edges, in meters.
+   *
+   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * entirely depending on whether the sun arrives as one long crossing or as many
+   * short gaps, and it is the long unbroken stretch a walker actually feels.
+   */
+  longestContinuousSunM: number;
   shadeTransitions: number;
   detourRatio: number;
   turnCount: number;
@@ -95,6 +114,8 @@ export interface RouteOption {
   mrtEntrances?: [[number, number], [number, number]]; // [boardEntrance, alightEntrance] in [lng, lat]
   trainDrawData?: TrainDrawData; // multi-colored polylines, stops, transfers for MapView
   partial?: PartialRouteInfo; // present when only completed legs are shown
+  /** Where `shadeCoverage` came from. Absent on sketch and transit routes. */
+  shadeSource?: ShadeProvenance;
 }
 
 export interface DijkstraOptions {
@@ -120,6 +141,21 @@ export function haversineMeters(
     sinDLat * sinDLat +
     Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * sinDLon * sinDLon;
   return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+}
+
+/** Initial geographic bearing in [0, 360) degrees, clockwise from north.
+ * Shared by routing turn counts and walking guidance. Coordinates are [lng, lat].
+ * Longitude degrees shrink with latitude, so raw atan2(dLng, dLat) distorts turns.
+ */
+export function bearingDegrees(a: [number, number], b: [number, number]): number {
+  const toRad = Math.PI / 180;
+  const lat1 = a[1] * toRad;
+  const lat2 = b[1] * toRad;
+  const dLon = (b[0] - a[0]) * toRad;
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2)
+    - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (Math.atan2(y, x) / toRad + 360) % 360;
 }
 
 /** Simple array-based binary min-heap. */
@@ -442,6 +478,7 @@ export function dijkstra(
   const SHADE_THRESH = 0.5;
   let totalDist = 0, shadedDist = 0;
   let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+  let longestContinuousSunM = 0, currentSunStreakM = 0;
   let prevShaded: boolean | null = null;
   let turnCount = 0, prevBearing: number | null = null;
 
@@ -459,8 +496,11 @@ export function dijkstra(
     if (isShaded) {
       currentStreakM += edge.distanceM;
       longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+      currentSunStreakM = 0;
     } else {
       currentStreakM = 0;
+      currentSunStreakM += edge.distanceM;
+      longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
     }
     if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
     prevShaded = isShaded;
@@ -468,7 +508,7 @@ export function dijkstra(
     // Turn counting
     const fn = graph.nodes.get(nodeIds[i])!;
     const tn = graph.nodes.get(nodeIds[i + 1])!;
-    const bearing = Math.atan2(tn.lon - fn.lon, tn.lat - fn.lat) * (180 / Math.PI);
+    const bearing = bearingDegrees([fn.lon, fn.lat], [tn.lon, tn.lat]);
     if (prevBearing !== null) {
       let delta = Math.abs(bearing - prevBearing);
       if (delta > 180) delta = 360 - delta;
@@ -485,6 +525,7 @@ export function dijkstra(
     distanceM: totalDist,
     shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
     longestContinuousShadeM,
+    longestContinuousSunM,
     shadeTransitions,
     detourRatio,
     turnCount,
@@ -716,6 +757,7 @@ export function paretoRoutes(
     const SHADE_THRESH = 0.5;
     let totalDist = 0, shadedDist = 0;
     let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+    let longestContinuousSunM = 0, currentSunStreakM = 0;
     let prevShaded: boolean | null = null;
     let turnCount = 0, prevBearing: number | null = null;
 
@@ -727,8 +769,11 @@ export function paretoRoutes(
       if (isShaded) {
         currentStreakM += edge.distanceM;
         longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+        currentSunStreakM = 0;
       } else {
         currentStreakM = 0;
+        currentSunStreakM += edge.distanceM;
+        longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
       }
       if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
       prevShaded = isShaded;
@@ -736,7 +781,7 @@ export function paretoRoutes(
       const fn = graph.nodes.get(nodeIds[i]);
       const tn = graph.nodes.get(nodeIds[i + 1]);
       if (fn && tn) {
-        const bearing = Math.atan2(tn.lon - fn.lon, tn.lat - fn.lat) * (180 / Math.PI);
+        const bearing = bearingDegrees([fn.lon, fn.lat], [tn.lon, tn.lat]);
         if (prevBearing !== null) {
           let delta = Math.abs(bearing - prevBearing);
           if (delta > 180) delta = 360 - delta;
@@ -753,6 +798,7 @@ export function paretoRoutes(
       distanceM: totalDist,
       shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
       longestContinuousShadeM,
+      longestContinuousSunM,
       shadeTransitions,
       detourRatio: straightLineDistM > 0 ? totalDist / straightLineDistM : 1.0,
       turnCount,

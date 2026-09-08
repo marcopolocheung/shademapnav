@@ -1,0 +1,27 @@
+import type { Scenario } from "../harness";
+import * as budget from "./budget";
+import * as degradation from "./degradation";
+import * as grounding from "./grounding";
+import * as planning from "./planning";
+
+/** Every scenario the C1 harness replays, in reading order. */
+export const scenarios: Scenario[] = [
+  planning.happyPathShadedAfternoon,
+  planning.fallbackPlotWhenModelForgets,
+  planning.modelPlotsItselfNoDuplicate,
+  planning.locateUserThenPlan,
+  planning.setTimePrecedesShadeCheck,
+  planning.routePlanningPlotsEndpoints,
+  grounding.toolErrorStaysHonest,
+  grounding.emptySearchInventsNothing,
+  grounding.noResearchNoPins,
+  grounding.unknownLocationAsksInstead,
+  grounding.fallbackPinsCapAtEight,
+  grounding.duplicateHitsBecomeOnePin,
+  budget.stepBudgetExhaustedStillPlots,
+  budget.candidatesOverflowCapAtEightPins,
+  budget.sharedModelSkipsWriteCall,
+  degradation.blockedPromptDegrades,
+  degradation.emptyResearchFallsThroughToWrite,
+  degradation.emptyWriteSaysSo,
+];

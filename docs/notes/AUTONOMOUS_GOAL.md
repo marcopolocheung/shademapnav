@@ -14,17 +14,19 @@ Related documents, and how they differ:
 
 | Document | Role |
 |---|---|
+| **`docs/ROADMAP.md`** | The *golden roadmap* — every item from every track plus the `docs/research/` findings, merged into one Now/Next/Later checklist and judged on two axes: does it prove a hirable skill, and is it actually novel. **Owns priority and sequencing.** Read it when choosing *what* to do; read this file for *how* a session runs. |
 | `GROWTH_ROADMAP.md` | The *user/product thesis* — who the users are, why shade matters. Written 2026-07-05. Still true; several of its items have since shipped. |
 | **This file** | The *engineering direction* — the big features, decomposed into checkpoints that agent teams can own end to end. |
 | **`docs/tracks/TRACK_<X>.md`** | The *deep brief* for one track — code pointers, contracts, per-checkpoint acceptance criteria, and the live `Current state` block. **This is what a working session actually reads.** |
 | **`docs/tracks/README.md`** | The *operating playbook* — how to start a track session, when to spawn subagents, how tracks hand off. |
 | GitHub Issues (`gh issue list`) | The *unit of work*. Every checkpoint below becomes one or more issues; every issue becomes one PR. |
 
-**Rule of thumb:** GROWTH_ROADMAP says *why*, this file says *what and in what order*, the
-track brief says *how, in this code*, and Issues say *the next concrete thing*. If they
-disagree, the code wins, then this file for sequencing, then GROWTH_ROADMAP for user rationale.
+**Rule of thumb:** GROWTH_ROADMAP says *why*, **`docs/ROADMAP.md` says what and in what order**,
+this file says how teams operate and what the guardrails are, the track brief says *how, in this
+code*, and Issues say *the next concrete thing*. If they disagree, the code wins, then
+`docs/ROADMAP.md` for sequencing and priority, then this file, then GROWTH_ROADMAP for user rationale.
 
-**To start working:** run `/track a` (…`g`) in a session, or paste the kickoff prompt from
+**To start working:** run `/track a` (…`h`, or `p`) in a session, or paste the kickoff prompt from
 `docs/tracks/README.md`. One session owns one track for its whole life.
 
 Status of this document: written 2026-08-24 after a full repo inspection (156 tests / 23
@@ -51,9 +53,16 @@ Three words decide every judgment call, in this order:
 
 ---
 
-## 1. Where the product actually stands (verified 2026-08-24)
+## 1. Where the product actually stands (snapshot: 2026-08-24)
 
 This section exists so no team re-discovers the same facts. It is an inventory, not a plan.
+
+> **⚠️ This is a dated snapshot, and parts of it have been overtaken. Live state lives in each
+> brief's `Current state` block — the session-start hook prints all of them — and priority lives
+> in `docs/ROADMAP.md`. Where this section and a brief disagree, the brief wins; where the brief
+> and the code disagree, the code wins.** Items already corrected below are struck through
+> rather than deleted, because *what changed* is itself useful to a session that read the old
+> version. Re-verified 2026-09-07.
 
 ### Shipped and wired into the UI
 - WebGL building-shadow rendering (`app/lib/shadow/LocalShadowAdapter.ts`, 1147 lines) driven
@@ -72,41 +81,48 @@ This section exists so no team re-discovers the same facts. It is an inventory, 
 - Routing instrumentation with three KPIs at `window.__shadeMapMetrics` (`app/lib/metrics.ts`).
 
 ### Built but *not* reaching users (highest-leverage cleanup in the repo)
-- **`app/lib/bestTime.ts` is orphaned.** `buildHourlyExposureSeries` / `bestExposureSample`
-  ship with tests and have **zero importers outside `__tests__`**. The "best time to go"
-  engine exists; nothing renders it. (Track D, C1.)
+- ~~**`app/lib/bestTime.ts` is orphaned.**~~ **Fixed by D1.** `useHourlyExposure.ts` imports it
+  and `HourlyExposureStrip` renders the day's shade for the selected route. Still open against
+  it: **#197**, the strip never renders on mobile.
 - **`app/lib/travelMode.ts` is half-wired.** `useNavigation.ts` imports only
   `travelTimeSeconds`; the steps penalty, surface penalty, and cycleway preference in the
   policy are never applied to edge cost, and there is **no mode selector anywhere in the UI**.
   Meanwhile `GraphEdge` already carries `highway`, `surface`, `cycleway`, `bicycle`, `foot`
   tags (PR #106) — the data is there, the cost model ignores it. (Track E, C1.)
-- **`LocalShadowAdapter` already has a canvas-free geometry probe** (`shadeFraction` from
-  `buildingCache`, `LocalShadowAdapter.ts:251-282`) and `app/lib/shadow/offscreenShade.ts`
-  has an Overpass-based one. Neither is generalized into a real shade field. (Track A.)
+- ~~**Neither canvas-free probe is generalized into a real shade field.**~~ **Fixed by A1–A4b.**
+  `app/lib/shade/ShadeField.ts` is the field, with `source` + `confidence` per sample, a
+  prebuilt shadow index (#166), and `shadeProvenance.ts` aggregating over the path. Note A4b's
+  caveat: the geometry path is wired but **dormant in practice** until A5's per-cell provider
+  resolution — read A4b's notes before assuming the canvas is retired.
 
 ### The structural gaps (what the app is *not*, despite its name)
 1. **It does not navigate.** There is no `watchPosition` anywhere except a one-shot
    `getCurrentPosition`. The `NAVIGATING` phase renders a static summary card
    (`NavigationStatusPanel.tsx`, 161 lines): no maneuvers, no street names, no progress,
    no off-route detection, no reroute, no arrival detection, no voice.
-2. **Shade is read off the visible canvas.** `useNavigation.ts` draws `map.getCanvas()` into
-   a 2D canvas and samples pixels with `isBlueDominantShadowPixel`. That couples routing to
-   the current viewport and zoom, blocks Web Worker offload (#38), makes a time sweep cost one
-   full re-render per hour, forces the assistant to hijack the camera for shade probes, and
-   caps accuracy at "whatever the renderer painted".
+2. ~~**Shade is read off the visible canvas.**~~ **Largely fixed by A4b** — `useNavigation.ts`
+   samples `ShadeField` and falls back to pixels per edge. Worker offload (#38) is still open
+   (**A5**), and the assistant no longer hijacks the camera for shade probes (`tools.ts` uses
+   `queryPointShade`/`queryOffscreenBuildingShade`). **What is still true, and is the live
+   defect:** every edge is sampled at one `dateRef.current` (`:633`, `:1154`), so a long trip
+   is priced as an instant — that is **Track H's H1**.
 3. **Buildings are the only shade source.** No trees (#46), no awnings, no arcades, no
    terrain. On the tree-lined streets where shade-seekers actually walk, the app under-reports.
 4. **Shade is binary and unitless.** `shadeCoverage` is a 0–1 fraction. Users experience heat,
    not geometry: UV dose, air temperature, humidity, wind, surface radiance. No UV (#63).
-5. **Nothing has ever run this app in a browser automatically** (#35). Shadow rendering,
-   timeline drag, end-to-end routing, GeoTIFF export, the PWA — none are covered by any check.
+5. ~~**Nothing has ever run this app in a browser automatically** (#35).~~ **Fixed by G1.**
+   `npm run e2e` runs a Playwright smoke test in CI on every PR (forks included): shadows
+   paint, the timeline drag retimes them, and a stubbed-Overpass route draws. It covers that
+   path and nothing else — GeoTIFF export and the PWA are still unchecked, so "verified in a
+   browser" still means *looked at*, not *green gates*.
 6. **Three files are load-bearing and contested**: `app/hooks/useNavigation.ts` (1445 lines),
    `app/components/MapView.tsx` (1377), `app/page.tsx` (932). Any two teams touching these
    at once will conflict. See §4, "Seam work".
-7. **Doc drift**: root `CLAUDE.md` points at per-directory `CLAUDE.md` files
-   (`app/hooks/CLAUDE.md`, `app/lib/CLAUDE.md`, `app/components/CLAUDE.md`, …) that **do not
-   exist** in the working tree. Issue #50 covers this; every track depends on those guides
-   being real.
+7. ~~**Doc drift**: root `CLAUDE.md` points at per-directory `CLAUDE.md` files that do not
+   exist.~~ **Resolved differently — `.claude/rules/` replaced them**, path-scoped so the right
+   constraints load themselves, and root `CLAUDE.md` says so. **Do not create those files.**
+   What is still live from #50: `CLAUDE.md:57` and the README say env lives in `.env.local`;
+   the repo has `.env` and no `.env.example` (#53). See **G7**, which carries the re-scope.
 
 ---
 
@@ -136,7 +152,9 @@ that thesis.
 
 ## 3. The tracks
 
-Seven tracks. Each is scoped so a team can own it for weeks without waiting on another team.
+Nine tracks. Each is scoped so a team can own it for weeks without waiting on another team.
+**Priority across them lives in `docs/ROADMAP.md`, not here** — this section describes the tracks;
+the roadmap says which checkpoint is worth doing next and why.
 Each has: the problem, the bet, checkpoints (≈1 PR each, in order), the acceptance bar,
 the files it owns, and what it must **not** do.
 
@@ -466,9 +484,10 @@ staffed **first**, alongside A.
   warnings. Closes #39/#40.
 - **G6 — Seam work (see §4).** Split `useNavigation.ts`, `MapView.tsx`, and `page.tsx` along
   track boundaries so teams stop colliding. **Highest-priority G item after G1.**
-- **G7 — Repo hygiene, batched.** The p4 cluster: LICENSE (#52), per-directory `CLAUDE.md`
-  files that root `CLAUDE.md` already claims exist (#50), `.env.example` (#53), PR/issue
-  templates (#55), formatter repo-wide (#48), branch cleanup (#51), CHANGELOG (#56).
+- **G7 — Repo hygiene, batched.** The p4 cluster: LICENSE (#52), the live half of the doc drift
+  in #50 (`.env` vs `.env.local` — **not** the per-directory `CLAUDE.md` files, which
+  `.claude/rules/` replaced; see the brief's re-scope), `.env.example` (#53), PR/issue templates
+  (#55), formatter repo-wide (#48), branch cleanup (#51), CHANGELOG (#56).
   One PR each, taken between larger items — never as a substitute for track work.
 - **G8 — Security baseline.** Key referrer restrictions (#32, the only open p0), the vite 5→8 /
   vitest 2→4 advisories (#33), and a documented dependency-bump policy that respects the
@@ -476,6 +495,58 @@ staffed **first**, alongside A.
 
 **Owns.** `.github/**`, `vitest.config.ts`, `vite.config.ts`, `biome.json`, `e2e/**` (new),
 `docs/notes/**` (baselines), and — by exception — the seam refactors in G6.
+
+---
+
+### Track H — Sun Budget: the sun moves while you walk *(see `docs/tracks/TRACK_H.md`)*
+
+**Problem.** Every edge is sampled at one frozen `dateRef.current` (`useNavigation.ts:633`,
+`:1154`), so a 40-minute walk is priced as an instant — wrong in exactly the late-afternoon,
+long-trip cases the product exists for. And the objective is pointed at the wrong quantity:
+`paretoRoutes` maximizes *shaded distance* under a `2.0×` detour budget (`routing.ts:544`), so
+"Most Shaded" can carry more absolute exposed metres than "Shortest". `longestContinuousSunM`
+is already computed and never enters the search.
+
+**The bet.** This is the one thing on the board that nobody else ships. Google has a shade
+toggle; ASU has mean radiant temperature on one campus with no app; Geuneullo models street
+trees. None of them advance the sun *along* the route, and none of them answer "where can I
+even go on ≤8 minutes of sun?" H1/H2 are a correctness fix to something the app already claims
+to do; H3 is the product that becomes possible once the fix lands.
+
+**Checkpoints.** H1 traversal-time exposure · H2 exposure as the objective · H3 Sun Budget
+reachability · H4 correctness oracle + published approximation gap · H5 waiting/dwell/return ·
+H6 feasibility answers for the assistant *(stretch)*.
+
+**Gate.** Blocked until **A6** (the sweep — without it, N time buckets cost N× a sample) and
+**G2** (the committed baseline this track's whole claim is measured against) have landed.
+Starting early produces a demo that cannot be defended.
+
+**Owns.** The time-dependent search inside `app/lib/routing.ts`, the reachability layer module,
+`docs/notes/sun-budget-model.md`, and the H fixtures.
+
+---
+
+### Track P — Publication: make the work legible to someone who didn't write it *(see `docs/tracks/TRACK_P.md`)*
+
+**Problem.** This repo measures things almost no side project measures — the A3 agreement
+harness (`mean 2.6pp · worst 62.5pp · severe 3.3%` against committed ceilings), the ~1,000–2,200×
+shadow-index speedup (#166), confidence values labelled in source as *priors, not ground truth* —
+and publishes none of it. Worse, the public mirror lags `origin/main` (#199), so D3's and D4's
+"method linked from the UI" acceptance **cannot be met**: the app renders a health-adjacent UV
+number whose method link 404s. The README is 19 lines of setup.
+
+**The bet.** Two of the six resume lines in `docs/ROADMAP.md` §6 are already earned and merely
+unpublished. Publication is the cheapest value on the board and needs no new engineering.
+
+**Checkpoints.** P1 mirror on merge *(blocks D3/D4)* · P2 README as the human entry point ·
+P3 the demo, recorded · P4 publish the numbers, worst case included · P5 three design notes ·
+P6 the resume ledger.
+
+**Distinct from G, and from F.** G proves things work *to us*; P proves them *to a stranger*.
+F spreads the product to *users*; P makes the engineering legible to a *reviewer*.
+
+**Owns.** `README.md`, `docs/notes/evidence.md`, the design notes, the mirror workflow.
+**Never measures — only publishes** what another track measured.
 
 ---
 
@@ -494,10 +565,15 @@ B1 → B2 → B3 → B4 → B5 ─► B6 (needs A2) ─► B7 ─► F1 (share c
 E1 → E2 ─► E5 (Trip) ─┬─► B8 (leg browsing)
                       └─► C4 (multi-stop planning)
 D2 → D3 → D4 ─────────► D5 ─► D7 (needs F4/PWA notifications)
+A6 ─┬─► H1 → H2 → H3 (Sun Budget) ─► H5 ─► H6 (needs C4's job contract)
+G2 ─┘   └─► H4 (oracle + published gap)
+P1 (mirror) ──────────────────────────► unblocks D3/D4 "done"
+A3 G2 C1 H4 (measurements) ───────────► P4 (publish) ─► P2 P6
 ```
 
-**The three things that unblock the most other work, in order:** `G1` (can anyone verify
-anything?), `A2` (`ShadeField`), `E5` (`Trip`). If you are choosing what to staff first,
+**The things that unblock the most other work, in order:** `G1` (can anyone verify anything?) —
+landed; `G2` (is there a committed baseline to claim against?), `A2` (`ShadeField`) — landed,
+`A6` (the sweep, which gates Track H), `E5` (`Trip`). If you are choosing what to staff first,
 staff those.
 
 ### Seam work (G6) — read this before two teams touch the same file
@@ -524,7 +600,9 @@ Each track publishes exactly one contract, and no other track reimplements what'
 | Agent tools | C | Tool wrappers only — every tool delegates to another track's module |
 | `HeatModel` | D | `dose(minutesInSun, uv, profile)`, `heatScore(route, weather)` |
 | `Trip` | E | ordered stops, legs, mode per leg, dwell, totals |
+| `SunBudget` | H | `reachable(origin, exposureBudget, timeBudget, when)` → region + per-node arrival/exposure, and a feasibility verdict |
 | Test/bench harness | G | `e2e/**`, benchmark scripts, accuracy fixtures |
+| Published evidence | P | `README.md`, `docs/notes/evidence.md` — every UI number traceable to a row with its method |
 
 If your track needs something behind another track's contract, **file an issue against that
 track** and build against a stub in the meantime. Do not fork the logic.
@@ -541,8 +619,10 @@ Unchanged from the previous version of this file except for step 1.
    leave the rest filed. **If your track is blocked on another track's contract, build against
    a stub and say so in the PR.** Never idle, never ask which task to do next.
 2. **Branch** from up-to-date `main`: `feat/…`, `fix/…`, `perf/…`, `a11y/…`, `chore/…`.
-3. **Read before writing.** Root `CLAUDE.md` → the per-directory `CLAUDE.md` for the area
-   (file one if it's missing — #50) → the file. Match the surrounding idiom.
+3. **Read before writing.** Root `CLAUDE.md` → the file. The per-area constraints load
+   themselves: `.claude/rules/` is path-scoped, so opening `app/lib/routing.ts` pulls in the
+   routing rule. **There are no per-directory `CLAUDE.md` files and none should be created** —
+   the rules replaced them. Match the surrounding idiom.
 4. **Implement**, with tests when the change is logic (`app/lib/**`, `app/services/**`,
    `app/hooks/**`). Behavior changes to `routing.ts`, `trainGraph.ts`, `shadeSampling.ts`,
    `app/lib/shade/**`, `app/lib/guidance/**`, or `app/lib/agent/**` require test coverage.
@@ -602,6 +682,11 @@ North star: **weekly returning users who calculate ≥1 route.** Per-track leadi
 ---
 
 ## 7. Deliberately not doing (and why)
+
+`docs/ROADMAP.md` §7 carries the full declined list, including the proposals from
+`docs/research/` that were considered and rejected (a PostGIS/object-storage backend,
+Kubernetes, Spark/Sedona, a vector DB, multi-agent orchestration). Those are recorded there so
+no session re-litigates them. The standing ones:
 
 - **A second LLM provider or a paid model.** Free-tier guardrail; Cerebras + determinism work
   is enough for a grounded, narrow assistant.

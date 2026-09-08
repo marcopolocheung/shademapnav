@@ -10,6 +10,23 @@ function directSunMeters(route: RouteOption): number {
   return Math.max(0, route.distanceM * (1 - route.shadeCoverage));
 }
 
+/**
+ * The trip split into sunlit and shaded minutes at walking pace.
+ *
+ * Shaded minutes are not idle time for a UV model — see `app/lib/heat/dose.ts` —
+ * so both halves are reported rather than only the exposed one.
+ */
+export function routeExposureMinutes(route: RouteOption): {
+  sunMinutes: number;
+  shadeMinutes: number;
+} {
+  const sunM = directSunMeters(route);
+  return {
+    sunMinutes: sunM / WALK_SPEED_MPS / 60,
+    shadeMinutes: Math.max(0, route.distanceM - sunM) / WALK_SPEED_MPS / 60,
+  };
+}
+
 function formatDeltaMinutes(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   if (minutes <= 0) return "same time";
@@ -43,4 +60,28 @@ export function shortestRoute(routes: RouteOption[]): RouteOption | null {
   return routes.reduce((best, route) =>
     travelSeconds(route) < travelSeconds(best) ? route : best
   );
+}
+
+function formatSunMinutes(meters: number): string {
+  const minutes = meters / WALK_SPEED_MPS / 60;
+  if (minutes < 1) return "under a minute";
+  return `${Math.round(minutes)} min`;
+}
+
+/**
+ * Direct sun as a duration, plus the longest unbroken run of it.
+ *
+ * A percentage hides the comparison it is meant to serve: 70% shade over 30 minutes
+ * leaves 9 minutes in the sun, 60% over 20 minutes leaves 8. Minutes are the unit the
+ * choice is actually made in, and the longest stretch is what a walker feels — one
+ * unbroken crossing is worse than the same total split across six short gaps.
+ *
+ * Both figures are walking-speed conversions of sampled distance, so the stretch
+ * clause is omitted for sketch and transit routes, whose shade was never sampled
+ * per edge and whose `longestContinuousSunM` is a placeholder rather than a zero.
+ */
+export function routeExposureLine(route: RouteOption): string {
+  const total = `${formatSunMinutes(directSunMeters(route))} in sun`;
+  if (route.longestContinuousSunM <= 0) return total;
+  return `${total} · longest stretch ${formatSunMinutes(route.longestContinuousSunM)}`;
 }

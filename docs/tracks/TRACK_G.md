@@ -10,26 +10,54 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** G0 (not started)
+- **Active checkpoint:** **G2** — G1's PR #177 has merged and the smoke test runs in CI.
+- **G2 is the highest-leverage item on the board.** A5's acceptance criterion is literally
+  *"no benchmark → no claim"*, Track H cannot state its central comparison without a committed
+  baseline, and Track P cannot publish a performance number that does not exist.
+- **Take G8 and G7 before G3.** Both are `docs/ROADMAP.md` Wave 0 — they block claims rather
+  than features. G8 now also owns the Nominatim policy violation (below); the public-mirror
+  work moved to **Track P (P1)**, which owns the public surface.
 - **Done:** **G4, delivered by Track A** — `app/lib/shade/__tests__/agreement/` meets G4's
   acceptance in full (prints the metric every run, enforces committed ceilings, adding a city is
-  a data change). G owns how it runs; A owns what is in it. Nothing else is done.
-- **Open PRs:** 7 Dependabot, unreviewed: #142, #141, #140, #139, #112, #82, #81
-- **Decisions made:** none yet
-- **Blocked on:** nothing. G1 needs `VITE_MAPTILER_API_KEY` as a repo secret — ask the owner early
-- **Next action:** G0 — the routing-quality eval, which needs no browser and no secret
-- **Last verified:** 2026-09-04, 288 tests / 30 files green on main
+  a data change). G owns how it runs; A owns what is in it.
+- **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app, running in CI on
+  every PR: shadows paint (imported `isBlueDominantShadowPixel`, 27.8% of sampled pixels at 09:00
+  against 0.000% on the first readable frame), the timeline drag retimes them (mask diff 0.307
+  after the drag against a 0.000 noise floor over 4 s without one, landing on 12:00 in the URL),
+  and a stubbed-Overpass two-point route puts route-line pixels on the canvas against 0 before
+  the click. ~17 s locally, one retry then fail.
+- **Open PRs:** none in this track — #165 merged this refresh, bringing **G0** (routing-quality
+  eval) and the G4-delivered finding. The Dependabot backlog is tracked in `docs/ROADMAP.md`
+  Wave 0, not here.
+- **Decisions made:** the smoke test seeds state through the existing share-link params
+  (`?lat/lng/z/date/time/a/b`) rather than driving the geocoder, and stubs `/api/overpass` with a
+  synthetic street grid. It runs as two projects. `smoke` intercepts the MapTiler style request
+  and serves a synthetic style whose `maptiler_planet` **geojson** source carries the building
+  footprints — maplibre 5.9.0 resolves a tile's layers as `_geojsonTileLayer || [sourceLayer]`,
+  so every `querySourceFeatures("maptiler_planet", { sourceLayer: "building" })` caller works
+  unchanged and no production code moved. That project needs no key, so it runs on forks. Its
+  fixture palette is pure greys, because a blue-dominant basemap would make the unshaded baseline
+  score as shade and the whole assertion vacuous. `smoke-live` repeats the same assertions
+  against real tiles wherever the secret exists — the only check on MapTiler's real `building`
+  schema. CI uploads no Playwright artifacts (`smoke-live` traces record tile URLs, which carry
+  the key).
+- **Blocked on:** nothing. `VITE_MAPTILER_API_KEY` as a repo secret (#173) now only adds the
+  `smoke-live` project; it is no longer the difference between a real run and a green skip.
+- **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
+  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
+- **Last verified:** 2026-09-05, four gates green plus `npm run e2e` (`smoke` project) on the
+  G1 branch; removing the fixture's `maptiler_planet` fill layer turns the run red on the
+  shadow poll, which is what proves the buildings come from the fixture
 
 ---
 
 ## Why this track exists
 
-**Nothing has ever executed this app in a browser automatically.** The vitest suite runs in
-`environment: "node"`. Never covered by any check: shadow rendering, timeline drag, end-to-end
-route calculation, the streaming route preview, camera-free shade probes, GeoTIFF export, the
-PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
-that TTI and route-calc timings are missing because no browser binary was available — that
-*reason* is now stale (see "What already exists"), but the missing numbers are still missing.
+**Until G1, nothing had ever executed this app in a browser automatically.** The vitest suite
+runs in `environment: "node"`. G1's smoke test now covers shadow rendering, the timeline drag
+and one end-to-end route calculation. Still covered by no check: the streaming route preview,
+camera-free shade probes, GeoTIFF export, the PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
+that TTI and route-calc timings are missing because no browser binary was available.
 
 With one agent making one PR at a time, that was survivable. With six tracks in parallel it
 isn't: Track A will claim a worker made routing faster, Track B will claim guidance works,
@@ -41,11 +69,10 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 
 ## What already exists
 
-- **CI** (`.github/workflows/ci.yml`): lint → typecheck → test → **coverage** → build on every PR
-  and push to `main`. Coverage has no thresholds in `vitest.config.ts`, so it reports but cannot
-  fail on a number. **There is no branch protection** — the API returns 403 on this plan, so CI
-  is advisory and a red run does not block a merge (#58 is the decision). No secrets required today — the build inlines missing `VITE_*` as `undefined` and the
-  test suite is hermetic. **G1 changes that; keep the no-secret path working for forks.**
+- **CI** (`.github/workflows/ci.yml`): lint → typecheck → test → build, then the browser smoke
+  test, on every PR and push to `main`. Still no secrets required — the build inlines missing
+  `VITE_*` as `undefined`, the test suite is hermetic, and the smoke test's keyless project
+  stubs every request it makes. **Keep it that way: fork PRs never receive secrets.**
 - **Biome** (`biome.json`) — recommended set as errors, with `noNonNullAssertion`,
   `noExplicitAny`, `noApproximativeNumericConstant` off by design. **The a11y backlog is gone:**
   nine a11y rules are now `error` and pass. 52 warnings remain, led by `useExhaustiveDependencies`
@@ -80,7 +107,7 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 
 ## Checkpoints
 
-### G0 — Routing quality eval ← **start here**
+### G0 — Routing quality eval  *(added by #165)*
 **Goal.** Nothing measures whether a shade-aware route is *worth taking*. `metrics.ts` states
 three KPI targets — route compute < 3 s, shade-coverage gain > 10 pp, path-length overhead
 < ~40% — and all three live only in comments. Make the two that are about quality fail.
@@ -95,11 +122,13 @@ cost-model regression trips them; adding a fixture is a data change, not a code 
 second, no browser, no secret, no flake budget.
 **Files.** `app/lib/__tests__/routeQuality/**`. **Size.** Small–Medium. **Coordinate with Track
 A** — A owns the cost model and what the fixtures contain, G owns the harness and the reporting.
-**Why this is before G1.** Same kind of value as G1/G2, at a fraction of the cost and none of the
-flake risk, and it establishes the KPI discipline before the expensive browser work starts. It is
-also the only checkpoint here that can land while the MapTiler secret question is still open.
+**Where it sits now.** #165 argued this belonged before G1; G1 has since landed, so the argument
+that survives is the cheaper one — same kind of value as G2, at a fraction of the cost and none of
+the flake risk, in pure Node with no browser and no secret. **G2 still outranks it** (A5, H and P
+are all waiting on a committed route benchmark), but G0 is the better filler task and it
+establishes the KPI discipline the benchmark will reuse.
 
-### G1 — Browser smoke test
+### G1 — Browser smoke test ✅ **landed — but its CI path still waits on the secret**
 **Goal.** One automated run that actually loads the app. Closes **#35**.
 **Approach.** Playwright with a WebGL-capable Chromium (`--use-gl=angle --use-angle=swiftshader`
 for headless WebGL2), `VITE_MAPTILER_API_KEY` as a repo secret, running against `vite preview`
@@ -110,8 +139,11 @@ line renders.
 **Acceptance.** Green in CI on a PR; skipped-with-a-clear-message when the secret is absent, so
 forks aren't broken; runtime under ~3 minutes; flake budget stated (retry once, then fail).
 **Files.** `e2e/**` (new), `.github/workflows/ci.yml`, `playwright.config.ts`. **Size.** Large.
+**Delivered against acceptance:** the skip path is green in real CI (notice printed, three steps
+skipped) and the flake budget and runtime hold locally; "green in CI" for the *test* path is
+outstanding until #173 adds the secret, and nothing here can close that from inside a PR.
 
-### G2 — Route benchmark
+### G2 — Route benchmark ← **start here**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.
 **Approach.** A scripted 2-point and 5-point calculation in the G1 browser, reading
 `window.__shadeMapMetrics.summary`. Commit the baseline into
@@ -129,7 +161,7 @@ baseline; fail on regression beyond a stated tolerance.
 reason (4G, one-handed, outdoors).
 **Files.** `.github/workflows/ci.yml`, a small check script. **Size.** Small.
 
-### G4 — Shade accuracy harness — **delivered by Track A**
+### G4 — Shade accuracy harness ✅ **delivered by Track A**
 Track A built this while landing A3. `app/lib/shade/__tests__/agreement/` has the fixture format
 (`fixtures.ts`), the runner and metric (`harness.ts`) and the enforced ceilings
 (`agreement.test.ts`: mean 0.04, p90 0.05, severe share 0.04), it prints
@@ -173,19 +205,59 @@ tracks pause edits to these files while it's in flight.**
 
 ### G7 — Repo hygiene, batched
 The p4 cluster, one PR each, taken *between* larger items and never instead of them:
-**#52** LICENSE (the repo calls itself open-source and has none), **#50** the per-directory
-`CLAUDE.md` files root `CLAUDE.md` already claims exist (`app/hooks/`, `app/lib/`,
-`app/components/`, `app/services/`, `app/workers/`, `api/` — **verified missing 2026-08-24**;
-every track's boot sequence reads these), **#53** `.env.example`, **#55** PR/issue templates +
-CODEOWNERS, **#48** formatter repo-wide + `format:check` in CI, **#51** prune 27 stale branches,
-**#56** CHANGELOG/tags, **#54** repo cruft, **#58** branch protection decision.
-**Priority within the cluster: #50 first** — it's a dependency of every other track's session boot.
+**#52** LICENSE (the repo calls itself open-source and has none), **#50** doc drift (see the
+re-scope below), **#53** `.env.example`, **#55** PR/issue templates + CODEOWNERS, **#48**
+formatter repo-wide + `format:check` in CI, **#51** prune 27 stale branches, **#56**
+CHANGELOG/tags, **#54** repo cruft, **#58** branch protection decision.
 
-### G8 — Security baseline
+**⚠️ #50 is mostly stale — re-check it before working it (verified 2026-09-07).** It was filed
+as four bullets and three have since been resolved a different way:
+- *"root `CLAUDE.md` points at per-directory `CLAUDE.md` files that don't exist"* — **resolved
+  by `.claude/rules/`.** The path-scoped rules replaced them, and root `CLAUDE.md` now says so
+  explicitly. **Do not create those six files.** An earlier version of this brief called #50 the
+  cluster's first priority and "a dependency of every track's session boot"; that is no longer
+  true. `AUTONOMOUS_GOAL.md` §1 gap 7 and §5 step 3 still carry the old framing and should be
+  corrected in the same PR.
+- *"points at `tools/tailor/`"* — root `CLAUDE.md`'s repo map already marks it gone.
+- *"`AGENTS.md` points at `docs/kb/INDEX.md`"* — `AGENTS.md` no longer exists.
+- *"says env lives in `.env.local`; the repo uses `.env`"* — **still true.** `CLAUDE.md:57` and
+  the README both say `.env.local`; the working tree has `.env` and no `.env.example`. This is
+  the live half of #50 and it pairs with #53.
+
+**Priority within the cluster: #52 (LICENSE) first** — it is what a public repo without one
+looks wrong for, and Track P's public surface depends on it.
+
+### G8 — Security and provider-policy baseline
 **#32** (the only open p0) confirm referrer restrictions on the MapTiler and Foursquare keys;
 **#33** vite 5→8 and vitest 2→4 advisories — the six open Dependabot PRs need a decision, and
 the upgrade must preserve the maplibre/suncalc pins and the `manualChunks` config that keeps
 MapView code-split. Document a dependency-bump policy so this doesn't recur every quarter.
+
+**Plus two provider-policy defects found 2026-09-07, both in the search path, both Wave 0:**
+
+1. **The search bar violates the Nominatim usage policy.** `SearchBar.tsx:141-159` fetches
+   `nominatim.openstreetmap.org/search` directly on a 400 ms keystroke debounce
+   (`:207`) — that is autocomplete, which
+   [the OSMF policy](https://operations.osmfoundation.org/policies/nominatim/) prohibits — and
+   it **bypasses the FIFO queue in `app/lib/nominatim.ts`** that exists for exactly this
+   purpose. A browser-local queue cannot enforce an application-wide quota anyway, so the
+   honest fix is explicit-submit search, or geocoding behind `api/` where a shared budget can
+   actually be held.
+2. **Hard invariant #6 is satisfied nowhere on the client.** `User-Agent` is a
+   [forbidden header name](https://fetch.spec.whatwg.org/#forbidden-header-name): browsers
+   silently drop it. The header set at `SearchBar.tsx:151` and `nominatim.ts:35` has never
+   reached Nominatim or Overpass. Either move those requests server-side, or amend invariant #6
+   in root `CLAUDE.md` to say where the header can and cannot be set — as written it asks for
+   something the platform does not permit.
+
+**Acceptance for both.** No component fetches Nominatim directly; the request path that claims
+to set `User-Agent` is one that can; `CLAUDE.md` invariant #6 is accurate; a test or a lint rule
+keeps a direct `nominatim.openstreetmap.org` fetch from reappearing in `app/components/**`.
+**Files.** `app/components/SearchBar.tsx`, `app/lib/nominatim.ts`, possibly `api/`, `CLAUDE.md`.
+**Size.** Small–medium.
+**Why it is worth doing properly:** reading a provider's terms and finding your own code in
+violation is a professional instinct that is hard to fake and easy to verify — and *"our
+politeness header was silently dropped the whole time"* is a genuinely good bug story.
 
 ---
 

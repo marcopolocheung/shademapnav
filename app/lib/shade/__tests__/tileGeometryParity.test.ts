@@ -17,10 +17,10 @@ import { describe, expect, it } from "vitest";
 import {
   type BuildingFeatureLike,
   buildShadowTriangles,
-  pointInPrismShadow,
   prismsFromTileFeatures,
   triangulateRing,
 } from "../geometry";
+import { pointInPrismShadow } from "../shadowIndex";
 
 // ─── Pre-refactor implementation, copied from main ────────────────────────────
 

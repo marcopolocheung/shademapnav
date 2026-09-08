@@ -11,6 +11,7 @@ import BottomSheet, { type SnapPoint } from "./components/BottomSheet";
 import SearchBar from "./components/SearchBar";
 import FloatingMapControls from "./components/FloatingMapControls";
 import FloatingRouteCards from "./components/FloatingRouteCards";
+import HourlyExposureStrip from "./components/HourlyExposureStrip";
 import QuickActions from "./components/QuickActions";
 import DirectionsPanel from "./components/DirectionsPanel";
 import NavigationStatusPanel from "./components/NavigationStatusPanel";
@@ -23,7 +24,9 @@ import { toMapLocal, fromMapLocal, longitudeToUtcOffsetMin } from "./lib/timezon
 import { parseShareState, shareUrlFromState } from "./lib/shareState";
 import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hooks/useShadowTime";
 import { useNavigation } from "./hooks/useNavigation";
+import { useHourlyExposure } from "./hooks/useHourlyExposure";
 import { useAppState } from "./hooks/useAppState";
+import { useWeatherHour } from "./hooks/useWeatherHour";
 import { useAgent } from "./hooks/useAgent";
 import { fetchCloudCoverForecast } from "./services/weather";
 
@@ -211,10 +214,32 @@ export default function Home() {
     handleMarkerDragEnd, handlePinDragStart,
     handleCalculateRoute,
     selectedNavRoute, navTrainDrawData, navMrtEntrances,
-    filteredRoutes, canTransit,
+    filteredRoutes, canTransit, shadeField,
   } = nav;
 
+
+  // "When should I go?" for the selected route. One strip, rendered in whichever
+  // of the two route surfaces the current breakpoint shows.
+  const hourlyExposure = useHourlyExposure(
+    filteredRoutes[selectedRouteIndex] ?? null,
+    shadeField,
+    date,
+    mapUtcOffsetMin,
+  );
+  const exposureSlot = (
+    <HourlyExposureStrip
+      exposure={hourlyExposure}
+      currentHour={toMapLocal(date, mapUtcOffsetMin).hours}
+      onPickHour={setDate}
+    />
+  );
+
   const { phase, selectedPlace, dispatch } = useAppState();
+
+  // Weather for the heat score, from D2's cache — the same response the cloud badge
+  // already fetched for this location, matched to the hour the timeline is showing.
+  const heatWeather = useWeatherHour(mapCenter, date);
+
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
   const [cloudCoverPct, setCloudCoverPct] = useState<number | null>(null);
@@ -393,6 +418,7 @@ export default function Home() {
     }
 
     const ctrl = new AbortController();
+
     fetchCloudCoverForecast(
       Number(weatherLatKey),
       Number(weatherLngKey),
@@ -581,6 +607,7 @@ export default function Home() {
             isCalculating={isCalculating}
             routeProgress={routeProgress}
             routes={filteredRoutes}
+            exposureSlot={exposureSlot}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
             error={navError}
@@ -700,7 +727,9 @@ export default function Home() {
           onSelectRoute={setSelectedRouteIndex}
           onSaveRoute={handleOpenSaveModal}
           onExportRoute={handleExportRoute}
+          weather={heatWeather}
           solarIntensity={routeSolarIntensity}
+          exposureSlot={exposureSlot}
           onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
         />
       )}
@@ -764,6 +793,7 @@ export default function Home() {
               isCalculating={isCalculating}
               routeProgress={routeProgress}
               routes={filteredRoutes}
+              weather={heatWeather}
               selectedRouteIndex={selectedRouteIndex}
               onSelectRoute={setSelectedRouteIndex}
               error={navError}

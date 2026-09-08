@@ -4,9 +4,14 @@ ShadeMapNav is a personal open-source shaded-route navigation project. It is an
 independent personal project and is not affiliated with ShadeMap.app.
 Browser-based sun-shadow simulation with shade-aware pedestrian + transit routing.
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
-except one serverless proxy (`api/fsq.js`). Deployed: https://shademapnav.vercel.app
+except three thin serverless proxies (`api/fsq.js`, `api/agent.js`, `api/overpass.js`).
+Deployed: https://shademapnav.vercel.app
 
 **Read order (keep context small):** this file → the "Where to edit what" table → the file.
+**Choosing *what* to work on is a different question:** `docs/ROADMAP.md` is the golden
+roadmap — every track's checkpoints plus the `docs/research/` findings, merged into one
+Now/Next/Later checklist with the reason each item exists. Read it before starting new work,
+not before editing a file.
 The per-area constraints load themselves: `.claude/rules/` is path-scoped, so opening
 `app/lib/routing.ts` pulls in the routing rule and nothing else. Don't go looking for
 per-directory `CLAUDE.md` files — that's what the rules replaced. See `.claude/README.md`
@@ -22,7 +27,20 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # biome lint — blocks on errors, ~180 known findings are "warn"
 npm run format     # biome format --write (never yet run repo-wide; see biome.json)
 npm run build      # vite build → dist/
+npm run e2e        # playwright test — one browser smoke test; no API key needed
 ```
+
+`npm run e2e` needs its browser installed once: `npx playwright install --with-deps chromium`
+(CI does this itself). Without sudo — WSL, say — Chromium fails to start on missing `libnss3`
+and friends; every one of them ships inside the miniconda install already on this machine, so
+`LD_LIBRARY_PATH=$HOME/miniconda3/lib npx playwright test` is enough, and MapLibre's WebGL2
+renders on SwiftShader. See `docs/notes/browser-verification.md`.
+
+It runs two projects. `smoke` serves a synthetic basemap style whose `maptiler_planet` geojson
+source carries the building footprints (`e2e/fixtures/basemapStyle.ts`), so it needs no key and
+runs on every PR, forks included. `smoke-live` repeats the same assertions against real MapTiler
+tiles and appears only when `VITE_MAPTILER_API_KEY` is set — it is the only check that the app
+still parses MapTiler's real `building` schema.
 
 Lint config is `biome.json` (Biome replaced ESLint, whose config had zero rules and
 matched zero `.ts` files). Rules the codebase intentionally violates — `noNonNullAssertion`
@@ -32,8 +50,9 @@ are `warn` so they surface without blocking. Everything else in Biome's recommen
 is an error and will fail CI.
 
 CI (`.github/workflows/ci.yml`) runs lint → typecheck → test → build on every PR to
-`main` and every push to `main`. It needs no secrets: the build inlines missing
-`VITE_*` vars as `undefined`, and the test suite is hermetic (no network, no env).
+`main` and every push to `main`, then the browser smoke test. It needs no secrets: the
+build inlines missing `VITE_*` vars as `undefined`, the test suite is hermetic (no
+network, no env), and the smoke test's `smoke` project stubs every request it makes.
 
 Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
 (place popups). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
@@ -115,7 +134,7 @@ approach needs to change.
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
-| `api/` | Vercel serverless Foursquare proxy (prod CORS) | `.claude/rules/external-apis.md` |
+| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`) | `.claude/rules/external-apis.md` |
 | `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 
@@ -150,7 +169,9 @@ Map instance flows up once via `onMapReady(map)` into a ref (never state).
 - Run `/gates` — all four, in order, with the real output. It records the result that the
   `Stop` hook and the status line read, so the session cannot end on an unearned "tests pass".
 - UI/map changes: also verify in `npm run dev` (shadows render, slider drags, route
-  calculates). Nothing in `npm test` runs a browser — it never has. If you can't look, say the
-  check is outstanding rather than letting four green gates imply it.
+  calculates). `npm test` never opens a browser; the only automated browser run is
+  `npm run e2e`, one smoke test that loads the built app, checks shadows paint and retime,
+  and calculates a route. It runs in CI on every PR. It covers that path and nothing else, so
+  if you can't look, say the check is outstanding rather than letting green gates imply it.
 - Before a PR opens: `/checkpoint` walks the definition of done and gets a cold review from
   the `verifier` agent.

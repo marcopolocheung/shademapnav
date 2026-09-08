@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import type { WeatherHour } from "../lib/heat/types";
 import type { RouteOption } from "../lib/routing";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { routeProgressCount, routeProgressPercent } from "../lib/routeProgress";
@@ -7,6 +8,7 @@ import { shortestRoute } from "../lib/routeTradeoff";
 import WaypointInput from "./WaypointInput";
 import RouteCard from "./RouteCard";
 import RouteTradeoffSummary from "./RouteTradeoffSummary";
+import type { ReactNode } from "react";
 import SavedRoutesSection from "./SavedRoutesSection";
 
 const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) {
@@ -80,11 +82,15 @@ export interface DirectionsPanelProps {
   onBack: () => void;
   onStartNavigation?: () => void;
   hideRouteCards?: boolean;
+  /** The dose line and hourly exposure strip, rendered under the tradeoff line. */
+  exposureSlot?: ReactNode;
   routeMode?: 'walk' | 'transit';
   onRouteModeChange?: (mode: 'walk' | 'transit') => void;
   canTransit?: boolean;
   shadePreference?: number;
   onShadePreferenceChange?: (v: number) => void;
+  /** The forecast hour at the map's location, for the heat score. */
+  weather?: WeatherHour | null;
 }
 
 export default function DirectionsPanel({
@@ -109,9 +115,11 @@ export default function DirectionsPanel({
   onBack,
   onStartNavigation,
   hideRouteCards = false,
+  exposureSlot,
   routeMode = 'walk', onRouteModeChange,
   canTransit = true,
   shadePreference = 0.5, onShadePreferenceChange,
+  weather = null,
 }: DirectionsPanelProps) {
   const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
   const baselineRoute = shortestRoute(routes);
@@ -428,7 +436,9 @@ export default function DirectionsPanel({
           <RouteTradeoffSummary
             route={selectedRoute}
             baselineRoute={completeBaselineRoute ?? undefined}
+            weather={weather}
           />
+          {exposureSlot}
           <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Route options">
             {routes.map((r, i) => (
               <RouteCard

@@ -49,6 +49,31 @@ export interface TileMapLike {
  */
 const MIN_BUILDING_ZOOM = 12;
 
+/**
+ * Above this zoom the tile source serves the building layer in full; below it, it
+ * serves a decimated subset that gets thinner the further out you go.
+ *
+ * That gap is the dangerous one. `prismsFor` still returns a non-empty `PrismSet`,
+ * so `confidenceFor`'s `dataFactor` — which only asks whether *any* prism came back
+ * — sees buildings and docks nothing, and the field reports a confident, nearly
+ * shadeless street. Measured in Chromium on the same Midtown route at the same time,
+ * the reported shade fell from 83% at z16.3 to 53% at z14 and 9% at z13 purely
+ * because of what the tile layer contained.
+ */
+const COMPLETE_BUILDING_ZOOM = 15;
+
+/**
+ * What a decimated tile answer is worth, as a multiplier on the tile prior.
+ *
+ * Chosen to put the result under `LOW_CONFIDENCE` (0.8 × 0.5 = 0.4), i.e. "do not
+ * route on this — ask the other source". That is a deliberate policy, not a measured
+ * quantity: this repo has no corpus that can price partial building coverage, and the
+ * agreement harness cannot supply one because it compares the field and the pixel
+ * sampler over *identical* prisms. Like `SOURCE_BASE_CONFIDENCE`, it is a prior that
+ * a real corpus should replace.
+ */
+const DECIMATED_COMPLETENESS = 0.5;
+
 const TILE_SOURCE = "maptiler_planet";
 const TILE_LAYER = "building";
 
@@ -69,6 +94,12 @@ export function createTilePrismProvider(getMap: () => TileMapLike | null): Prism
 
   return {
     source: "tiles",
+
+    completeness() {
+      const map = getMap();
+      if (!map) return 0;
+      return map.getZoom() >= COMPLETE_BUILDING_ZOOM ? 1 : DECIMATED_COMPLETENESS;
+    },
 
     prismsFor(bbox) {
       const map = getMap();
