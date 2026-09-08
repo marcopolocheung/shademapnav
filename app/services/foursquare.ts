@@ -140,9 +140,36 @@ export function sanitizeFoursquareAddress(address: string): string {
 // Note: the Search -> Details flow is sequential because Details needs the
 // `fsq_id` from Search. But by using separate keys we can avoid concentrating
 // both calls on the same rate limit bucket.
-const DEFAULT_SEARCH_API_KEY = normalizeApiKey(import.meta.env.VITE_FOURSQUARE_API_KEY);
+/**
+ * The browser only ever holds a Places key in **dev**.
+ *
+ * Dev goes through Vite's `/__fsq` proxy, which injects nothing, so the request
+ * has to carry its own credential. Production goes through `api/fsq.js`, which
+ * holds `FSQ_API_KEY` server-side and injects it — so the browser sends none.
+ *
+ * The `import.meta.env.DEV` guard is load-bearing, not cosmetic: Vite replaces it
+ * with `false` in a production build and folds the branch away, so the key string
+ * never enters the bundle. Reading `VITE_FOURSQUARE_API_KEY` unconditionally here
+ * would inline it whether or not anything used it. See #218.
+ */
+const DEFAULT_SEARCH_API_KEY = import.meta.env.DEV
+  ? normalizeApiKey(import.meta.env.VITE_FOURSQUARE_API_KEY)
+  : null;
 const DEFAULT_DETAILS_API_KEY = DEFAULT_SEARCH_API_KEY;
-  //normalizeApiKey(import.meta.env.VITE_FOURSQUARE_API_KEY_1) ?? DEFAULT_SEARCH_API_KEY;
+
+/** True where the browser must supply its own credential — dev only. */
+const CLIENT_KEY_REQUIRED = import.meta.env.DEV;
+
+/**
+ * Bearer header, or nothing at all in production.
+ *
+ * An absent key is not an error outside dev: `api/fsq.js` supplies it. Sending
+ * `Authorization: Bearer null` instead would fail upstream *and* re-add the header
+ * to the proxy's CORS allowlist.
+ */
+function authHeader(apiKey: string | null): Record<string, string> {
+  return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+}
 
 // The Places API is not CORS-enabled for browser use from arbitrary origins.
 // In dev, we route through Vite's proxy (see `vite.config.ts`).
@@ -374,7 +401,7 @@ export async function getPlaceDetails(
 
     // If the caller supplies `opts.apiKey`, use it for tests/explicit overrides.
     const apiKey = normalizeApiKey(opts?.apiKey) ?? DEFAULT_DETAILS_API_KEY;
-    if (!apiKey) {
+    if (CLIENT_KEY_REQUIRED && !apiKey) {
       apiStatus = "missing_key";
       const result = null;
       placeDetailsCache.set(safeId, { data: result, timestamp: Date.now() });
@@ -389,9 +416,9 @@ export async function getPlaceDetails(
       const response = await fetchWithRetry(url, {
         headers: {
           Accept: "application/json",
-          // NOTE: the Places API expects Bearer auth. In production we route
-          // through a same-origin proxy; in dev we use Vite proxy.
-          Authorization: `Bearer ${apiKey}`,
+          // The Places API expects Bearer auth. In production `api/fsq.js`
+          // injects it; in dev the Vite proxy forwards what we send here.
+          ...authHeader(apiKey),
           "X-Places-Api-Version": "2025-06-17",
         },
         signal: opts?.signal,
@@ -485,7 +512,7 @@ export async function getPlaceInfoFromAddress(
   const detailsApiKey = overrideKey ?? DEFAULT_DETAILS_API_KEY;
   if (isRateLimited()) return null;
   if (isAuthBlocked()) return null;
-  if (!searchApiKey || !detailsApiKey) {
+  if (CLIENT_KEY_REQUIRED && (!searchApiKey || !detailsApiKey)) {
     // No API key configured (or not exposed by Vite). Cache null to prevent
     // repeated attempts per session.
     apiStatus = "missing_key";
@@ -513,7 +540,7 @@ export async function getPlaceInfoFromAddress(
   const searchResponse = await fetchWithRetry(searchUrl, {
     headers: {
       Accept: "application/json",
-      Authorization: `Bearer ${searchApiKey}`,
+      ...authHeader(searchApiKey),
       "X-Places-Api-Version": "2025-06-17",
     },
     signal: opts?.signal,
@@ -574,7 +601,7 @@ export async function getPlaceInfoFromAddress(
   const detailsResponse = await fetchWithRetry(detailsUrl, {
     headers: {
       Accept: "application/json",
-      Authorization: `Bearer ${detailsApiKey}`,
+      ...authHeader(detailsApiKey),
       "X-Places-Api-Version": "2025-06-17",
     },
     signal: opts?.signal,

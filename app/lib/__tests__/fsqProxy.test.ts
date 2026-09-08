@@ -18,7 +18,8 @@ function makeReq({
     url,
     headers: {
       referer: "https://shademapnav.vercel.app/",
-      authorization: "Bearer fsq_key",
+      // No authorization: since #218 the browser sends none and the proxy
+      // injects FSQ_API_KEY itself.
       "x-places-api-version": "2025-06-17",
       "x-forwarded-for": ip,
       ...headers,
@@ -63,6 +64,7 @@ describe("api/fsq proxy hardening", () => {
     delete process.env.FSQ_ALLOWED_ORIGINS;
     delete process.env.FSQ_RATE_LIMIT_PER_MIN;
     delete process.env.VERCEL_URL;
+    process.env.FSQ_API_KEY = "server_side_fsq_key";
   });
 
   it("rejects browser sources outside the allowlist", async () => {
@@ -148,11 +150,50 @@ describe("api/fsq proxy hardening", () => {
         method: "GET",
         headers: expect.objectContaining({
           Accept: "application/json",
-          Authorization: "Bearer fsq_key",
+          Authorization: "Bearer server_side_fsq_key",
           "X-Places-Api-Version": "2025-06-17",
         }),
       })
     );
+  });
+
+  it("refuses to serve when FSQ_API_KEY is unset, rather than falling back to the caller", async () => {
+    // The pre-#218 proxy relayed whatever Authorization the browser sent, which
+    // is why the key had to be in the bundle. A fallback here would quietly
+    // restore that, so an unconfigured deploy must fail instead.
+    delete process.env.FSQ_API_KEY;
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const handler = await loadHandler();
+    const res = makeRes();
+
+    await handler(
+      makeReq({ headers: { authorization: "Bearer attacker_supplied_key" } }),
+      res
+    );
+
+    expect(res.statusCode).toBe(500);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores an Authorization header supplied by the caller", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      text: async () => "{\"results\":[]}",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const handler = await loadHandler();
+    const res = makeRes();
+
+    await handler(
+      makeReq({ headers: { authorization: "Bearer attacker_supplied_key" } }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    const sent = fetchMock.mock.calls[0][1].headers.Authorization;
+    expect(sent).toBe("Bearer server_side_fsq_key");
   });
 
   it("forwards allowed place detail requests", async () => {

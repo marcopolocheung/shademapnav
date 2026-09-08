@@ -55,7 +55,10 @@ build inlines missing `VITE_*` vars as `undefined`, the test suite is hermetic (
 network, no env), and the smoke test's `smoke` project stubs every request it makes.
 
 Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
-(place popups). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
+(place popups — **dev only**; production reads server-only `FSQ_API_KEY` inside `api/fsq.js`
+and the browser sends no Foursquare credential at all. Foursquare service keys support no
+origin restriction, so the key must not reach the bundle; the `import.meta.env.DEV` guard in
+`foursquare.ts` is what keeps it out). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
 
 AI assistant (Shade Assistant, `app/lib/agent/`): uses a **free** LLM — **Cerebras only**
 (OpenAI-compatible, ~1M tokens/day **per account**, but only 5 req/min). Key:
@@ -134,7 +137,7 @@ approach needs to change.
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
-| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`) | `.claude/rules/external-apis.md` |
+| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, server-side key + prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`) | `.claude/rules/external-apis.md` |
 | `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 
