@@ -16,7 +16,7 @@
 - **Active checkpoint:** P4 — publish the numbers. P1 is implemented and in review.
 - **Done:** P1 (pending merge) — `.github/workflows/mirror.yml` pushes `main` to the public
   repo on every merge and then fails if a doc the app links to 404s there.
-- **Open PRs:** #NNN (P1).
+- **Open PRs:** #203 (P1).
 - **Decisions made:**
   - **Action, not a documented step.** The manual `git push public main` had failed three
     times; the last failure is #199.
