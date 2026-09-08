@@ -27,3 +27,45 @@ export interface WeatherHour {
    */
   shortwaveWm2: number | null;
 }
+
+/** Fitzpatrick phototype. The only profile input D3 needs; D5 adds the rest. */
+export type SkinType = "I" | "II" | "III" | "IV" | "V" | "VI";
+
+export interface UserProfile {
+  skinType: SkinType;
+}
+
+/** Every estimate this track shows is an interval, never a point value. */
+export interface Range {
+  low: number;
+  high: number;
+}
+
+/**
+ * A UV dose estimate for one trip. Ranges throughout, because the inputs are
+ * ranges — chiefly the share of ambient UV still reaching you in building shade.
+ *
+ * `sed` and `fullSunEquivalentMinutes` are physical quantities and describe the
+ * trip. `burnFraction` describes a *person*, and is null unless a caller supplies
+ * a real profile: see `dose()` for why nothing may default one into existence.
+ */
+export interface SunDose {
+  /** Standard erythemal doses accumulated on this trip. 1 SED = 100 J/m². */
+  sed: Range;
+  /**
+   * The same dose expressed as minutes of unbroken full sun at this UV index.
+   *
+   * Person-independent, and the only figure this app displays: it says how much
+   * sun the trip is worth without asserting anything about whose skin it lands on.
+   */
+  fullSunEquivalentMinutes: Range;
+  /**
+   * Dose as a share of one minimal erythemal dose. **Null without a profile**, and
+   * weakly founded even with one — Fitzpatrick type correlates with MED at only
+   * r ≈ 0.5–0.69. See docs/notes/heat-model.md before showing this to anyone.
+   */
+  burnFraction: Range | null;
+  uncertainty: "low" | "medium" | "high";
+  /** Versioned so the UI can link to the method that produced this number. */
+  method: "sed-uvi-v1";
+}

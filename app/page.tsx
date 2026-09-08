@@ -217,6 +217,7 @@ export default function Home() {
     filteredRoutes, canTransit, shadeField,
   } = nav;
 
+
   // "When should I go?" for the selected route. One strip, rendered in whichever
   // of the two route surfaces the current breakpoint shows.
   const hourlyExposure = useHourlyExposure(
@@ -225,7 +226,7 @@ export default function Home() {
     date,
     mapUtcOffsetMin,
   );
-  const exposureStrip = (
+  const exposureSlot = (
     <HourlyExposureStrip
       exposure={hourlyExposure}
       currentHour={toMapLocal(date, mapUtcOffsetMin).hours}
@@ -417,6 +418,7 @@ export default function Home() {
     }
 
     const ctrl = new AbortController();
+
     fetchCloudCoverForecast(
       Number(weatherLatKey),
       Number(weatherLngKey),
@@ -605,7 +607,7 @@ export default function Home() {
             isCalculating={isCalculating}
             routeProgress={routeProgress}
             routes={filteredRoutes}
-            exposureStrip={exposureStrip}
+            exposureSlot={exposureSlot}
             selectedRouteIndex={selectedRouteIndex}
             onSelectRoute={setSelectedRouteIndex}
             error={navError}
@@ -727,7 +729,7 @@ export default function Home() {
           onExportRoute={handleExportRoute}
           weather={heatWeather}
           solarIntensity={routeSolarIntensity}
-          exposureStrip={exposureStrip}
+          exposureSlot={exposureSlot}
           onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
         />
       )}

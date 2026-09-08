@@ -1,7 +1,7 @@
 import type { WeatherHour } from "../lib/heat/types";
 import type { RouteOption } from "../lib/routing";
 import { routeExposureLine, routeTradeoffLine } from "../lib/routeTradeoff";
-import RouteHeatLine from "./RouteHeatLine";
+import RouteConditionsLine from "./RouteConditionsLine";
 
 interface RouteTradeoffSummaryProps {
   route?: RouteOption;
@@ -39,7 +39,7 @@ export default function RouteTradeoffSummary({
       <div className="text-xs leading-snug" style={{ color: "var(--md-on-surface-variant)" }}>
         {routeExposureLine(route)}
       </div>
-      <RouteHeatLine route={route} baselineRoute={baselineRoute} weather={weather} />
+      <RouteConditionsLine route={route} baselineRoute={baselineRoute} weather={weather} />
     </div>
   );
 }

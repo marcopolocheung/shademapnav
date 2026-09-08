@@ -27,10 +27,12 @@
   `origin/main` — so the link 404s in production (**#199**). That fix is **Track P's P1**. A
   health-adjacent number with a dead method link is worse than no number: do not mark D3/D4 done
   until the links resolve publicly.
-- **⚠️ D3 and D4 each add a row above the route cards.** Landed together they stack two
-  `Experimental` badges and two near-identical method links over the options the walker is
-  choosing between, and they disagree in tone about the same weather. Decide the combined row
-  as part of D3, not after — see "The conditions row" below.
+- **The conditions row is one row, decided in D3.** D3 and D4 each added a card above the
+  route options; together they stacked two `Experimental` badges and two near-identical method
+  links, and disagreed in tone about the same weather ("strong heat stress" over a benign
+  "4–5 min of full sun"). `RouteConditionsLine` replaces both: one badge, one method link, heat
+  first because it is the figure that varies between the options below, dose second. Verified
+  in a browser at 1280x900 and 375x667 — one visible badge, one visible link.
 - **D0 (real timezones) is new and comes before D6.** See the checkpoint below.
 - **Also open against this track:** #197 — the D1 hourly strip **never renders on mobile**. A
   shipped feature nobody on a phone can see; fix it before D5.

@@ -3,6 +3,9 @@
 **Method version `shade-radiation-v1`.** Implemented in `app/lib/heat/score.ts`.
 **Status: experimental.** The app labels it so, and this page explains why.
 
+> This score is an *intensity* — how hot the walk feels, not how long it lasts. The UV
+> *dose* shown on the same row is [heat-model.md](heat-model.md).
+
 This is the companion to [`heat-model.md`](./heat-model.md), which covers UV dose and
 arrives with PR #189. The two answer different questions: dose is about *sunburn*, this
 score is about *how hard the walk is on you right now*. UV index belongs to the first
