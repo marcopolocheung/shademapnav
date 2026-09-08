@@ -5,6 +5,18 @@
  * https://places-api.foursquare.com/*, while rejecting unrelated Foursquare
  * endpoints so this function cannot be used as a general-purpose relay.
  * Forwards rate-limit response headers back so client backoff logic works.
+ *
+ * This proxy **holds the credential**. It used to relay whatever `Authorization`
+ * the browser sent, which meant the key had to reach the browser to begin with —
+ * inlined into the bundle by Vite and readable from devtools. Foursquare service
+ * keys support no origin or referrer restriction, so there was nothing to blunt
+ * that. `FSQ_API_KEY` is now server-only (no `VITE_` prefix, so it is never
+ * inlined) and is injected here; the browser sends no credential at all. Origin
+ * is still enforced by `FSQ_ALLOWED_ORIGINS`. Same shape as `api/agent.js`.
+ *
+ * In dev there is no serverless runtime: the client calls Foursquare through the
+ * Vite `/__fsq` proxy, which injects nothing, so a dev-only
+ * `VITE_FOURSQUARE_API_KEY` is still read there. See #218.
  */
 const RATE_LIMIT_PER_MIN = Number(process.env.FSQ_RATE_LIMIT_PER_MIN || 60);
 const recentRequestsByIp = new Map();
@@ -25,6 +37,28 @@ function allowedOrigins() {
     ...(vercelUrl ? [vercelUrl] : []),
     ...configured,
   ]);
+}
+
+/**
+ * The server-held Places credential. Absent is a misconfiguration, not a fallback.
+ *
+ * Strips one pair of surrounding quotes, mirroring `normalizeApiKey` in
+ * `app/services/foursquare.ts`. That client-side helper exists because this
+ * repo's `.env` values are written quoted, and a key carried into a `Bearer`
+ * header with its quotes attached fails upstream as `401` — which reads as an
+ * expired or invalid key rather than a copy-paste artefact. The value is set by
+ * hand in the Vercel dashboard, so the same paste is easy to make here; the two
+ * readers should tolerate the same input.
+ */
+function foursquareApiKey() {
+  const trimmed = process.env.FSQ_API_KEY ? String(process.env.FSQ_API_KEY).trim() : "";
+  if (!trimmed) return null;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === "'" || first === '"') && last === first && trimmed.length >= 2) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 function header(req, name) {
@@ -110,7 +144,8 @@ export default async function handler(req, res) {
     }
     res.setHeader("Access-Control-Allow-Origin", originFromUrl(header(req, "origin")) || "");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, X-Places-Api-Version, Accept");
+    // No Authorization: the browser sends no credential; this proxy injects it.
+    res.setHeader("Access-Control-Allow-Headers", "X-Places-Api-Version, Accept");
     res.status(204).send("");
     return;
   }
@@ -134,15 +169,19 @@ export default async function handler(req, res) {
     return;
   }
 
-  const authorization = header(req, "authorization");
-  if (!authorization || !String(authorization).startsWith("Bearer ")) {
-    res.status(401).json({ error: "Missing Foursquare authorization" });
+  const apiKey = foursquareApiKey();
+  if (!apiKey) {
+    // Loud, and 500 rather than 401: the caller did nothing wrong, the deploy is
+    // missing FSQ_API_KEY. A silent fall back to a browser-supplied key would put
+    // the credential back in the bundle, which is the whole thing this prevents.
+    console.error("FSQ_API_KEY is not set, so the Foursquare proxy cannot authenticate.");
+    res.status(500).json({ error: "Foursquare proxy is not configured" });
     return;
   }
 
   const headers = {
     Accept: "application/json",
-    Authorization: authorization,
+    Authorization: `Bearer ${apiKey}`,
   };
 
   const apiVersion = header(req, "x-places-api-version");
