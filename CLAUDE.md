@@ -4,9 +4,14 @@ ShadeMapNav is a personal open-source shaded-route navigation project. It is an
 independent personal project and is not affiliated with ShadeMap.app.
 Browser-based sun-shadow simulation with shade-aware pedestrian + transit routing.
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
-except one serverless proxy (`api/fsq.js`). Deployed: https://shademapnav.vercel.app
+except three thin serverless proxies (`api/fsq.js`, `api/agent.js`, `api/overpass.js`).
+Deployed: https://shademapnav.vercel.app
 
 **Read order (keep context small):** this file → the "Where to edit what" table → the file.
+**Choosing *what* to work on is a different question:** `docs/ROADMAP.md` is the golden
+roadmap — every track's checkpoints plus the `docs/research/` findings, merged into one
+Now/Next/Later checklist with the reason each item exists. Read it before starting new work,
+not before editing a file.
 The per-area constraints load themselves: `.claude/rules/` is path-scoped, so opening
 `app/lib/routing.ts` pulls in the routing rule and nothing else. Don't go looking for
 per-directory `CLAUDE.md` files — that's what the rules replaced. See `.claude/README.md`
@@ -129,7 +134,7 @@ approach needs to change.
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
-| `api/` | Vercel serverless Foursquare proxy (prod CORS) | `.claude/rules/external-apis.md` |
+| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`) | `.claude/rules/external-apis.md` |
 | `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 

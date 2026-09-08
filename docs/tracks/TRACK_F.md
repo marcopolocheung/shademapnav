@@ -12,10 +12,14 @@
 - **Active checkpoint:** none — track is parked
 - **Done:** nothing in this track. Note that **share-state URLs (`app/lib/shareState.ts`) and the
   PWA shell (`public/sw.js`, `manifest.webmanifest`) already shipped** outside it
-- **Open PRs:** none
+- **Open PRs:** none — but **F1 work exists uncommitted** on `feat/f1-share-card`
+  (`app/lib/shareCard.ts`, `ShareCardButton.tsx`, and two test files, one of them failing).
+  That work is **ahead of this track's own unpark condition**: F unparks when B7 *and* D1
+  have landed, and B7 has not. Either finish B7 first, or land F1 knowingly early and say
+  so in the PR — but do not leave it sitting in a working tree failing a test.
 - **Blocked on:** deliberately deferred, not blocked
 - **Next action on unpark:** F1 (share card) — but only after Track B's B7 gives it a sentence worth sharing
-- **Last verified:** 2026-08-24
+- **Last verified:** 2026-09-07 (state block re-checked against `gh pr list` and the working tree)
 
 ---
 
@@ -50,6 +54,11 @@ before a northern-hemisphere summer, not during the autumn after one.
   read-only shade-at-point endpoint is the thing urbanists screenshot and link.
 
 ## Notes for whoever unparks this
+
+- **F is not Track P.** F spreads the product to *users* (share cards, unfurls, deep links,
+  landing pages, offline). P makes the engineering legible to a *reviewer* (README, the
+  numbers page, design notes, the mirror). Same public surface, different audience — don't
+  merge them, and don't let F's README ambitions collide with P2.
 
 - The persona is outdoors, on a phone, on 4G, mid-heatwave — every kilobyte F adds is checked
   by Track G's bundle budget (G3).

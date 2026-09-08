@@ -151,6 +151,9 @@ which is the whole point of a shade app).
 tool; existing route tests unchanged; the share URL round-trips a 4-stop trip with dwell times.
 **Files.** `app/lib/trip/**` (new), `useNavigation.ts` (⚠️), `savedRoutes.ts`, `shareState.ts`.
 **Size.** Large. **Best done immediately after G6 splits `useNavigation`.**
+**Per-stop dwell is a hard dependency for Track H.** H5 prices waiting and dwell as exposure
+in their own right — sun you accumulate standing still — and consumes `Trip` rather than
+reinventing a stop model. Track C's C4 also wants `Trip` as its planning-tool argument shape.
 
 ### E6 — Mixed-mode journeys
 **Goal.** Walk + transit + bike legs in one `Trip`.

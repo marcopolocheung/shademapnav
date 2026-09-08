@@ -3,6 +3,11 @@
 **Method version `sed-uvi-v1`.** Implemented in `app/lib/heat/dose.ts`.
 **Status: experimental.** The app labels it so, and this page explains why.
 
+> The app shows this number next to a heat score, under one **How these are estimated**
+> link that lands here. They answer different questions — this page is the *dose* (how
+> much sun the trip costs); [heat-score.md](heat-score.md) is the *intensity* (how hot
+> the walk feels while you are in it).
+
 This page exists because the app shows a number connected to sunburn, and such a
 number arriving without its assumptions is worse than no number at all.
 
