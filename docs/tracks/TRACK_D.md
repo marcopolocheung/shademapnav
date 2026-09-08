@@ -10,8 +10,13 @@
 
 ## Current state
 
-- **Active checkpoint:** D3 is **in review** (PR #189). D4 landed as PR #196; D2 **merged** as
-  PR #188. Next unstarted checkpoint is D5.
+- **Active checkpoint:** **D0 — real timezones (#204).** It is a `docs/ROADMAP.md` **Wave 0**
+  item and it is taken from this track. D3 (PR #189), D4 (PR #196) and D2 (PR #188) have all
+  merged. **D5 is not next** — an earlier version of this block said so, before D0 existed.
+- **D0 is also a Track H prerequisite,** not only this track's. `timezone.ts:8` guesses the UTC
+  offset from longitude with no DST; an hour of clock error is ~15° of sun, so H1 would price
+  every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input.
+  See `docs/handoffs/WAVE_0.md`.
 - **Done:**
   - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
     route under the tradeoff line, in both route surfaces. Closes #47.
@@ -20,7 +25,7 @@
   - D4 — `app/lib/heat/score.ts` scores the selected route 0–100 on felt temperature and
     renders it beside the tradeoff line, with `docs/notes/heat-score.md` linked from the UI.
     Closes #194.
-- **Open PRs:** #189 (D3, issue #63).
+- **Open PRs:** none in this track.
 - **⚠️ D3 and D4 are not actually done, and it is not a code problem.** Both acceptance criteria
   require the method to be *linked from the UI*, and those links point at
   `docs/notes/heat-model.md` and `docs/notes/heat-score.md` on the **public mirror**, which lags
