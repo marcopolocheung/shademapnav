@@ -13,14 +13,30 @@
 
 ## Current state
 
-- **Active checkpoint:** P1 — the mirror. Wave 0 in `docs/ROADMAP.md`; **it blocks D3 and D4
-  from being done at all**, so it is not optional sequencing.
-- **Done:** nothing in this track.
-- **Open PRs:** none.
-- **Decisions made:** none yet.
-- **Blocked on:** nothing for P1 and P4. P2/P3 want two finished Wave-1 tracks and H3 rendering.
-- **Next action:** P1, then **P4** — which needs no new engineering at all, only publication.
-- **Last verified:** 2026-09-07 — brief created; `main` green at 411 tests / 35 files.
+- **Active checkpoint:** P4 — publish the numbers. P1 is implemented and in review.
+- **Done:** P1 (pending merge) — `.github/workflows/mirror.yml` pushes `main` to the public
+  repo on every merge and then fails if a doc the app links to 404s there.
+- **Open PRs:** #NNN (P1).
+- **Decisions made:**
+  - **Action, not a documented step.** The manual `git push public main` had failed three
+    times; the last failure is #199.
+  - **Push-triggered, not gated on CI.** A faithful mirror of a red `main` is still faithful,
+    and a `workflow_run` gate would let one flaky browser run stop mirroring unnoticed — the
+    same silent drift the job exists to end.
+  - **`main` only, never `--mirror`/`--all`, never `--force`.** Feature and dependabot branches
+    stay private, and a non-fast-forward means the public repo has a commit `main` does not —
+    which a human should see, not a job should overwrite.
+  - **Publishing is checked before it happens.** `scripts/mirror-guard.sh` blocks `.env` files,
+    credential-shaped literals and hard-coded keys; a pushed secret is leaked even after a
+    force-push.
+- **Blocked on:** P1's acceptance needs one owner action that no PR can perform — a fine-grained
+  PAT for `marcopolocheung/shademapnav` stored as the `MIRROR_TOKEN` secret. Until it exists the
+  job fails loudly on merge instead of mirroring. P2/P3 still want two finished Wave-1 tracks
+  and H3 rendering.
+- **Next action:** **P4** — needs no new engineering, only publication.
+- **Last verified:** 2026-09-08 — mirror audit run against `origin/main`: nothing private
+  crosses (see the P1 PR); `docs/notes/heat-model.md` confirmed 404 on the mirror by the
+  workflow's own link check, run locally.
 
 ---
 
@@ -51,7 +67,7 @@ That is the cheapest value available anywhere on the board, and it is this track
 
 ## Checkpoints
 
-### P1 — Mirror the public repo on merge ← **start here**
+### P1 — Mirror the public repo on merge — **implemented, in review**
 **Goal.** The public repo is a faithful copy of `main`, automatically. Closes **#199**.
 **Approach.** A GitHub Action on push to `main` that pushes to the `public` remote, or a
 documented `git push public main` step added to the merge ritual in `docs/tracks/README.md`.
@@ -89,7 +105,7 @@ is reproducible from a documented URL or fixture; its date and the commit are st
 **Depends on:** B7 (the arrival sentence), H3 (the budget interaction), **C11** (the repair —
 no other checkpoint builds it), C4/C5 (the job contract and the trace). Do not attempt it early with a mock.
 
-### P4 — Publish the numbers ← **needs no new engineering**
+### P4 — Publish the numbers ← **start here; needs no new engineering**
 **Goal.** One versioned page carrying every measurement this project has made, worst case
 included.
 **Approach.** `docs/notes/evidence.md`: the A3 agreement table (mean, p90, worst, severe share,

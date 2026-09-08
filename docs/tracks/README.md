@@ -159,6 +159,33 @@ and consumes everyone else through tool wrappers.
 
 ---
 
+## Publishing: the public mirror
+
+`origin` is private. `github.com/marcopolocheung/shademapnav` is what the world sees, and the
+app links into it — the heat and UV rows render a "how this was calculated" link pointing at
+`docs/notes/`. So a doc that is merged but not mirrored is a dead link in production, which is
+what #199 was.
+
+**You do not push the mirror.** `.github/workflows/mirror.yml` pushes `main` on every merge,
+then curls every `shademapnav` doc URL it can find in `app/` and fails if one 404s. If that job
+goes red, the mirror is stale and a link in the UI is probably broken — fix it before taking
+new work.
+
+Two things follow for a track session:
+
+- **A doc the UI links to must land in the same PR as the link.** The mirror publishes whatever
+  is on `main`; it cannot publish a file that is not there yet.
+- **Never commit anything to `main` you would not publish.** `scripts/mirror-guard.sh` runs
+  before the push and blocks `.env` files, credential-shaped literals and hard-coded keys, but
+  it recognises shapes, not judgement. Run it yourself (`./scripts/mirror-guard.sh`) if a PR
+  adds fixtures, config or captured output.
+
+**One-time setup, owner only.** The job needs push access to a second repo, which
+`GITHUB_TOKEN` does not grant. Create a fine-grained PAT scoped to `marcopolocheung/shademapnav`
+alone with **Contents: Read and write**, add it as the `MIRROR_TOKEN` repository secret on
+`ShadeMapNavigation`, then run the workflow once from the Actions tab to backfill. Until that
+secret exists the job fails loudly on every merge rather than mirroring nothing quietly.
+
 ## State and handoff
 
 Each brief carries a `## Current state` block. It is the only thing a new session must trust:
