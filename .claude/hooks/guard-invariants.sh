@@ -91,12 +91,25 @@ app/page.tsx — that is what code-splits MapLibre out of the initial bundle. Us
 lazy(() => import(\"./components/MapView\")). Type-only imports are fine."
 fi
 
-# ── Invariant 6: Nominatim and Overpass reject anonymous requests ─────────────
-case "$base" in
-  nominatim.ts|overpass.ts|trainGraph.ts)
+# ── Invariant 6: only a server can send the User-Agent those services want ────
+# The header is forbidden to fetch(), so enforcement runs both ways: the proxies must keep
+# it, and client code must never grow it back.
+case "$file" in
+  */api/nominatim.js|*/api/overpass.js|*/vite.config.ts)
     if strips 'User-Agent'; then
-      decide deny "CLAUDE.md invariant 6: Nominatim and Overpass requests need a User-Agent
-header or they get rejected. Keep it on every request in '$base'."
+      decide deny "CLAUDE.md invariant 6: Nominatim and Overpass reject requests that do not
+identify themselves, and '$base' is one of the few places the header can actually be set — a
+browser is not allowed to send it. api/nominatim.js and api/overpass.js carry it in
+production; the /__nominatim and /__overpass proxies in vite.config.ts carry it in dev. Keep
+it on every upstream call here."
+    fi ;;
+  */app/*)
+    # __tests__ is where the guard against this lives; it has to name the header.
+    if [[ "$file" != *"__tests__"* ]] && { adds '"User-Agent"' || adds "'User-Agent'"; }; then
+      decide deny "CLAUDE.md invariant 6: User-Agent is a forbidden header name
+(https://fetch.spec.whatwg.org/#forbidden-header-name) — the browser drops it silently, so
+setting it in client code looks like compliance and is not. Route the request through
+/api/nominatim or /api/overpass, which set a real one server-side."
     fi ;;
 esac
 

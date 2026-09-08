@@ -67,6 +67,19 @@ export async function stubNetwork(page: Page, opts: { basemap: Basemap }): Promi
     })
   );
 
+  // Reverse-geocoding the two waypoints is the app's only Nominatim call on this
+  // path. `vite preview` serves no serverless functions, so /api/nominatim would
+  // 404 — answer it here instead, both to keep the run hermetic and because the
+  // OSMF policy is not something to lean on from a test loop.
+  await page.route("**/api/nominatim*", (route) => {
+    const isReverse = new URL(route.request().url()).searchParams.get("endpoint") === "reverse";
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: isReverse ? JSON.stringify({ display_name: "Test Street, Test City" }) : "[]",
+    });
+  });
+
   // The cloud-cover badge's forecast fetch is the one other third party the app
   // touches on load. It feeds no assertion here, and the caller already treats a
   // failure as "no data", so cut it rather than leave an unmocked call in a test

@@ -102,7 +102,6 @@ const WaypointInput = memo(function WaypointInput({
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [highlight, setHighlight] = useState(-1);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchGenRef = useRef(0);
   const focusedRef = useRef(false);
   const labelRef = useRef(label);
@@ -121,27 +120,27 @@ const WaypointInput = memo(function WaypointInput({
     setInlineError(null);
   }
 
-  function search(q: string) {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (q.length < 2) { closeDropdown(); return; }
+  // Runs only on an explicit submit (Enter). Nominatim's usage policy lists
+  // autocomplete under unacceptable use, so no request fires from a keystroke.
+  async function search(q: string) {
+    if (q.trim().length < 2) { closeDropdown(); return; }
     const gen = ++searchGenRef.current;
-    timerRef.current = setTimeout(async () => {
-      try {
-        const res = await geocodeForward(q);
-        if (gen !== searchGenRef.current) return; // stale result
-        if (res.length === 0) {
-          setResults([]);
-          setInlineError(`No results found for "${q}". Try a different address.`);
-        } else {
-          setResults(res);
-          setInlineError(null);
-        }
-      } catch {
-        if (gen !== searchGenRef.current) return;
+    try {
+      const res = await geocodeForward(q);
+      if (gen !== searchGenRef.current) return; // stale result
+      if (res.length === 0) {
         setResults([]);
-        setInlineError("Address search failed. Check your connection.");
+        setInlineError(`No results found for "${q}". Try a different address.`);
+      } else {
+        setResults(res);
+        setHighlight(0);
+        setInlineError(null);
       }
-    }, 400);
+    } catch {
+      if (gen !== searchGenRef.current) return;
+      setResults([]);
+      setInlineError("Address search failed. Check your connection.");
+    }
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -149,8 +148,10 @@ const WaypointInput = memo(function WaypointInput({
     setQuery(val);
     // Clear the waypoint only if one was set — avoids repeated parent updates
     if (labelRef.current !== null) onClear();
-    setHighlight(-1);
-    search(val);
+    // Retyping invalidates a geocode already in flight for the previous query:
+    // its results are armed for the next Enter and would commit the old place.
+    searchGenRef.current++;
+    closeDropdown();
   }
 
   function handleSelect(r: NominatimResult) {
@@ -161,6 +162,16 @@ const WaypointInput = memo(function WaypointInput({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlight >= 0 && results[highlight]) handleSelect(results[highlight]);
+      else search(query);
+      return;
+    }
+    if (e.key === "Escape") {
+      closeDropdown();
+      return;
+    }
     if (results.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -168,11 +179,6 @@ const WaypointInput = memo(function WaypointInput({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlight((h) => Math.max(h - 1, -1));
-    } else if (e.key === "Enter" && highlight >= 0) {
-      e.preventDefault();
-      handleSelect(results[highlight]);
-    } else if (e.key === "Escape") {
-      closeDropdown();
     }
   }
 

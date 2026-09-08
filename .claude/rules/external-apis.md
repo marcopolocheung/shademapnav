@@ -18,11 +18,21 @@ tier**, and Cerebras for the LLM. No new paid services and no new keys — that 
 project decision, not a tradeoff to re-open. Each source needs caching and a polite request
 rate; the deployment target is the Vercel free tier.
 
-## Nominatim and Overpass reject anonymous requests
+## Nominatim and Overpass reject anonymous requests — and only a server can identify us
 
-**Every request needs a `User-Agent` header.** Without one they are refused outright, and the
-failure looks like a network error rather than a policy rejection, so it gets misdiagnosed. A
-`PreToolUse` hook blocks edits that strip it.
+**Every request needs a `User-Agent` header, and a browser cannot send one.** It is a
+[forbidden header name](https://fetch.spec.whatwg.org/#forbidden-header-name): `fetch` drops
+it silently, so client code that sets it looks compliant and is not. Both services go through
+same-origin proxies that set it server-side — `api/nominatim.js` and `api/overpass.js` in
+production, `/__nominatim` and `/__overpass` in the Vite dev server. A `PreToolUse` hook
+blocks edits that strip it from any of those *or* add it back to client code, and
+`app/components/__tests__/providerPolicy.test.ts` fails if anything under `app/` names
+`nominatim.openstreetmap.org` outside a comment.
+
+**The OSMF policy also forbids autocomplete.** `geocodeForward` and friends must never be
+called from a keystroke handler; search runs on an explicit submit (Enter or the magnifier).
+A per-tab queue cannot enforce an application-wide quota anyway — what actually reduces load
+is the CDN `s-maxage` on the proxy's responses.
 
 Both are volunteer-run infrastructure. Rate-limit, cache, and back off on failure. Bound
 upstream waits — a proxy that hangs on a slow Overpass mirror hangs the app.
