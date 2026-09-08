@@ -106,25 +106,39 @@ see §5.
 
 ---
 
-## 5. Dependabot triage · **an hour**
+## 5. Dependabot triage · **done 2026-09-08 — read, do not redo**
 
-PR #213 cleared the five alerts. Seven PRs remain open and **Dependabot has already reopened
-#140 as vitest 4.1.11 → 5.0.0.** Decide each and close what you decline, so the queue stops
-looking like a backlog:
+Cleared to zero. Recorded so the decisions are not re-derived when Dependabot re-raises them.
 
-| PR | Call |
+| PR | Outcome |
 |---|---|
-| **#140** vitest 5.0.0 | **Blocked.** vitest 5 requires Node `^22.12`; CI pins Node 20 (`ci.yml:23,60`). Either close it, or take it *with* a deliberate CI Node bump — but not as a drive-by. |
-| **#81, #82, #139** | Stale — superseded by #213. Close. |
-| **#112** typescript 7.0.2 | Decline for now. A major with no security driver, and a compiler rewrite behind it. |
-| **#141** jsdom 30, **#142** `@types/node` 26 | No advisory. Take or close; either is defensible. |
+| #81, #82, #139 | **Closed** — superseded by #213 |
+| #112 typescript 7.0.2 | **Closed** — a major with no security driver, and TS 7 is the compiler rewrite. Deliberate change, not triage. |
+| #140 vitest 5, #141 jsdom 30, #142 `@types/node` 26 | **Closed — all three blocked by one thing: CI pins Node 20.** See **#215**. |
 
-Then write the **dependency-bump policy** G8 asks for, into `TRACK_G.md`: which majors are
-auto-declined, that the two invariant pins are `ignore`d and why, and that `npm audit fix
---force` must never be run on this repo (it installs maplibre 6.8.0 and breaks the shadow
-renderer).
+**#215 is the single unlock.** vitest 5 needs Node `^22.12`, jsdom 30 needs `^22.22.2`, and
+`@types/node` 26 would describe Node 26 APIs to `tsc` while CI runs Node 20. None carries an
+advisory — #213 cleared all five on Node 20 — so this is ordinary currency, deferred on purpose.
+**Take #215 after Wave 0 and before G2**, so the benchmark's baseline is measured on the runtime
+it will keep.
 
----
+Still owed here: the **dependency-bump policy** G8 asks for, written into `TRACK_G.md` — which
+majors are auto-declined, that the two invariant pins are `ignore`d and why, and that
+`npm audit fix --force` must never be run on this repo (it installs maplibre 6.8.0 and breaks
+the shadow renderer).
+
+## 5b. Public mirror hygiene · **mitigated 2026-09-08, one part still open — #216**
+
+The mirror was running its own CI and Dependabot, and `Public mirror` was **failing on the
+mirror's own `main`** — so the public repo showed red runs and three dependency PRs. Actions and
+Dependabot alerts are now disabled there and the PRs are closed.
+
+**Still open:** version-update PRs are driven by `.github/dependabot.yml`, which the mirror still
+receives on every push. Toggle *Dependabot version updates* off in the mirror's Settings → Code
+security. And decide whether the mirror should carry `.github/workflows/` at all.
+
+**Add to P2/P4's acceptance:** the public repo has no failing runs and no open PRs when a
+reviewer arrives. Nothing was checking that.
 
 ## 6. G7 — repo hygiene, *only if there is time left*
 
