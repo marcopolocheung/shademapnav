@@ -16,4 +16,14 @@ export interface WeatherHour {
   windMs: number | null;
   cloudPct: number | null;
   apparentTempC: number | null;
+  /**
+   * Global horizontal shortwave irradiance, W/m².
+   *
+   * The radiant-load variable. UV index is not a stand-in for it: the UV share of
+   * global shortwave swings from ~3.1% in January to ~7.8% in June, so a penalty
+   * scaled by UV would under-weight winter sun by more than a factor of two.
+   * It is also the input Open-Meteo's own apparent temperature uses, which is what
+   * lets a consumer take that term back out. See docs/notes/heat-score.md.
+   */
+  shortwaveWm2: number | null;
 }

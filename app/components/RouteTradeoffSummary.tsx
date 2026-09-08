@@ -1,14 +1,19 @@
+import type { WeatherHour } from "../lib/heat/types";
 import type { RouteOption } from "../lib/routing";
 import { routeExposureLine, routeTradeoffLine } from "../lib/routeTradeoff";
+import RouteHeatLine from "./RouteHeatLine";
 
 interface RouteTradeoffSummaryProps {
   route?: RouteOption;
   baselineRoute?: RouteOption;
+  /** The forecast hour at the map's location, or null when none is available. */
+  weather?: WeatherHour | null;
 }
 
 export default function RouteTradeoffSummary({
   route,
   baselineRoute,
+  weather = null,
 }: RouteTradeoffSummaryProps) {
   if (!route || route.partial || !baselineRoute) return null;
 
@@ -34,6 +39,7 @@ export default function RouteTradeoffSummary({
       <div className="text-xs leading-snug" style={{ color: "var(--md-on-surface-variant)" }}>
         {routeExposureLine(route)}
       </div>
+      <RouteHeatLine route={route} baselineRoute={baselineRoute} weather={weather} />
     </div>
   );
 }

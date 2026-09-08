@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { WeatherHour } from "../lib/heat/types";
 import type { RouteOption } from "../lib/routing";
 import { shortestRoute } from "../lib/routeTradeoff";
 import RouteCard from "./RouteCard";
@@ -10,6 +11,8 @@ interface FloatingRouteCardsProps {
   onSelectRoute: (i: number) => void;
   onSaveRoute?: (routeIndex: number) => void;
   onExportRoute?: (routeIndex: number, format: "gpx" | "geojson") => void;
+  /** The forecast hour at the map's location, for the heat score. */
+  weather?: WeatherHour | null;
   solarIntensity?: number | null;
   onStartNavigation?: () => void;
   /** The hourly exposure strip, rendered under the tradeoff line. */
@@ -27,6 +30,7 @@ export default function FloatingRouteCards({
   onSelectRoute,
   onSaveRoute,
   onExportRoute,
+  weather = null,
   solarIntensity,
   onStartNavigation,
   exposureStrip,
@@ -69,6 +73,7 @@ export default function FloatingRouteCards({
         <RouteTradeoffSummary
           route={selectedRoute}
           baselineRoute={completeBaselineRoute ?? undefined}
+          weather={weather}
         />
         {exposureStrip}
 

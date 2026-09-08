@@ -26,6 +26,7 @@ import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hook
 import { useNavigation } from "./hooks/useNavigation";
 import { useHourlyExposure } from "./hooks/useHourlyExposure";
 import { useAppState } from "./hooks/useAppState";
+import { useWeatherHour } from "./hooks/useWeatherHour";
 import { useAgent } from "./hooks/useAgent";
 import { fetchCloudCoverForecast } from "./services/weather";
 
@@ -233,6 +234,11 @@ export default function Home() {
   );
 
   const { phase, selectedPlace, dispatch } = useAppState();
+
+  // Weather for the heat score, from D2's cache — the same response the cloud badge
+  // already fetched for this location, matched to the hour the timeline is showing.
+  const heatWeather = useWeatherHour(mapCenter, date);
+
   const [bottomSheetSnap, setBottomSheetSnap] = useState<SnapPoint>("collapsed");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
   const [cloudCoverPct, setCloudCoverPct] = useState<number | null>(null);
@@ -719,6 +725,7 @@ export default function Home() {
           onSelectRoute={setSelectedRouteIndex}
           onSaveRoute={handleOpenSaveModal}
           onExportRoute={handleExportRoute}
+          weather={heatWeather}
           solarIntensity={routeSolarIntensity}
           exposureStrip={exposureStrip}
           onStartNavigation={() => dispatch({ type: "START_NAVIGATION" })}
@@ -784,6 +791,7 @@ export default function Home() {
               isCalculating={isCalculating}
               routeProgress={routeProgress}
               routes={filteredRoutes}
+              weather={heatWeather}
               selectedRouteIndex={selectedRouteIndex}
               onSelectRoute={setSelectedRouteIndex}
               error={navError}
