@@ -156,7 +156,13 @@ This wave adds almost no new ideas on purpose.
 | 2 | **A5** worker, **A6** sweep | A5 gets routing off the main thread (#38). A6 exploits that a prism's shadow is an affine function of sun azimuth/altitude — an exactness criterion, not a vague speedup. **A6 gates Track H.** |
 | 2.5 | **A7** Overpass trees, **A8** canopy raster *(promoted 2026-09-08)* | **The app says "exposed" on a tree-lined street in July.** `ShadeSource` already declares `"canopy"` and `"mixed"` and `ShadeSample.shade` is already a fraction (`ShadeField.ts:36,39`) — the contract reserved the slot and nothing filled it; `canopy.ts` does not exist and `overpass.ts:399` fetches `way["building"]` alone. §2 concedes Geuneullo already models street trees, so this is the gap between us and the *consumer* state of the art, not a stretch goal. Closes **#46**. **Take it before H3** — "routes around tree shade" is a materially better flagship than "routes around building shade", and the A2 contract means H never has to know a canopy source exists. **It is also the experiment that decides Wave 4**: A7+A8 are ~2–3 weeks and zero fieldwork, so measure what is *still* wrong before committing to Option A's season-locked corpus. |
 | 3 | **B2 → B7** | The app is called navigation and does not navigate. **B6 is the reason Track B exists**: *"cross to the shaded side"* — an instruction no competitor can generate. B7 unparks F and supplies P3's demo. |
-| 4 | **C1 → C5**, then **C11** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.** |
+| 4 | **C1 → C5**, then **C10 → C11 → C12** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.**
+**C12** (added 2026-09-08) is the *multimodal agent* checkpoint: the agent chooses which visual
+evidence to inspect under a budget, grounds every claim in an image region, and is measured
+against fixed-interval sampling **at equal budget**. Its corpus is geotagged photos from one
+walk — weeks, not Wave 4's months. Note two verified constraints it is designed around:
+`LlmPart` has no image part (`llmClient.ts:25`) and both allowlisted Cerebras models are
+text-only (`api/agent.js:36`), so perception is offline per §7 Tier 1. |
 | 5 | **D3, D4** + the mobile strip fix | Turns a unitless fraction into UV dose and a heat score, with ranges, documented assumptions and graceful degradation. **Not done until P1 lands.** #197 — the D1 strip never renders on mobile — is a shipped feature nobody on a phone can see. |
 | 6 | **E1**, then **E5** | E1 is the cheapest large win on the board: the policies, the edge tags and the Overpass ingest all exist and nothing is wired to cost. E5 (`Trip`) is the structural half of the Living Itinerary and H5 consumes it. |
 
@@ -191,8 +197,17 @@ properly. Record the choice in this file when it is made. None has a brief yet �
 chosen. **Option C was added 2026-09-08** from the Google-roles research; it is the cheapest of
 the three by a wide margin and the only one that needs no data collection at all.
 
-**Option A — Reality Check (the ML story).** Users flag where predicted shade disagrees with
-what they observe; a learned correction improves on the geometry baseline.
+**Option A — Reality Check (the perception-ML story).** Users flag where predicted shade
+disagrees with what they observe; a learned correction improves on the geometry baseline.
+
+> **Demoted 2026-09-08 for the stated goal, which is a *multimodal agent* in a navigation app.**
+> This is perception ML, not agent work: a segmenter, a fusion step, an evaluation. It reaches
+> a multimodal-agent story only as **a tool C12's agent can call**, and it is the most expensive
+> way to obtain one. Fine-tuning a segmenter on a few hundred street images is also a
+> well-trodden exercise many candidates have. **Take Option A when the residual after A7/A8
+> justifies it, or for a perception-ML role — not as the route to an agent story.** The agent
+> story is **C12 + C10 + C11 + E5**, it is weeks rather than months, and it does not depend on
+> this option in any way.
 - **Stop at the achievable rung** unless the data justifies more: logistic regression or GBTs
   over geometry confidence, solar altitude, street orientation, canopy features, observation
   conditions. ~90% of the MLE story for ~10% of the cost of a vision model.
@@ -260,7 +275,10 @@ Each reuses Track H's planner rather than adding a system, and each is what make
 to *use* the thing: **Shadow Lab** (drop a hypothetical tree, watch routes change — a
 counterfactual tool; label the assumptions — **superseded by Wave 4 Option C if that is
 chosen**), **Find the Light** (invert preference per stop:
-sunny breakfast, shaded reading, sunset viewpoint), **Golden-Hour Rendezvous** (two people, one
+sunny breakfast, shaded reading, sunset viewpoint — **and the natural second multimodal item**:
+posed as image-text retrieval over ~20–50 curated micro-locations with *hard* spatial and
+temporal filters, it shows judgment about when **not** to use a generative model, which
+complements C12 rather than repeating it), **Golden-Hour Rendezvous** (two people, one
 pleasant meeting point; minimizing the *worst* individual burden is arguably fairer than the
 average — expose the tradeoff), **Shadow Chase** (an outing that reorders as the sun moves;
 lawful paths only, never reward unsafe crossings).
@@ -306,7 +324,7 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 - [ ] **A5** worker offload · [ ] **A6** time sweep *(gates H)*
 - [ ] **A7** Overpass trees *(#46)* · [ ] **A8** canopy raster + height fallback — *promoted from "not yet prioritized" 2026-09-08; run before H3 and before any Wave 4 decision*
 - [ ] **B2** · [ ] **B3** · [ ] **B4** · [ ] **B5** · [ ] **B6** *(the reason B exists)* · [ ] **B7** *(unparks F)*
-- [ ] **C1** *(PR #191)* · [ ] **C2** · [ ] **C3** · [ ] **C4** *(re-scoped: plan job contract)* · [ ] **C5** · [ ] **C11** *(repair — the Living Itinerary)*
+- [ ] **C1** *(PR #191)* · [ ] **C2** · [ ] **C3** · [ ] **C4** *(re-scoped: plan job contract)* · [ ] **C5** · [ ] **C10** *(tool authority — gates C12)* · [ ] **C11** *(repair — the Living Itinerary)* · [ ] **C12** *(visual evidence + budget-matched baseline)*
 - [ ] **D3** *(PR #189)* · [ ] **D4** *(PR #196)* · [ ] #197 mobile strip
 - [ ] **E1** mode cost model · [ ] **E5** `Trip`
 
@@ -392,7 +410,23 @@ last page agrees: *"build one evaluation and debugging workbench rather than cou
 seventh product feature"*, which is Track P.
 
 **What was adopted:** the three corrections above; **Feature 6 → Wave 4 Option C** (#209);
-Feature 2 needed nothing — it *is* Track H, which it independently ranked 2nd of 6.
+**Feature 3 → C12** (see below); Feature 2 needed nothing — it *is* Track H, which it
+independently ranked 2nd of 6.
+
+**Two constraints found while acting on it, verified at `f61371c`.** Both shape C12 and neither
+is in the report:
+
+| Finding | Consequence |
+|---|---|
+| `llmClient.ts:25` — `LlmPart` is `{ text?, functionCall?, functionResponse? }`, **no image part** | Small, clean addition; that is what the neutral IR is for. Ship it before anything needs it. |
+| `api/agent.js:36` — both allowlisted models (`gpt-oss-120b`, `zai-glm-4.7`) are **text-only** | There is no vision model available on the free provider, and adding one that has it is a §2 anti-goal. **Perception runs offline (§7 Tier 1) and the agent selects among its outputs.** Never imply the model looked at a photograph when it read a precomputed observation. |
+
+**And one correction to the report's own framing.** It ranks the perception feature first and
+calls Features 1–3 an "integrated capstone", which reads as a prerequisite chain. **It is not
+one.** The visual agent needs *images with locations*; it does not need a trained segmenter,
+calibrated pose, seasonal repeats, or masks-as-labels. **C12 is weeks and does not depend on
+Wave 4 Option A at all** — which is why Option A is demoted for the multimodal-agent goal and
+kept only for the perception-ML one.
 
 **What was declined or deferred, and why:**
 

@@ -32,8 +32,17 @@ G's fixture and benchmark infrastructure).
 
 ## Why this track exists
 
-`docs/ROADMAP.md` §2 states the differentiator in five clauses. This track owns the first two,
-and they are the two nobody else has.
+`docs/ROADMAP.md` §2 states the differentiator in five clauses. This track owns the first two.
+
+**Corrected 2026-09-08 (#206) — do not restate the old version.** Advancing the sun along a walk
+is *not* unprecedented: Fujiwara et al., *Building and Environment*, 13 Sep 2024, §6.2 already
+integrates accumulated irradiance over a walk using departure time, walking speed and
+position-specific timestamps. They evaluate **three predefined routes**. What is ours is
+everything that follows from making it a *cost function*: a constrained search over
+`(node, arrivalTime, accumulatedExposure)`, inverted into a reachability question, in a browser,
+repaired by an agent, with the approximation gap published. Cite the paper as related work in
+`sun-budget-model.md` (H4) — a track that names its prior art and still has a contribution is
+more credible than one that claims there is none.
 
 Today `useNavigation.ts` samples every edge of the graph at a single `dateRef.current`
 (`:633`, `:1154`). A 40-minute walk is priced as if it happened in an instant. That is fine for
