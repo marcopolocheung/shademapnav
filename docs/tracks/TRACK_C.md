@@ -30,6 +30,10 @@ run in parallel with any other.
   by observation in `npm run dev`.
 - **C4 was re-scoped on 2026-09-07** — multi-stop already shipped; the missing piece is the
   completion contract. The checkpoint below carries the detail.
+- **C12 was added on 2026-09-08** — visual evidence and the budget-matched baseline. It is the
+  track's *multimodal agent* checkpoint and it is deliberately cheap: the corpus is geotagged
+  photos from one walk, not Wave 4's pose-accurate seasonal panoramas. Read its two verified
+  provider facts before designing anything against it.
 - **Last verified:** 2026-09-07, 439 tests / 36 files green on this branch merged with `main` (main baseline
   was 411/35)
 
@@ -239,6 +243,69 @@ revision minimality** — how much of the itinerary changed — alongside validi
 consistency with explicit constraints and available evidence. Physical shade accuracy is Track
 A's agreement harness, and it is a separate claim.
 
+### C12 — Visual evidence and the budget-matched baseline  *(added 2026-09-08)*
+**Goal.** The agent decides **which** visual evidence to inspect, grounds every claim in a
+specific image region, and is measured against baselines that got the same budget. This is the
+*multimodal agent* checkpoint — the one that makes "multimodal agent implementation in a
+navigation app" a sentence backed by an artifact.
+
+**Two provider facts that shape the whole design — verified at `f61371c`, do not re-litigate:**
+- `llmClient.ts:25` — `LlmPart` is `{ text?, functionCall?, functionResponse? }`. **There is no
+  image part.** Adding one is small and clean; that is what the neutral IR is for.
+- `api/agent.js:36` — `DEFAULT_ALLOWED_MODELS = ["gpt-oss-120b", "zai-glm-4.7"]`. **Both are
+  text-only.** Cerebras serves no vision model we can use, and adding a provider that does is a
+  §2 anti-goal and breaks the free-tier guardrail.
+
+**So perception runs offline and the agent selects among its outputs.** That is not a
+consolation prize — it is roadmap §7's Tier 1, and it is the same shape as Google's IRL routing
+work: expensive inference offline, stored, fast online search over the result. Say so plainly;
+never imply the model looked at a photograph when it read a precomputed observation.
+
+**Approach.**
+1. **Extend the IR** — add an image part to `LlmPart` and translate it in `fromOpenAI`/`toOpenAI`.
+   Ship it *unused by the default models* so the loop is multimodal-capable before anything is
+   multimodal. Small PR, own it separately.
+2. **An evidence corpus, deliberately cheap.** Geotagged perspective photos along one route.
+   **No pose precision, no seasonal repeats, no reviewed masks** — that is Wave 4 Option A's
+   training corpus and this checkpoint must not acquire its costs. An afternoon of shooting is
+   the intended budget.
+3. **Offline extraction** → per-image structured observations: region, class, capture time,
+   candidate edge/entrance association, and a confidence **or an explicit `unknown`**. Versioned
+   static artifacts, per §7 Tier 1.
+4. **Bounded tools** — `get_route_evidence`, `inspect_view`. The agent chooses what to inspect
+   next under an explicit inspection budget, and the budget is a documented parameter.
+5. **A deterministic validator, separate from the model** — schema, graph references, evidence
+   freshness, plan constraints. The model proposes; the validator decides.
+
+**Acceptance.**
+- A scenario where the agent inspects a second view **because the first was inconclusive**, and
+  the trace shows why it chose that one.
+- **The baseline comparison, which is the actual deliverable:** agent-selected inspection vs.
+  fixed-interval sampling vs. single-pass summary, **at equal image and token budgets**. Score
+  verified-issue discovery, false claims, evidence association, and uninspected coverage. If the
+  clever selector does not beat fixed-interval sampling at equal budget, **that result ships** —
+  it is a finding, not a failure, and P4 has a row for it.
+- Every visual assertion in the output traces to an image id and a region, or is reported as
+  unknown. An assertion that cannot be traced fails the scenario.
+- Adversarial: text inside a photographed sign is data with **no tool authority** (this is
+  **C10**'s boundary — C12 is the first checkpoint that makes it live, so C10 lands first or
+  with it).
+- A photo shows an apparent obstacle **at capture time**. It never certifies current passage,
+  an accessible route, or a lawful crossing. Wording is checked in the scenario.
+
+**Files.** `app/lib/agent/llmClient.ts`, `app/lib/agent/tools.ts`, evidence artifacts under a
+new versioned directory, scenarios.
+**Size.** Large — split: (a) IR image part, (b) corpus + offline extraction + tools, (c) the
+baseline comparison. **Depends on C10; consumes C11's `Trip` for the repair half.**
+**Explicitly NOT a dependency:** Wave 4 Option A. The visual agent needs *images with
+locations*; it does not need a trained segmenter, calibrated pose, seasonal repeats, or
+masks-as-labels. The research PDF ranks the perception feature first and calls 1–3 an
+"integrated capstone", which reads as a prerequisite chain. It is not one.
+
+**Later, as a labelled experiment, not part of this checkpoint:** a local VLM adapter for live
+image-conditioned behaviour, measured *against* the offline path rather than replacing it on
+faith. Quantized-small only on a 4 GB card, and that needs measuring, not assuming.
+
 ### C9 — Exit beta
 Published criteria, all of which are measured, not felt: C1 green for three consecutive weeks;
 zero ungrounded-claim escapes; p50 turn under 10s; #59 closed by observation; **C10's boundary
@@ -274,4 +341,7 @@ is negative marketing.
 
 - Shade math → **Track A**. Routing → **Track E**'s pipeline. Heat/UV → **Track D**.
 - Live position → **Track B** (C8 consumes it).
-- Anything that costs money, needs an account, or adds a provider → not this project.
+- Anything that costs money, needs an account, or adds a provider → not this project. **This
+  includes a vision-capable LLM provider.** Both allowlisted Cerebras models are text-only
+  (`api/agent.js:36`); C12's answer is offline perception plus an agent that selects among its
+  outputs, not a provider swap.

@@ -23,7 +23,7 @@ an item passing one.
 | `docs/research/*.md` | the outside evidence this roadmap was reconciled against (§5) |
 | the code | anything factual. Always. |
 
-Last reconciliation: **2026-09-07**. **Current state lives in the briefs** — the session-start
+Last reconciliation: **2026-09-08**. **Current state lives in the briefs** — the session-start
 hook prints every track's active checkpoint, and that is the only state worth trusting.
 
 ---
@@ -49,7 +49,7 @@ conclude four things, and each needs an artifact they can click.
 |---|---|---|
 | **Can do real algorithms** | A time-dependent, constraint-aware routing search checked against a brute-force oracle, with a published approximation gap. Not a wrapper around a routing API. | ⚠️ Half — Pareto label-setting with dominance pruning exists (`routing.ts:566`); the time dimension does not → **Track H** |
 | **Can ship applied AI that works** | A tool-using agent with typed contracts, a job/result protocol, deterministic validation, and a public eval suite **whose failures are reported**. | ⚠️ Half — loop and 7 tools exist; C1's harness is in review; no published numbers → **C1–C5** |
-| **Understands systems and performance** | Measured wins in CI: the ~1,000–2,200× shadow-index speedup, worker offload, a bundle budget, a browser smoke test that runs. | ⚠️ Half — G1 landed, index win measured (#166); A5 and G2/G3 are not → **G2, A5** |
+| **Understands systems and performance** | Measured wins in CI: worker offload, a bundle budget, a browser smoke test that runs — and the ~1,000–2,200× shadow-index speedup **stated as what it is, a synthetic Node microbenchmark of the index in isolation, not end-to-end browser route time**. | ⚠️ Half — G1 landed, index win measured (#166) but **unqualified in this file until #207**; A5 and G2/G3 are not → **G2, A5** |
 | **Is honest about what they measured** | The agreement harness publishing `mean 2.6pp · worst 62.5pp · severe 3.3%` — worst case included. Confidence values labelled in code as *priors, not measurements*. UI numbers linking to their own method. | ✅ The strongest signal here — and **invisible to anyone outside the repo** → **Track P** |
 
 **That last row is the whole argument.** Almost every portfolio project claims; almost none
@@ -76,6 +76,15 @@ So the differentiator is **not** "shade routing". It is this combination, which 
 
 Each clause carries weight. Drop the time dimension and it is Google's toggle. Drop the browser
 and it is ASU's research tool. Drop the published numbers and it is every other portfolio.
+
+**The clause that is not ours, stated so no session re-claims it.** Advancing the sun along a
+walk is *not* unprecedented: Fujiwara et al., *Building and Environment*, 13 Sep 2024, §6.2
+integrates accumulated irradiance over a walk using departure time, walking speed and
+position-specific timestamps. They compare **three predefined routes**. What survives as ours is
+everything after the first clause — traversal-time exposure as the *cost function of a
+constrained search* over `(node, arrivalTime, accumulatedExposure)`, inverted into reachability,
+in a browser, repaired by an agent, with the gap published. Evaluating three fixed routes is not
+that. See #206; cite the paper as related work in `sun-budget-model.md`, not as a threat.
 
 ### Anti-goals
 
@@ -106,15 +115,53 @@ Unglamorous, small, and currently false in production. These are the difference 
 
 | Item | Track | Why it blocks | Issue |
 |---|---|---|---|
-| **P1** Mirror `public` on every merge | P | `browser-verification.md` came from a merged PR and is still missing from the mirror, so **D3/D4's "method linked from the UI" acceptance cannot be met** — the app renders a health-adjacent UV number whose method link 404s | #199 |
-| **D0** Real timezones (IANA + DST) | D | `Math.round(lng / 15)` is off 30 min across India, an hour across half of China. **The time axis is this product's entire differentiator**; every "shadiest at 7 PM" claim inherits the error | *needs filing* |
-| **G8** Nominatim policy + the dropped `User-Agent` | G | `SearchBar.tsx:150` does prohibited keystroke autocomplete and bypasses the queue in `nominatim.ts`; `User-Agent` is a **forbidden header name**, silently dropped, so invariant #6 holds nowhere on the client | *needs filing* |
+| ~~**P1** Mirror `public` on every merge~~ **✅ done 2026-09-08** | P | Was blocking D3/D4's "method linked from the UI" acceptance. Merged as #203; the mirror at `marcopolocheung/shademapnav` is public and current. **P4 and P2 are unblocked** | #199 |
+| **D0** Real timezones (IANA + DST) | D | `Math.round(lng / 15)` is off 30 min across India, an hour across half of China. **The time axis is this product's entire differentiator**; every "shadiest at 7 PM" claim inherits the error. **This is a Track H prerequisite, not only a Track D one** — an hour of clock error is ~15° of sun, so H1 would price every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input | #204 |
+| **G8** Nominatim policy + the dropped `User-Agent` | G | `SearchBar.tsx:150` does prohibited keystroke autocomplete and bypasses the queue in `nominatim.ts`; `User-Agent` is a **forbidden header name**, silently dropped, so invariant #6 holds nowhere on the client | #205 |
+| **#208** OSM access tags dropped rebuilding sidewalks | H | `GraphEdge` carries `highway/surface/cycleway/bicycle/foot` (`routing.ts:21`) and `overpass.ts:220` fills them, but `parallelSidewalkEdges` (`routing.ts:400`) returns four fields and silently loses all five. **H2/H3 declare access exclusions a hard constraint and cannot enforce one**; E1/E3/E4's mode profiles have the same dependency. Small fix, large unblock | #208 |
+| **#206 · #207** Two claim corrections | P | The novelty claim overstated its prior art, and the shadow-index microbenchmark is unqualified. **Both must land before P4 transcribes them onto a public page** — a corrected overclaim is an asset, a published one is a liability | #206, #207 |
 | **G7** LICENSE, `.env` vs `.env.local`, README refs | G | The repo's own map of itself is wrong; a reviewer who finds that stops trusting the rest. **#50 is mostly stale — read G7's re-scope before working it; three of its four bullets are already resolved and one would have you create six files `.claude/rules/` replaced** | #52, #53, part of #50 |
 
-**Standing rule, not a checkpoint:** six substantive PRs are open (#161, #165, #181, #189,
-#191, #196). A track that opens a seventh before its first is reviewed is manufacturing queue,
-not progress. Merging is the owner's call — sessions never merge — so what a session owes is
-making each reviewable: rebased, gates green, ready or closed.
+**Standing rule, not a checkpoint:** a track that opens a second PR before its first is
+reviewed is manufacturing queue, not progress. Merging is the owner's call — sessions never
+merge — so what a session owes is making each reviewable: rebased, gates green, ready or closed.
+
+**The feature queue cleared on 2026-09-08.** #181 (B1), #189 (D3), #191 (C1), #196 (D4) and
+#203 (P1) all merged; #161 was closed. `main` is green and the public mirror at
+`marcopolocheung/shademapnav` is live and current, so **P1's dependency is discharged and P4/P2
+are unblocked today.** What remains open is **#165** (Track G docs, no conflict) and **seven
+Dependabot PRs**, which are a different problem — see below.
+
+**Dependabot is now the queue, and it carries the repo's only open vulnerabilities.** Five alerts
+(1 critical, 1 high, 3 moderate) all sit in **dev dependencies** — a Vitest UI file-read, Vite
+`server.fs.deny` bypass and path traversal, an esbuild dev-server issue, a launch-editor NTLM
+disclosure. **None of them ships in `dist/`**; this is a static client-side app and none of that
+tooling is in the bundle. So the security exposure is a developer running the dev server or
+`vitest --ui`, not a deployed-app risk — say it that precisely and do not inflate it. But the
+public mirror shows *"5 vulnerabilities"* to anyone who opens the repo, which is a **P2/G7
+credibility problem** and cheap to retire. Fixing them means dev-dep **majors** (`vitest` 2→4,
+plus `vite`/`esbuild`), which per `.github/dependabot.yml` arrive as individual PRs and need the
+gates run, not a blind merge. Neither invariant pin is involved: every open Dependabot PR
+touches only `package.json`/`package-lock.json` dev entries, and none goes near `maplibre-gl`
+or `suncalc`.
+
+### NOW — Wave 0.5: **P4 + P2, promoted out of Wave 3** *(2026-09-08)*
+
+**Every other item on this roadmap adds work. These two are the only ones that convert work
+already done into signal a reviewer can see.** P4 was already marked "startable immediately";
+this makes the promotion structural instead of a parenthetical nobody acts on.
+
+Take them **as a pair**. P4 alone recreates the problem it exists to solve one level down: a
+numbers page nobody navigates to is as invisible as a number nobody published. P2 is the door.
+
+| Item | Why it moved | Depends on |
+|---|---|---|
+| **P4** Publish the numbers | The measurements exist. This is transcription and framing, not engineering, and #206/#207 must be transcribed *corrected* | P1 merged; #206, #207 landed |
+| **P2** README as the human entry point | The only page a reviewer actually opens. Also where A4b's "not merely a pixel sampler" correction has to land | P1 merged |
+
+P4 is written once and **revised** — G2/G3's budgets and H4's gap flow back into it as they
+land. Waiting for a complete page is how it stays unpublished. P3 (demo) and P5/P6 stay in
+Wave 3: they still want two finished Wave-1 tracks and H3 rendering.
 
 ### NOW — Wave 1: finish the flagships
 
@@ -125,8 +172,15 @@ This wave adds almost no new ideas on purpose.
 |---|---|---|
 | 1 | **G2** benchmark, then **G6** seams | A5's acceptance is literally *"no benchmark → no claim"*, and Track H's central claim is a *comparison*. G6 permanently removes the ⚠️s from the parallelism table. "Built the measurement before claiming the improvement" is a senior-shaped decision. |
 | 2 | **A5** worker, **A6** sweep | A5 gets routing off the main thread (#38). A6 exploits that a prism's shadow is an affine function of sun azimuth/altitude — an exactness criterion, not a vague speedup. **A6 gates Track H.** |
+| 2.5 | **A7** Overpass trees, **A8** canopy raster *(promoted 2026-09-08)* | **The app says "exposed" on a tree-lined street in July.** `ShadeSource` already declares `"canopy"` and `"mixed"` and `ShadeSample.shade` is already a fraction (`ShadeField.ts:36,39`) — the contract reserved the slot and nothing filled it; `canopy.ts` does not exist and `overpass.ts:399` fetches `way["building"]` alone. §2 concedes Geuneullo already models street trees, so this is the gap between us and the *consumer* state of the art, not a stretch goal. Closes **#46**. **Take it before H3** — "routes around tree shade" is a materially better flagship than "routes around building shade", and the A2 contract means H never has to know a canopy source exists. **It is also the experiment that decides Wave 4**: A7+A8 are ~2–3 weeks and zero fieldwork, so measure what is *still* wrong before committing to Option A's season-locked corpus. |
 | 3 | **B2 → B7** | The app is called navigation and does not navigate. **B6 is the reason Track B exists**: *"cross to the shaded side"* — an instruction no competitor can generate. B7 unparks F and supplies P3's demo. |
-| 4 | **C1 → C5**, then **C11** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.** |
+| 4 | **C1 → C5**, then **C10 → C11 → C12** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.**
+**C12** (added 2026-09-08) is the *multimodal agent* checkpoint: the agent chooses which visual
+evidence to inspect under a budget, grounds every claim in an image region, and is measured
+against fixed-interval sampling **at equal budget**. Its corpus is geotagged photos from one
+walk — weeks, not Wave 4's months. Note two verified constraints it is designed around:
+`LlmPart` has no image part (`llmClient.ts:25`) and both allowlisted Cerebras models are
+text-only (`api/agent.js:36`), so perception is offline per §7 Tier 1. |
 | 5 | **D3, D4** + the mobile strip fix | Turns a unitless fraction into UV dose and a heat score, with ranges, documented assumptions and graceful degradation. **Not done until P1 lands.** #197 — the D1 strip never renders on mobile — is a shipped feature nobody on a phone can see. |
 | 6 | **E1**, then **E5** | E1 is the cheapest large win on the board: the policies, the edge tags and the Overpass ingest all exist and nothing is wired to cost. E5 (`Trip`) is the structural half of the Living Itinerary and H5 consumes it. |
 
@@ -138,29 +192,40 @@ unprovable without G2. Full brief: `docs/tracks/TRACK_H.md`.
 
 | Checkpoint | Why it earns its place |
 |---|---|
-| **H1** traversal-time exposure | A genuine time-dependent shortest-path problem with the traps intact: does non-overtaking hold, is waiting an action, what does dominance mean once a label carries time *and* accumulated exposure. Nobody advances the sun *along* a route. |
+| **H1** traversal-time exposure | A genuine time-dependent shortest-path problem with the traps intact: does non-overtaking hold, is waiting an action, what does dominance mean once a label carries time *and* accumulated exposure. The novelty is the *constrained search*, not the sun advancing — see §2's prior-art note (#206) before writing this up. |
 | **H2** exposure as the objective | The current front is (distance, shaded distance) under a 2.0× detour budget, so "Most Shaded" can carry **more absolute exposed metres** than "Shortest" — a demonstrable defect, not a hypothetical. *"I found my own objective was measuring the wrong thing and proved it with a fixture"* is a self-caught defect, which reads better than a caught bug. |
 | **H3** Sun Budget reachability | The flagship interaction, and it **inverts the product**: every other maps app needs your destination first; this answers *"where can I even go?"* Forces the honesty split between an exact result, a bounded approximation, and *a search that ran out of budget* — a capped search returning nothing has not proved impossibility. |
 | **H4** oracle + published gap | What upgrades H from a cool feature to an algorithm you can defend. Without it H3 is a demo. |
 | **H5** waiting, dwell, return leg | The subtle correctness point: earlier arrival does **not** dominate if the wait it implies breaks the budget. Noticing that before it bites is the difference between a student implementation and an engineered one. |
 | **H6** *(stretch)* feasibility for the agent | Where Track C and Track H become one product. Makes §1's request answerable rather than narrated. Needs C4 first — a feasibility query returning "started" is useless. |
 
-### NEXT — Wave 3: Track P, make it legible
+### NEXT — Wave 3: Track P, the rest of it
 
-**P4 is startable immediately** and is the highest value-per-hour item in this document: two
-resume lines in §6 are *already earned and merely unpublished*. Do not save this wave for the
-end. P2/P3 want two finished Wave-1 tracks and H3 rendering.
+**P4 and P2 left this wave on 2026-09-08 — they are Wave 0.5 now.** What remains genuinely
+needs finished work to point at: P3 wants two completed Wave-1 tracks and H3 rendering, P5's
+best note is H2's objective correction, and P6 cannot be filled before H4 produces a gap.
 
-`docs/tracks/TRACK_P.md` — P1 mirror · P2 README · P3 demo recording · P4 publish the numbers ·
-P5 design notes · P6 the ledger.
+`docs/tracks/TRACK_P.md` — ~~P1 mirror~~ *(in review)* · ~~P2 README~~ *(Wave 0.5)* · P3 demo
+recording · ~~P4 publish the numbers~~ *(Wave 0.5)* · P5 design notes · P6 the ledger.
 
 ### LATER — Wave 4: pick exactly one specialization
 
-**Decide; do not accumulate.** Both are credible; doing both halfway is worse than one properly.
-Record the choice in this file when it is made. Neither has a brief yet — write one when chosen.
+**Decide; do not accumulate.** All three are credible; doing two halfway is worse than one
+properly. Record the choice in this file when it is made. None has a brief yet — write one when
+chosen. **Option C was added 2026-09-08** from the Google-roles research; it is the cheapest of
+the three by a wide margin and the only one that needs no data collection at all.
 
-**Option A — Reality Check (the ML story).** Users flag where predicted shade disagrees with
-what they observe; a learned correction improves on the geometry baseline.
+**Option A — Reality Check (the perception-ML story).** Users flag where predicted shade
+disagrees with what they observe; a learned correction improves on the geometry baseline.
+
+> **Demoted 2026-09-08 for the stated goal, which is a *multimodal agent* in a navigation app.**
+> This is perception ML, not agent work: a segmenter, a fusion step, an evaluation. It reaches
+> a multimodal-agent story only as **a tool C12's agent can call**, and it is the most expensive
+> way to obtain one. Fine-tuning a segmenter on a few hundred street images is also a
+> well-trodden exercise many candidates have. **Take Option A when the residual after A7/A8
+> justifies it, or for a perception-ML role — not as the route to an agent story.** The agent
+> story is **C12 + C10 + C11 + E5**, it is weeks rather than months, and it does not depend on
+> this option in any way.
 - **Stop at the achievable rung** unless the data justifies more: logistic regression or GBTs
   over geometry confidence, solar altitude, street orientation, canopy features, observation
   conditions. ~90% of the MLE story for ~10% of the cost of a vision model.
@@ -170,7 +235,25 @@ what they observe; a learned correction improves on the geometry baseline.
 - **A crowd tap is evidence, not ground truth**, and A3's harness measures model-vs-model
   agreement, not physical accuracy. The code already says so; that distinction must survive into
   any README claim.
-- **Honest cost:** the observation corpus is the expensive part. Months, for one person.
+- **Two different corpora, and only one is expensive** *(clarified 2026-09-08)*. Do not
+  conflate them:
+  - **The calibration set — small, cheap, and needed even if Option A is never chosen.**
+    ~100–200 timestamped *"I am standing here at this time and I am in sun / in shade"*
+    observations. A phone and a notebook. No pose precision, no masks, no seasons, no model.
+    **This is what upgrades P4 from method-agreement to physical accuracy** — A3 compares two
+    models to each other, and A7/A8 will ship *unvalidated* without it. Weeks.
+  - **The training corpus — large, expensive, season-locked.** Pose-accurate panoramas with
+    reviewed sky/canopy/building masks, revisited leaf-on and leaf-off. Only required to claim a
+    *learned* component improved a decision. Months, and the calendar cannot be compressed.
+- **Honest cost:** the training corpus is the expensive part. Months, for one person.
+- **Precondition (added 2026-09-08):** ship **A7 + A8** first and measure the residual. Free
+  canopy data may close most of the *routing-decision* gap for none of the fieldwork. What it
+  cannot close: canopy **transmittance** (a height raster cannot tell a dense evergreen from a
+  bare ginkgo), **sky view factor from eye level** (top-down data cannot answer an upward
+  question), **awnings, arcades and scaffolding** (in no raster and no reliable tag), and
+  **physical ground truth** (you cannot validate a shade model against another shade model).
+  Those four are the entire remaining case for imagery — decide against them, with the residual
+  measured, not against an assumption.
 - **Trap:** USGS bare-earth DEMs strip buildings and vegetation. A terrain DEM is not a shadow
   model.
 - **Prerequisites:** opt-in, minimized location retention, deletion support, no medical data.
@@ -185,12 +268,35 @@ archive, not a routing graph or a caching policy; a PWA manifest is not offline 
 Rust/WASM only after profiling proves a kernel is the limit, with a reference implementation
 kept for parity. Overlaps Track F's F4.
 
+**Option C — Shade Design Studio (the optimization story).** *"Where would two shade structures
+most improve this walking loop between noon and 3 PM?"* Inverse spatial design over a **finite,
+hand-authored candidate set**: union-coverage precompute, a max-coverage integer program under a
+budget, exhaustive enumeration as the oracle on small instances, offline OR-Tools CP-SAT for the
+integer model, a greedy baseline in a worker for the interactive path, and an LP relaxation for
+the upper bound. Full model in **#209**.
+- **Why it is the cheap one:** the "candidate set" is 20–60 placements you author in a JSON file
+  in an afternoon. No corpus, no fieldwork, no permissions, no new provider, no calendar
+  dependency. Contrast Option A, whose corpus is months and is season-locked.
+- **It replaces the Shadow Lab slot below** rather than adding to it — same interaction, posed as
+  optimization instead of a toy.
+- **Prerequisite it exposes:** `shadowIndex.ts:227` returns `false` inside a footprint (a roof is
+  not shaded). Correct for buildings, wrong for an elevated canopy where the *ground beneath*
+  must read as shaded. Overhead structures need an elevated-occluder / ground-receiver test;
+  solid obstacles shading adjacent ground work with today's primitives.
+- **Honesty:** demand weights are scenarios unless a real pedestrian dataset exists. Maximizing
+  modeled coverage ≠ maximizing benefit after users reroute — re-run the planner to check that
+  separately. Models shade; not validated urban cooling, not structural engineering.
+
 ### LATER — playful, one PR each, after Wave 3
 
 Each reuses Track H's planner rather than adding a system, and each is what makes someone want
 to *use* the thing: **Shadow Lab** (drop a hypothetical tree, watch routes change — a
-counterfactual tool; label the assumptions), **Find the Light** (invert preference per stop:
-sunny breakfast, shaded reading, sunset viewpoint), **Golden-Hour Rendezvous** (two people, one
+counterfactual tool; label the assumptions — **superseded by Wave 4 Option C if that is
+chosen**), **Find the Light** (invert preference per stop:
+sunny breakfast, shaded reading, sunset viewpoint — **and the natural second multimodal item**:
+posed as image-text retrieval over ~20–50 curated micro-locations with *hard* spatial and
+temporal filters, it shows judgment about when **not** to use a generative model, which
+complements C12 rather than repeating it), **Golden-Hour Rendezvous** (two people, one
 pleasant meeting point; minimizing the *worst* individual burden is arguably fairer than the
 average — expose the tradeoff), **Shadow Chase** (an outing that reorders as the sun moves;
 lawful paths only, never reward unsafe crossings).
@@ -220,25 +326,34 @@ Every line is a checkpoint in a brief. Tick only when its acceptance criteria ar
 gates are green — `docs/tracks/README.md`'s definition of done applies to all of them.
 
 **Wave 0 — truth**
-- [ ] **P1** Mirror `public` on merge · #199
-- [ ] **D0** Real timezones, IANA + DST
-- [ ] **G8** Nominatim policy + reachable `User-Agent` (with #32, #33)
+- [x] **P1** Mirror `public` on merge · #199 — merged as #203, mirror live 2026-09-08
+- [ ] **D0** Real timezones, IANA + DST · #204 *(also gates H)*
+- [ ] **G8** Nominatim policy + reachable `User-Agent` (with #32, #33) · #205
+- [ ] **#208** Preserve OSM access tags through the sidewalk split *(unblocks H2/H3, E1/E3/E4)*
+- [ ] **#206** Novelty claim vs. Fujiwara 2024 · [ ] **#207** Label the index win a microbenchmark
 - [ ] **G7** LICENSE · README refs · `.env.example` · #50 cluster
-- [ ] Six open PRs rebased, green, ready or closed
+- [x] ~~Six open PRs rebased, green, ready or closed~~ — cleared 2026-09-08
+- [ ] **Dependabot backlog** — 7 PRs, 5 alerts, all dev-only and none in `dist/`; retire the
+  `vitest`/`vite`/`esbuild` majors so the public mirror stops showing a critical (**#81, #82,
+  #112, #139, #140, #141, #142**)
+
+**Wave 0.5 — make the existing work visible** *(promoted from Wave 3 on 2026-09-08)*
+- [ ] **P4** publish the numbers *(after #206/#207)* · [ ] **P2** README
 
 **Wave 1 — flagships**
 - [ ] **G2** route benchmark  · [ ] **G6** seam work *(runs alone)*
 - [ ] **A5** worker offload · [ ] **A6** time sweep *(gates H)*
+- [ ] **A7** Overpass trees *(#46)* · [ ] **A8** canopy raster + height fallback — *promoted from "not yet prioritized" 2026-09-08; run before H3 and before any Wave 4 decision*
 - [ ] **B2** · [ ] **B3** · [ ] **B4** · [ ] **B5** · [ ] **B6** *(the reason B exists)* · [ ] **B7** *(unparks F)*
-- [ ] **C1** *(PR #191)* · [ ] **C2** · [ ] **C3** · [ ] **C4** *(re-scoped: plan job contract)* · [ ] **C5** · [ ] **C11** *(repair — the Living Itinerary)*
+- [ ] **C1** *(PR #191)* · [ ] **C2** · [ ] **C3** · [ ] **C4** *(re-scoped: plan job contract)* · [ ] **C5** · [ ] **C10** *(tool authority — gates C12)* · [ ] **C11** *(repair — the Living Itinerary)* · [ ] **C12** *(visual evidence + budget-matched baseline)*
 - [ ] **D3** *(PR #189)* · [ ] **D4** *(PR #196)* · [ ] #197 mobile strip
 - [ ] **E1** mode cost model · [ ] **E5** `Trip`
 
 **Wave 2 — Track H** *(gated on A6 + G2)*
 - [ ] **H1** · [ ] **H2** · [ ] **H3** · [ ] **H4** · [ ] **H5** · [ ] **H6** *(stretch)*
 
-**Wave 3 — Track P** *(P4 startable now)*
-- [ ] **P2** README · [ ] **P3** demo recording · [ ] **P4** publish the numbers · [ ] **P5** design notes · [ ] **P6** ledger
+**Wave 3 — Track P, the rest** *(P2/P4 moved to Wave 0.5)*
+- [ ] **P3** demo recording · [ ] **P5** design notes · [ ] **P6** ledger
 
 **Wave 4 — one specialization**
 - [ ] Option A Reality Check · [ ] Option B City Capsules · *decision recorded on:* ______
@@ -251,14 +366,15 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 
 **Not yet prioritized** — in their briefs; pull one up when it earns its place against §2's two
 questions, not because it is next in a list:
-A7–A9 · B8–B9 · C6–C9 · D5–D8 · E2–E4, E6–E8 · F1–F6 · G3–G5.
+A9 · B8–B9 · C6–C9 · D5–D8 · E2–E4, E6–E8 · F1–F6 · G3–G5. *(A7/A8 left this list on 2026-09-08 — see Wave 1.)*
 
 ---
 
 ## 5. Reconciliation with the research
 
-`docs/research/` holds two independent passes (2026-09-05 market research, 2026-09-07
-recruiter-focused roadmap) that converge on the same priorities — real signal. Every
+`docs/research/` holds three independent passes (2026-09-05 market research, 2026-09-07
+recruiter-focused roadmap, 2026-09-08 Google-roles feature recommendations) that converge on the
+same priorities — real signal. The 2026-09-08 pass is reconciled in §5b. Every
 source-level claim in the 2026-09-07 document was **re-verified against the code**; all seven of
 its "most consequential gaps" hold. Recorded so no session re-audits them:
 
@@ -291,6 +407,58 @@ prevent.
 table. Its own §13 says those "should not delay the central experience"; this roadmap takes that
 sentence over the pages above it.
 
+### 5b. The 2026-09-08 Google-roles pass
+
+`ShadeMapNav_Google_Maps_GenAI_Feature_Recommendations_2026-09-08.pdf` — six proposed features
+ranked against two Google job descriptions, audited at `f61371c`. **Every repository citation in
+it was re-verified line by line and all of them hold.** Recorded so no session re-audits it.
+
+| Its claim | Verified | Went to |
+|---|---|---|
+| The "nobody advances the sun along a route" claim is too strong — Fujiwara 2024 §6.2 does traversal-time irradiance over three predefined routes | ✅ overclaim confirmed | **#206**, §2 |
+| The index speedup is a synthetic Node microbenchmark, not browser route time | ✅ | **#207**, §2, **P4** |
+| OSM access tags are lost rebuilding sidewalk edges | ✅ `routing.ts:400` returns four fields; `GraphEdge:21` declares nine | **#208** |
+| `shadowIndex.ts:227` excludes points inside footprints, so an overhead canopy would shade nothing | ✅ correct for buildings, wrong for canopies | **Option C** prerequisite |
+| Timezone still longitude-rounded; fix before claiming temporal plans | ✅ | **D0**, already Wave 0 |
+| `plan_shaded_route` returns "started"; `via` already supported | ✅ (agrees with the 09-07 pass) | **C4** |
+| 7 tools, 18 recorded scenarios, model and tools mocked — replay is not model competence | ✅ counts exact | **P4**'s layer table |
+| Confidences are hand-set priors; the harness measures method agreement, not physical accuracy | ✅ `ShadeField.ts:193` | **P4**, Option A |
+
+**Its ranking is a keyword ranking, not a value ranking.** It optimizes for matching two JD
+requirement lists; this file optimizes for one coherent product with published numbers. Where
+they diverge, this file wins — six features half-built reads worse than two finished. Its own
+last page agrees: *"build one evaluation and debugging workbench rather than counting tests as a
+seventh product feature"*, which is Track P.
+
+**What was adopted:** the three corrections above; **Feature 6 → Wave 4 Option C** (#209);
+**Feature 3 → C12** (see below); Feature 2 needed nothing — it *is* Track H, which it
+independently ranked 2nd of 6.
+
+**Two constraints found while acting on it, verified at `f61371c`.** Both shape C12 and neither
+is in the report:
+
+| Finding | Consequence |
+|---|---|
+| `llmClient.ts:25` — `LlmPart` is `{ text?, functionCall?, functionResponse? }`, **no image part** | Small, clean addition; that is what the neutral IR is for. Ship it before anything needs it. |
+| `api/agent.js:36` — both allowlisted models (`gpt-oss-120b`, `zai-glm-4.7`) are **text-only** | There is no vision model available on the free provider, and adding one that has it is a §2 anti-goal. **Perception runs offline (§7 Tier 1) and the agent selects among its outputs.** Never imply the model looked at a photograph when it read a precomputed observation. |
+
+**And one correction to the report's own framing.** It ranks the perception feature first and
+calls Features 1–3 an "integrated capstone", which reads as a prerequisite chain. **It is not
+one.** The visual agent needs *images with locations*; it does not need a trained segmenter,
+calibrated pose, seasonal repeats, or masks-as-labels. **C12 is weeks and does not depend on
+Wave 4 Option A at all** — which is why Option A is demoted for the multimodal-agent goal and
+kept only for the perception-ML one.
+
+**What was declined or deferred, and why:**
+
+| Proposed | Verdict | Reason |
+|---|---|---|
+| Features 1 & 4 — Visual Shade Field, Active Survey Planner | **Deferred → Wave 4 Option A** | Not new scope, it *is* Option A with a better evaluation protocol (pose rejection, geographic *and* temporal holdouts, leaf-season splits, reliability diagrams, dataset card, rollback — adopt these wholesale if Option A is chosen). The cost is a pose-accurate seasonal photo corpus: **months, and season-locked**. Do **A7 + A8 first** — free Overpass trees and the free Meta/WRI 1 m canopy raster may deliver most of the *routing-decision* benefit for none of the fieldwork; the panorama corpus buys per-position sky-view-factor and transmittance, which is better physics at a much higher price. Measure the residual before committing months. |
+| Feature 3's **visual** half — live VLM route scout | **Deferred** | The non-visual half is already **C4 + C11 + E5**. Its "local VLM adapter (Gemma)" is a second model path — not a paid provider, so not literally a §2 anti-goal, but it must be a recorded decision, not drift. |
+| Feature 5 — Find the Light w/ SigLIP retrieval | **Kept where it is** | Already in the playful list. The retrieval framing is a real upgrade; the 20–50 curated micro-locations and photo permissions are the actual cost. |
+| Street View as a training corpus | **Prohibited** | Maps Platform Terms §3.2.3 restricts extraction and model training/testing/validation and building a tree-location index. Own photographs only. Not a judgment call. |
+| Offline Python training + versioned derived artifacts | **Adopted with a boundary** | This is the one real architecture change it proposes and it does not flag it as one. Permitted as a **build step producing versioned static assets**, never as a request-path service — see §7. |
+
 ---
 
 ## 6. The resume-line ledger
@@ -322,11 +490,29 @@ disclaimers; 1.63:1 shaded-vs-lit contrast against a 3:1 floor). An app used one
 bright sun has legibility as a functional requirement. When design gets its own pass, it gets
 its own document.
 
+**Where off-client compute is allowed** *(decided 2026-09-08)*. Three tiers; the middle one is
+the answer for everything heavy, and it is free.
+
+| Tier | What runs there | Verdict |
+|---|---|---|
+| **0 — client** | shadow render, shade sampling, graph search | Already interactive. The complaint is main-thread blocking, and **A5 fixes that for free**. Needs no service. |
+| **1 — offline batch → versioned static artifacts** | SAM masks, model training, embeddings, canopy field tiles, Option C's coverage matrices | **Adopted.** Runs on a laptop or free Colab/Kaggle; ships compact versioned files over the CDN already in use. Zero marginal cost, zero new service, no request-path latency, scales to any number of users. It is also the architecture the 09-08 research cites from Google's own routing work — expensive inference offline, stored, fast online graph search. |
+| **2 — request-path service** *(what Cerebras is)* | per-request inference that cannot be precomputed | **Justified only when work can be neither precomputed nor run on the client.** For this app that is close to nothing: shade is a deterministic function of geometry the client already holds. Cerebras qualifies because every prompt is new; shade does not. |
+
+The Cerebras precedent does **not** generalize to shade. Moving shade computation server-side
+adds a round trip per route, adds per-user cost, and deletes *"entirely in a browser"* from §2's
+novelty claim — a clause being counted as a differentiator. Tier 1 gets the heavy work off the
+user's machine *and* keeps that clause. The one case that would genuinely earn Tier 2 is live
+segmentation of **user-submitted** photos, which cannot be precomputed; the curated-corpus-first
+approach in Option A specifically avoids needing it.
+
 **Stopping rules.** Stop or redirect any item when it adds maintenance without improving an
 agreed outcome, when the data cannot support the claim, or when a simpler baseline wins. **A
 note explaining why you did not ship Spark, Rust, a learned model or multi-agent is itself a
 portfolio artifact** — arguably better than shipping it would have been.
 
-**If you read nothing else:** finish Wave 0. Then finish what is already 60% done. Then build
-Track H, the only thing here nobody else has. And publish the numbers you already have — that
-one is startable today.
+**If you read nothing else:** finish Wave 0 — it is six small things now, and two of them are
+corrections to claims this file used to make. Then **publish the numbers you already have
+(Wave 0.5)**, because it is the only item that adds signal without adding work. Then finish what
+is already 60% done. Then build Track H — not because nobody else advances the sun, but because
+nobody else turns it into a constrained, inverted, published search.
