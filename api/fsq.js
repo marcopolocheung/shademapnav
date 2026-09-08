@@ -39,11 +39,26 @@ function allowedOrigins() {
   ]);
 }
 
-/** The server-held Places credential. Absent is a misconfiguration, not a fallback. */
+/**
+ * The server-held Places credential. Absent is a misconfiguration, not a fallback.
+ *
+ * Strips one pair of surrounding quotes, mirroring `normalizeApiKey` in
+ * `app/services/foursquare.ts`. That client-side helper exists because this
+ * repo's `.env` values are written quoted, and a key carried into a `Bearer`
+ * header with its quotes attached fails upstream as `401` — which reads as an
+ * expired or invalid key rather than a copy-paste artefact. The value is set by
+ * hand in the Vercel dashboard, so the same paste is easy to make here; the two
+ * readers should tolerate the same input.
+ */
 function foursquareApiKey() {
-  const raw = process.env.FSQ_API_KEY;
-  const trimmed = raw ? String(raw).trim() : "";
-  return trimmed || null;
+  const trimmed = process.env.FSQ_API_KEY ? String(process.env.FSQ_API_KEY).trim() : "";
+  if (!trimmed) return null;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === "'" || first === '"') && last === first && trimmed.length >= 2) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 function header(req, name) {

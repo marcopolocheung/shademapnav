@@ -196,6 +196,25 @@ describe("api/fsq proxy hardening", () => {
     expect(sent).toBe("Bearer server_side_fsq_key");
   });
 
+  it("strips surrounding quotes from FSQ_API_KEY", async () => {
+    // This repo's .env values are written quoted, and FSQ_API_KEY is pasted by
+    // hand into the Vercel dashboard. Quotes carried into the Bearer header fail
+    // upstream as 401, which reads as a bad key rather than a paste artefact.
+    process.env.FSQ_API_KEY = "'quoted_fsq_key'";
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      text: async () => "{\"results\":[]}",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const handler = await loadHandler();
+    const res = makeRes();
+
+    await handler(makeReq(), res);
+
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer quoted_fsq_key");
+  });
+
   it("forwards allowed place detail requests", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       status: 200,
