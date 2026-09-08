@@ -12,17 +12,26 @@ run in parallel with any other.
 
 ## Current state
 
-- **Active checkpoint:** C1 — **in review, PR #191** (issue #190).
-- **Done:** nothing merged yet — but see "What's already true": the 2026-07 project review's
-  complaints are **partly stale**; re-verify before acting on them.
-- **Open PRs:** #191 (C1). Filed alongside it: #192 (the multi-call-per-turn path has no
-  coverage), #193 (`MAX_STEPS` is duplicated in the harness and will drift).
-- **Decisions made:** none recorded yet — record C1's here when it lands.
-- **Blocked on:** nothing.
-- **Next action:** land #191, then **re-scope C4** (below) and take the plan job contract.
+- **Active checkpoint:** C2 (ground the write phase) — C1 landed as PR #191.
+- **Done:** C1 — 18 scenarios plus a sabotage suite at `app/lib/agent/__tests__/`, replayed
+  through the real `runAgent` with the model and tool executors stubbed — but see "What's
+  already true": the 2026-07 project review's complaints are **partly stale**; re-verify
+  before acting on them.
+- **Open PRs:** none in this track. Filed alongside C1: #192 (the multi-call-per-turn path has
+  no coverage), #193 (`MAX_STEPS` is duplicated in the harness and will drift).
+- **Decisions made:** scenarios are data (`__tests__/scenarios/*.ts`), the runner is one file —
+  `vi.mock` is hoisted per test file, so a per-scenario test file would duplicate the mocks.
+  Assertions read a `Trace`, never the answer's wording; the only string check is *which
+  scripted turn came back*. `groundingViolations` searches only the names a scenario declares
+  (`grounded`/`decoys`), so it can't decay into prose matching.
+- **Blocked on:** nothing. C3 still needs Track A's `ShadeField` (A2/A6) — stub when you get
+  there.
+- **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59
+  by observation in `npm run dev`.
 - **C4 was re-scoped on 2026-09-07** — multi-stop already shipped; the missing piece is the
   completion contract. The checkpoint below carries the detail.
-- **Last verified:** 2026-09-07, 411 tests / 35 files green on main
+- **Last verified:** 2026-09-07, 439 tests / 36 files green on this branch merged with `main` (main baseline
+  was 411/35)
 
 ---
 
