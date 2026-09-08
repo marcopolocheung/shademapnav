@@ -115,17 +115,35 @@ Unglamorous, small, and currently false in production. These are the difference 
 
 | Item | Track | Why it blocks | Issue |
 |---|---|---|---|
-| **P1** Mirror `public` on every merge | P | `browser-verification.md` came from a merged PR and is still missing from the mirror, so **D3/D4's "method linked from the UI" acceptance cannot be met** — the app renders a health-adjacent UV number whose method link 404s | #199 |
+| ~~**P1** Mirror `public` on every merge~~ **✅ done 2026-09-08** | P | Was blocking D3/D4's "method linked from the UI" acceptance. Merged as #203; the mirror at `marcopolocheung/shademapnav` is public and current. **P4 and P2 are unblocked** | #199 |
 | **D0** Real timezones (IANA + DST) | D | `Math.round(lng / 15)` is off 30 min across India, an hour across half of China. **The time axis is this product's entire differentiator**; every "shadiest at 7 PM" claim inherits the error. **This is a Track H prerequisite, not only a Track D one** — an hour of clock error is ~15° of sun, so H1 would price every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input | #204 |
 | **G8** Nominatim policy + the dropped `User-Agent` | G | `SearchBar.tsx:150` does prohibited keystroke autocomplete and bypasses the queue in `nominatim.ts`; `User-Agent` is a **forbidden header name**, silently dropped, so invariant #6 holds nowhere on the client | #205 |
 | **#208** OSM access tags dropped rebuilding sidewalks | H | `GraphEdge` carries `highway/surface/cycleway/bicycle/foot` (`routing.ts:21`) and `overpass.ts:220` fills them, but `parallelSidewalkEdges` (`routing.ts:400`) returns four fields and silently loses all five. **H2/H3 declare access exclusions a hard constraint and cannot enforce one**; E1/E3/E4's mode profiles have the same dependency. Small fix, large unblock | #208 |
 | **#206 · #207** Two claim corrections | P | The novelty claim overstated its prior art, and the shadow-index microbenchmark is unqualified. **Both must land before P4 transcribes them onto a public page** — a corrected overclaim is an asset, a published one is a liability | #206, #207 |
 | **G7** LICENSE, `.env` vs `.env.local`, README refs | G | The repo's own map of itself is wrong; a reviewer who finds that stops trusting the rest. **#50 is mostly stale — read G7's re-scope before working it; three of its four bullets are already resolved and one would have you create six files `.claude/rules/` replaced** | #52, #53, part of #50 |
 
-**Standing rule, not a checkpoint:** six substantive PRs are open (#161, #165, #181, #189,
-#191, #196). A track that opens a seventh before its first is reviewed is manufacturing queue,
-not progress. Merging is the owner's call — sessions never merge — so what a session owes is
-making each reviewable: rebased, gates green, ready or closed.
+**Standing rule, not a checkpoint:** a track that opens a second PR before its first is
+reviewed is manufacturing queue, not progress. Merging is the owner's call — sessions never
+merge — so what a session owes is making each reviewable: rebased, gates green, ready or closed.
+
+**The feature queue cleared on 2026-09-08.** #181 (B1), #189 (D3), #191 (C1), #196 (D4) and
+#203 (P1) all merged; #161 was closed. `main` is green and the public mirror at
+`marcopolocheung/shademapnav` is live and current, so **P1's dependency is discharged and P4/P2
+are unblocked today.** What remains open is **#165** (Track G docs, no conflict) and **seven
+Dependabot PRs**, which are a different problem — see below.
+
+**Dependabot is now the queue, and it carries the repo's only open vulnerabilities.** Five alerts
+(1 critical, 1 high, 3 moderate) all sit in **dev dependencies** — a Vitest UI file-read, Vite
+`server.fs.deny` bypass and path traversal, an esbuild dev-server issue, a launch-editor NTLM
+disclosure. **None of them ships in `dist/`**; this is a static client-side app and none of that
+tooling is in the bundle. So the security exposure is a developer running the dev server or
+`vitest --ui`, not a deployed-app risk — say it that precisely and do not inflate it. But the
+public mirror shows *"5 vulnerabilities"* to anyone who opens the repo, which is a **P2/G7
+credibility problem** and cheap to retire. Fixing them means dev-dep **majors** (`vitest` 2→4,
+plus `vite`/`esbuild`), which per `.github/dependabot.yml` arrive as individual PRs and need the
+gates run, not a blind merge. Neither invariant pin is involved: every open Dependabot PR
+touches only `package.json`/`package-lock.json` dev entries, and none goes near `maplibre-gl`
+or `suncalc`.
 
 ### NOW — Wave 0.5: **P4 + P2, promoted out of Wave 3** *(2026-09-08)*
 
@@ -308,13 +326,16 @@ Every line is a checkpoint in a brief. Tick only when its acceptance criteria ar
 gates are green — `docs/tracks/README.md`'s definition of done applies to all of them.
 
 **Wave 0 — truth**
-- [ ] **P1** Mirror `public` on merge · #199
+- [x] **P1** Mirror `public` on merge · #199 — merged as #203, mirror live 2026-09-08
 - [ ] **D0** Real timezones, IANA + DST · #204 *(also gates H)*
 - [ ] **G8** Nominatim policy + reachable `User-Agent` (with #32, #33) · #205
 - [ ] **#208** Preserve OSM access tags through the sidewalk split *(unblocks H2/H3, E1/E3/E4)*
 - [ ] **#206** Novelty claim vs. Fujiwara 2024 · [ ] **#207** Label the index win a microbenchmark
 - [ ] **G7** LICENSE · README refs · `.env.example` · #50 cluster
-- [ ] Six open PRs rebased, green, ready or closed
+- [x] ~~Six open PRs rebased, green, ready or closed~~ — cleared 2026-09-08
+- [ ] **Dependabot backlog** — 7 PRs, 5 alerts, all dev-only and none in `dist/`; retire the
+  `vitest`/`vite`/`esbuild` majors so the public mirror stops showing a critical (**#81, #82,
+  #112, #139, #140, #141, #142**)
 
 **Wave 0.5 — make the existing work visible** *(promoted from Wave 3 on 2026-09-08)*
 - [ ] **P4** publish the numbers *(after #206/#207)* · [ ] **P2** README
