@@ -167,18 +167,20 @@ app links into it — the heat and UV rows render a "how this was calculated" li
 what #199 was.
 
 **You do not push the mirror.** `.github/workflows/mirror.yml` pushes `main` on every merge,
-then curls every `shademapnav` doc URL it can find in `app/` and fails if one 404s. If that job
+then curls every `shademapnav` doc URL it finds in `app/` and fails if one 404s. If that job
 goes red, the mirror is stale and a link in the UI is probably broken — fix it before taking
 new work.
 
-Two things follow for a track session:
+The same workflow also runs on your PR, minus the push. Two things follow for a track session:
 
 - **A doc the UI links to must land in the same PR as the link.** The mirror publishes whatever
-  is on `main`; it cannot publish a file that is not there yet.
-- **Never commit anything to `main` you would not publish.** `scripts/mirror-guard.sh` runs
-  before the push and blocks `.env` files, credential-shaped literals and hard-coded keys, but
-  it recognises shapes, not judgement. Run it yourself (`./scripts/mirror-guard.sh`) if a PR
-  adds fixtures, config or captured output.
+  is on `main`; it cannot publish a file that is not there yet. The PR run checks each linked
+  path exists in your tree, so this fails at review rather than after merge.
+- **Never commit anything to `main` you would not publish.** `scripts/mirror-guard.sh` runs on
+  the PR and again before the push, blocking `.env` files, credential-shaped literals and
+  hard-coded keys — but it recognises shapes, not judgement. Run it yourself
+  (`./scripts/mirror-guard.sh`) if a PR adds fixtures, config or captured output. It reports
+  file and line only, never the matched text.
 
 **One-time setup, owner only.** The job needs push access to a second repo, which
 `GITHUB_TOKEN` does not grant. Create a fine-grained PAT scoped to `marcopolocheung/shademapnav`

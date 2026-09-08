@@ -28,7 +28,9 @@
     which a human should see, not a job should overwrite.
   - **Publishing is checked before it happens.** `scripts/mirror-guard.sh` blocks `.env` files,
     credential-shaped literals and hard-coded keys; a pushed secret is leaked even after a
-    force-push.
+    force-push. It prints file and line, never the matched text.
+  - **The checks also run on the PR, minus the push.** A link added without its doc, or a
+    committed key, fails at review instead of turning the mirror red after merge.
 - **Blocked on:** P1's acceptance needs one owner action that no PR can perform — a fine-grained
   PAT for `marcopolocheung/shademapnav` stored as the `MIRROR_TOKEN` secret. Until it exists the
   job fails loudly on merge instead of mirroring. P2/P3 still want two finished Wave-1 tracks
