@@ -154,6 +154,7 @@ This wave adds almost no new ideas on purpose.
 |---|---|---|
 | 1 | **G2** benchmark, then **G6** seams | A5's acceptance is literally *"no benchmark → no claim"*, and Track H's central claim is a *comparison*. G6 permanently removes the ⚠️s from the parallelism table. "Built the measurement before claiming the improvement" is a senior-shaped decision. |
 | 2 | **A5** worker, **A6** sweep | A5 gets routing off the main thread (#38). A6 exploits that a prism's shadow is an affine function of sun azimuth/altitude — an exactness criterion, not a vague speedup. **A6 gates Track H.** |
+| 2.5 | **A7** Overpass trees, **A8** canopy raster *(promoted 2026-09-08)* | **The app says "exposed" on a tree-lined street in July.** `ShadeSource` already declares `"canopy"` and `"mixed"` and `ShadeSample.shade` is already a fraction (`ShadeField.ts:36,39`) — the contract reserved the slot and nothing filled it; `canopy.ts` does not exist and `overpass.ts:399` fetches `way["building"]` alone. §2 concedes Geuneullo already models street trees, so this is the gap between us and the *consumer* state of the art, not a stretch goal. Closes **#46**. **Take it before H3** — "routes around tree shade" is a materially better flagship than "routes around building shade", and the A2 contract means H never has to know a canopy source exists. **It is also the experiment that decides Wave 4**: A7+A8 are ~2–3 weeks and zero fieldwork, so measure what is *still* wrong before committing to Option A's season-locked corpus. |
 | 3 | **B2 → B7** | The app is called navigation and does not navigate. **B6 is the reason Track B exists**: *"cross to the shaded side"* — an instruction no competitor can generate. B7 unparks F and supplies P3's demo. |
 | 4 | **C1 → C5**, then **C11** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.** |
 | 5 | **D3, D4** + the mobile strip fix | Turns a unitless fraction into UV dose and a heat score, with ranges, documented assumptions and graceful degradation. **Not done until P1 lands.** #197 — the D1 strip never renders on mobile — is a shipped feature nobody on a phone can see. |
@@ -201,7 +202,25 @@ what they observe; a learned correction improves on the geometry baseline.
 - **A crowd tap is evidence, not ground truth**, and A3's harness measures model-vs-model
   agreement, not physical accuracy. The code already says so; that distinction must survive into
   any README claim.
-- **Honest cost:** the observation corpus is the expensive part. Months, for one person.
+- **Two different corpora, and only one is expensive** *(clarified 2026-09-08)*. Do not
+  conflate them:
+  - **The calibration set — small, cheap, and needed even if Option A is never chosen.**
+    ~100–200 timestamped *"I am standing here at this time and I am in sun / in shade"*
+    observations. A phone and a notebook. No pose precision, no masks, no seasons, no model.
+    **This is what upgrades P4 from method-agreement to physical accuracy** — A3 compares two
+    models to each other, and A7/A8 will ship *unvalidated* without it. Weeks.
+  - **The training corpus — large, expensive, season-locked.** Pose-accurate panoramas with
+    reviewed sky/canopy/building masks, revisited leaf-on and leaf-off. Only required to claim a
+    *learned* component improved a decision. Months, and the calendar cannot be compressed.
+- **Honest cost:** the training corpus is the expensive part. Months, for one person.
+- **Precondition (added 2026-09-08):** ship **A7 + A8** first and measure the residual. Free
+  canopy data may close most of the *routing-decision* gap for none of the fieldwork. What it
+  cannot close: canopy **transmittance** (a height raster cannot tell a dense evergreen from a
+  bare ginkgo), **sky view factor from eye level** (top-down data cannot answer an upward
+  question), **awnings, arcades and scaffolding** (in no raster and no reliable tag), and
+  **physical ground truth** (you cannot validate a shade model against another shade model).
+  Those four are the entire remaining case for imagery — decide against them, with the residual
+  measured, not against an assumption.
 - **Trap:** USGS bare-earth DEMs strip buildings and vegetation. A terrain DEM is not a shadow
   model.
 - **Prerequisites:** opt-in, minimized location retention, deletion support, no medical data.
@@ -285,6 +304,7 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 **Wave 1 — flagships**
 - [ ] **G2** route benchmark  · [ ] **G6** seam work *(runs alone)*
 - [ ] **A5** worker offload · [ ] **A6** time sweep *(gates H)*
+- [ ] **A7** Overpass trees *(#46)* · [ ] **A8** canopy raster + height fallback — *promoted from "not yet prioritized" 2026-09-08; run before H3 and before any Wave 4 decision*
 - [ ] **B2** · [ ] **B3** · [ ] **B4** · [ ] **B5** · [ ] **B6** *(the reason B exists)* · [ ] **B7** *(unparks F)*
 - [ ] **C1** *(PR #191)* · [ ] **C2** · [ ] **C3** · [ ] **C4** *(re-scoped: plan job contract)* · [ ] **C5** · [ ] **C11** *(repair — the Living Itinerary)*
 - [ ] **D3** *(PR #189)* · [ ] **D4** *(PR #196)* · [ ] #197 mobile strip
@@ -307,7 +327,7 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 
 **Not yet prioritized** — in their briefs; pull one up when it earns its place against §2's two
 questions, not because it is next in a list:
-A7–A9 · B8–B9 · C6–C9 · D5–D8 · E2–E4, E6–E8 · F1–F6 · G3–G5.
+A9 · B8–B9 · C6–C9 · D5–D8 · E2–E4, E6–E8 · F1–F6 · G3–G5. *(A7/A8 left this list on 2026-09-08 — see Wave 1.)*
 
 ---
 
