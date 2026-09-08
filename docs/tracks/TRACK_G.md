@@ -17,14 +17,18 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **Take G8 and G7 before G3.** Both are `docs/ROADMAP.md` Wave 0 — they block claims rather
   than features. G8 now also owns the Nominatim policy violation (below); the public-mirror
   work moved to **Track P (P1)**, which owns the public surface.
+- **Done:** **G4, delivered by Track A** — `app/lib/shade/__tests__/agreement/` meets G4's
+  acceptance in full (prints the metric every run, enforces committed ceilings, adding a city is
+  a data change). G owns how it runs; A owns what is in it.
 - **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app, running in CI on
   every PR: shadows paint (imported `isBlueDominantShadowPixel`, 27.8% of sampled pixels at 09:00
   against 0.000% on the first readable frame), the timeline drag retimes them (mask diff 0.307
   after the drag against a 0.000 noise floor over 4 s without one, landing on 12:00 in the URL),
   and a stubbed-Overpass two-point route puts route-line pixels on the canvas against 0 before
   the click. ~17 s locally, one retry then fail.
-- **Open PRs:** #165 (a docs-only refresh of this brief, unmerged — it proposes a new G0 routing
-  quality eval and marks G4 delivered), plus the G1 PR. 7 unrelated Dependabot PRs.
+- **Open PRs:** none in this track — #165 merged this refresh, bringing **G0** (routing-quality
+  eval) and the G4-delivered finding. The Dependabot backlog is tracked in `docs/ROADMAP.md`
+  Wave 0, not here.
 - **Decisions made:** the smoke test seeds state through the existing share-link params
   (`?lat/lng/z/date/time/a/b`) rather than driving the geocoder, and stubs `/api/overpass` with a
   synthetic street grid. It runs as two projects. `smoke` intercepts the MapTiler style request
@@ -70,12 +74,24 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
   `VITE_*` as `undefined`, the test suite is hermetic, and the smoke test's keyless project
   stubs every request it makes. **Keep it that way: fork PRs never receive secrets.**
 - **Biome** (`biome.json`) — recommended set as errors, with `noNonNullAssertion`,
-  `noExplicitAny`, `noApproximativeNumericConstant` off by design; a11y and
-  `useExhaustiveDependencies` at `warn` (~127 + 17 findings).
+  `noExplicitAny`, `noApproximativeNumericConstant` off by design. **The a11y backlog is gone:**
+  nine a11y rules are now `error` and pass. 52 warnings remain, led by `useExhaustiveDependencies`
+  (17), `noArrayIndexKey` (11), `useOptionalChain` (6). Biome's diagnostic cap truncates what is
+  *printed*, not the exit code — verified: an error behind the warning backlog still exits 1.
 - **`window.__shadeMapMetrics`** (`app/lib/metrics.ts`) — phase timings (`graphFetch`,
   `canvasRead`, `shadeSample`, `dijkstra`, `total`), p50/p95 history, and three KPIs
   (route compute ms, shade-coverage gain pp, path-length delta %). **The instrumentation for
   G2 already exists; only the harness that drives it is missing.**
+- **The A3 agreement suite** (`app/lib/shade/__tests__/agreement/`) — the template every other
+  eval-shaped checkpoint here should copy: a fixture corpus, a *scored* metric rather than a
+  boolean, committed ceilings that only ever come down, and the number printed on every run so it
+  is visible while passing. 150 cases, ~235 ms, pure Node.
+- **`app/lib/routing.ts`** exports `paretoRoutes`, and `metrics.ts` exports `computeDerivedKpis`.
+  Both are pure and already composed in production — which is what makes G0 cheap.
+- **A working browser, locally.** #121 says no Chromium runs here; that is stale for local work.
+  The cached Playwright Chromium starts once `libnss3`, `libnspr4` and `libasound2` are
+  side-loaded without sudo (`apt-get download` → `dpkg-deb -x` → `LD_LIBRARY_PATH`); verified
+  2026-09-04 on Chromium 136. CI still needs its own setup — that is G1, not this note.
 - **Dependabot** (`.github/dependabot.yml`) with the maplibre/suncalc pins encoded as `ignore`.
 - `docs/notes/performance-baseline.md`, `docs/notes/touch-target-audit.md`.
 
@@ -90,6 +106,27 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 ---
 
 ## Checkpoints
+
+### G0 — Routing quality eval  *(added by #165)*
+**Goal.** Nothing measures whether a shade-aware route is *worth taking*. `metrics.ts` states
+three KPI targets — route compute < 3 s, shade-coverage gain > 10 pp, path-length overhead
+< ~40% — and all three live only in comments. Make the two that are about quality fail.
+**Approach.** The A3 agreement suite's shape, applied to routing, in pure Node. A fixture corpus
+of synthetic street grids × sun positions; feed each to `paretoRoutes` with shade from
+`ShadeField`, then score the result with the `computeDerivedKpis` the app already uses — so the
+eval measures the same numbers the product reports, not a parallel definition of them. Print the
+aggregate every run the way `agreement.test.ts` does, and commit ceilings just above what the
+corpus reports today.
+**Acceptance.** `npm test` prints a routing-quality line; thresholds are enforced; a deliberate
+cost-model regression trips them; adding a fixture is a data change, not a code change. Under a
+second, no browser, no secret, no flake budget.
+**Files.** `app/lib/__tests__/routeQuality/**`. **Size.** Small–Medium. **Coordinate with Track
+A** — A owns the cost model and what the fixtures contain, G owns the harness and the reporting.
+**Where it sits now.** #165 argued this belonged before G1; G1 has since landed, so the argument
+that survives is the cheaper one — same kind of value as G2, at a fraction of the cost and none of
+the flake risk, in pure Node with no browser and no secret. **G2 still outranks it** (A5, H and P
+are all waiting on a committed route benchmark), but G0 is the better filler task and it
+establishes the KPI discipline the benchmark will reuse.
 
 ### G1 — Browser smoke test ✅ **landed — but its CI path still waits on the secret**
 **Goal.** One automated run that actually loads the app. Closes **#35**.
@@ -124,21 +161,29 @@ baseline; fail on regression beyond a stated tolerance.
 reason (4G, one-handed, outdoors).
 **Files.** `.github/workflows/ci.yml`, a small check script. **Size.** Small.
 
-### G4 — Shade accuracy harness
-**Goal.** Own the infrastructure behind Track A's A3 agreement number.
-**Approach.** Fixture format, the runner, and the CI reporting; **Track A owns what's in the
-fixtures**, G owns how they run and how regressions are reported.
-**Acceptance.** `npm test` prints the disagreement metric; a threshold is enforced; adding a
-city is a data change, not a code change.
-**Files.** `e2e/fixtures/**`, test infrastructure. **Size.** Medium. **Coordinate with Track A.**
+### G4 — Shade accuracy harness ✅ **delivered by Track A**
+Track A built this while landing A3. `app/lib/shade/__tests__/agreement/` has the fixture format
+(`fixtures.ts`), the runner and metric (`harness.ts`) and the enforced ceilings
+(`agreement.test.ts`: mean 0.04, p90 0.05, severe share 0.04), it prints
+`shade-field agreement: …` on every run, and adding a city is a data change. That is G4's
+acceptance, met.
+
+**Residual scope, if any:** tracking the number *over time* rather than per-run — CI has no memory,
+so a slow drift that never crosses a ceiling is invisible. Fold that into G2's baseline file rather
+than reviving this as a checkpoint. **The division of labour stands and applies to G0 too:** Track
+A owns what accuracy means; G owns how it is run and reported.
 
 ### G5 — A11y baseline
 **Goal.** A number where there has never been one. Closes **#39**, plans **#40**.
-**Approach.** axe-core in the G1 browser across the main screens; record the score; convert the
-~127 Biome a11y warnings into a burn-down list grouped by pattern (five a11y PRs — #90, #92,
-#94, #96, #98 — already show the shape a good batch takes).
-**Acceptance.** Score recorded in `docs/notes/`; CI reports it; a grouped burn-down issue list
-exists. **Size.** Medium.
+**Approach.** axe-core in the G1 browser across the main screens; record the score.
+**The Biome half of this is already done** — the five a11y PRs (#90, #92, #94, #96, #98) burned
+the backlog down and the nine a11y rules are now `error` in `biome.json` and passing, so there is
+no warning list left to group. What Biome cannot see is what remains: contrast in sunlight, focus
+order, live-region announcements, and whether a control is reachable one-handed. That is the axe
+run plus the judgement `docs/notes/touch-target-audit.md` and the `interface-reviewer` agent
+already apply by hand.
+**Acceptance.** Score recorded in `docs/notes/`; CI reports it; the findings axe raises that Biome
+structurally cannot are filed. **Size.** Medium (was sized when the burn-down was still open).
 
 ### G6 — Seam work ← **the unblocker; run it alone**
 **Goal.** Stop six tracks from queueing on three files.
@@ -222,6 +267,8 @@ politeness header was silently dropped the whole time"* is a genuinely good bug 
   PR templates, and the six `CLAUDE.md` files are fully independent files. Four to six builders,
   each in its own worktree, each opening its own small PR. Give each one the explicit file list.
 - **G1 and G6 are strictly solo.** G1 is fiddly environment work; G6 rewrites shared files.
+- **G0 is solo but small.** It is one new test directory touching no production file, so it can run
+  concurrently with anything — including G1 — without a collision.
 - **Scout** for environment questions ("what flags does headless Chromium need for WebGL2 in
   GitHub Actions in 2026?") — bounded, and the answer changes often enough to be worth checking
   rather than remembering.
@@ -238,6 +285,17 @@ politeness header was silently dropped the whole time"* is a genuinely good bug 
 3. **Secret handling.** `VITE_MAPTILER_API_KEY` in CI must not leak into logs or fork PRs.
 4. **Hygiene as procrastination.** G7 is satisfying and low-risk, which makes it the easiest
    way to spend a week without moving the product. One PR at a time, between real work.
+5. **A synthetic corpus only ever tells you about itself.** G0's grids and A3's three cities are
+   regular by construction, which is what isolates the thing being measured — and also why a green
+   number is not evidence about real Manhattan geometry. Treat these as regression detectors, not
+   as proof of accuracy, and say which one you mean when quoting a number.
+6. **Thresholds drifting upward.** A ceiling raised to make a failure go away converts an eval into
+   decoration. A3 already states the rule — they come down as the product improves, and raising one
+   is a product decision, not a fix. G0 inherits it.
+7. **What none of this covers.** Every checkpoint here measures something countable. Whether a
+   shadow reads clearly in bright sun, or a route is legible on a phone held one-handed, stays a
+   human judgement — `interface-reviewer` and the touch-target audit are the answer, and no green
+   number should be allowed to imply otherwise.
 
 ## Out of scope / hand-offs
 
