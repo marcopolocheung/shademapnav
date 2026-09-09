@@ -10,7 +10,8 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** **G2** — G1's PR #177 has merged and the smoke test runs in CI.
+- **Active checkpoint:** **G3** — G2 has landed. G1's PR #177 merged before it and the smoke
+  test runs in CI.
 - **G2 is the highest-leverage item on the board.** A5's acceptance criterion is literally
   *"no benchmark → no claim"*, Track H cannot state its central comparison without a committed
   baseline, and Track P cannot publish a performance number that does not exist.
@@ -104,10 +105,35 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   Node, and the old percentile index fails one of them. Filed and deliberately not fixed here:
   **#256** (a dev-only block in the same file), which is stale as filed — the fields it says are
   unused are read by the `console.groupCollapsed`/`console.table` immediately below.
-- **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
-  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions, and
-  the summary can now carry the variance G2's acceptance asks for. Fold in the **#243** detour
-  sweep; **#254** owns the `npm run bench` name collision.
+- **Done — G2.** `npm run bench:route` (`e2e/bench/**`, its own Playwright config) drives the
+  G1 browser through 2-point and 5-point calculations, cache-cold and cache-warm, and reads the
+  app's own `window.__shadeMapMetrics`. The baseline is committed in
+  `docs/notes/performance-baseline.md` with the machine named, the variance stated and a zero
+  retry budget. It is **on demand, never in CI** — `npm run e2e` ignores `e2e/bench/**`, so the
+  separation from G3's gate is mechanical rather than a convention. Keyless only: real tiles
+  would put network variance inside a baseline.
+  - **The headline is not the total, it is the split.** Dijkstra is 9–17 ms of a ~3 s 2-point
+    calculation; the canvas read is 1.3–2.0 s. **A5's worker offload should be read against
+    that** — the main-thread block is the readback, not the search.
+  - **Warm is slower than cold.** The graph cache works (fetch 12 ms → 0.3 ms) and saves 12 ms
+    against a ~600 ms rise in the canvas read on a page that has already drawn a route. The
+    per-run series is published so it is visibly a level shift, not a leak.
+  - **Filed, not fixed: #259.** `canvasRead` was non-zero on all 30 runs while
+    `shadeFallbackShare` was 0.0% on all 30 — `coverage()` sent every calculation down the
+    `needsCanvas` path and the pixel sampler then answered no edges. Unverified against real
+    MapTiler tiles, which is why it is a filing and not a fix.
+  - **#243 folded in.** The `maxDetourFactor` sweep is published: 1.25 → 2.0 buys 5.8 pp of
+    shade for 61 pp of extra walking and triples search time. **The constant is unchanged** —
+    #243 is `track-h` and H3 picks a value against the curve. The sweep runs in Node against
+    `paretoRoutes` because `useNavigation` never passes the option, and varying it from the
+    browser would have meant adding a production seam.
+  - **Name collision settled:** `npm run bench` stays the vitest shade-sampling benchmark;
+    the route benchmark is `npm run bench:route`. **#254** should keep that split when it ports
+    the vitest benchmark.
+- **Next action:** **G3** — the bundle budget (#57). It is the smallest remaining item, it now
+  has a committed table to check against, and it is where regression *gating* belongs; G2
+  deliberately gates nothing. **G0** (routing-quality eval) remains the better filler task and
+  can run concurrently.
 - **Last verified:** 2026-09-09 on **Node 24.21.0**, clean `npm ci` — lint 0 (51 warnings,
   the known backlog), typecheck 0, 550 tests in 48 files, coverage 0, build 0 (maplibre chunk
   954.47 kB / 257.76 kB gzip, unchanged from Node 20), and `npm run e2e` **both** projects
@@ -212,7 +238,7 @@ forks aren't broken; runtime under ~3 minutes; flake budget stated (retry once, 
 skipped) and the flake budget and runtime hold locally; "green in CI" for the *test* path is
 outstanding until #173 adds the secret, and nothing here can close that from inside a PR.
 
-### G2 — Route benchmark ← **start here**
+### G2 — Route benchmark ✅ **landed**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.
 **Approach.** A scripted 2-point and 5-point calculation in the G1 browser, reading
 `window.__shadeMapMetrics.summary`. Commit the baseline into
@@ -221,8 +247,14 @@ fixed coordinates, fixed date/time, cache-warm and cache-cold variants.
 **Acceptance.** Reproducible numbers with variance stated; baseline committed; a documented
 command any track can run before/after its change.
 **Files.** `e2e/bench/**`, `docs/notes/performance-baseline.md`. **Size.** Medium.
+**Delivered against acceptance:** reproducible numbers with variance stated (p50/p95, a spread
+figure, the raw per-run series printed, zero retries), the baseline committed with the machine
+named, and `npm run bench:route` documented in the note. **Not delivered, deliberately:** TTI.
+#37 asks for TTI *and* route-calc; G2's acceptance names route calculation only, and the note
+now says TTI is outstanding rather than half-measuring it. **#243's sweep is in the same PR** —
+same fixture, one parameter varied.
 
-### G3 — Bundle budget
+### G3 — Bundle budget ← **start here**
 **Goal.** Stop silent regression of a 1.6 MiB `dist/` with a 953 kB maplibre chunk. Closes **#57**.
 **Approach.** Per-chunk gzip ceilings checked in CI against the committed table in the perf
 baseline; fail on regression beyond a stated tolerance.

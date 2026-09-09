@@ -8,8 +8,11 @@ export const hasMapTilerKey = !!loadEnv("production", process.cwd(), "VITE_")
   .VITE_MAPTILER_API_KEY;
 
 // Say which projects will run. A reader who sees one test instead of two should
-// not have to guess why.
-console.log(
+// not have to guess why. `playwright.bench.config.ts` imports this file for its
+// shared `use` block and runs neither project, so it must not print this.
+const forBench = process.argv.some((a) => a.includes("playwright.bench.config"));
+if (!forBench)
+  console.log(
   hasMapTilerKey
     ? "[e2e] running `smoke` (fixture basemap) and `smoke-live` (real MapTiler tiles)."
     : "[e2e] running `smoke` (fixture basemap). `smoke-live` needs VITE_MAPTILER_API_KEY " +
@@ -21,6 +24,10 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "e2e",
+  // G2's benchmark has its own config (`playwright.bench.config.ts`). It measures
+  // and commits a baseline rather than gating a build, takes minutes, and is
+  // meaningful only on one machine — so `npm run e2e`, and therefore CI, skips it.
+  testIgnore: "**/bench/**",
   // Flake budget: one retry, then fail. A browser test that needs more retries
   // than that is noise, and noisy CI is worse than no CI.
   retries: 1,
