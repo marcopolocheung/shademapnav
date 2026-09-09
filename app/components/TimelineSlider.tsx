@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, memo } from "react";
 import { toMapLocal } from "../lib/timezone";
+import { sunriseSunset } from "../lib/sunTimes";
 
 interface Props {
   minutes: number; // 0–1439
@@ -11,34 +12,31 @@ interface Props {
 }
 
 // ---------------------------------------------------------------------------
-// Solar math — exact same orbital mechanics as computeSunriseSetAzimuths in
-// MapView.tsx; adapted to output minutes-from-midnight instead of azimuths.
+// Sunrise / sunset
 // ---------------------------------------------------------------------------
 
-function computeSunriseSetMinutes(
+/**
+ * Sunrise and sunset as minutes after map-local midnight, for the day/night
+ * bands and their markers.
+ *
+ * The solar model is `app/lib/sunTimes.ts` — the same one the shadow layer uses.
+ * This used to be a private copy of that orbital math carrying a flat `+ 12`
+ * minute constant, which put the New York solstice marker at 5:40 AM against a
+ * real 5:26 (#225).
+ */
+function sunriseSunsetMinutes(
   date: Date,
   latDeg: number,
   lngDeg: number,
   utcOffsetMin: number
 ): { riseMin: number; setMin: number } | null {
-  const { year, month, day } = toMapLocal(date, utcOffsetMin);
-  const noonN = Date.UTC(year, month, day, 12) / 86400000 + 2440587.5 - 2451545.0;
-  const L = (280.46 + 0.9856474 * noonN) % 360;
-  const g = ((357.528 + 0.9856003 * noonN) % 360) * (Math.PI / 180);
-  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * (Math.PI / 180);
-  const epsilon = (23.439 - 0.0000004 * noonN) * (Math.PI / 180);
-  const dec = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
-  const latRad = latDeg * (Math.PI / 180);
-  const cosHA0 = -Math.tan(latRad) * Math.tan(dec);
-  if (Math.abs(cosHA0) > 1) return null; // polar day or polar night
-  const HA0 = Math.acos(cosHA0);
-  const halfDayMin = HA0 * (720 / Math.PI);
-  // Solar noon in local clock minutes: longitude correction converts UTC solar noon to local time
-  const solarNoonLocal = 720 - lngDeg * 4 + utcOffsetMin;
-  return {
-    riseMin: Math.round(solarNoonLocal - halfDayMin) + 12,
-    setMin:  Math.round(solarNoonLocal + halfDayMin) + 12,
+  const t = sunriseSunset(date, latDeg, lngDeg);
+  if (!t) return null; // polar day or polar night
+  const asMinutes = (d: Date) => {
+    const { hours, minutes } = toMapLocal(d, utcOffsetMin);
+    return hours * 60 + minutes;
   };
+  return { riseMin: asMinutes(t.sunrise), setMin: asMinutes(t.sunset) };
 }
 
 const PX_PER_MIN = 2;
@@ -83,7 +81,7 @@ const TimelineSlider = memo(function TimelineSlider({ minutes, onChange, date, l
   const effectiveOffset = utcOffsetMinProp ?? (date ? -date.getTimezoneOffset() : 0);
   const sunRiseSet =
     date !== undefined && latDeg !== undefined && lngDeg !== undefined
-      ? computeSunriseSetMinutes(date, latDeg, lngDeg, effectiveOffset)
+      ? sunriseSunsetMinutes(date, latDeg, lngDeg, effectiveOffset)
       : null;
   const sunriseMin = sunRiseSet?.riseMin;
   const sunsetMin  = sunRiseSet?.setMin;
