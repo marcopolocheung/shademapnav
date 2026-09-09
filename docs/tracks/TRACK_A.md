@@ -14,6 +14,23 @@
   notes before assuming the canvas is retired: the geometry path is **wired and dormant** in
   practice, because the only source that can cover a route bbox is the tile provider and it is
   not trusted at the zooms where it can. A5's per-cell provider resolution is what turns it on.
+- **That prediction is now measured, by Track G's G2 benchmark (#259).** A4's acceptance says
+  *"`window.__shadeMapMetrics` shows `canvasRead` at ~0 on the field path"*. It is
+  **1136–2164 ms** — a third to well over half of route latency — on **90 of 90 runs** across
+  three sessions, while `shadeFallbackShare` printed **0.0% on all 90**. So the canvas is read
+  in full on every calculation and the pixel sampler it feeds then answers no edges at all.
+  **A4's acceptance criterion is not met on `main`**, and this is the first time anything
+  measured it; A4 closed on test evidence. Numbers and method:
+  `docs/notes/performance-baseline.md` § Route Calculation (G2).
+- **G contributed a candidate mechanism, not yet proven — see #259 for the arithmetic.**
+  `coverage()` is asked about the graph-fetch bbox padded twice (~1897 × 2132 m for a 340 m
+  route, because `padding` hits its 0.005° floor), while `sampleEdges` resolves the much
+  smaller route-edge bbox; `createTilePrismProvider.prismsFor` declines anything not fully
+  inside the ~1160 × 815 m viewport. If that is the cause it is **structural rather than a
+  fixture artefact**, and the fix is in how the up-front check is *asked*, not in the fallback.
+  **What is not established** is why `shadeFallbackShare` is then 0.0%; two providers are in
+  play and they imply different fixes. #259 lists the two cheap steps that settle it — a pure
+  Node test and surfacing `EdgeShade.source` in the metrics. **Do both before writing A5.**
 - **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
   A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b (this PR).
 - **How that went wrong, so it does not happen again:** #134→#137 were stacked, each based on
@@ -339,15 +356,48 @@ confident sentence in the UI or in an assistant answer.
 **Goal.** Cut the canvas out of the routing path.
 **Approach.** In `useNavigation.ts:801 calculateRoute` (and `:495 calculateSketchRoute`), replace the `edgeShadeCache`/`sampleBothSidewalks` block (`:956`) with `field.sampleEdges()`. Keep the pixel path behind a `confidence < threshold` fallback. Remove the pre-sampling `fitBounds` (`:879`) once the field is authoritative.
 **Acceptance.** A route calculates correctly with the map panned two cities away; A3 disagreement stays under threshold; `window.__shadeMapMetrics` shows `canvasRead` at ~0 on the field path; existing routing tests unchanged and passing.
+**⚠️ The `canvasRead` criterion is measured and NOT met** — 1136–2164 ms on 90 of 90 runs (G2,
+#259). A4 closed on test evidence before anything measured it. The residual is A5a's, not a
+reopening of A4, but do not cite A4 as evidence the canvas is off the routing path.
 **Files.** `useNavigation.ts` (⚠️ contested — keep the diff surgical), `app/lib/shade/**`.
 **Size.** Medium. **Coordinate with Track E** if E1 (cost model) is in flight.
 
-### A5 — Worker offload
-**Goal.** Get graph build + shade sampling + Dijkstra off the main thread. Closes **#38**.
-**Approach.** `app/workers/routing.worker.ts` following the `?worker` import pattern from `sunPosition.worker.ts`. The field is now pure data + math, so it transfers. Post prisms and the graph as transferables; stream per-leg results back (the streaming preview already exists).
-**Acceptance.** Main-thread long-task time during a 5-point route drops measurably against **G2's committed benchmark** (no benchmark → no claim); UI stays interactive (timeline draggable mid-calculation).
-**Files.** `app/workers/routing.worker.ts` (new), `useNavigation.ts`, `app/lib/shade/**`.
-**Size.** Large. **Depends on G2 existing.**
+### A5 — Wake the geometry path, then offload what is left
+**Goal.** Closes **#38** and **#259**. **Re-scoped 2026-09-09 against G2's benchmark — read
+this before starting, the original framing aimed at the wrong phase.**
+
+**What changed.** A5 was written as a worker offload: move graph build, shade sampling and
+Dijkstra off the main thread. G2 then measured the phases, and **Dijkstra is 3–18 ms of a ~3 s
+2-point calculation** while **the canvas read is 1136–2164 ms**. Offloading a 15 ms search to a
+worker buys nothing a user can perceive. The main-thread block is the readback, and the readback
+happens because `coverage()` reports the geometry path cannot answer — the dormancy this brief
+already predicted.
+
+**So A5 has two parts, in this order, and the first is the one that matters.**
+
+**A5a — per-cell provider resolution, so the geometry path actually runs.** This is the fix the
+Current state block always said A5 owned. Land the two diagnostic steps in #259 first (a pure
+Node test that reproduces the `coverage()`/`sampleEdges()` mismatch, and `EdgeShade.source`
+surfaced in `metrics.ts`), because they decide whether the fix is in how `coverage()` is asked,
+in the padding, or in provider resolution order.
+**Acceptance.** `canvasRead` at ~0 on the field path — **A4's original criterion, finally met
+and measured**, not asserted. Re-run `npm run bench:route` and commit the before/after into
+`docs/notes/performance-baseline.md`. A3 disagreement stays under its committed ceiling. If the
+canvas read survives for a real reason, say which and publish the number rather than closing it.
+
+**A5b — worker offload, sized against what is left.** Only after A5a. If A5a removes the
+readback, re-measure before assuming a worker is still worth it: the remaining main-thread cost
+may be small enough that #38 should be re-scoped or closed on the measurement. The 5-point shape
+is the one to check — its dijkstra phase is 320–2690 ms, two orders above the 2-point case,
+because it runs a per-leg `dijkstra` rather than `paretoRoutes`.
+**Acceptance.** Main-thread long-task time during a 5-point route drops measurably against
+**G2's committed benchmark** (no benchmark → no claim); UI stays interactive (timeline draggable
+mid-calculation). Note the benchmark's own noise floor: across-session spread is ~2–25% on every
+scenario, so a win under ~25% needs higher repeat counts first (**#263**).
+
+**Files.** `app/lib/shade/ShadeField.ts`, `app/lib/shade/providers.ts`, `useNavigation.ts`
+(⚠️ contested — keep the diff surgical), `app/workers/routing.worker.ts` (new, A5b only).
+**Size.** A5a Medium, A5b Large. **Depends on G2** — landed.
 
 ### A6 — Time sweep
 **Goal.** `sweep(edges, times[])` — N hours for far less than N× the cost.
