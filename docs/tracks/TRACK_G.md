@@ -14,9 +14,27 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **G2 is the highest-leverage item on the board.** A5's acceptance criterion is literally
   *"no benchmark → no claim"*, Track H cannot state its central comparison without a committed
   baseline, and Track P cannot publish a performance number that does not exist.
-- **Take G8 and G7 before G3.** Both are `docs/ROADMAP.md` Wave 0 — they block claims rather
-  than features. G8 now also owns the Nominatim policy violation (below); the public-mirror
-  work moved to **Track P (P1)**, which owns the public surface.
+- **Take G7 before G3.** It is `docs/ROADMAP.md` Wave 0 — it blocks claims rather than
+  features. The public-mirror work moved to **Track P (P1)**, which owns the public surface.
+- **Done:** **#205** — the two provider-policy defects in the search path. Nominatim is now
+  reached only through a same-origin proxy (`api/nominatim.js` in production, the Vite
+  `/__nominatim` proxy in dev), which is the only place a `User-Agent` can actually be set:
+  the header is forbidden to `fetch`, so the one three client files had been sending never
+  once reached Nominatim. Search now runs on an explicit submit — Enter or the magnifier —
+  because the OSMF policy lists autocomplete under unacceptable use; `SearchBar`,
+  `WaypointInput` and `NavigationPanel` no longer fire a geocode from a keystroke.
+  `LocationSearch.tsx` was deleted (unreferenced, and its whole body was the direct fetch).
+  Invariant #6 in root `CLAUDE.md` now says where the header can and cannot be set, and the
+  `PreToolUse` hook enforces that version — it denies stripping the header from a proxy and
+  denies adding it back to client code.
+- **Still open in G8:** the **dependency-bump policy** — which majors are auto-declined, that
+  the maplibre/suncalc pins are `ignore`d in Dependabot and why, and that `npm audit fix
+  --force` must never be run here (it installs maplibre 6.8.0 and breaks the shadow renderer).
+  `docs/handoffs/WAVE_0.md` §5 has the decisions to write down; #32 and #33 are closed.
+- **Filed, not fixed:** **#229** — `api/overpass.js` and `api/nominatim.js` take requests from
+  any origin with no rate limit, unlike `api/fsq.js` and `api/agent.js`. Pre-existing in the
+  Overpass proxy; the Nominatim one followed its idiom rather than inventing a one-off, so the
+  mitigation should be chosen once for both.
 - **Done:** **#212** — the place popup's `href`/`src` accept an `http(s)` URL only. `escapeHtml`
   is no defence in URL position, so the scheme is now checked before interpolation: `javascript:`,
   `data:` and protocol-relative values drop their row, `tel:` is built from dialable characters
@@ -51,9 +69,11 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   `smoke-live` project; it is no longer the difference between a real run and a green skip.
 - **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
   browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
-- **Last verified:** 2026-09-05, four gates green plus `npm run e2e` (`smoke` project) on the
-  G1 branch; removing the fixture's `maptiler_planet` fill layer turns the run red on the
-  shadow poll, which is what proves the buildings come from the fixture
+- **Last verified:** 2026-09-08, four gates green plus `npm run e2e` (`smoke` project) on the
+  #205 branch, and the search path driven in a real browser against `npm run dev`: typing
+  "brooklyn bridge" and pausing 3 s fires no geocode at all, Enter fires exactly one request
+  to `/__nominatim?endpoint=search&…`, five matches render, and taking the top one recentres
+  the map on its bounding box
 
 ---
 
@@ -234,33 +254,26 @@ as four bullets and three have since been resolved a different way:
 looks wrong for, and Track P's public surface depends on it.
 
 ### G8 — Security and provider-policy baseline
-**#32** (the only open p0) confirm referrer restrictions on the MapTiler and Foursquare keys;
-**#33** vite 5→8 and vitest 2→4 advisories — the six open Dependabot PRs need a decision, and
-the upgrade must preserve the maplibre/suncalc pins and the `manualChunks` config that keeps
-MapView code-split. Document a dependency-bump policy so this doesn't recur every quarter.
+**Done — the two provider-policy defects (#205).** Nominatim went behind `api/nominatim.js`
+(dev: the Vite `/__nominatim` proxy), which is the only place a `User-Agent` can be set —
+the header is [forbidden to `fetch`](https://fetch.spec.whatwg.org/#forbidden-header-name),
+so the one three client files sent had never reached Nominatim or Overpass. Search moved to
+explicit submit, because [the OSMF policy](https://operations.osmfoundation.org/policies/nominatim/)
+lists autocomplete under unacceptable use. Invariant #6 now describes what the platform
+actually permits, and `app/components/__tests__/providerPolicy.test.ts` plus component tests
+in `SearchBar.test.tsx` / `WaypointInput.test.tsx` keep both halves from regressing.
 
-**Plus two provider-policy defects found 2026-09-07, both in the search path, both Wave 0:**
+**Done — #32 and #33.** MapTiler allowed HTTP origins are set in the dashboard; Foursquare
+service keys carry no origin restriction at all, so that key moved server-side into
+`api/fsq.js` (#218/#219). The vite/vitest advisories were cleared by #213.
 
-1. **The search bar violates the Nominatim usage policy.** `SearchBar.tsx:141-159` fetches
-   `nominatim.openstreetmap.org/search` directly on a 400 ms keystroke debounce
-   (`:207`) — that is autocomplete, which
-   [the OSMF policy](https://operations.osmfoundation.org/policies/nominatim/) prohibits — and
-   it **bypasses the FIFO queue in `app/lib/nominatim.ts`** that exists for exactly this
-   purpose. A browser-local queue cannot enforce an application-wide quota anyway, so the
-   honest fix is explicit-submit search, or geocoding behind `api/` where a shared budget can
-   actually be held.
-2. **Hard invariant #6 is satisfied nowhere on the client.** `User-Agent` is a
-   [forbidden header name](https://fetch.spec.whatwg.org/#forbidden-header-name): browsers
-   silently drop it. The header set at `SearchBar.tsx:151` and `nominatim.ts:35` has never
-   reached Nominatim or Overpass. Either move those requests server-side, or amend invariant #6
-   in root `CLAUDE.md` to say where the header can and cannot be set — as written it asks for
-   something the platform does not permit.
-
-**Acceptance for both.** No component fetches Nominatim directly; the request path that claims
-to set `User-Agent` is one that can; `CLAUDE.md` invariant #6 is accurate; a test or a lint rule
-keeps a direct `nominatim.openstreetmap.org` fetch from reappearing in `app/components/**`.
-**Files.** `app/components/SearchBar.tsx`, `app/lib/nominatim.ts`, possibly `api/`, `CLAUDE.md`.
-**Size.** Small–medium.
+**Still open: the dependency-bump policy.** Write down which majors are auto-declined, that
+the maplibre and suncalc pins are `ignore`d in `.github/dependabot.yml` and why, and that
+`npm audit fix --force` must never be run on this repo — it installs maplibre 6.8.0 and
+breaks the shadow renderer. The decisions are already made and recorded in
+`docs/handoffs/WAVE_0.md` §5; this is transcribing them, not re-deriving them.
+**Files.** `docs/tracks/TRACK_G.md`.
+**Size.** Small.
 **Why it is worth doing properly:** reading a provider's terms and finding your own code in
 violation is a professional instinct that is hard to fake and easy to verify — and *"our
 politeness header was silently dropped the whole time"* is a genuinely good bug story.

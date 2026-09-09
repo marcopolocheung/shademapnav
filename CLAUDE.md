@@ -4,7 +4,8 @@ ShadeMapNav is a personal open-source shaded-route navigation project. It is an
 independent personal project and is not affiliated with ShadeMap.app.
 Browser-based sun-shadow simulation with shade-aware pedestrian + transit routing.
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
-except three thin serverless proxies (`api/fsq.js`, `api/agent.js`, `api/overpass.js`).
+except four thin serverless proxies (`api/fsq.js`, `api/agent.js`, `api/overpass.js`,
+`api/nominatim.js`).
 Deployed: https://shademapnav.vercel.app
 
 **Read order (keep context small):** this file → the "Where to edit what" table → the file.
@@ -121,7 +122,18 @@ approach needs to change.
    `r + g + b < 600 && b - ((r + g) / 2) > 18 && b > ((r + g) / 2) * 1.15`.
    The shadow colors in `LocalShadowAdapter.ts` must stay blue-dominant enough to
    satisfy that predicate after compositing over the basemap.
-6. **Nominatim and Overpass requests need a `User-Agent` header** or they get rejected.
+6. **Nominatim and Overpass requests need a `User-Agent` header — and only a server
+   can send one.** `User-Agent` is a
+   [forbidden header name](https://fetch.spec.whatwg.org/#forbidden-header-name): the
+   browser drops it from `fetch` silently, so client code that sets it looks compliant
+   and is not. Both services are reached through same-origin proxies that set it
+   server-side — `api/nominatim.js` and `api/overpass.js` in production, the
+   `/__nominatim` and `/__overpass` Vite proxies in dev. No code under `app/` may set the
+   header or name `nominatim.openstreetmap.org` outside a comment;
+   `app/components/__tests__/providerPolicy.test.ts` fails if either reappears, and the
+   `PreToolUse` hook denies both — plus stripping the header back out of a proxy. The same
+   OSMF policy forbids **autocomplete**, so no geocode may fire from a keystroke handler
+   — search runs on an explicit submit.
 7. **Never read or edit `.worktrees/`** — an orphaned, stale checkout (gitignored, not a
    registered worktree). Same for any `oldbuild/` copy you encounter.
 
@@ -137,7 +149,7 @@ approach needs to change.
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
-| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, server-side key + prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`) | `.claude/rules/external-apis.md` |
+| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, server-side key + prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`), Nominatim (`nominatim.js`, server-side `User-Agent`) | `.claude/rules/external-apis.md` |
 | `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 

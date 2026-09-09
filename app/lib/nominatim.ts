@@ -3,6 +3,23 @@ export interface NominatimResult {
   display_name: string;
   lat: string;
   lon: string;
+  /** [south, north, west, east] as strings. Nominatim omits it for some results. */
+  boundingbox?: [string, string, string, string];
+}
+
+// Requests go through a same-origin proxy, never directly to
+// nominatim.openstreetmap.org. The OSMF usage policy requires every request to
+// identify itself with a `User-Agent`, and that is a forbidden header name —
+// browsers drop it from fetch() silently, so only a server can send it. In dev
+// that is Vite's /__nominatim proxy; in production the Vercel function at
+// /api/nominatim. See vite.config.ts and api/nominatim.js.
+//
+// The same policy forbids autocomplete, so nothing here may be called from a
+// keystroke handler; callers search on an explicit submit.
+const NOMINATIM_BASE = import.meta.env.DEV ? "/__nominatim" : "/api/nominatim";
+
+function nominatimUrl(endpoint: "search" | "reverse", params: Record<string, string>): string {
+  return `${NOMINATIM_BASE}?${new URLSearchParams({ endpoint, ...params }).toString()}`;
 }
 
 // Nominatim usage policy: max 1 request per second.
@@ -32,8 +49,6 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
   });
 }
 
-const HEADERS = { "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)" };
-
 // Simple LRU caches for geocode results
 const CACHE_MAX = 50;
 const forwardCache = new Map<string, NominatimResult[]>();
@@ -53,8 +68,8 @@ export function geocodeForward(query: string): Promise<NominatimResult[]> {
   return enqueue(async () => {
     // Check again after throttle wait — another call may have populated it
     if (forwardCache.has(key)) return forwardCache.get(key)!;
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
-    const res = await fetch(url, { headers: HEADERS });
+    const url = nominatimUrl("search", { q: query, limit: "5", addressdetails: "1" });
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
     const data = await res.json() as NominatimResult[];
     evictOldest(forwardCache);
@@ -81,11 +96,14 @@ export function geocodeNear(
     const right = lng + radiusDeg;
     const top = lat + radiusDeg;
     const bottom = lat - radiusDeg;
-    const url =
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}` +
-      `&format=json&limit=8&addressdetails=1` +
-      `&viewbox=${left},${top},${right},${bottom}&bounded=1`;
-    const res = await fetch(url, { headers: HEADERS });
+    const url = nominatimUrl("search", {
+      q: query,
+      limit: "8",
+      addressdetails: "1",
+      viewbox: `${left},${top},${right},${bottom}`,
+      bounded: "1",
+    });
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
     return (await res.json()) as NominatimResult[];
   });
@@ -107,8 +125,8 @@ export function geocodeReverse(lat: number, lng: number): Promise<string | null>
 
   return enqueue(async () => {
     if (reverseCache.has(key)) return reverseCache.get(key)!;
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18`;
-    const res = await fetch(url, { headers: HEADERS });
+    const url = nominatimUrl("reverse", { lat: String(lat), lon: String(lng), zoom: "18" });
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.display_name) return null;
@@ -136,8 +154,8 @@ export function geocodeReverseWithCoords(
 
   return enqueue(async () => {
     if (reverseWithCoordsCache.has(key)) return reverseWithCoordsCache.get(key)!;
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18`;
-    const res = await fetch(url, { headers: HEADERS });
+    const url = nominatimUrl("reverse", { lat: String(lat), lon: String(lng), zoom: "18" });
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json() as { display_name?: string; lat?: string; lon?: string };
     if (!data.display_name || data.lat == null || data.lon == null) return null;

@@ -1,11 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-
-interface NominatimResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-  boundingbox: [string, string, string, string]; // [south, north, west, east]
-}
+import { geocodeForward, type NominatimResult } from "../lib/nominatim";
 
 interface SearchBarProps {
   onSelect: (place: {
@@ -118,7 +112,9 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
   const [isActive, setIsActive] = useState(false);
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [saved, setSaved] = useState<SavedItem[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  // Invalidates an in-flight geocode whose query the user has since changed.
+  const searchGenRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const listId = useRef(`search-results-${Math.random().toString(36).slice(2, 8)}`).current;
@@ -139,24 +135,32 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const search = useCallback(async (q: string, opts?: { minChars?: number }): Promise<NominatimResult[]> => {
-    const minChars = opts?.minChars ?? 3;
-    if (q.trim().length < minChars) {
+  // Only ever called from an explicit submit. Nominatim's usage policy lists
+  // autocomplete under unacceptable use, so no request may fire from a
+  // keystroke; geocodeForward also caches and paces the request.
+  const search = useCallback(async (q: string): Promise<NominatimResult[]> => {
+    const gen = ++searchGenRef.current;
+    if (q.trim().length === 0) {
       setResults([]);
       return [];
     }
+    setIsSearching(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
-        { headers: { "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)" } }
-      );
-      const data: NominatimResult[] = await res.json();
+      const data = await geocodeForward(q);
+      // The query moved on while this was in flight — its results belong to a
+      // string the user is no longer looking at, and the top one is armed for
+      // the next Enter, so dropping them is the whole point of the guard.
+      if (gen !== searchGenRef.current) return [];
       setResults(data);
-      setHighlightIndex(-1);
+      // Highlight the top match so a second Enter takes it.
+      setHighlightIndex(data.length > 0 ? 0 : -1);
       return data;
     } catch {
+      if (gen !== searchGenRef.current) return [];
       setResults([]);
       return [];
+    } finally {
+      if (gen === searchGenRef.current) setIsSearching(false);
     }
   }, []);
 
@@ -166,9 +170,11 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
     setResults([]);
     setIsActive(false);
 
-    const [south, north, west, east] = r.boundingbox.map(Number);
-    const center: [number, number] = [(west + east) / 2, (south + north) / 2];
-    const zoom = computeZoomFromBbox(r.boundingbox);
+    const bb = r.boundingbox;
+    const center: [number, number] = bb
+      ? [(Number(bb[2]) + Number(bb[3])) / 2, (Number(bb[0]) + Number(bb[1])) / 2]
+      : [Number(r.lon), Number(r.lat)];
+    const zoom = bb ? computeZoomFromBbox(bb) : 16;
 
     const item: RecentItem = { label: name, center, zoom };
     saveRecent(item);
@@ -183,28 +189,26 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
     });
   }, [onSelect]);
 
-  const runSearchNow = useCallback(
-    async (opts?: { minChars?: number; selectTop?: boolean }) => {
-      const q = query.trim();
-      if (!q) {
-        inputRef.current?.focus();
-        return;
-      }
-      const data = await search(q, { minChars: opts?.minChars });
-      if (opts?.selectTop && data[0]) handleSelect(data[0]);
-    },
-    [query, search, handleSelect]
-  );
+  const runSearchNow = useCallback(async () => {
+    const q = query.trim();
+    if (!q) {
+      inputRef.current?.focus();
+      return;
+    }
+    await search(q);
+  }, [query, search]);
 
   const handleMagnifierClick = useCallback(async () => {
-    await runSearchNow({ minChars: 1, selectTop: true });
+    await runSearchNow();
   }, [runSearchNow]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    setQuery(value);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => search(value, { minChars: 3 }), 400);
+    setQuery(e.target.value);
+    // Deliberately no search here — see the comment on `search`. Retyping does
+    // still invalidate a geocode already in flight for the previous query.
+    searchGenRef.current++;
+    setResults([]);
+    setHighlightIndex(-1);
   }
 
 
@@ -231,7 +235,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
       if (highlightIndex >= 0 && results[highlightIndex]) {
         handleSelect(results[highlightIndex]);
       } else {
-        runSearchNow({ minChars: 1, selectTop: true });
+        runSearchNow();
       }
     } else if (e.key === "Escape") {
       setResults([]);
@@ -258,7 +262,7 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
   }, [highlightIndex, listId]);
 
   const isOpen = results.length > 0;
-  const showSections = isActive && (query.trim().length < 3) && (recent.length > 0 || saved.length > 0);
+  const showSections = isActive && !isOpen && (recent.length > 0 || saved.length > 0);
 
   return (
     <div ref={containerRef} className="relative">
@@ -319,9 +323,12 @@ export default function SearchBar({ onSelect, mapCenter, onClearPanel, onMenuTog
           onClick={handleMagnifierClick}
           onMouseDown={(e) => e.preventDefault()}
           className="shrink-0 text-amber-700 hover:opacity-80 transition-opacity"
-          aria-label="Search"
+          aria-label={isSearching ? "Searching" : "Search"}
+          aria-busy={isSearching}
         >
-          <span className="material-symbols-outlined">search</span>
+          <span className={`material-symbols-outlined${isSearching ? " animate-spin" : ""}`}>
+            {isSearching ? "progress_activity" : "search"}
+          </span>
         </button>
 
         {/* Directions button */}
