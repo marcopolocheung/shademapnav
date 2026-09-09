@@ -13,14 +13,17 @@
 
 ## Current state
 
-- **Active checkpoint:** P2 — the README as the human entry point. P4 is implemented and in
-  review.
+- **Active checkpoint:** none — P2 and P4 are both implemented and in review. P3, P5 and P6 stay
+  in Wave 3.
 - **Done:** P1 — `.github/workflows/mirror.yml` pushes `main` to the public repo on every merge
   and then fails if a doc the app links to 404s there. **P4** (pending merge) —
   `docs/notes/evidence.md` carries every measurement with its method, worst case and sample
   counts, the four evaluation layers kept separate, the empty layers left visibly empty, and the
   #206/#207/#211 corrections; linked from the README.
-- **Open PRs:** P4 (`docs/p4-evidence-page`).
+  **P2** (pending merge) — the README rewritten as a human entry point: the promise, a live
+  deep link that is the same URL the browser smoke test loads, the evidence page, what the
+  project does *not* do, and the shade-field correction. No badges.
+- **Open PRs:** #238 (P4, `docs/p4-evidence-page`) and P2 (`docs/p2-readme`, stacked on it).
 - **Decisions made:**
   - **Action, not a documented step.** The manual `git push public main` had failed three
     times; the last failure is #199.
@@ -35,8 +38,9 @@
     force-push. It prints file and line, never the matched text.
   - **The checks also run on the PR, minus the push.** A link added without its doc, or a
     committed key, fails at review instead of turning the mirror red after merge.
-- **Blocked on:** nothing for P2. P3 still wants two finished Wave-1 tracks and H3 rendering.
-- **Next action:** **P2** — the README rewrite, now that P4 exists to link to.
+- **Blocked on:** P3 still wants two finished Wave-1 tracks and H3 rendering; P5 wants H2's
+  objective correction; P6 cannot be filled before H4 produces a gap.
+- **Next action:** merge #238, then P2. After that the track is parked until Wave 3.
 - **Last verified:** 2026-09-09 at `6a4b58f` — the mirror is at `6a4b58f`, has **no open PRs and
   no workflow runs**, and `docs/notes/{browser-verification,heat-model,heat-score,timezone,
   performance-baseline}.md` plus `LICENSE` all resolve on it. That discharges P1's blocker
@@ -85,7 +89,7 @@ private-only file is carried across by the mirror step.
 **Files.** `.github/workflows/`, `docs/tracks/README.md`. **Size.** Small.
 **Blocks:** D3, D4.
 
-### P2 — The README as the human entry point
+### P2 — The README as the human entry point — **implemented, in review**
 **Goal.** A stranger understands the promise, sees it work, and reaches the evidence in three
 clicks.
 **Approach.** Restructure, do not decorate: one recorded working example at the top, the
