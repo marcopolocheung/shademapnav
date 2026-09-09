@@ -92,8 +92,22 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   the key).
 - **Blocked on:** nothing. `VITE_MAPTILER_API_KEY` as a repo secret (#173) now only adds the
   `smoke-live` project; it is no longer the difference between a real run and a green skip.
+- **Done — the G2 instrument, ahead of the benchmark itself (#182, #183).** G2 reads
+  `window.__shadeMapMetrics.summary`, and that object could not state variance: `p95TotalMs` was
+  an unconditionally mislabeled **maximum** — `MAX_HISTORY = 20` is the buffer's ceiling and
+  `Math.min(Math.floor(N * 0.95), N - 1)` lands on the last element for every N from 1 to 20, so
+  there was no reachable sample count at which it was a 95th percentile. It is now an
+  interpolated percentile (R-7), there is a `p50TotalMs` beside it, and `clearMetrics` is on the
+  window object so a multi-scenario bench can reset without reloading the page. The three reads
+  are getters rather than snapshots, or a `summary` captured at record time would survive the
+  reset and open scenario 2 on scenario 1's numbers. `metrics.ts` has its first tests — 14, pure
+  Node, and the old percentile index fails one of them. Filed and deliberately not fixed here:
+  **#256** (a dev-only block in the same file), which is stale as filed — the fields it says are
+  unused are read by the `console.groupCollapsed`/`console.table` immediately below.
 - **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
-  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
+  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions, and
+  the summary can now carry the variance G2's acceptance asks for. Fold in the **#243** detour
+  sweep; **#254** owns the `npm run bench` name collision.
 - **Last verified:** 2026-09-09 on **Node 24.21.0**, clean `npm ci` — lint 0 (51 warnings,
   the known backlog), typecheck 0, 550 tests in 48 files, coverage 0, build 0 (maplibre chunk
   954.47 kB / 257.76 kB gzip, unchanged from Node 20), and `npm run e2e` **both** projects
@@ -133,9 +147,10 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
   (17), `noArrayIndexKey` (11), `useOptionalChain` (6). Biome's diagnostic cap truncates what is
   *printed*, not the exit code — verified: an error behind the warning backlog still exits 1.
 - **`window.__shadeMapMetrics`** (`app/lib/metrics.ts`) — phase timings (`graphFetch`,
-  `canvasRead`, `shadeSample`, `dijkstra`, `total`), p50/p95 history, and three KPIs
-  (route compute ms, shade-coverage gain pp, path-length delta %). **The instrumentation for
-  G2 already exists; only the harness that drives it is missing.**
+  `canvasRead`, `shadeSample`, `dijkstra`, `total`), p50/p95 aggregates over the last 20 runs,
+  three KPIs (route compute ms, shade-coverage gain pp, path-length delta %), and `clearMetrics`
+  to reset between scenarios. **The instrumentation for G2 already exists; only the harness that
+  drives it is missing.**
 - **The A3 agreement suite** (`app/lib/shade/__tests__/agreement/`) — the template every other
   eval-shaped checkpoint here should copy: a fixture corpus, a *scored* metric rather than a
   boolean, committed ceilings that only ever come down, and the number printed on every run so it
