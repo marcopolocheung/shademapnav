@@ -29,6 +29,31 @@ after `npm run build`.
 
 Total `dist/`: 1.6 MiB.
 
+## Bundle — real timezones (D0)
+
+Cost of replacing the longitude offset estimate with an IANA zone lookup, recorded because
+D0's acceptance asks for it and G3 has no automated check yet. Reproduce with `npm run
+build` and read the gzip column Vite prints.
+
+Measured 2026-09-08, Node `v20.20.1`. **Before** is `main` at `4180e02`; **after** is
+`feat/d0-real-timezones` (#204). Both built from a clean `npm ci` in the same environment.
+
+| Artifact | Before (gzip) | After (gzip) | Change |
+|---|---:|---:|---:|
+| `index-*.js` | 65.55 kB | 66.22 kB | +0.67 kB |
+| `MapView-*.js` | 17.39 kB | 17.41 kB | +0.02 kB |
+| `agentLoop-*.js` | 6.63 kB | 6.67 kB | +0.04 kB |
+| `tz-*.js` *(new, async)* | — | 29.60 kB | +29.60 kB |
+| `maplibre-*.js`, `react-vendor-*.js` | unchanged | unchanged | 0 |
+
+**The entry path grew by 0.67 kB gzip, not 30.** The boundary dataset is behind a dynamic
+`import()` in `app/lib/tzLookup.ts`, so Rollup emits it as its own chunk that is fetched
+after first paint. Nothing blocks on it: the app renders on a longitude estimate and
+upgrades to the real zone when the chunk lands. The 0.67 kB is the loader plus the
+`Intl`-based offset helpers in `timezone.ts`.
+
+Method and accuracy trade-off: [`timezone.md`](./timezone.md).
+
 ## Shade Sampling
 
 `ShadeField.sampleEdges` — the call routing makes once per calculation, and the

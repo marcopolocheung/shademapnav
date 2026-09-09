@@ -10,12 +10,14 @@
 
 ## Current state
 
-- **Active checkpoint:** **D0 — real timezones (#204).** It is a `docs/ROADMAP.md` **Wave 0**
-  item and it is taken from this track. D3 (PR #189), D4 (PR #196) and D2 (PR #188) have all
-  merged. **D5 is not next** — an earlier version of this block said so, before D0 existed.
-- **D0 is also a Track H prerequisite,** not only this track's. `timezone.ts:8` guesses the UTC
-  offset from longitude with no DST; an hour of clock error is ~15° of sun, so H1 would price
-  every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input.
+- **Active checkpoint:** **D0 is done** — it merged as #204, and #225 followed it. D3 (PR
+  #189), D4 (PR #196) and D2 (PR #188) have all merged too. Next is **#197** (the D1 hourly
+  strip never renders on mobile), which the bullet below says to fix before D5; **D5** after
+  that.
+- **D0 was also a Track H prerequisite, and that block is now cleared.** `timezone.ts:8` used
+  to guess the UTC offset from longitude with no DST; an hour of clock error is ~15° of sun, so
+  H1 would have priced every edge's traversal against a wrong sky and H4 would have published a
+  gap measured on a bad input. The offset is now a real IANA zone resolved per date.
   See `docs/handoffs/WAVE_0.md`.
 - **Done:**
   - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
@@ -25,6 +27,11 @@
   - D4 — `app/lib/heat/score.ts` scores the selected route 0–100 on felt temperature and
     renders it beside the tradeoff line, with `docs/notes/heat-score.md` linked from the UI.
     Closes #194.
+  - D0 — the offset is now a function of place **and date**: an IANA zone from a lazily
+    loaded boundary dataset, and DST rules from the runtime's own tz database via `Intl`.
+    Closes #204. #225 followed it, putting sunrise/sunset on the same SunCalc model that
+    draws the shadows and removing the `+ 12` minute constant behind a 5:40 AM marker whose
+    real value was 5:26.
 - **Open PRs:** none in this track.
 - **⚠️ D3 and D4 are not actually done, and it is not a code problem.** Both acceptance criteria
   require the method to be *linked from the UI*, and those links point at
@@ -38,7 +45,12 @@
   "4–5 min of full sun"). `RouteConditionsLine` replaces both: one badge, one method link, heat
   first because it is the figure that varies between the options below, dose second. Verified
   in a browser at 1280x900 and 375x667 — one visible badge, one visible link.
-- **D0 (real timezones) is new and comes before D6.** See the checkpoint below.
+- **Before building on D0's timezone work,** three things. `longitudeToUtcOffsetMin` survives
+  only as the fallback used while the boundary chunk loads. The zone lookup is **~5% wrong by
+  offset on inhabited points**, clustered on borders — stated in `docs/notes/timezone.md`
+  rather than in the UI, which D0's acceptance allows. And the offset is **derived, never
+  stored**: `useShadowTime` recomputes it from `(zone, date)`, so nothing may cache it across
+  a date change.
 - **Also open against this track:** #197 — the D1 hourly strip **never renders on mobile**. A
   shipped feature nobody on a phone can see; fix it before D5.
 - **Decisions made:**

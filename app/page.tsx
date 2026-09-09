@@ -20,7 +20,14 @@ import PlaceDetail from "./components/PlaceDetail";
 import AssistantPanel from "./components/AssistantPanel";
 
 import type { IShadowLayer } from "./lib/shadow/IShadowLayer";
-import { toMapLocal, fromMapLocal, longitudeToUtcOffsetMin } from "./lib/timezone";
+import {
+  toMapLocal,
+  fromMapLocal,
+  fromMapLocalInZone,
+  longitudeToUtcOffsetMin,
+  utcOffsetMinAt,
+} from "./lib/timezone";
+import { ensureZoneLookup, zoneAt } from "./lib/tzLookup";
 import { parseShareState, shareUrlFromState } from "./lib/shareState";
 import { useShadowTime, formatTime12h, parseTime, dateToDayOfYear } from "./hooks/useShadowTime";
 import { useNavigation } from "./hooks/useNavigation";
@@ -41,7 +48,7 @@ function readShadeLegendDismissed(): boolean {
   }
 }
 
-function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number }) {
+function TimeInput({ date, onChange, utcOffsetMin, zone }: { date: Date; onChange: (d: Date) => void; utcOffsetMin: number; zone: string | null }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +72,11 @@ function TimeInput({ date, onChange, utcOffsetMin }: { date: Date; onChange: (d:
     setEditing(false);
     const mins = parseTime(val);
     if (mins !== null) {
-      const next = fromMapLocal(date, utcOffsetMin, Math.floor(mins / 60), mins % 60);
+      // On a DST-transition day the offset in effect now is not the one in
+      // effect at the time being typed; resolve in the zone where we have one.
+      const next = zone
+        ? fromMapLocalInZone(date, zone, Math.floor(mins / 60), mins % 60)
+        : fromMapLocal(date, utcOffsetMin, Math.floor(mins / 60), mins % 60);
       onChange(next);
     }
   }
@@ -183,7 +194,7 @@ export default function Home() {
     accumulation, setAccumulation,
     isPlaying, setIsPlaying,
     sliderMode, setSliderMode,
-    mapCenter, mapZoom, mapPitch, mapUtcOffsetMin,
+    mapCenter, mapZoom, mapPitch, mapUtcOffsetMin, mapZone,
     handleMapReady, handleSliderChange, handleDayOfYearChange,
     adjustYear, jumpTo, getCanvas, getBounds,
     mapRef, dateRef,
@@ -322,26 +333,50 @@ export default function Home() {
     if (didHydrateShareRef.current || !mapRef.current || mapCenter == null) return;
     didHydrateShareRef.current = true;
 
-    const firstPass = parseShareState(window.location.search, mapUtcOffsetMin);
-    const offset = firstPass.center ? longitudeToUtcOffsetMin(firstPass.center[0]) : mapUtcOffsetMin;
-    const shared = parseShareState(window.location.search, offset);
-    const hasRouteState = !!(shared.waypointA || shared.waypointB || shared.additionalWaypoints.length > 0);
+    // Read the query synchronously, before anything is awaited. Setting the
+    // ref above releases the URL-writing effect below, which immediately
+    // replaces the address bar with the app's current state — so by the time an
+    // await resolves, `window.location.search` is no longer the shared link.
+    const search = window.location.search;
 
-    if (shared.date) setDate(shared.date);
-    if (shared.waypointA) handleSetWaypointA(shared.waypointA, "Shared start");
-    if (shared.waypointB) handleSetWaypointB(shared.waypointB, "Shared destination");
-    if (shared.additionalWaypoints.length > 0) {
-      handleSetAdditionalWaypoints(shared.additionalWaypoints);
-    }
-    if (shared.center || shared.zoom != null) {
-      const center = shared.center ?? [mapCenter[1], mapCenter[0]] as [number, number];
-      mapRef.current.jumpTo({ center, zoom: shared.zoom ?? mapRef.current.getZoom() });
-    }
-    if (hasRouteState) {
-      setMenuOpen(true);
-      setSidebarOpen(true);
-      dispatch({ type: "START_DIRECTIONS" });
-    }
+    // The zone lookup is a lazily-fetched chunk, so at first paint it is not
+    // there yet and `zoneAt` would answer null for every link. Waiting costs a
+    // tick at startup; it resolves even when the fetch fails, in which case the
+    // longitude estimate below stands in.
+    void ensureZoneLookup().then(() => {
+      if (!mapRef.current || mapCenter == null) return;
+
+      // A share link stores a wall clock, so the offset is its decoder key — and it
+      // has to be the offset at the *shared* coordinates, not wherever this map
+      // happens to sit. `firstPass` exists only to read that centre out.
+      const firstPass = parseShareState(search, mapUtcOffsetMin);
+      const sharedZone = firstPass.center
+        ? zoneAt(firstPass.center[1], firstPass.center[0]) // parseShareState gives [lng, lat]
+        : null;
+      const offset = sharedZone
+        ? utcOffsetMinAt(sharedZone, firstPass.date ?? new Date())
+        : firstPass.center
+          ? longitudeToUtcOffsetMin(firstPass.center[0])
+          : mapUtcOffsetMin;
+      const shared = parseShareState(search, offset);
+      const hasRouteState = !!(shared.waypointA || shared.waypointB || shared.additionalWaypoints.length > 0);
+
+      if (shared.date) setDate(shared.date);
+      if (shared.waypointA) handleSetWaypointA(shared.waypointA, "Shared start");
+      if (shared.waypointB) handleSetWaypointB(shared.waypointB, "Shared destination");
+      if (shared.additionalWaypoints.length > 0) {
+        handleSetAdditionalWaypoints(shared.additionalWaypoints);
+      }
+      if (shared.center || shared.zoom != null) {
+        const center = shared.center ?? [mapCenter[1], mapCenter[0]] as [number, number];
+        mapRef.current.jumpTo({ center, zoom: shared.zoom ?? mapRef.current.getZoom() });
+      }
+      if (hasRouteState) {
+        setMenuOpen(true);
+        setSidebarOpen(true);
+        dispatch({ type: "START_DIRECTIONS" });
+      }
+    });
   }, [
     dispatch,
     handleSetAdditionalWaypoints,
@@ -524,8 +559,8 @@ export default function Home() {
 
         {sliderMode === "time" ? (
           <>
-            <DateInput date={date} onChange={setDate} utcOffsetMin={mapUtcOffsetMin} />
-            <TimeInput date={date} onChange={setDate} utcOffsetMin={mapUtcOffsetMin} />
+            <DateInput date={date} onChange={setDate} utcOffsetMin={mapUtcOffsetMin} zone={mapZone} />
+            <TimeInput date={date} onChange={setDate} utcOffsetMin={mapUtcOffsetMin} zone={mapZone} />
           </>
         ) : (
           <div className="flex items-center gap-1">

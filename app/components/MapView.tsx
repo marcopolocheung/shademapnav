@@ -3,6 +3,8 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { TrainDrawData } from "../lib/trainGraph";
 import type { LatLng, SketchPoint } from "../lib/routing";
+import SunCalc from "suncalc";
+import { sunriseSunset } from "../lib/sunTimes";
 import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFoursquareRateLimited, type FoursquarePlaceInfo } from "../services/foursquare";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
@@ -196,31 +198,27 @@ function computeSolarAzimuth(date: Date, latDeg: number, lngDeg: number): number
   return (Math.atan2(sinAz, cosAz) * (180 / Math.PI) + 360) % 360;
 }
 
+/**
+ * Compass bearings of sunrise and sunset, for the sun compass.
+ *
+ * Both instants come from `app/lib/sunTimes.ts`, so the compass and the timeline
+ * markers can no longer disagree. This was a private copy of the same orbital
+ * math anchored on `noon.setHours(12, 0, 0, 0)` — the *browser's* local noon, not
+ * the map's — which slipped a solar day whenever the map was far from the viewer
+ * (#225). The error was small, at most ~0.5° near an equinox, but it was real and
+ * it was invisible.
+ */
 function computeSunriseSetAzimuths(
   date: Date,
-  latDeg: number
+  latDeg: number,
+  lngDeg: number
 ): { rise: number; set: number } | null {
-  const noon = new Date(date);
-  noon.setHours(12, 0, 0, 0);
-  const noonN = noon.getTime() / 86400000 + 2440587.5 - 2451545.0;
-  const L = (280.46 + 0.9856474 * noonN) % 360;
-  const g = ((357.528 + 0.9856003 * noonN) % 360) * (Math.PI / 180);
-  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * (Math.PI / 180);
-  const epsilon = (23.439 - 0.0000004 * noonN) * (Math.PI / 180);
-  const dec = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
-  const latRad = latDeg * (Math.PI / 180);
-  const cosHA0 = -Math.tan(latRad) * Math.tan(dec);
-  if (Math.abs(cosHA0) > 1) return null;
-  const HA0 = Math.acos(cosHA0);
-  const azAt = (ha: number): number => {
-    const sinE = Math.sin(latRad) * Math.sin(dec) + Math.cos(latRad) * Math.cos(dec) * Math.cos(ha);
-    const cosE = Math.sqrt(1 - sinE * sinE);
-    if (cosE < 1e-10) return 0;
-    const sA = -Math.cos(dec) * Math.sin(ha) / cosE;
-    const cA = (Math.sin(dec) - Math.sin(latRad) * sinE) / (Math.cos(latRad) * cosE);
-    return (Math.atan2(sA, cA) * (180 / Math.PI) + 360) % 360;
-  };
-  return { rise: azAt(-HA0), set: azAt(HA0) };
+  const t = sunriseSunset(date, latDeg, lngDeg);
+  if (!t) return null; // polar day or polar night
+  // SunCalc measures azimuth in radians from south; the map wants compass degrees.
+  const compass = (at: Date) =>
+    (SunCalc.getPosition(at, latDeg, lngDeg).azimuth * (180 / Math.PI) + 180) % 360;
+  return { rise: compass(t.sunrise), set: compass(t.sunset) };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,21 +240,26 @@ function computeSolarAzimuthCached(date: Date, latDeg: number, lngDeg: number): 
   return az;
 }
 
-let _rsCache: { dateMs: number; lat: number; rise: number | null; set: number | null } | null = null;
+let _rsCache:
+  { dateMs: number; lat: number; lng: number; rise: number | null; set: number | null } | null = null;
 
 function computeSunriseSetAzimuthsCached(
   date: Date,
-  latDeg: number
+  latDeg: number,
+  lngDeg: number
 ): { rise: number; set: number } | null {
   const dateMs = date.getTime();
+  // Longitude is part of the key: the bearings genuinely depend on it now, so a
+  // key without it would serve a stale compass after an east-west pan.
   if (_rsCache &&
       Math.abs(_rsCache.dateMs - dateMs) < 60000 &&
-      Math.abs(_rsCache.lat - latDeg) < 0.01) {
+      Math.abs(_rsCache.lat - latDeg) < 0.01 &&
+      Math.abs(_rsCache.lng - lngDeg) < 0.01) {
     if (_rsCache.rise === null || _rsCache.set === null) return null;
     return { rise: _rsCache.rise, set: _rsCache.set };
   }
-  const rs = computeSunriseSetAzimuths(date, latDeg);
-  _rsCache = { dateMs, lat: latDeg, rise: rs?.rise ?? null, set: rs?.set ?? null };
+  const rs = computeSunriseSetAzimuths(date, latDeg, lngDeg);
+  _rsCache = { dateMs, lat: latDeg, lng: lngDeg, rise: rs?.rise ?? null, set: rs?.set ?? null };
   return rs;
 }
 
@@ -657,7 +660,7 @@ export default function MapView({
       if (!showSunLinesRef.current) return;
       const { lng, lat } = map.getCenter();
       const sunAz = computeSolarAzimuthCached(dateRef.current, lat, lng);
-      const rs    = computeSunriseSetAzimuthsCached(dateRef.current, lat);
+      const rs    = computeSunriseSetAzimuthsCached(dateRef.current, lat, lng);
       setSunViz({
         sunAz,
         riseAz:  rs?.rise ?? null,
@@ -838,7 +841,7 @@ export default function MapView({
     if (map?.isStyleLoaded() && showSunLinesRef.current) {
       const { lng, lat } = map.getCenter();
       const sunAz = computeSolarAzimuthCached(date, lat, lng);
-      const rs    = computeSunriseSetAzimuthsCached(date, lat);
+      const rs    = computeSunriseSetAzimuthsCached(date, lat, lng);
       setSunViz({
         sunAz,
         riseAz:  rs?.rise ?? null,
@@ -858,7 +861,7 @@ export default function MapView({
     if (!map?.isStyleLoaded()) return;
     const { lng, lat } = map.getCenter();
     const sunAz = computeSolarAzimuthCached(dateRef.current, lat, lng);
-    const rs    = computeSunriseSetAzimuthsCached(dateRef.current, lat);
+    const rs    = computeSunriseSetAzimuthsCached(dateRef.current, lat, lng);
     setSunViz({
       sunAz,
       riseAz:  rs?.rise ?? null,
