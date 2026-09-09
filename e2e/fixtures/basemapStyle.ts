@@ -80,6 +80,15 @@ interface BuildingFeature {
   geometry: { type: "Polygon"; coordinates: [number, number][][] };
 }
 
+/**
+ * The footprints the style carries, as bare features. The detour sweep in
+ * `e2e/bench/` builds its prisms from these, so the shade it prices edges
+ * against is the shade the browser benchmark's map is drawing.
+ */
+export function fixtureBuildingFeatures(): BuildingFeature[] {
+  return buildFootprints();
+}
+
 function buildFootprints(): BuildingFeature[] {
   const features: BuildingFeature[] = [];
 

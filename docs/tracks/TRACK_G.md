@@ -10,7 +10,12 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 
 ## Current state
 
-- **Active checkpoint:** **G2** — G1's PR #177 has merged and the smoke test runs in CI.
+- **Active checkpoint:** **G2** — PR #260 open (stacked on **#258**, the instrument fix). G1's
+  PR #177 merged before it and the smoke test runs in CI.
+- **Open PRs:** **#258** (`fix/g2-metrics-instrument`, #182 + #183) and **#260**
+  (`feat/g2-route-benchmark`, G2 + the #243 sweep). **Merge #258 first** — #260's warm scenarios
+  call `clearMetrics()` and its cross-check reads `summary.p50TotalMs`, so it does not build
+  without it. GitHub retargets #260 to `main` when #258 merges.
 - **G2 is the highest-leverage item on the board.** A5's acceptance criterion is literally
   *"no benchmark → no claim"*, Track H cannot state its central comparison without a committed
   baseline, and Track P cannot publish a performance number that does not exist.
@@ -92,6 +97,14 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   the key).
 - **Blocked on:** nothing. `VITE_MAPTILER_API_KEY` as a repo secret (#173) now only adds the
   `smoke-live` project; it is no longer the difference between a real run and a green skip.
+- **Decisions made in G2, so a future session does not re-derive them:** the benchmark is
+  keyless (real tiles put network variance inside a baseline); the canonical environment is a
+  named developer machine, not a GitHub runner (~3x slower there, so before/after must happen on
+  one machine); it **gates nothing** and lives in its own Playwright config so `npm run e2e` —
+  and therefore CI — cannot pick it up; `npm run bench` stays the vitest shade benchmark and the
+  route one is **`npm run bench:route`**; and the detour sweep runs in Node against
+  `paretoRoutes` rather than the browser, because `maxDetourFactor` is a `DijkstraOptions` field
+  `useNavigation` never passes and exposing it would have been a production change.
 - **Done — the G2 instrument, ahead of the benchmark itself (#182, #183).** G2 reads
   `window.__shadeMapMetrics.summary`, and that object could not state variance: `p95TotalMs` was
   an unconditionally mislabeled **maximum** — `MAX_HISTORY = 20` is the buffer's ceiling and
@@ -104,11 +117,58 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   Node, and the old percentile index fails one of them. Filed and deliberately not fixed here:
   **#256** (a dev-only block in the same file), which is stale as filed — the fields it says are
   unused are read by the `console.groupCollapsed`/`console.table` immediately below.
-- **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
-  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions, and
-  the summary can now carry the variance G2's acceptance asks for. Fold in the **#243** detour
-  sweep; **#254** owns the `npm run bench` name collision.
-- **Last verified:** 2026-09-09 on **Node 24.21.0**, clean `npm ci` — lint 0 (51 warnings,
+- **Done — G2.** `npm run bench:route` (`e2e/bench/**`, its own Playwright config) drives the
+  G1 browser through 2-point and 5-point calculations, cache-cold and cache-warm, and reads the
+  app's own `window.__shadeMapMetrics`. The baseline is committed in
+  `docs/notes/performance-baseline.md` with the machine named, the variance stated and a zero
+  retry budget. It is **on demand, never in CI** — `npm run e2e` ignores `e2e/bench/**`, so the
+  separation from G3's gate is mechanical rather than a convention. Keyless only: real tiles
+  would put network variance inside a baseline.
+  - **The headline is not the total, it is the split.** Dijkstra is 3–18 ms of a ~3 s 2-point
+    calculation; the canvas read is 1.1–2.2 s, a third to well over half of the whole thing.
+    **A5's worker offload should be read against that** — the main-thread block is the
+    readback, not the search.
+  - **Warm is slower than cold**, in all six cold/warm comparisons (2-point 1.3–1.5x, 5-point
+    1.8–2.0x). The graph cache works and saves ~15 ms against a several-hundred-ms rise in the
+    canvas read. The per-run series is published so the level shift is visibly not a climb;
+    *why* it shifts is an untested hypothesis and the note says so.
+  - **Filed, not fixed: #259.** `canvasRead` was non-zero on **all 90 runs** across three
+    sessions while `shadeFallbackShare` printed **0.0% on all 90** — `coverage()` sent every
+    calculation down the `needsCanvas` path and the pixel sampler then answered no edges. Both
+    halves are per-run output, not a median. Unverified against real MapTiler tiles, which is
+    why it is a filing and not a fix.
+  - **The reproducibility estimate is itself unstable.** Two sessions of three runs produced
+    near-opposite orderings of which scenario reproduces best. Across-session spans land
+    between ~2% and ~25% on every row, so **treat a before/after movement under ~25% as noise**
+    on all four scenarios, or raise the repeat counts first. Do not quote a per-row figure.
+  - **#243 folded in.** The `maxDetourFactor` sweep is published: 1.25 → 2.0 buys 5.8 pp of
+    shade for 61 pp of extra walking and triples search time. **The constant is unchanged** —
+    #243 is `track-h` and H3 picks a value against the curve. The sweep runs in Node against
+    `paretoRoutes` because `useNavigation` never passes the option, and varying it from the
+    browser would have meant adding a production seam.
+  - **Name collision settled:** `npm run bench` stays the vitest shade-sampling benchmark;
+    the route benchmark is `npm run bench:route`. **#254** should keep that split when it ports
+    the vitest benchmark.
+- **Filed by G2, none fixed:** **#259** (`track-a`, the canvas read above), **#264**
+  (`track-a`, why warm is slower than cold — the cause is a hypothesis, not a result), and four
+  against this track: **#261** the benchmark's variance definition has no test and its only
+  drift guard never runs in CI; **#262** `MAX_HISTORY = 20` silently caps any benchmark at 20
+  repeats; **#263** the repeat counts are too low to estimate the benchmark's own run-to-run
+  span, which is what forces the ~25% noise floor above and blocks on #262; **#265** the
+  Node-only sweep still pays for a full browser build; **#266** `benchCold` re-registers its
+  network stubs each repeat. **#256 is stale as filed** — the fields it calls unused are read
+  by the `console.table` below them — and carries a comment recommending it be closed as
+  not-a-defect.
+- **Next action:** **G3** — the bundle budget (#57). It is the smallest remaining item, it now
+  has a committed table to check against, and it is where regression *gating* belongs; G2
+  deliberately gates nothing. **G0** (routing-quality eval) remains the better filler task and
+  can run concurrently.
+- **Last verified:** 2026-09-09 on `feat/g2-route-benchmark`, **Node 24.21.0** — lint 0 errors /
+  51 warnings (the known backlog, unchanged), typecheck 0, **564 tests in 49 files**, build 0
+  (maplibre chunk unchanged), `npm run e2e` **both** projects green (`smoke` 18.2 s, `smoke-live`
+  50.6 s against real MapTiler tiles — which is what proves the `metrics.ts` getter change is
+  safe for the smoke test's `latest` read), and `npm run bench:route` run three times end to end,
+  ~5.4 min each. Previously 2026-09-09 on `main` — lint 0 (51 warnings,
   the known backlog), typecheck 0, 550 tests in 48 files, coverage 0, build 0 (maplibre chunk
   954.47 kB / 257.76 kB gzip, unchanged from Node 20), and `npm run e2e` **both** projects
   green: `smoke` 16.9 s and `smoke-live` 44.3 s against real MapTiler tiles. Previously
@@ -157,6 +217,17 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
   is visible while passing. 150 cases, ~235 ms, pure Node.
 - **`app/lib/routing.ts`** exports `paretoRoutes`, and `metrics.ts` exports `computeDerivedKpis`.
   Both are pure and already composed in production — which is what makes G0 cheap.
+- **`app/lib/overpass.ts` cannot be imported outside a Vite build.** It reads
+  `import.meta.env.DEV` at module scope (line 9), which is `undefined` in plain Node, so a
+  Playwright spec or any Node-side harness that imports it throws on load. The Overpass *parser*
+  lives inside `fetchRoutingGraph` and has no pure seam, so a Node harness that needs a
+  `RoutingGraph` has to construct one — `e2e/fixtures/overpassGrid.ts:overpassGridGraph()` is
+  the worked example. `routing.ts`, `shadeSampling.ts` and `app/lib/shade/**` are all env-free
+  and import fine.
+- **A multi-waypoint route is a different algorithm, not a longer one.** With `via` waypoints
+  `useNavigation.ts:1263` leaves `paretoRoutes` entirely and runs a plain `dijkstra` per leg at
+  several shade strengths, returning a single route with no shade-gain KPI. Any benchmark, eval
+  or claim that says "routing" needs to say which of the two it measured.
 - **A working browser, locally.** #121 says no Chromium runs here; that is stale for local work.
   The cached Playwright Chromium starts once `libnss3`, `libnspr4` and `libasound2` are
   side-loaded without sudo (`apt-get download` → `dpkg-deb -x` → `LD_LIBRARY_PATH`); verified
@@ -212,7 +283,7 @@ forks aren't broken; runtime under ~3 minutes; flake budget stated (retry once, 
 skipped) and the flake budget and runtime hold locally; "green in CI" for the *test* path is
 outstanding until #173 adds the secret, and nothing here can close that from inside a PR.
 
-### G2 — Route benchmark ← **start here**
+### G2 — Route benchmark ✅ **landed**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.
 **Approach.** A scripted 2-point and 5-point calculation in the G1 browser, reading
 `window.__shadeMapMetrics.summary`. Commit the baseline into
@@ -221,8 +292,14 @@ fixed coordinates, fixed date/time, cache-warm and cache-cold variants.
 **Acceptance.** Reproducible numbers with variance stated; baseline committed; a documented
 command any track can run before/after its change.
 **Files.** `e2e/bench/**`, `docs/notes/performance-baseline.md`. **Size.** Medium.
+**Delivered against acceptance:** reproducible numbers with variance stated (p50/p95, a spread
+figure, the raw per-run series printed, zero retries), the baseline committed with the machine
+named, and `npm run bench:route` documented in the note. **Not delivered, deliberately:** TTI.
+#37 asks for TTI *and* route-calc; G2's acceptance names route calculation only, and the note
+now says TTI is outstanding rather than half-measuring it. **#243's sweep is in the same PR** —
+same fixture, one parameter varied.
 
-### G3 — Bundle budget
+### G3 — Bundle budget ← **start here**
 **Goal.** Stop silent regression of a 1.6 MiB `dist/` with a 953 kB maplibre chunk. Closes **#57**.
 **Approach.** Per-chunk gzip ceilings checked in CI against the committed table in the perf
 baseline; fail on regression beyond a stated tolerance.
