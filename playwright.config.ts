@@ -7,20 +7,22 @@ import { loadEnv } from "vite";
 export const hasMapTilerKey = !!loadEnv("production", process.cwd(), "VITE_")
   .VITE_MAPTILER_API_KEY;
 
-// Say which projects will run. A reader who sees one test instead of two should
-// not have to guess why.
-console.log(
-  hasMapTilerKey
-    ? "[e2e] running `smoke` (fixture basemap) and `smoke-live` (real MapTiler tiles)."
-    : "[e2e] running `smoke` (fixture basemap). `smoke-live` needs VITE_MAPTILER_API_KEY " +
-        "and is skipped — it is the only check on MapTiler's real building schema."
-);
-
 const PORT = 4173;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
+  // Say which projects will run. A reader who sees one test instead of two should
+  // not have to guess why. This is `globalSetup` rather than a module-scope log
+  // because `playwright.bench.config.ts` imports this file for its shared `use`
+  // block: a module-scope log fires in that config too, and again in every spawned
+  // worker, where an `argv` guard cannot see the config path. The keyless benchmark
+  // was announcing `smoke-live` — the one thing its own caveat says it never uses.
+  globalSetup: "./e2e/announceProjects.ts",
   testDir: "e2e",
+  // G2's benchmark has its own config (`playwright.bench.config.ts`). It measures
+  // and commits a baseline rather than gating a build, takes minutes, and is
+  // meaningful only on one machine — so `npm run e2e`, and therefore CI, skips it.
+  testIgnore: "**/bench/**",
   // Flake budget: one retry, then fail. A browser test that needs more retries
   // than that is noise, and noisy CI is worse than no CI.
   retries: 1,

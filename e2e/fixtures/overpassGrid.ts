@@ -10,6 +10,9 @@
  * (or, in the `smoke-live` project, from real MapTiler tiles).
  */
 
+import { haversineMeters } from "../../app/lib/routing";
+import type { GraphEdge, OsmNode, RoutingGraph } from "../../app/lib/routing";
+
 const SOUTH = 40.7515;
 const WEST = -73.9875;
 const LAT_STEP = 0.0005; // ~55 m
@@ -30,7 +33,10 @@ interface OverpassWay {
   tags: { highway: string };
 }
 
-const nodeId = (row: number, col: number) => 1_000_000 + row * 100 + col;
+export const GRID_ROWS = ROWS;
+export const GRID_COLS = COLS;
+
+export const nodeId = (row: number, col: number) => 1_000_000 + row * 100 + col;
 const lat = (row: number) => Number((SOUTH + row * LAT_STEP).toFixed(6));
 const lon = (col: number) => Number((WEST + col * LNG_STEP).toFixed(6));
 
@@ -61,3 +67,54 @@ function buildGrid(): OverpassWay[] {
 }
 
 export const overpassGridResponse = JSON.stringify({ elements: buildGrid() });
+
+/**
+ * The same grid as a `RoutingGraph`, for the detour sweep in `e2e/bench/`.
+ *
+ * It is **constructed**, not parsed. `fetchRoutingGraph` holds the parser, and
+ * `overpass.ts` reads `import.meta.env.DEV` at module scope, so importing it
+ * outside a Vite build throws — a Playwright spec runs in plain Node. This
+ * builds what that parser produces for this fixture: every node is shared by a
+ * row way and a column way, so all of them are intersections; edges are
+ * bidirectional; `shadeFactor` starts at 0 for the caller to fill in, exactly as
+ * `fetchRoutingGraph` documents.
+ *
+ * The browser benchmark reports `graphNodeCount` and `graphDirectedEdges` from
+ * the real parser on the same fixture, so the two can be compared rather than
+ * assumed equal — the app fetches a bbox around its waypoints, not the whole
+ * grid, and then doubles every edge into two sidewalks.
+ */
+export function overpassGridGraph(): RoutingGraph {
+  const nodes = new Map<number, OsmNode>();
+  const adj = new Map<number, GraphEdge[]>();
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const id = nodeId(row, col);
+      nodes.set(id, { id, lat: lat(row), lon: lon(col), isIntersection: true });
+      adj.set(id, []);
+    }
+  }
+
+  const link = (a: number, b: number, highway: string) => {
+    const na = nodes.get(a)!;
+    const nb = nodes.get(b)!;
+    const distanceM = haversineMeters([na.lon, na.lat], [nb.lon, nb.lat]);
+    adj.get(a)!.push({ toId: b, distanceM, shadeFactor: 0, highway });
+    adj.get(b)!.push({ toId: a, distanceM, shadeFactor: 0, highway });
+  };
+
+  // Row ways are `residential`, column ways `footway` — the tags buildGrid emits.
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col + 1 < COLS; col++) {
+      link(nodeId(row, col), nodeId(row, col + 1), "residential");
+    }
+  }
+  for (let col = 0; col < COLS; col++) {
+    for (let row = 0; row + 1 < ROWS; row++) {
+      link(nodeId(row, col), nodeId(row + 1, col), "footway");
+    }
+  }
+
+  return { nodes, adj };
+}

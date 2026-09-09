@@ -2,9 +2,13 @@
  * Routing instrumentation — captures KPIs for every calculateRoute() call.
  *
  * In development, results are logged to the console and exposed at:
- *   window.__shadeMapMetrics.latest   — most recent run
- *   window.__shadeMapMetrics.history  — last 20 runs
- *   window.__shadeMapMetrics.summary  — p50/p95 aggregates
+ *   window.__shadeMapMetrics.latest       — most recent run
+ *   window.__shadeMapMetrics.history      — last 20 runs
+ *   window.__shadeMapMetrics.summary      — p50/p95 aggregates
+ *   window.__shadeMapMetrics.clearMetrics — reset the history buffer
+ *
+ * The first three are getters, so a caller that resets the buffer never reads a
+ * stale aggregate computed before the reset.
  *
  * Three headline KPIs:
  *   1. routeComputeMs  — end-to-end calculateRoute latency
@@ -77,14 +81,7 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
   _history.unshift(m);
   if (_history.length > MAX_HISTORY) _history.pop();
 
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__shadeMapMetrics = {
-      latest: m,
-      history: _history,
-      summary: getMetricsSummary(),
-    };
-  }
+  publishMetricsToWindow();
 
   if (process.env.NODE_ENV === "development") {
     const { phases, graphNodeCount, graphDirectedEdges } = m;
@@ -110,14 +107,58 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
   }
 }
 
+/**
+ * Installs (or reinstalls) `window.__shadeMapMetrics`.
+ *
+ * The three reads are getters rather than snapshots because a benchmark resets the
+ * buffer between scenarios: a `summary` captured at record time would survive
+ * `clearMetrics()` and report the previous scenario's numbers.
+ */
+function publishMetricsToWindow(): void {
+  if (typeof window === "undefined") return;
+  (window as any).__shadeMapMetrics = {
+    get latest(): RoutingRunMetrics | null {
+      return _history[0] ?? null;
+    },
+    get history(): readonly RoutingRunMetrics[] {
+      return _history;
+    },
+    get summary(): MetricsSummary | null {
+      return getMetricsSummary();
+    },
+    clearMetrics,
+  };
+}
+
 export interface MetricsSummary {
   runs: number;
   avgTotalMs: number;
+  p50TotalMs: number;
   p95TotalMs: number;
   avgShadeSampleMs: number;
   avgDijkstraMs: number;
   avgShadeCoverageGainPp: number | null;
   avgPathLengthDeltaPct: number | null;
+}
+
+/**
+ * Linear-interpolated percentile (the R-7 definition) over an ascending-sorted array.
+ *
+ * The index form this replaced — `Math.min(Math.floor(n * q), n - 1)` — lands on the
+ * last element for every n from 1 to MAX_HISTORY at q = 0.95, so `p95TotalMs` was the
+ * maximum run at every sample count this buffer can hold, not a 95th percentile.
+ * Interpolating between the two ranks that straddle the percentile is defined for
+ * every n >= 1 and equals the maximum only when the maximum genuinely is the answer.
+ *
+ * At the sample counts a benchmark uses, p95 still leans hard on the top one or two
+ * runs — read `p50TotalMs` for the centre and the pair for the spread.
+ */
+function percentile(sortedAsc: number[], q: number): number {
+  const rank = (sortedAsc.length - 1) * q;
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+  if (lo === hi) return sortedAsc[lo];
+  return sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (rank - lo);
 }
 
 export function getMetricsSummary(): MetricsSummary | null {
@@ -127,10 +168,6 @@ export function getMetricsSummary(): MetricsSummary | null {
   const avg = (arr: number[]) => sum(arr) / arr.length;
 
   const totals = _history.map((h) => h.phases.total).sort((a, b) => a - b);
-  const p95Idx = Math.min(
-    Math.floor(totals.length * 0.95),
-    totals.length - 1
-  );
 
   const gainRuns = _history.filter((h) => h.shadeCoverageGainPp !== null);
   const deltaRuns = _history.filter((h) => h.pathLengthDeltaPct !== null);
@@ -138,7 +175,8 @@ export function getMetricsSummary(): MetricsSummary | null {
   return {
     runs: _history.length,
     avgTotalMs: avg(totals),
-    p95TotalMs: totals[p95Idx],
+    p50TotalMs: percentile(totals, 0.5),
+    p95TotalMs: percentile(totals, 0.95),
     avgShadeSampleMs: avg(_history.map((h) => h.phases.shadeSample)),
     avgDijkstraMs: avg(_history.map((h) => h.phases.dijkstra)),
     avgShadeCoverageGainPp:
@@ -157,9 +195,10 @@ export function getRunHistory(): readonly RoutingRunMetrics[] {
   return _history;
 }
 
-/** Clears the history buffer (useful for tests or session resets). */
+/** Clears the history buffer (useful for tests, session resets, or between benchmark scenarios). */
 export function clearMetrics(): void {
   _history.length = 0;
+  publishMetricsToWindow();
 }
 
 // ── Helper: compute derived KPIs from route options ───────────────────────────

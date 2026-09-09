@@ -18,7 +18,8 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "bench": "vitest bench --run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "bench:route": "playwright test --config=playwright.bench.config.ts"
   },
   "dependencies": {
     "@photostructure/tz-lookup": "^11.6.1",
