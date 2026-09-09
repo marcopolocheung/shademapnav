@@ -3,11 +3,95 @@
 **Mission.** Build the differentiator. `ROADMAP.md` §2: everything else is table stakes or
 catch-up; **this is the part a hiring manager asks a second question about.**
 
-**Verified 2026-09-08 at `99bb418`.** Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
+**Verified 2026-09-09 at `f159b25`.** Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
 
 > **One checkpoint per PR.** This is a long thread — do not batch. A change that grows past its
 > checkpoint stops being reviewable, and the reviewer is one person reading a four-sentence
 > description.
+
+---
+
+## Start here — G2, and the two-PR shape it needs
+
+**Everything in front of G2 is now clear.** Wave 0 landed (#204, #208), and #215 — the Node bump
+that was sequenced *before* G2 so the benchmark's baseline is measured on the runtime it will
+keep — merged as **#253**, with the dependency follow-up as **#255**. `main` is on **Node 24.21.0**
+and green. Nothing blocks the benchmark.
+
+### The finding that shapes the work
+
+**G2 reads `window.__shadeMapMetrics.summary`, and that object cannot currently state variance.**
+Two issues were already filed against it, and one is worse than its own description:
+
+| | |
+|---|---|
+| **#183** | `clearMetrics()` exists at `metrics.ts:161` but was never attached to the window object (`:82-86`). A multi-scenario benchmark cannot reset between cache-cold and cache-warm runs without reloading the page. |
+| **#182** | Filed as p95 degenerating *"at small sample counts (≤20, the expected regime)"*. It is worse: `MAX_HISTORY = 20` (`metrics.ts:71`) is the **ceiling**, and `Math.min(Math.floor(N * 0.95), N - 1)` lands on the last element for **every N from 1 to 20**. There is no reachable sample count at which `p95TotalMs` is a 95th percentile — it is an unconditionally mislabeled **maximum**. There is no `p50` field at all, and `metrics.ts` has **no tests**. |
+
+Verify both before trusting this paragraph:
+
+```bash
+node -e "for(const n of [1,10,20])console.log(n, Math.min(Math.floor(n*0.95), n-1), n-1)"
+grep -n "clearMetrics\|MAX_HISTORY\|p95Idx" app/lib/metrics.ts
+```
+
+This is not a detail. G2's acceptance is *"reproducible numbers with variance stated"*, and A5
+and H later prove their central comparison against the baseline G2 commits. Publishing a
+variance figure that is secretly the worst single run is the exact shape of unearned claim the
+checkpoint exists to prevent.
+
+### PR 1 — fix the instrument (#182, #183)
+
+`app/lib/metrics.ts` only. Add `p50TotalMs`, replace the percentile calculation with one that
+does not degenerate at small N, expose `clearMetrics` on `window.__shadeMapMetrics`. Ship the
+first tests `metrics.ts` has ever had — pure Node, no browser, no secret.
+
+Small, and separate from G2 on purpose: it is production code with its own filed issues, where
+G2 is a test harness. **Do not fold it into G2** — a benchmark PR that also changes the thing
+being measured is unreviewable, and the reviewer is one person reading four sentences.
+
+### PR 2 — G2 proper
+
+`e2e/bench/**` plus `docs/notes/performance-baseline.md`. Reuse G1's fixed conditions as the
+benchmark's fixed conditions — they already exist in `e2e/helpers/scenario.ts` (`CENTER`,
+`START_TIME`, the share-link seeding), the `overpassGrid` stub, the fixture basemap, 1280x900,
+`America/New_York`.
+
+**Decisions already taken, so they do not need re-deriving:**
+
+- **Keyless only** — the `smoke` project, not `smoke-live`. CI has no MapTiler secret (#173 is
+  still open) and real tiles put network variance inside a number meant to be a baseline.
+- **Canonical environment is local, not the GitHub runner.** A 2-core runner on SwiftShader runs
+  ~3x slower (`smoke` is ~17 s locally against ~50 s in CI). A5's before/after must happen on one
+  machine, so the baseline names that machine. The bench is an on-demand command, **not** a
+  per-PR CI step.
+- **No CI gate.** G2 measures and commits. Failing a build on regression is **G3**. Adding a gate
+  here is the scope creep that makes the PR unreviewable.
+- **No production code changes.** If a phase turns out to be uninstrumented, file it — do not
+  widen the diff.
+- **Not TTI.** #37 asks for TTI *and* route-calc; G2's acceptance names route calculation only.
+  Say TTI is still outstanding rather than half-measuring it.
+- **Variance is part of the deliverable.** N repeats, median and spread, flake budget stated.
+- **`npm run bench` is already taken** by `vitest bench --run` (the shade sampling benchmark).
+  Pick a different name — and note **#254** owns the collision if the vitest 5 port renames it
+  first. Settle both names once, in whichever lands first.
+
+**Fold in #243 (the detour sweep).** `maxDetourFactor = 2.0` at `app/lib/routing.ts:576` feeds
+the prune budget at `:581`, and is ~10x the detour three independent studies find useful. G2
+sweeps it and publishes what each value costs in compute and buys in shade. **G2 does not change
+the constant** — #243 is labelled `track-h`, and H3 changes it later against the measured curve.
+Same harness, one parameter varied: this is one PR with G2, not a second checkpoint.
+
+### Also worth knowing
+
+- **#256** — `metrics.ts:88-90` has a `NODE_ENV === "development"` block that destructures three
+  fields and uses none of them. Filed, not fixed. Do not clean it up inside either PR.
+- **#121 ("no usable browser on the dev machine") is stale** and still open. Playwright Chromium
+  runs here: `LD_LIBRARY_PATH=$HOME/miniconda3/lib npx playwright test`, WebGL2 on SwiftShader.
+  `smoke-live` passes locally against real MapTiler tiles, so a MapTiler key is present in `.env`.
+- Node 24 lives at `~/.local/node24/bin` on this machine and is **not** on the default PATH —
+  `/usr/bin/node` is still v20.20.1. Export it before running anything:
+  `export PATH="$HOME/.local/node24/bin:$PATH"`.
 
 ---
 
