@@ -1,7 +1,15 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import type maplibregl from "maplibre-gl";
 import type { AccumulationOptions } from "../components/MapView";
-import { longitudeToUtcOffsetMin, toMapLocal, fromMapLocal } from "../lib/timezone";
+import {
+  longitudeToUtcOffsetMin,
+  toMapLocal,
+  fromMapLocal,
+  fromMapLocalInZone,
+  fromZonedParts,
+  utcOffsetMinAt,
+} from "../lib/timezone";
+import { ensureZoneLookup, zoneAt } from "../lib/tzLookup";
 
 function todayAt(hours: number): Date {
   const d = new Date();
@@ -65,6 +73,8 @@ export interface ShadowTimeState {
   /** Camera pitch in degrees. 0 is top-down; > 0 means the 3D view is active. */
   mapPitch: number;
   mapUtcOffsetMin: number;
+  /** IANA zone of the map centre; null until the boundary dataset resolves. */
+  mapZone: string | null;
   dateRef: React.MutableRefObject<Date>;
   mapUtcOffsetMinRef: React.MutableRefObject<number>;
   sliderModeRef: React.MutableRefObject<"time" | "day">;
@@ -92,18 +102,34 @@ export function useShadowTime(): ShadowTimeState {
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [mapZoom, setMapZoom] = useState(2);
   const [mapPitch, setMapPitch] = useState(0);
-  const [mapUtcOffsetMin, setMapUtcOffsetMin] = useState<number>(
-    () => -new Date().getTimezoneOffset()
-  );
+  const [mapZone, setMapZone] = useState<string | null>(null);
 
   const mapRef = useRef<maplibregl.Map | null>(null);
   const dateRef = useRef(date);
-  const mapUtcOffsetMinRef = useRef(mapUtcOffsetMin);
+  const mapUtcOffsetMinRef = useRef(0);
+  const mapZoneRef = useRef(mapZone);
   const sliderModeRef = useRef<"time" | "day">("time");
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /**
+   * Derived, never stored. The offset depends on the *date* as well as the place
+   * — that is what DST means — so holding it in state guarantees it eventually
+   * disagrees with the date beside it. Falls back to a longitude estimate while
+   * the zone dataset loads, and to the device's own zone before the map is ready.
+   */
+  const mapUtcOffsetMin = useMemo(
+    () =>
+      mapZone
+        ? utcOffsetMinAt(mapZone, date)
+        : mapCenter
+          ? longitudeToUtcOffsetMin(mapCenter[1])
+          : -new Date().getTimezoneOffset(),
+    [mapZone, date, mapCenter]
+  );
+
   dateRef.current = date;
   mapUtcOffsetMinRef.current = mapUtcOffsetMin;
+  mapZoneRef.current = mapZone;
   sliderModeRef.current = sliderMode;
 
   // Advance 2 minutes per tick at 50ms → ~24s per full day
@@ -112,18 +138,24 @@ export function useShadowTime(): ShadowTimeState {
       animTimerRef.current = setInterval(() => {
         setDate((prev) => {
           const offsetMin = mapUtcOffsetMinRef.current;
+          const zone = mapZoneRef.current;
           if (sliderModeRef.current === "day") {
             const { year: yr, hours, minutes } = toMapLocal(prev, offsetMin);
             const doy = dateToDayOfYear(prev, offsetMin);
             const isLeap = (yr % 4 === 0 && yr % 100 !== 0) || yr % 400 === 0;
             const nextDoy = (doy + 1) % (isLeap ? 366 : 365);
+            if (zone) return fromZonedParts(zone, yr, 0, 1 + nextDoy, hours, minutes);
             return new Date(
               Date.UTC(yr, 0, 1) + nextDoy * 86400000 - offsetMin * 60000 + (hours * 60 + minutes) * 60000
             );
           } else {
             const { hours, minutes } = toMapLocal(prev, offsetMin);
             const totalMins = (hours * 60 + minutes + 2) % 1440;
-            return fromMapLocal(prev, offsetMin, Math.floor(totalMins / 60), totalMins % 60);
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            return zone
+              ? fromMapLocalInZone(prev, zone, h, m)
+              : fromMapLocal(prev, offsetMin, h, m);
           }
         });
       }, 50);
@@ -138,17 +170,33 @@ export function useShadowTime(): ShadowTimeState {
     };
   }, [isPlaying]);
 
+  /**
+   * Point the clock at the zone under `lat`/`lng`.
+   *
+   * The boundary dataset is fetched on demand, so the first call resolves a tick
+   * later and the app shows a longitude estimate until then. No debounce or
+   * cancellation: after the first load `zoneAt` is synchronous, and every caller
+   * passes the current centre, so a late resolution cannot install a stale zone.
+   */
+  const resolveZone = useCallback((lat: number, lng: number) => {
+    const known = zoneAt(lat, lng);
+    if (known) {
+      setMapZone(known);
+      return;
+    }
+    ensureZoneLookup().then(() => setMapZone(zoneAt(lat, lng)));
+  }, []);
+
   const handleMapReady = useCallback((map: maplibregl.Map) => {
     mapRef.current = map;
     const { lat, lng } = map.getCenter();
     setMapCenter([lat, lng]);
-    const initialOffset = longitudeToUtcOffsetMin(lng);
-    setMapUtcOffsetMin(initialOffset);
     setDate(new Date());
+    resolveZone(lat, lng);
     map.on("moveend", () => {
       const c = map.getCenter();
       setMapCenter([c.lat, c.lng]);
-      setMapUtcOffsetMin(longitudeToUtcOffsetMin(c.lng));
+      resolveZone(c.lat, c.lng);
     });
     map.on("zoom", () => setMapZoom(map.getZoom()));
     setMapZoom(map.getZoom());
@@ -157,14 +205,17 @@ export function useShadowTime(): ShadowTimeState {
     // never re-render to retry.
     map.on("pitchend", () => setMapPitch(map.getPitch()));
     setMapPitch(map.getPitch());
-  }, []);
+  }, [resolveZone]);
 
   const handleSliderChange = useCallback((m: number) => {
     setDate((prev) => {
       const offsetMin = mapUtcOffsetMinRef.current;
       const { hours, minutes } = toMapLocal(prev, offsetMin);
       if (hours * 60 + minutes === m) return prev;
-      return fromMapLocal(prev, offsetMin, Math.floor(m / 60), m % 60);
+      const zone = mapZoneRef.current;
+      return zone
+        ? fromMapLocalInZone(prev, zone, Math.floor(m / 60), m % 60)
+        : fromMapLocal(prev, offsetMin, Math.floor(m / 60), m % 60);
     });
   }, []);
 
@@ -172,6 +223,8 @@ export function useShadowTime(): ShadowTimeState {
     setDate((prev) => {
       const offsetMin = mapUtcOffsetMinRef.current;
       const { year, hours, minutes } = toMapLocal(prev, offsetMin);
+      const zone = mapZoneRef.current;
+      if (zone) return fromZonedParts(zone, year, 0, 1 + day, hours, minutes);
       return new Date(
         Date.UTC(year, 0, 1) + day * 86400000 - offsetMin * 60000 + (hours * 60 + minutes) * 60000
       );
@@ -182,6 +235,8 @@ export function useShadowTime(): ShadowTimeState {
     setDate((prev) => {
       const offsetMin = mapUtcOffsetMinRef.current;
       const { year, month, day, hours, minutes } = toMapLocal(prev, offsetMin);
+      const zone = mapZoneRef.current;
+      if (zone) return fromZonedParts(zone, year + delta, month, day, hours, minutes);
       return new Date(
         Date.UTC(year + delta, month, day) - offsetMin * 60000 + (hours * 60 + minutes) * 60000
       );
@@ -190,10 +245,10 @@ export function useShadowTime(): ShadowTimeState {
 
   const jumpTo = useCallback((center: [number, number], zoom: number) => {
     mapRef.current?.jumpTo({ center, zoom });
-    const newOffset = longitudeToUtcOffsetMin(center[0]);
-    setMapUtcOffsetMin(newOffset);
+    // `center` is maplibre's [lng, lat], the reverse of `mapCenter`'s [lat, lng].
+    resolveZone(center[1], center[0]);
     setDate(new Date());
-  }, []);
+  }, [resolveZone]);
 
   const getCanvas = useCallback(
     () => mapRef.current?.getCanvas(),
@@ -213,6 +268,7 @@ export function useShadowTime(): ShadowTimeState {
     sliderMode, setSliderMode,
     mapCenter, mapZoom, mapPitch,
     mapUtcOffsetMin,
+    mapZone,
     dateRef, mapUtcOffsetMinRef, sliderModeRef,
     handleMapReady, handleSliderChange, handleDayOfYearChange,
     adjustYear, jumpTo, getCanvas, getBounds,

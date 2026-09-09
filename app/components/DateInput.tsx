@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, memo } from "react";
-import { toMapLocal } from "../lib/timezone";
+import { toMapLocal, fromZonedParts } from "../lib/timezone";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -8,14 +8,24 @@ function formatDateDisplay(d: Date, utcOffsetMin: number): string {
   return `${MONTHS[month]} ${day}, ${year}`;
 }
 
-function parseDateText(s: string, base: Date, utcOffsetMin: number): Date | null {
+function parseDateText(
+  s: string,
+  base: Date,
+  utcOffsetMin: number,
+  zone: string | null
+): Date | null {
   s = s.trim();
   const { hours, minutes } = toMapLocal(base, utcOffsetMin);
 
   const makeDate = (year: number, month: number, day: number): Date | null => {
-    const d = new Date(
-      Date.UTC(year, month, day) - utcOffsetMin * 60000 + (hours * 60 + minutes) * 60000
-    );
+    // Typing a date in another season crosses a DST boundary, and `utcOffsetMin`
+    // is the offset in effect *now* — so reusing it would move the clock an hour
+    // without the user touching the time. Resolve in the zone where we have one.
+    const d = zone
+      ? fromZonedParts(zone, year, month, day, hours, minutes)
+      : new Date(
+          Date.UTC(year, month, day) - utcOffsetMin * 60000 + (hours * 60 + minutes) * 60000
+        );
     return isNaN(d.getTime()) ? null : d;
   };
 
@@ -43,6 +53,8 @@ interface DateInputProps {
   date: Date;
   onChange: (d: Date) => void;
   utcOffsetMin?: number;
+  /** IANA zone of the map centre, when it is known. Makes date edits DST-correct. */
+  zone?: string | null;
   ariaLabel?: string;
 }
 
@@ -50,6 +62,7 @@ const DateInput = memo(function DateInput({
   date,
   onChange,
   utcOffsetMin: utcOffsetMinProp,
+  zone = null,
   ariaLabel,
 }: DateInputProps) {
   const utcOffsetMin = utcOffsetMinProp ?? -new Date().getTimezoneOffset();
@@ -74,7 +87,7 @@ const DateInput = memo(function DateInput({
       return;
     }
     setEditing(false);
-    const next = parseDateText(val, date, utcOffsetMin);
+    const next = parseDateText(val, date, utcOffsetMin, zone);
     if (next) onChange(next);
   }
 

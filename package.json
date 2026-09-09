@@ -17,6 +17,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@photostructure/tz-lookup": "^11.6.1",
     "earcut": "3.2.3",
     "mapbox-gl-shadow-simulator": "^0.68.2",
     "maplibre-gl": "5.9.0",

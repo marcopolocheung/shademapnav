@@ -11,6 +11,9 @@
 This page exists because the app shows a number connected to sunburn, and such a
 number arriving without its assumptions is worse than no number at all.
 
+The hour every figure here is computed for is the map's local time.
+[`timezone.md`](./timezone.md) covers how that is resolved and the residual error in it.
+
 ## What the app actually shows
 
 One sentence: *"About 4–6 min of full sun."*

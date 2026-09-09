@@ -6,6 +6,9 @@
 > This score is an *intensity* — how hot the walk feels, not how long it lasts. The UV
 > *dose* shown on the same row is [heat-model.md](heat-model.md).
 
+The hour this score is computed for comes from the map's local time — see
+[`timezone.md`](./timezone.md) for how that is resolved and how accurate it is.
+
 This is the companion to [`heat-model.md`](./heat-model.md), which covers UV dose and
 arrives with PR #189. The two answer different questions: dose is about *sunburn*, this
 score is about *how hard the walk is on you right now*. UV index belongs to the first

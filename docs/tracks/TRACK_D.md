@@ -11,7 +11,7 @@
 ## Current state
 
 - **Active checkpoint:** D3 is **in review** (PR #189). D4 landed as PR #196; D2 **merged** as
-  PR #188. Next unstarted checkpoint is D5.
+  PR #188. D0 is in review (#204). Next unstarted checkpoint is D5.
 - **Done:**
   - D1 — `HourlyExposureStrip` + `useHourlyExposure` render the day's shade for the selected
     route under the tradeoff line, in both route surfaces. Closes #47.
@@ -20,6 +20,9 @@
   - D4 — `app/lib/heat/score.ts` scores the selected route 0–100 on felt temperature and
     renders it beside the tradeoff line, with `docs/notes/heat-score.md` linked from the UI.
     Closes #194.
+  - D0 — the offset is now a function of place **and date**: an IANA zone from a lazily
+    loaded boundary dataset, and DST rules from the runtime's own tz database via `Intl`.
+    Closes #204.
 - **Open PRs:** #189 (D3, issue #63).
 - **⚠️ D3 and D4 are not actually done, and it is not a code problem.** Both acceptance criteria
   require the method to be *linked from the UI*, and those links point at
@@ -33,7 +36,12 @@
   "4–5 min of full sun"). `RouteConditionsLine` replaces both: one badge, one method link, heat
   first because it is the figure that varies between the options below, dose second. Verified
   in a browser at 1280x900 and 375x667 — one visible badge, one visible link.
-- **D0 (real timezones) is new and comes before D6.** See the checkpoint below.
+- **D0 is done.** `longitudeToUtcOffsetMin` survives only as the fallback used while the
+  boundary chunk loads. Two things to know before building on it: the zone lookup is
+  **~5% wrong by offset on inhabited points**, clustered on borders, and that figure is
+  stated in `docs/notes/timezone.md` rather than in the UI (D0's acceptance allows either);
+  and the offset is **derived, never stored** — `useShadowTime` recomputes it from
+  `(zone, date)`, so nothing may cache it across a date change.
 - **Also open against this track:** #197 — the D1 hourly strip **never renders on mobile**. A
   shipped feature nobody on a phone can see; fix it before D5.
 - **Decisions made:**
