@@ -3,7 +3,13 @@
 **Mission.** Four small fixes and a triage. Every item is something the code or the docs
 currently assert that is not true. None is hard; all of them block something.
 
-**Verified 2026-09-08 at `99bb418`.** Re-check with `gh issue list --label p1 --state open`.
+**Verified 2026-09-08, after #219 merged.** Re-check with
+`gh issue list --label p1 --state open`.
+
+**Preconditions are met — this is startable now.** `main` is green, there are **no open PRs on
+either repo**, the public mirror has no PRs and no workflow runs, the Dependabot backlog is at
+zero, `FSQ_API_KEY` is live in Vercel with the old key rotated, and MapTiler now has allowed HTTP
+origins set. Nothing is waiting on the owner.
 
 > **On the one-track rule.** `docs/tracks/README.md` says one session owns one track. Wave 0 is
 > the deliberate exception — it is a cross-track sweep of small independent defects (D, G, H).
@@ -86,6 +92,13 @@ overstate in both directions, and P4 will have to describe it precisely.
 
 ## 4. #205 — G8, Nominatim policy and the unreachable `User-Agent` · **2–3 days**
 
+> **G8 has shrunk twice and is now mostly this issue.** Its `#33` bullet (vite/vitest
+> advisories) was completed by **#213**. Its `#32` bullet — the only open p0 — is now done on
+> both halves: MapTiler allowed HTTP origins were set in the dashboard, and the Foursquare half
+> turned out not to be a dashboard setting at all (service keys carry no origin restriction), so
+> **#218/#219** moved that key server-side into `api/fsq.js`. **Close #32 and #33 as part of this
+> session** rather than re-investigating them.
+
 **Track G · brief: `docs/tracks/TRACK_G.md` → G8**
 
 Two defects, both in the search path:
@@ -100,9 +113,7 @@ Two defects, both in the search path:
    invariant #6 in root `CLAUDE.md`** to say where the header can and cannot be set — as
    written it asks for something the platform does not permit.
 
-**G8's scope shrank on 2026-09-08.** Its `#33` bullet (vite/vitest advisories) was completed by
-PR #213. What remains of #33 is **the dependency-bump policy**, which is worth writing down —
-see §5.
+What remains beyond the two defects above is **the dependency-bump policy** — see §5.
 
 ---
 
@@ -145,6 +156,14 @@ reviewer arrives. Nothing was checking that.
 **#52 LICENSE first** — the repo calls itself open-source, has none, and is now publicly
 mirrored. Then **#53 `.env.example`** with the live half of #50 (`CLAUDE.md:57` and the README
 say `.env.local`; the tree has `.env`).
+
+**`.env.example` now has a shape worth getting right**, because the Foursquare key changed sides
+in #219: `VITE_MAPTILER_API_KEY` and `VITE_FOURSQUARE_API_KEY` are **dev-only client** values,
+while `FSQ_API_KEY` and `CEREBRAS_API_KEY` are **server-only** and must never take a `VITE_`
+prefix — that prefix is exactly what put the Foursquare key in the bundle. Say so in the file,
+not just in the variable names. Note also that this repo's `.env` values are written **quoted**,
+and both readers strip one surrounding pair (`normalizeApiKey`, `foursquareApiKey`) because a
+quoted key in a `Bearer` header fails as `401` and reads as an expired key.
 
 **⚠️ #50 is mostly stale.** Three of its four bullets are resolved. **Do not create six
 per-directory `CLAUDE.md` files** — `.claude/rules/` replaced them. Read G7's re-scope note in
