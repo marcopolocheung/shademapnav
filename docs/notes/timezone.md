@@ -50,10 +50,13 @@ New York on the June solstice, read off the timeline's sunrise marker in a brows
 | This version | 5:40 AM |
 | Real sunrise, 2026-06-21 | ~5:25 AM EDT |
 
-Exactly one hour, which is June's DST offset in New York. The remaining ~15 min is the
-sunrise formula's own error, not the timezone's: `TimelineSlider.computeSunriseSetMinutes`
-uses a simplified solar position and a fixed `+12` correction. That is a separate defect and
-is not addressed here.
+Exactly one hour, which is June's DST offset in New York.
+
+The remaining ~14 min is **not** a timezone error. It is one hardcoded constant: the `+ 12`
+added to both `riseMin` and `setMin` in `TimelineSlider.computeSunriseSetMinutes`. Drop it
+and that same formula returns 5:28 against SunCalc's 5:26 — the underlying solar model is
+fine, and its solar noon (12:56 vs 12:58) is within the equation of time it approximates.
+Tracked separately as **#225**; not changed here because it is solar math, not timezone.
 
 ## The part that is a derivation, not a measurement
 
