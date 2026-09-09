@@ -24,11 +24,17 @@ through tool wrappers, so a shade session and an agent session do not collide.
 **Every session, regardless:** `/gates` before any PR opens, `/checkpoint` before it is
 reviewed, and never merge — that is the owner's call.
 
-## State common to all four *(verified 2026-09-08, commit `99bb418`)*
+## State common to all four *(verified 2026-09-09, commit `f159b25`)*
 
-- `main` is **green**: lint 0 errors (52 warnings / 8 infos are the known backlog), typecheck 0,
-  **497 tests / 40 files**, build clean, browser smoke test passing in CI.
+- `main` is **green**: lint 0 errors (51 warnings / 8 infos are the known backlog), typecheck 0,
+  **550 tests / 48 files**, build clean, browser smoke test passing in CI.
 - **P1 is done.** The public mirror at `marcopolocheung/shademapnav` is live and current, so
   anything requiring a publicly-resolving link now works.
-- The **feature PR queue is empty.** #165, #210, #213 merged; #161 was closed.
-- Toolchain is **vite 6.4.3 / vitest 4.1.11 / esbuild 0.25.12** on **Node 20**.
+- The **PR queue is empty.** #253 and #255 merged this refresh; #165, #210, #213 merged
+  earlier and #161 was closed.
+- Toolchain is **vite 6.4.3 / vitest 4.1.11 / jsdom 30.0.1 / `@types/node` 24.13.3** on
+  **Node 24.21.0** — `.nvmrc` and `engines.node` both say `24.x`, and CI matches. **Vercel runs
+  24.x too**, which is why the bump went to 24 rather than the 22 #215 proposed. `vitest` stays
+  on **4.x** deliberately: vitest 5 removes the `bench` export (**#254**).
+- **Wave 0 is clear.** #204 (real timezones) and #208 (access tags) merged, and #215 (the Node
+  bump) is done — so nothing in `WAVE_0.md` blocks either thread any more.

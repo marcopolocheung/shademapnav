@@ -92,8 +92,15 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   the key).
 - **Blocked on:** nothing. `VITE_MAPTILER_API_KEY` as a repo secret (#173) now only adds the
   `smoke-live` project; it is no longer the difference between a real run and a green skip.
-- **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
-  browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
+- **Next action:** G2 — but **fix the instrument first**. G2 reads
+  `window.__shadeMapMetrics.summary`, and that object cannot state variance today: `p95TotalMs`
+  is an unconditionally mislabeled **maximum** (#182 — `MAX_HISTORY = 20` is the ceiling and
+  `Math.min(Math.floor(N * 0.95), N - 1)` hits the last element for every reachable N), there is
+  no `p50`, `clearMetrics` is never attached to the window so a multi-scenario bench cannot reset
+  (#183), and `metrics.ts` has no tests. **PR 1 = #182 + #183** in `app/lib/metrics.ts`; **PR 2 =
+  G2 proper** in `e2e/bench/**` + `performance-baseline.md`, with the #243 detour sweep folded in.
+  G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions. Full shape and
+  the decisions already taken: `docs/handoffs/THREAD_SHADE.md` → *Start here*.
 - **Last verified:** 2026-09-09 on **Node 24.21.0**, clean `npm ci` — lint 0 (51 warnings,
   the known backlog), typecheck 0, 550 tests in 48 files, coverage 0, build 0 (maplibre chunk
   954.47 kB / 257.76 kB gzip, unchanged from Node 20), and `npm run e2e` **both** projects
