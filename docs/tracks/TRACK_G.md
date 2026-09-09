@@ -40,7 +40,15 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **Done — G8 is closed out.** The **dependency-bump policy** is written into G8 below: the two
   invariant pins and why they are `ignore`d, `npm audit fix --force` banned, majors with no
   security driver declined by default, and the three Node-20-blocked majors deferred to #215.
-  #32 and #33 are closed; **#215 is the next dependency item, after Wave 0 and before G2**.
+  #32 and #33 are closed.
+- **Done:** **#215** — CI and the repo now run **Node 24.21.0 LTS**, not 20. The bump
+  target changed from the 22 the issue proposed: Vercel has been building and running
+  `api/*.js` on **24.x** all along, so 22 would have narrowed a CI/production runtime gap
+  that 24 closes — and 24 is Active LTS while 22 is in maintenance. `engines.node` is
+  `24.x` in `package.json`, which Vercel reads, so the deployed runtime is now declared in
+  version control instead of only in a dashboard. **#140/#141/#142 are unblocked** and are
+  the next dependency item; take `@types/node` **24**, not the 26 #142 offered — the rule
+  in G8 is that types track the runtime, and nothing runs 26.
 - **Filed, not fixed:** **#229** — `api/overpass.js` and `api/nominatim.js` take requests from
   any origin with no rate limit, unlike `api/fsq.js` and `api/agent.js`. Pre-existing in the
   Overpass proxy; the Nominatim one followed its idiom rather than inventing a one-off, so the
@@ -79,11 +87,14 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   `smoke-live` project; it is no longer the difference between a real run and a green skip.
 - **Next action:** G2 — route benchmark, reading `window.__shadeMapMetrics.summary` in the G1
   browser. G1's fixed camera, clock and Overpass stub are the benchmark's fixed conditions.
-- **Last verified:** 2026-09-08, four gates green plus `npm run e2e` (`smoke` project) on the
-  #205 branch, and the search path driven in a real browser against `npm run dev`: typing
-  "brooklyn bridge" and pausing 3 s fires no geocode at all, Enter fires exactly one request
-  to `/__nominatim?endpoint=search&…`, five matches render, and taking the top one recentres
-  the map on its bounding box
+- **Last verified:** 2026-09-09 on **Node 24.21.0**, clean `npm ci` — lint 0 (51 warnings,
+  the known backlog), typecheck 0, 550 tests in 48 files, coverage 0, build 0 (maplibre chunk
+  954.47 kB / 257.76 kB gzip, unchanged from Node 20), and `npm run e2e` **both** projects
+  green: `smoke` 16.9 s and `smoke-live` 44.3 s against real MapTiler tiles. Previously
+  2026-09-08 on the #205 branch, four gates plus `smoke`, and the search path driven by hand
+  against `npm run dev`: typing "brooklyn bridge" and pausing 3 s fires no geocode at all,
+  Enter fires exactly one request to `/__nominatim?endpoint=search&…`, five matches render,
+  and taking the top one recentres the map on its bounding box
 
 ---
 
@@ -305,8 +316,11 @@ how a week disappears.
 **4. A major blocked by the runtime is deferred to the runtime, not fought.** vitest 5 needs
 Node `^22.12`, jsdom 30 needs `^22.22.2`, and `@types/node` 26 would describe Node 26 APIs to
 `tsc` while CI runs Node 20 — so #140/#141/#142 were closed as one decision, not three.
-**#215 (raise CI's Node) is the single unlock**, and it comes *after* Wave 0 and *before* G2
-so the benchmark's baseline is measured on the runtime it will keep.
+**#215 (raise CI's Node) was the single unlock** — done, and it landed on **24**, not the 22 the
+issue proposed, because production was already there. It came *after* Wave 0 and *before* G2 so
+the benchmark's baseline is measured on the runtime it will keep. **Corollary the bump earned:**
+check what the deploy platform actually runs before picking a version. CI had been verifying
+Node 20 for a runtime that has never run this app.
 
 **5. Security bumps are taken, and one PR may clear several.** #213 cleared the vite/vitest
 advisories on Node 20 in one change, which is why #81, #82 and #139 were closed as superseded
