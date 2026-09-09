@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { TrainDrawData } from "../lib/trainGraph";
 import type { LatLng, SketchPoint } from "../lib/routing";
 import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFoursquareRateLimited, type FoursquarePlaceInfo } from "../services/foursquare";
+import { escapeHtml, renderPlaceInfoHtml } from "./placePopup";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 
@@ -41,12 +42,6 @@ interface MapViewProps {
 }
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY ?? "";
-
-function escapeHtml(s: string): string {
-  const div = document.createElement("div");
-  div.textContent = s;
-  return div.innerHTML;
-}
 
 /**
  * Ensure nav overlays stay visible.
@@ -494,28 +489,7 @@ export default function MapView({
       return `<div class="text-xs text-white/85">No place found.</div>`;
     }
 
-    const name = info.name ?? "Unknown Place";
-    const addr = info.address ?? fallbackAddress;
-    const cat  = info.category;
-    const hours = info.hours;
-    const rating = info.rating;
-    const desc = info.description;
-    const phone = info.phone;
-    const website = info.website;
-    const photo = info.photo;
-
-    const rows: string[] = [];
-    rows.push(`<div class="nav-place-popup__name">${escapeHtml(name)}</div>`);
-    if (cat) rows.push(`<div class="nav-place-popup__meta">${escapeHtml(cat)}</div>`);
-    if (addr) rows.push(`<div class="nav-place-popup__addr">${escapeHtml(addr)}</div>`);
-    if (hours) rows.push(`<div class="nav-place-popup__row"><span class="nav-place-popup__label">Hours</span> ${escapeHtml(hours)}</div>`);
-    if (typeof rating === "number") rows.push(`<div class="nav-place-popup__row"><span class="nav-place-popup__label">Rating</span> ${rating.toFixed(1)} / 10</div>`);
-    if (desc) rows.push(`<div class="nav-place-popup__desc">${escapeHtml(desc)}</div>`);
-    if (phone) rows.push(`<div class="nav-place-popup__row"><a class="nav-place-popup__link" href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a></div>`);
-    if (website) rows.push(`<div class="nav-place-popup__row"><a class="nav-place-popup__link" href="${escapeHtml(website)}" target="_blank" rel="noreferrer">Website</a></div>`);
-    if (photo) rows.push(`<img class="nav-place-popup__photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}" />`);
-
-    return `<div class="nav-place-popup__wrap">${rows.join("")}</div>`;
+    return renderPlaceInfoHtml(info, fallbackAddress);
   };
 
   const openPlacePopupForAddress = (map: maplibregl.Map, markerEl: HTMLElement, coord: LatLng, address: string) => {

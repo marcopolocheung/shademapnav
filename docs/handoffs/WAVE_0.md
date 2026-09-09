@@ -69,6 +69,8 @@ the UI or the method doc*. A stated ±15 min is honest; a silent ±90 min is not
 
 ## 3. #212 — popup `href`/`src` accept a `javascript:` URL · **half a day**
 
+> **Done 2026-09-08.** Fixed as described below; see Track G's `## Current state`.
+
 **Track G · `app/components/MapView.tsx`**
 
 `renderPlacePopupHtml` escapes every interpolation with `escapeHtml` (`:45`), which is a correct
