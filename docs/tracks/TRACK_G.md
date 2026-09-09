@@ -16,6 +16,9 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   baseline, and Track P cannot publish a performance number that does not exist.
 - **Take G7 before G3.** It is `docs/ROADMAP.md` Wave 0 — it blocks claims rather than
   features. The public-mirror work moved to **Track P (P1)**, which owns the public surface.
+- **Done in G7:** **#52** — the repo has a LICENSE. Two files called it open-source while
+  `license: NONE` made it all-rights-reserved; it is MIT now, declared in `package.json` and
+  linked from the README, so the mirror shows a licence a reader can act on.
 - **Done:** **#205** — the two provider-policy defects in the search path. Nominatim is now
   reached only through a same-origin proxy (`api/nominatim.js` in production, the Vite
   `/__nominatim` proxy in dev), which is the only place a `User-Agent` can actually be set:

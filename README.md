@@ -17,3 +17,7 @@ npm run dev            # http://localhost:5173
 The repository is self-describing for contributors and coding agents:
 - **`CLAUDE.md`** (root) — commands, hard invariants, repo map, task→edit-point table. Start here.
 - Nearest **`CLAUDE.md`** in each source directory — file-by-file notes.
+
+## License
+
+[MIT](LICENSE).
