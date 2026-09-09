@@ -3,13 +3,60 @@
 **Mission.** Build the differentiator. `ROADMAP.md` §2: everything else is table stakes or
 catch-up; **this is the part a hiring manager asks a second question about.**
 
-**Verified 2026-09-08 at `99bb418`.** Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
+**Verified 2026-09-09 at `f159b25`.** Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
 
 > **One checkpoint per PR.** This is a long thread — do not batch. A change that grows past its
 > checkpoint stops being reviewable, and the reviewer is one person reading a four-sentence
 > description.
 
 ---
+
+## G2 is done — start here: A6
+
+**Landed 2026-09-09 as #260 into #258.** Both halves shipped: the instrument fix (#182, #183 —
+`p50TotalMs`, a percentile that does not degenerate, `clearMetrics` on the window, and the first
+tests `metrics.ts` ever had) and the benchmark itself (`npm run bench:route`, `e2e/bench/**`,
+baseline committed to `docs/notes/performance-baseline.md`, #243's detour sweep folded in). Every
+decision this section used to spell out was honoured — keyless, local machine named, no CI gate,
+no production code changes, not TTI, variance stated. Full record: `TRACK_G.md` → *Current state*.
+
+### What G2 changed about the rest of this thread
+
+**A5 was aimed at the wrong phase, and is re-scoped in `TRACK_A.md`.** It was written as a worker
+offload. The benchmark says Dijkstra is **3–18 ms** of a ~3 s 2-point calculation while the
+**canvas read is 1136–2164 ms** — a third to well over half of route latency. Offloading a 15 ms
+search to a worker buys nothing a user can perceive.
+
+**A4's acceptance criterion is measured and not met (#259).** A4 says
+*"`window.__shadeMapMetrics` shows `canvasRead` at ~0 on the field path"*. It is over a second, on
+**90 of 90 runs**, while `shadeFallbackShare` is **0.0% on all 90** — the canvas is read in full
+every time and the pixel sampler it feeds then answers no edges. A4 closed on test evidence;
+nothing had measured it. `TRACK_A.md`'s Current state already predicted the geometry path was
+dormant, so this is that prediction with a number. **A5 already owned the fix**, and is now split:
+**A5a** wakes the geometry path (acceptance = A4's criterion finally met and measured), **A5b**
+offloads whatever is left and re-measures before assuming #38 is still worth doing.
+
+**H3 has a curve instead of a citation.** The `maxDetourFactor` sweep is published: 1.25 → the
+current 2.0 buys **5.8 pp of shade for 61 pp of extra walking** and roughly triples search time.
+The constant is unchanged — that is H3's call against the numbers.
+
+**Every before/after on this thread now has a noise floor.** Across-session spread is **~2–25% on
+every scenario**, so a claimed win under ~25% needs the repeat counts raised first (**#263**,
+which blocks on **#262**). Do not quote a per-row reproducibility figure: two sessions of three
+runs produced near-opposite orderings of which scenario is tightest.
+
+### Next: A6 — the time sweep
+
+**It gates Track H entirely**, which is why it is next rather than A5a. H1 prices every edge at its
+own traversal time — N time buckets per route — and without the sweep that is N× a full sample and
+will not run at interactive speed. `TRACK_A.md` → A6 has the acceptance; #245 (the one-hour
+max-shade window) is the design decision to take or decline *in writing* while you are there.
+
+**A5a's two diagnostic steps are small, cheap and optional now.** Pure Node, no browser, no key:
+reproduce the `coverage()`/`sampleEdges()` bbox mismatch in a test, and surface `EdgeShade.source`
+in `metrics.ts` so it is visible which provider actually answered. They are what makes A5a
+writable, and #259 carries the arithmetic. Take them if you want A5 sized properly before A7/A8;
+they unblock nothing, so the thread order does not require them yet.
 
 ## The dependency chain, and why it is this order
 
@@ -22,10 +69,10 @@ A7/A8 ─────────────► (better inputs to all of it)
 
 | Step | Why it is here, not later |
 |---|---|
-| **G2** route benchmark | A5's acceptance is literally *"no benchmark → no claim"*, and H's central claim is a **comparison**. Building the measurement before claiming the improvement is the senior-shaped decision in this whole thread. |
+| ~~**G2** route benchmark~~ ✅ | A5's acceptance is literally *"no benchmark → no claim"*, and H's central claim is a **comparison**. Building the measurement before claiming the improvement is the senior-shaped decision in this whole thread. **It paid immediately: the first thing it measured was A4 not meeting its own acceptance criterion (#259).** |
 | **A6** time sweep | H1 prices every edge at its own traversal time = N time buckets per route. Without the sweep that is N× a full sample and will not run at interactive speed. **A6 gates H entirely.** |
 | **A7/A8** canopy | See below — this is the promoted item and it is also an experiment. |
-| **A5** worker offload | H3's budget slider must never block the main thread. Depends on G2 existing. |
+| **A5** worker offload → **A5a/A5b** | H3's budget slider must never block the main thread — and G2 measured *which* thing blocks it. **A5a** wakes the dormant geometry path and deletes the canvas read; **A5b** offloads what remains, if anything still justifies it. Re-scoped in `TRACK_A.md`. |
 | **H1–H5** | The track. |
 
 **Prerequisite from Wave 0: #204 (D0, real timezones) must land before H1.** An hour of clock
