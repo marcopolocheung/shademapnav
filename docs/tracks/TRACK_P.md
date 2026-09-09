@@ -13,10 +13,17 @@
 
 ## Current state
 
-- **Active checkpoint:** P4 — publish the numbers. P1 is implemented and in review.
-- **Done:** P1 (pending merge) — `.github/workflows/mirror.yml` pushes `main` to the public
-  repo on every merge and then fails if a doc the app links to 404s there.
-- **Open PRs:** #203 (P1).
+- **Active checkpoint:** none — P2 and P4 are both implemented and in review. P3, P5 and P6 stay
+  in Wave 3.
+- **Done:** P1 — `.github/workflows/mirror.yml` pushes `main` to the public repo on every merge
+  and then fails if a doc the app links to 404s there. **P4** (pending merge) —
+  `docs/notes/evidence.md` carries every measurement with its method, worst case and sample
+  counts, the four evaluation layers kept separate, the empty layers left visibly empty, and the
+  #206/#207/#211 corrections; linked from the README.
+  **P2** (pending merge) — the README rewritten as a human entry point: the promise, a live
+  deep link that is the same URL the browser smoke test loads, the evidence page, what the
+  project does *not* do, and the shade-field correction. No badges.
+- **Open PRs:** #238 (P4, `docs/p4-evidence-page`) and P2 (`docs/p2-readme`, stacked on it).
 - **Decisions made:**
   - **Action, not a documented step.** The manual `git push public main` had failed three
     times; the last failure is #199.
@@ -31,14 +38,15 @@
     force-push. It prints file and line, never the matched text.
   - **The checks also run on the PR, minus the push.** A link added without its doc, or a
     committed key, fails at review instead of turning the mirror red after merge.
-- **Blocked on:** P1's acceptance needs one owner action that no PR can perform — a fine-grained
-  PAT for `marcopolocheung/shademapnav` stored as the `MIRROR_TOKEN` secret. Until it exists the
-  job fails loudly on merge instead of mirroring. P2/P3 still want two finished Wave-1 tracks
-  and H3 rendering.
-- **Next action:** **P4** — needs no new engineering, only publication.
-- **Last verified:** 2026-09-08 — mirror audit run against `origin/main`: nothing private
-  crosses (see the P1 PR); `docs/notes/heat-model.md` confirmed 404 on the mirror by the
-  workflow's own link check, run locally.
+- **Blocked on:** P3 still wants two finished Wave-1 tracks and H3 rendering; P5 wants H2's
+  objective correction; P6 cannot be filled before H4 produces a gap.
+- **Next action:** merge #238, then P2. After that the track is parked until Wave 3.
+- **Last verified:** 2026-09-09 at `6a4b58f` — the mirror is at `6a4b58f`, has **no open PRs and
+  no workflow runs**, and `docs/notes/{browser-verification,heat-model,heat-score,timezone,
+  performance-baseline}.md` plus `LICENSE` all resolve on it. That discharges P1's blocker
+  (the `MIRROR_TOKEN` PAT exists and the job is mirroring) and closes the observable half of
+  **#216**. P4's figures were re-measured on this commit: agreement `150 cases · mean 2.6pp ·
+  p90 0.0pp · worst 62.5pp · severe 3.3%`, suite `550 tests / 48 files`.
 
 ---
 
@@ -81,7 +89,7 @@ private-only file is carried across by the mirror step.
 **Files.** `.github/workflows/`, `docs/tracks/README.md`. **Size.** Small.
 **Blocks:** D3, D4.
 
-### P2 — The README as the human entry point
+### P2 — The README as the human entry point — **implemented, in review**
 **Goal.** A stranger understands the promise, sees it work, and reaches the evidence in three
 clicks.
 **Approach.** Restructure, do not decorate: one recorded working example at the top, the
@@ -111,7 +119,7 @@ is reproducible from a documented URL or fixture; its date and the commit are st
 **Depends on:** B7 (the arrival sentence), H3 (the budget interaction), **C11** (the repair —
 no other checkpoint builds it), C4/C5 (the job contract and the trace). Do not attempt it early with a mock.
 
-### P4 — Publish the numbers ← **start here; needs no new engineering**
+### P4 — Publish the numbers — **implemented, in review**
 **Goal.** One versioned page carrying every measurement this project has made, worst case
 included.
 **Approach.** `docs/notes/evidence.md`: the A3 agreement table (mean, p90, worst, severe share,
