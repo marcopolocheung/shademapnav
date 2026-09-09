@@ -1,5 +1,8 @@
 # ShadeMapNav — the golden roadmap
 
+# Northstar:
+## Can this become the world's best comfort-aware routing engine?
+
 **This file owns one thing: what to work on next, and why it is worth doing.** It does not
 duplicate state, and it does not explain how to build anything — briefs do that, and a second
 copy would drift. If you want implementation detail, every line here points at the brief that
