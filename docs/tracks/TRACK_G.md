@@ -124,16 +124,23 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   retry budget. It is **on demand, never in CI** — `npm run e2e` ignores `e2e/bench/**`, so the
   separation from G3's gate is mechanical rather than a convention. Keyless only: real tiles
   would put network variance inside a baseline.
-  - **The headline is not the total, it is the split.** Dijkstra is 9–17 ms of a ~3 s 2-point
-    calculation; the canvas read is 1.3–2.0 s. **A5's worker offload should be read against
-    that** — the main-thread block is the readback, not the search.
-  - **Warm is slower than cold.** The graph cache works (fetch 12 ms → 0.3 ms) and saves 12 ms
-    against a ~600 ms rise in the canvas read on a page that has already drawn a route. The
-    per-run series is published so it is visibly a level shift, not a leak.
-  - **Filed, not fixed: #259.** `canvasRead` was non-zero on all 30 runs while
-    `shadeFallbackShare` was 0.0% on all 30 — `coverage()` sent every calculation down the
-    `needsCanvas` path and the pixel sampler then answered no edges. Unverified against real
-    MapTiler tiles, which is why it is a filing and not a fix.
+  - **The headline is not the total, it is the split.** Dijkstra is 3–18 ms of a ~3 s 2-point
+    calculation; the canvas read is 1.1–2.2 s, a third to well over half of the whole thing.
+    **A5's worker offload should be read against that** — the main-thread block is the
+    readback, not the search.
+  - **Warm is slower than cold**, in all six cold/warm comparisons (2-point 1.3–1.5x, 5-point
+    1.8–2.0x). The graph cache works and saves ~15 ms against a several-hundred-ms rise in the
+    canvas read. The per-run series is published so the level shift is visibly not a climb;
+    *why* it shifts is an untested hypothesis and the note says so.
+  - **Filed, not fixed: #259.** `canvasRead` was non-zero on **all 90 runs** across three
+    sessions while `shadeFallbackShare` printed **0.0% on all 90** — `coverage()` sent every
+    calculation down the `needsCanvas` path and the pixel sampler then answered no edges. Both
+    halves are per-run output, not a median. Unverified against real MapTiler tiles, which is
+    why it is a filing and not a fix.
+  - **The reproducibility estimate is itself unstable.** Two sessions of three runs produced
+    near-opposite orderings of which scenario reproduces best. Across-session spans land
+    between ~2% and ~25% on every row, so **treat a before/after movement under ~25% as noise**
+    on all four scenarios, or raise the repeat counts first. Do not quote a per-row figure.
   - **#243 folded in.** The `maxDetourFactor` sweep is published: 1.25 → 2.0 buys 5.8 pp of
     shade for 61 pp of extra walking and triples search time. **The constant is unchanged** —
     #243 is `track-h` and H3 picks a value against the curve. The sweep runs in Node against

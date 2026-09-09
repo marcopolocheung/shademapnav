@@ -21,6 +21,10 @@ export default defineConfig({
   ...baseConfig,
   testDir: "e2e/bench",
   testIgnore: undefined,
+  // The smoke config's project announcement must not run here: this config runs
+  // neither `smoke` nor `smoke-live`, and saying otherwise in the output of a
+  // benchmark whose headline caveat is "keyless" is worse than saying nothing.
+  globalSetup: undefined,
   // No retries. A benchmark that silently re-ran a bad sample would report the
   // luckier of two runs, which is the one thing a baseline must not do.
   retries: 0,

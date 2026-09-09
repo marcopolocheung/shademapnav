@@ -303,6 +303,12 @@ test.afterAll(() => {
     console.log(`  totals in order: ${r.samples.map((s) => ms(s.total)).join(", ")}`);
     console.log(`  canvas read:     ${r.samples.map((s) => ms(s.canvasRead)).join(", ")}`);
     console.log(`  dijkstra:        ${r.samples.map((s) => ms(s.dijkstra)).join(", ")}`);
+    // Per-run, not just the median: "the pixel sampler answered no edges" is a
+    // claim about every run, and a median of 0 is consistent with half of them
+    // being non-zero. Whatever is asserted from this has to be readable here.
+    console.log(
+      `  fallback share:  ${r.samples.map((s) => pct(s.shadeFallbackShare * 100)).join("%, ")}%`
+    );
   }
 
   // The app's own summary and this harness must agree about the same runs. They
