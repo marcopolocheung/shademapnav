@@ -320,6 +320,65 @@ describe("sweep", () => {
 
     expect(field.sweep([], [NOON, NIGHT])).toEqual([[], []]);
   });
+
+  /**
+   * The one-building case above cannot see what A6 actually changed. The sweep now
+   * shares a caster preparation, a sun-cell partition and a footprint grid across
+   * every hour, and none of those three exists unless the batch spans more than one
+   * `SUN_CELL_M` cell and the prism set clears `GRID_MIN_CASTERS`. This corpus does
+   * both: 100 buildings under a 6 km route that crosses several cells, swept across
+   * a full day including the hours either side of sunrise and sunset.
+   */
+  it("still matches sampleEdges exactly across many cells, buildings and hours", () => {
+    const prisms: PrismSet = { prisms: [], maxHeightM: 90 };
+    for (let i = 0; i < 100; i++) {
+      const eastM = (i % 10) * 600 + 40;
+      const northM = Math.floor(i / 10) * 90;
+      const w = eastM / mPerLng;
+      const sth = northM / mPerLat;
+      const e = (eastM + 45) / mPerLng;
+      const n = (northM + 45) / mPerLat;
+      prisms.prisms.push({
+        heightM: 12 + ((i * 17) % 78),
+        ring: [
+          [LNG + w, LAT + sth],
+          [LNG + e, LAT + sth],
+          [LNG + e, LAT + n],
+          [LNG + w, LAT + n],
+          [LNG + w, LAT + sth],
+        ],
+      });
+    }
+
+    const edges: EdgeRef[] = [];
+    for (let i = 0; i < 60; i++) {
+      const eastM = i * 100;
+      edges.push({
+        from: [LNG + eastM / mPerLng, LAT + ((i % 3) * 30) / mPerLat],
+        to: [LNG + (eastM + 100) / mPerLng, LAT + (((i + 1) % 3) * 30) / mPerLat],
+      });
+    }
+
+    const coverage = bboxAroundEdges(edges, 5000);
+    if (!coverage) throw new Error("no edges");
+    const field = createGeometryShadeField([staticPrismProvider(prisms, coverage, "tiles")]);
+
+    const times: Date[] = [];
+    for (let hour = 3; hour <= 21; hour++) {
+      times.push(new Date(Date.UTC(2026, 5, 21, hour, 20, 0)));
+    }
+
+    const swept = field.sweep(edges, times);
+
+    // Guard against a vacuous pass: the corpus has to produce partial shade, not a
+    // day of all-sun or all-night rows that would agree for the wrong reason.
+    const shades = swept.flat().flatMap((edge) => [edge.left, edge.right]);
+    expect(shades.some((value) => value > 0 && value < 1)).toBe(true);
+
+    times.forEach((when, i) => {
+      expect(swept[i]).toEqual(field.sampleEdges(edges, when));
+    });
+  });
 });
 
 // ─── ready ────────────────────────────────────────────────────────────────────

@@ -94,6 +94,86 @@ index). Both columns come from the same benchmark file, unmodified.
    heartbeat and reports nothing. The 200-vs-400 edge pair is in the table to show the
    scaling is linear in edges, so a graph-scale estimate is a multiplication away.
 
+## Time Sweep (A6)
+
+`ShadeField.sweep` — the call Track D's hourly strip already makes and Track H's
+traversal-time pricing will make N times per route. Same benchmark file as the
+section above; the sweep cases are `ShadeField.sweep — a 3 km route across a day`.
+
+Measured 2026-09-09 in the environment above but on **Node `v24.20.0`**, not the
+`v20.20.1` in the header — the repo's `engines` field asks for 24, and 20 fails to
+start nine jsdom test workers. **Before** is `main` at `cb85011`; **after** is
+`feat/a6-time-sweep`. Both columns come from the same benchmark file, unmodified,
+in the same session. 40 iterations, 10 warmup.
+
+| Case | Before (mean) | After (mean) | Change |
+|---|---:|---:|---:|
+| 3 km route, `sampleEdges`, one hour | 1.960 ms ±4.5% | 1.044 ms ±7.8% | 1.88× |
+| 3 km route, `sampleEdges` × 14 hours | 33.44 ms ±1.3% | 21.00 ms ±2.2% | 1.59× |
+| 3 km route, `sweep`, 14 hours | 34.42 ms ±3.3% | 21.86 ms ±3.4% | 1.57× |
+| 800 prisms × 200 edges | 0.857 ms ±19.3% | 0.514 ms ±2.2% | 1.67× |
+| 1600 prisms × 200 edges | 1.370 ms ±5.8% | 0.882 ms ±3.6% | 1.55× |
+| 400 prisms × 400 edges | 1.337 ms ±14.5% | 1.176 ms ±13.7% | 1.14× |
+
+The four caveats on the section above apply here unchanged — warm-JIT figures, wide
+margins on sub-millisecond cases, square footprints, no full route graph.
+
+### A6's acceptance criterion is not met, and this is what it costs instead
+
+A6's brief asks for *"a 14-hour sweep over a 3 km route costs < 2× a single-hour
+sample"*. It costs **20.9×** — `main` was 17.6×, so the **ratio got worse while every
+absolute number improved**, because the denominator sped up more than the numerator.
+The ratio is the wrong instrument: it is optimised by making a single sample slower.
+
+The mechanism, from a per-phase instrumentation of the sweep on the same fixture:
+
+| Phase | Per 14-hour sweep, before | after |
+|---|---:|---:|
+| Prism preparation (ring bounds, flat ring, near cap, footprint grid) | — | ~1 ms, once |
+| Shadow-bound scan + region filter | 15.2 ms | 1.5 ms |
+| Triangulating the survivors | 10.7 ms | 6.9 ms |
+| Shadow grid | 0.5 ms | 0.6 ms |
+| **Point-in-shadow queries** | **9.5 ms** | **15.5 ms** |
+
+Everything A6 could hoist was hoisted, and what is left is dominated by the point
+queries — which are irreducibly per-hour, because the shadow moves. There is no
+sharing left to find: at graph scale (1,000 edges) `sweep` and 14 `sampleEdges`
+calls now measure within 1% of each other, because the preparation `sweep` shares is
+memoised per prism set and `sampleEdges` gets it too.
+
+**Beating N× needs a different predicate, not more sharing.** For a convex footprint
+and a fixed sample point, the azimuths at which that footprint shadows the point form
+one interval, and the shadow length needed is one distance — both computable once per
+(point, prism) and then testable at N times with two comparisons instead of ~36
+triangle tests. That is the route to the brief's criterion, and it trades the
+invariant `shadowIndex.test.ts` is built on: that the index answers *exactly* what
+`pointInPrismShadow` answered. Filed rather than taken here.
+
+Three cheaper wins were measured and deliberately not taken. Each is filed:
+
+- **A candidate-bounds short-circuit before the triangle pass — worth ~40%** of the
+  sweep (23.3 ms → 13.4 ms). It fails `shadowIndex.test.ts`'s near-horizon case,
+  because `pointInTriangleXY` reports containment outside a degenerate triangle's own
+  bounds. That is **#163**, and fixing it is #163's call, not A6's.
+- **Sizing the shadow grid's cells below the mean shadow span — worth ~25%**
+  (22.4 ms → 17.2 ms at a divisor of 4). Answer-preserving, but it speeds the per-hour
+  and single-sample paths equally, so it does nothing for A6's ratio and belongs with
+  whoever tunes #122's grid.
+- **Reusing the near cap's triangulation for the far cap — worth ~11%** (22.2 ms →
+  19.9 ms). The far cap is the near cap translated, so `earcut` returns the same
+  indices — on 54,000 ring × sun combinations across the A3 corpus it always did. Not
+  taken: 11% is not worth trading a property that is provable for one that is merely
+  observed, on a track whose stated failure mode is a field that looks right and is
+  quietly wrong.
+
+### What the sweep costs at sub-hourly resolution (#245)
+
+A one-hour max-shade window needs the shade at several instants per displayed hour.
+On the same 3 km fixture, `sweep` at 10-minute steps over the same 14 hours (84
+times) costs **162 ms**, **6.8× the 14-hour sweep** — the sweep is linear in times,
+so a window is priced at its sub-sample count. Recorded because #245's case for
+adopting the window was that A6 would make it nearly free.
+
 ## Route Calculation (G2)
 
 The measurement `Missing Measurements` below asked for, and the baseline **A5 must beat and

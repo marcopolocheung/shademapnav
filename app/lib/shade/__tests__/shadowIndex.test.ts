@@ -18,7 +18,7 @@ import {
   buildShadowTriangles,
   metersPerDegree,
 } from "../geometry";
-import { buildShadowIndex } from "../shadowIndex";
+import { buildShadowIndex, buildShadowIndexFor, prepareShadowCasters } from "../shadowIndex";
 
 // ─── Pre-index implementation, copied from main ───────────────────────────────
 
@@ -124,12 +124,16 @@ function block(eastM: number, northM: number, wM: number, hM: number): [number, 
 /**
  * A ragged city block grid — irregular enough that footprints land inside other
  * buildings' shadows, which is the case a tidy grid never reaches.
+ *
+ * `half` is the grid's half-width in blocks: the default 3 gives 49 prisms, and
+ * anything from 4 up clears `GRID_MIN_CASTERS`, which is what puts the A6 footprint
+ * grid in play. Both sides of that threshold need covering.
  */
-function corpus(seed: number): BuildingPrism[] {
+function corpus(seed: number, half = 3): BuildingPrism[] {
   const rand = rng(seed);
   const prisms: BuildingPrism[] = [];
-  for (let gx = -3; gx <= 3; gx++) {
-    for (let gy = -3; gy <= 3; gy++) {
+  for (let gx = -half; gx <= half; gx++) {
+    for (let gy = -half; gy <= half; gy++) {
       const eastM = gx * 70 + (rand() - 0.5) * 20;
       const northM = gy * 70 + (rand() - 0.5) * 20;
       const side = 25 + rand() * 30;
@@ -207,6 +211,127 @@ describe("buildShadowIndex", () => {
           );
         }
       }
+    }
+  });
+});
+
+// ─── Prepared casters, and the footprint pre-filter they carry (A6) ───────────
+
+/**
+ * A6 moved the sun-independent half of the build — ring bounds, the flat ring, the
+ * near cap, and a grid over footprints — out of `buildShadowIndex` and into
+ * `prepareShadowCasters`, so a time sweep pays for it once. Two things can go wrong
+ * silently: the prepared form can differ from what the per-sun build computed, and
+ * the footprint pre-filter can drop a building whose shadow really does reach the
+ * region. Both show up as a point that quietly reads sunlit.
+ *
+ * Every corpus here is 9x9 = 81 prisms, over `GRID_MIN_CASTERS`, because below that
+ * threshold no footprint grid is built and the pre-filter is never exercised at all.
+ */
+describe("prepared casters", () => {
+  const DENSE_HALF = 4;
+
+  it("answers exactly what pointInPrismShadow answered, with the footprint grid live", () => {
+    const prisms = corpus(42, DENSE_HALF);
+    expect(prepareShadowCasters(prisms).grid).not.toBeNull();
+
+    let shaded = 0;
+    let compared = 0;
+    for (const sun of SUN_POSITIONS) {
+      const index = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, WIDE_REGION);
+      for (let gx = -11; gx <= 11; gx++) {
+        for (let gy = -11; gy <= 11; gy++) {
+          const lng = LNG + (gx * 24) / mPerLng;
+          const lat = LAT + (gy * 24) / mPerLat;
+          const before = refPointInPrismShadow(
+            prisms, lng, lat, sun.azimuth, sun.altitude, mPerLat, mPerLng
+          );
+          expect(index.isShaded(lng, lat)).toBe(before);
+          compared++;
+          if (before) shaded++;
+        }
+      }
+    }
+
+    expect(shaded).toBeGreaterThan(200);
+    expect(shaded).toBeLessThan(compared - 200);
+  });
+
+  it("keeps a shadow that reaches a tight region from far outside it", () => {
+    // The pre-filter expands the region by the tallest prism's reach and reads the
+    // footprint grid. Get that expansion wrong and this tower — whose footprint sits
+    // 280 m east of the region, four footprint cells away, and whose shadow lands
+    // squarely inside it — is never triangulated, and the point reads as open sun.
+    // The filler is a band of low blocks a kilometre north: enough of them to build
+    // the grid at all, too short and too far to shade anything near the target.
+    const prisms: BuildingPrism[] = [];
+    for (let i = 0; i < 80; i++) prisms.push({ ring: block(i * 8, 1000, 6, 6), heightM: 2 });
+    const tower: BuildingPrism = { ring: block(300, 0, 40, 40), heightM: 120 };
+    prisms.push(tower);
+
+    // Azimuth -pi/2 shifts the footprint due west by height / tan(0.35) ~ 330 m.
+    const sun = { azimuth: -Math.PI / 2, altitude: 0.35 };
+    const target: [number, number] = [LNG + 20 / mPerLng, LAT + 20 / mPerLat];
+    const region = {
+      west: target[0] - 30 / mPerLng,
+      east: target[0] + 30 / mPerLng,
+      south: target[1] - 30 / mPerLat,
+      north: target[1] + 30 / mPerLat,
+    };
+
+    expect(prepareShadowCasters(prisms).grid).not.toBeNull();
+    const withTower = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, region);
+    const withoutTower = buildShadowIndex(
+      prisms.slice(0, -1), sun.azimuth, sun.altitude, mPerLat, mPerLng, region
+    );
+
+    // Guard against a vacuous pass: the tower has to be what shades this point.
+    expect(withoutTower.isShaded(target[0], target[1])).toBe(false);
+    expect(withTower.isShaded(target[0], target[1])).toBe(true);
+    expect(withTower.isShaded(target[0], target[1])).toBe(
+      refPointInPrismShadow(prisms, target[0], target[1], sun.azimuth, sun.altitude, mPerLat, mPerLng)
+    );
+  });
+
+  it("gives the same answers reused across sun positions as prepared per position", () => {
+    const prisms = corpus(1337, DENSE_HALF);
+    const shared = prepareShadowCasters(prisms);
+
+    for (const sun of SUN_POSITIONS) {
+      const reused = buildShadowIndexFor(
+        shared, sun.azimuth, sun.altitude, mPerLat, mPerLng, WIDE_REGION
+      );
+      const fresh = buildShadowIndexFor(
+        prepareShadowCasters(prisms), sun.azimuth, sun.altitude, mPerLat, mPerLng, WIDE_REGION
+      );
+
+      expect(reused.prismCount).toBe(fresh.prismCount);
+      for (let gx = -9; gx <= 9; gx++) {
+        for (let gy = -9; gy <= 9; gy++) {
+          const lng = LNG + (gx * 28) / mPerLng;
+          const lat = LAT + (gy * 28) / mPerLat;
+          expect(reused.isShaded(lng, lat)).toBe(fresh.isShaded(lng, lat));
+        }
+      }
+    }
+  });
+
+  it("scans everything when the sun is too low for a bounded reach", () => {
+    // `maxAbsHeightM / tan(altitude)` is not finite at the horizon, so the pre-filter
+    // has no radius to expand by and must decline to filter rather than guess.
+    const prisms = corpus(7, DENSE_HALF);
+    const region = {
+      west: LNG - 50 / mPerLng,
+      east: LNG + 50 / mPerLng,
+      south: LAT - 50 / mPerLat,
+      north: LAT + 50 / mPerLat,
+    };
+
+    for (const altitude of [0, 1e-9]) {
+      const index = buildShadowIndex(prisms, 1.2, altitude, mPerLat, mPerLng, region);
+      expect(index.isShaded(LNG, LAT)).toBe(
+        refPointInPrismShadow(prisms, LNG, LAT, 1.2, altitude, mPerLat, mPerLng)
+      );
     }
   });
 });
