@@ -134,7 +134,7 @@ The competitive picture changed materially in 2026 and it reshapes what "high im
 |---|---|---|
 | **Google Maps "Prefer shade"** | A shade toggle for walking directions surfaced in APK teardowns (Nov 2025), reportedly using Street View lidar/light data, plus an estimate of time in direct sun. | The *toggle* is being commoditized. A shade checkbox will not be a differentiator in 12 months. Depth (time dimension, heat units, planning) will be. |
 | **Google Maps + Gemini "Ask Maps"** | Rolled out 2026-03-12: conversational queries over 250M places, hands-free assistance during navigation, immersive 3D guidance with landmark-based voice cues. | Conversational map Q&A is now table stakes, and users' bar for it is Gemini's. Our assistant must be *grounded and honest* rather than broad — it wins by answering questions Google can't (shade at 5:40pm on this block). |
-| **ASU "Cool Routes"** (SHaDE Lab, 2026) | First navigation tool routing on **mean radiant temperature** at 1 m resolution: SOLWEIG model, lidar-derived 2.5D urban form, hourly met forecasts. Found cooler alternatives on 70% of trips, −4.5 °C mean heat load. Covers **one campus**. | This is the academic ceiling for accuracy and it is *not* a product: no global coverage, no navigation, no app. Their metric (MRT) is the right physical target; our advantage is that we run anywhere OSM/vector tiles exist. |
+| **ASU "Cool Routes"** (SHaDE Lab, 2026) — *corrected 2026-09-09 from the paper itself, Buo et al., Build. Environ. 298:114622* | First navigation tool routing on **mean radiant temperature** at 1 m resolution: SOLWEIG model, lidar-derived 2.5D urban form, hourly met forecasts. Rerouted **71–72%** of trips for a mean reduction in average route MRT of **1–2 °C** overall — best case **−3.8 °C** in the cool months. Validated against a MaRTy instrument cart over 319 edges: **d = 0.73, RMSE 8.4 °C**, exceeding ISO 7726's ±5 °C band. Covers **one campus**. | The academic ceiling for accuracy, and **it is a deployed web app** — Flask backend, interactive map, 171 selectable POIs, 3-day forecasts, ~2 s responses. What it is *not* is a product: **single-user with no concurrency, campus-only, POI-to-POI**, and reproducible elsewhere only where **high-resolution LiDAR exists**. Their metric (MRT) is the right physical target; our advantage is reach, not architecture — we run anywhere OSM/vector tiles exist. |
 | **CoolPath / CoolPaths (2026 papers)** | UTCI at 2 m grid, street-scale PET mapping from open data, cooler-route planning. | Confirms the direction: heat index, not shade fraction. Also confirms open data is sufficient — no proprietary lidar required. |
 | **Shadehopper**, **Geuneullo** (KR) | Consumer shade-routing apps; Geuneullo models building *and street-tree* shadows. | Consumer competitors already model trees. Our buildings-only shadow is behind the consumer state of the art, not just the research one. |
 | **AccessMap / OpenSidewalks** (UW) | Sidewalk-level routing on slope, curb ramps, stairs; expanded statewide (OS-CONNECT) in 2025–26. | Proves the "personalized pedestrian cost model" pattern our mission implies ("wheeling"). Their schema is the one to borrow for a wheeling profile. |
@@ -508,8 +508,10 @@ long-trip cases the product exists for. And the objective is pointed at the wron
 is already computed and never enters the search.
 
 **The bet.** This is the one thing on the board that nobody else ships. Google has a shade
-toggle; ASU has mean radiant temperature on one campus with no app; Geuneullo models street
-trees. None of them advance the sun *along* the route, and none of them answer "where can I
+toggle; ASU has mean radiant temperature on one campus, from LiDAR, in a single-user web tool;
+Geuneullo models street trees. None of them advance the sun *along* the route — a claim
+re-checked against three more papers on 2026-09-09 and still standing, with two of the three
+naming it as their own future work (`ROADMAP.md` §5c) — and none of them answer "where can I
 even go on ≤8 minutes of sun?" H1/H2 are a correctness fix to something the app already claims
 to do; H3 is the product that becomes possible once the fix lands.
 
