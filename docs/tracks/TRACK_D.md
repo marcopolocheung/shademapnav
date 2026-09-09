@@ -274,11 +274,29 @@ when the user travels. Verify what a PWA can actually schedule on iOS before pro
 if it can't, ship the in-app morning card instead and say so in the brief.
 **Files.** `public/sw.js`, notification module. **Size.** Large. **Needs Track F's F4 (offline/PWA depth).**
 
-### D8 — MRT-grade upgrade *(stretch)*
+### D8 — MRT-grade upgrade *(no longer a stretch — re-scope pending, #247)*
 With Track A's A9 (sky view factor, surface class), build a defensible MRT approximation and
 compare it against published SOLWEIG outputs for one city block. Publish the delta honestly in
 `docs/notes/heat-model.md` — including where we're worse. That comparison is also the most
 credible thing this project could show an urbanist.
+
+**Literature (2026-09-09, ROADMAP §5c).** Three corrections to the sizing above, from Buo et al.
+2026 — the paper behind "ASU Cool Routes":
+- **SOLWEIG splits in two, and we already own the expensive half.** Geometry (sky view factor,
+  shadow volumes per sun position) is costly but computed **once per area** — that is **A6 + A9**.
+  The radiation balance (six-directional fluxes → MRT) is **cheap per query** and only needs a
+  live forecast. Their four-hours-per-24-h figure is dominated by redoing geometry hourly, which
+  A6 exists to avoid.
+- **Their blocker was LiDAR, not compute** — and it has a free global substitute at lower
+  fidelity: OSM/vector-tile heights (BSM), the Meta/WRI 1 m canopy raster (CDSM — already A8's
+  plan), Copernicus/SRTM (DEM, terrain only). *How much fidelity is lost is precisely what this
+  checkpoint publishes.*
+- **The stated comparison target is not public.** Their data statement is "available on request",
+  so "compare against published SOLWEIG outputs" is blocked on a data request. Compare against
+  their **published validation statistics** instead (d = 0.73, RMSE 8.4 °C, MBE −2.0, ISO 7726's
+  ±5 °C band exceeded).
+
+Also **#246** — the threshold-excess thermal dose, which is smaller and independent of this.
 
 ---
 

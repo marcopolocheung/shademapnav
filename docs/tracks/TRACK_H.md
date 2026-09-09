@@ -95,6 +95,13 @@ existing routing test.
 
 ### H2 — Exposure as the objective
 **Goal.** Optimize the thing the user cares about: minutes in the sun, not metres of shade.
+**Literature (2026-09-09, ROADMAP §5c) — read #241 before writing the note.** Ma et al. 2025
+enumerated 2.2 M routes and found that minimising *unshaded metres* — **exactly this
+checkpoint's corrected objective** — scored **worse than the plain shortest route in 24% of 1200
+O-D pairs** (41% at 08:00). H2 still lands: maximised `shadeM` is a real defect. But the note
+must say that minimised exposure is *better than* maximised shade and *still not* the comfort
+objective, with that bound attached. Also **#243**: `maxDetourFactor = 2.0` is ~10× the detour
+any of three studies finds useful — measure it through G2 rather than editing the constant.
 **Approach.** Replace the maximized `shadeM` criterion with **minimized exposure duration**,
 computed from H1's per-edge traversal times. Keep the front bi-criteria — (travel time, exposure
 time) — so the three route representatives still mean something, and re-derive the "balanced"

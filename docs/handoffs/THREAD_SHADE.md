@@ -31,7 +31,29 @@ A7/A8 ─────────────► (better inputs to all of it)
 **Prerequisite from Wave 0: #204 (D0, real timezones) must land before H1.** An hour of clock
 error is ~15° of sun. H1 would price every edge against a wrong sky and H4 would publish a gap
 measured on a bad input. Also **#208** (access tags), or H2/H3 cannot enforce the access
-constraints they declare.
+constraints they declare. ✅ **#204 merged 2026-09-08** (PR #222); **#208 merged** (PR #221).
+
+---
+
+## Addendum 2026-09-09 — five findings from the literature pass
+
+Three frontier papers were read in full and reconciled into `ROADMAP.md` §5c; the detail lives in
+`docs/research/shade-thermal-comfort-literature-2026-09-09.md`. **Nothing below changes the order
+of this thread.** Four items are context you want *before* writing a checkpoint's note, and one is
+a new, optional, high-value piece of work.
+
+| # | Lands on | What it changes |
+|---|---|---|
+| **#241** | **H2** | Minimising unshaded metres — H2's corrected objective — scored **worse than the plain shortest route in 24%** of 1200 O-D pairs (41% at 08:00). H2 still lands; maximised `shadeM` is a real defect. But the note must say the corrected objective is *better than shade* and *still not comfort*. Read before writing it. |
+| **#243** | **G2 → H2/H3** | `maxDetourFactor = 2.0` (+250 m flat) is ~10× the detour three independent studies find useful (+1.3%, <3%, plateau at 110%). **Measure it in G2's sweep**; do not edit the constant on the strength of a citation. Cheapest available win for H3's frontier. |
+| **#244** | **A7/A8** | Tree shade is worth **0.5×** building shade — published (Melnikov 2022 via Wen 2025), so A7 need not invent a weight. Same paper shows tree shade dominating at midday when building shade collapses, which is the *data* behind sequencing A7/A8 before H3. |
+| **#245** | **A6/A7** | A one-hour **max-shade window** ("a pedestrian will step a few metres to find shade") — adopt deliberately with the A3 effect measured, or decline in writing. Biases *towards* reporting shade, the dangerous direction. |
+| **#242** | **H1 + H4** *(new work, optional)* | Wen et al. publish a distance-dependent shade reward that makes edge cost **path-dependent**, then solve it with Dijkstra keeping **one label per node**. A label carrying more distance is *advantaged* downstream, so cost-only pruning can drop the optimum. **This is H1's stated open question, unresolved, in print** — and `paretoRoutes` is already the right machinery. Implementing it and publishing where the two searches diverge is H4's oracle-and-gap against an *external, citable* model. |
+
+**If you take one thing into H2:** #241, because it is a claim you would otherwise have to walk
+back after publishing. **If you take one thing into A7:** #244, because it is free.
+
+**Not on this thread:** #246, #247 (Track D), #248, #249 (Track P).
 
 ---
 

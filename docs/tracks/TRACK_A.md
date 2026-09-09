@@ -365,6 +365,13 @@ at interactive speed. H is blocked until this lands — see `docs/tracks/TRACK_H
 **Acceptance.** A tree-lined Madrid/Barcelona street reports materially more shade than before; confidence reflects tag sparsity; the UI can distinguish building shade from tree shade; seasonal honesty: deciduous canopy is discounted outside leaf-on months (document the month window per hemisphere).
 **Files.** `app/lib/overpass.ts`, `app/lib/shade/canopy.ts` (new).
 **Size.** Large. Split: (a) fetch + model, (b) integrate into the field, (c) surface in the UI.
+**Literature (2026-09-09, ROADMAP §5c).** **#244** — use the published weight, not an invented
+one: tree shade is perceived as **half** as intense as building shade (Melnikov et al. 2022, via
+Wen et al. 2025), which is what the fractional `shade` field is for. Wen et al. also found tree
+shade *dominates at midday exactly when building shade collapses* — which is the data behind
+sequencing A7/A8 before H3. Keep the two numbers separate: 0.5 is a **route-choice preference
+weight**, the ~10%/~70% leaf-on/leaf-off figure is **transmittance**. Also **#245** (a one-hour
+max-shade window, adopt deliberately or decline in writing).
 
 ### A8 — Canopy v2 + height fallback *(stretch)*
 Meta/WRI 1 m global canopy height (free, AWS/GEE, updated 2026, MAE 2.8 m) where tiles can be
