@@ -135,10 +135,10 @@ advisory — #213 cleared all five on Node 20 — so this is ordinary currency, 
 **Take #215 after Wave 0 and before G2**, so the benchmark's baseline is measured on the runtime
 it will keep.
 
-Still owed here: the **dependency-bump policy** G8 asks for, written into `TRACK_G.md` — which
-majors are auto-declined, that the two invariant pins are `ignore`d and why, and that
-`npm audit fix --force` must never be run on this repo (it installs maplibre 6.8.0 and breaks
-the shadow renderer).
+~~Still owed here: the **dependency-bump policy** G8 asks for, written into `TRACK_G.md`.~~
+**Done 2026-09-08** — it is `TRACK_G.md` → G8 → *Dependency-bump policy*, six rules covering
+the two invariant pins, the `npm audit fix --force` ban, majors declined by default, and the
+Node-20 deferral to #215. Read it there; do not re-derive it here.
 
 ## 5b. Public mirror hygiene · **mitigated 2026-09-08, one part still open — #216**
 

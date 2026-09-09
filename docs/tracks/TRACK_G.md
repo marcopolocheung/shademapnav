@@ -27,10 +27,10 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   Invariant #6 in root `CLAUDE.md` now says where the header can and cannot be set, and the
   `PreToolUse` hook enforces that version — it denies stripping the header from a proxy and
   denies adding it back to client code.
-- **Still open in G8:** the **dependency-bump policy** — which majors are auto-declined, that
-  the maplibre/suncalc pins are `ignore`d in Dependabot and why, and that `npm audit fix
-  --force` must never be run here (it installs maplibre 6.8.0 and breaks the shadow renderer).
-  `docs/handoffs/WAVE_0.md` §5 has the decisions to write down; #32 and #33 are closed.
+- **Done — G8 is closed out.** The **dependency-bump policy** is written into G8 below: the two
+  invariant pins and why they are `ignore`d, `npm audit fix --force` banned, majors with no
+  security driver declined by default, and the three Node-20-blocked majors deferred to #215.
+  #32 and #33 are closed; **#215 is the next dependency item, after Wave 0 and before G2**.
 - **Filed, not fixed:** **#229** — `api/overpass.js` and `api/nominatim.js` take requests from
   any origin with no rate limit, unlike `api/fsq.js` and `api/agent.js`. Pre-existing in the
   Overpass proxy; the Nominatim one followed its idiom rather than inventing a one-off, so the
@@ -267,11 +267,43 @@ in `SearchBar.test.tsx` / `WaypointInput.test.tsx` keep both halves from regress
 service keys carry no origin restriction at all, so that key moved server-side into
 `api/fsq.js` (#218/#219). The vite/vitest advisories were cleared by #213.
 
-**Still open: the dependency-bump policy.** Write down which majors are auto-declined, that
-the maplibre and suncalc pins are `ignore`d in `.github/dependabot.yml` and why, and that
-`npm audit fix --force` must never be run on this repo — it installs maplibre 6.8.0 and
-breaks the shadow renderer. The decisions are already made and recorded in
-`docs/handoffs/WAVE_0.md` §5; this is transcribing them, not re-deriving them.
+**Done — the dependency-bump policy**, below. It is the rule set Dependabot's backlog is
+triaged against, so a re-raised PR is closed against a written decision instead of a fresh
+argument.
+
+#### Dependency-bump policy
+
+**1. Two pins are invariants, not preferences.** `maplibre-gl` is `ignore`d outright and
+`suncalc` / `@types/suncalc` are `ignore`d for majors in `.github/dependabot.yml`, because
+hard invariants #1 and #2 in root `CLAUDE.md` depend on the exact versions: maplibre 5.10+
+changes `Texture.update` so the shadow simulator crashes WebGL2, and suncalc 2.x is an ESM
+rewrite with named exports only that also installs a second copy alongside the simulator's
+`^1.9.0` and skews solar math. **Dependabot's groups only cover minor and patch**, so without
+those `ignore`s a major still arrives as its own PR — any dependency work must preserve them.
+
+**2. `npm audit fix --force` must never be run on this repo.** It resolves the maplibre
+advisory by installing 6.8.0, which breaks the shadow renderer — a silent product regression
+in exchange for a green audit line. Fix advisories with a targeted `npm install pkg@version`
+after checking the advisory actually reaches our code path.
+
+**3. A major with no security driver is declined by default.** It is a deliberate change with
+its own PR and its own verification, not triage. `typescript` 7.0.2 (#112) was closed on
+exactly this ground — TS 7 is the compiler rewrite, and taking it because a bot offered it is
+how a week disappears.
+
+**4. A major blocked by the runtime is deferred to the runtime, not fought.** vitest 5 needs
+Node `^22.12`, jsdom 30 needs `^22.22.2`, and `@types/node` 26 would describe Node 26 APIs to
+`tsc` while CI runs Node 20 — so #140/#141/#142 were closed as one decision, not three.
+**#215 (raise CI's Node) is the single unlock**, and it comes *after* Wave 0 and *before* G2
+so the benchmark's baseline is measured on the runtime it will keep.
+
+**5. Security bumps are taken, and one PR may clear several.** #213 cleared the vite/vitest
+advisories on Node 20 in one change, which is why #81, #82 and #139 were closed as superseded
+rather than merged.
+
+**6. Close a declined PR with the reason in the comment.** Dependabot re-raises; the point of
+this list is that the decision is looked up, not re-derived.
+
 **Files.** `docs/tracks/TRACK_G.md`.
 **Size.** Small.
 **Why it is worth doing properly:** reading a provider's terms and finding your own code in
