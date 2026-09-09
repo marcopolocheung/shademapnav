@@ -149,6 +149,16 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   - **Name collision settled:** `npm run bench` stays the vitest shade-sampling benchmark;
     the route benchmark is `npm run bench:route`. **#254** should keep that split when it ports
     the vitest benchmark.
+- **Filed by G2, none fixed:** **#259** (`track-a`, the canvas read above), **#264**
+  (`track-a`, why warm is slower than cold — the cause is a hypothesis, not a result), and four
+  against this track: **#261** the benchmark's variance definition has no test and its only
+  drift guard never runs in CI; **#262** `MAX_HISTORY = 20` silently caps any benchmark at 20
+  repeats; **#263** the repeat counts are too low to estimate the benchmark's own run-to-run
+  span, which is what forces the ~25% noise floor above and blocks on #262; **#265** the
+  Node-only sweep still pays for a full browser build; **#266** `benchCold` re-registers its
+  network stubs each repeat. **#256 is stale as filed** — the fields it calls unused are read
+  by the `console.table` below them — and carries a comment recommending it be closed as
+  not-a-defect.
 - **Next action:** **G3** — the bundle budget (#57). It is the smallest remaining item, it now
   has a committed table to check against, and it is where regression *gating* belongs; G2
   deliberately gates nothing. **G0** (routing-quality eval) remains the better filler task and
