@@ -52,7 +52,7 @@ conclude four things, and each needs an artifact they can click.
 |---|---|---|
 | **Can do real algorithms** | A time-dependent, constraint-aware routing search checked against a brute-force oracle, with a published approximation gap. Not a wrapper around a routing API. | ⚠️ Half — Pareto label-setting with dominance pruning exists (`routing.ts:566`); the time dimension does not → **Track H** |
 | **Can ship applied AI that works** | A tool-using agent with typed contracts, a job/result protocol, deterministic validation, and a public eval suite **whose failures are reported**. | ⚠️ Half — loop and 7 tools exist; C1's harness is in review; no published numbers → **C1–C5** |
-| **Understands systems and performance** | Measured wins in CI: worker offload, a bundle budget, a browser smoke test that runs — and the ~1,000–2,200× shadow-index speedup **stated as what it is, a synthetic Node microbenchmark of the index in isolation, not end-to-end browser route time**. | ⚠️ Half — G1 landed, index win measured (#166) but **unqualified in this file until #207**; A5 and G2/G3 are not → **G2, A5** |
+| **Understands systems and performance** | Measured wins in CI: worker offload, a bundle budget, a browser smoke test that runs — and the ~1,000–2,200× shadow-index speedup **stated as what it is, a synthetic Node microbenchmark of the index in isolation, not end-to-end browser route time**. | ⚠️ Half — G1 landed, index win measured (#166) and now qualified **both here and in `docs/notes/evidence.md`**, so **#207 can close**; A5 and G2/G3 are not → **G2, A5** |
 | **Is honest about what they measured** | The agreement harness publishing `mean 2.6pp · worst 62.5pp · severe 3.3%` — worst case included. Confidence values labelled in code as *priors, not measurements*. UI numbers linking to their own method. | ✅ The strongest signal here — and **invisible to anyone outside the repo** → **Track P** |
 
 **That last row is the whole argument.** Almost every portfolio project claims; almost none
@@ -65,28 +65,31 @@ exists to fix exactly that, and it is cheaper than any feature on this list.**
 
 From `AUTONOMOUS_GOAL.md` §2 — the honest competitive picture. **Google Maps** ships a shade
 *toggle*; it is commoditized. **ASU Cool Routes** routes on mean radiant temperature at 1 m —
-the academic ceiling — on one campus, with no app. **Shadehopper / Geuneullo** ship consumer
-shade routing, and Geuneullo already models street trees, so our buildings-only model is behind
-the consumer state of the art, not ahead of it.
+the academic ceiling, and better physics than anything here — as a **single-user web tool over
+171 fixed points on one campus**, built from LiDAR that does not exist for most cities.
+**Shadehopper / Geuneullo** ship consumer shade routing, and Geuneullo already models street
+trees, so our buildings-only model is behind the consumer state of the art, not ahead of it.
 
 So the differentiator is **not** "shade routing". It is this combination, which nobody ships:
 
 > **The sun advances while you walk** — exposure priced at each segment's *traversal* time, not
 > one frozen timestamp — **turned into a reachability question** ("everywhere I can reach on ≤8
-> minutes of sun, round trip"), **anywhere OSM and vector tiles reach**, **entirely in a
-> browser**, **with an assistant that plans and repairs against that same model**, and **with
-> the accuracy numbers published, worst case included.**
+> minutes of sun, round trip"), **anywhere OSM and vector tiles reach**, **with an assistant
+> that plans and repairs against that same model**, and **with the accuracy numbers published,
+> worst case included.**
 
-Each clause carries weight. Drop the time dimension and it is Google's toggle. Drop the browser
+Each clause carries weight. Drop the time dimension and it is Google's toggle. Drop the reach
 and it is ASU's research tool. Drop the published numbers and it is every other portfolio.
 
-> **⚠️ Two clauses above are under revision — do not transcribe this paragraph until #248 and
-> #206 land.** *"Entirely in a browser"* is being **retired by decision** (2026-09-09: the owner
-> lifted the client-side-only constraint — see §7 and **#248**), which means the sentence above
-> naming it as the thing separating us from ASU no longer holds and the claim must be restated
-> around what actually remains. Separately, *"ASU … with no app"* below is **factually wrong** —
-> Cool Routes is a deployed Flask web app; the true limits are single-user, campus-only,
-> POI-to-POI, and LiDAR-dependent (**#206**, **#195**). See §5c.
+**One clause was retired on 2026-09-09, and what it was actually doing is worth recording
+(#248).** The list used to include *"entirely in a browser"*, and the sentence above used to read
+*"drop the browser and it is ASU's research tool."* That was never quite right. The browser
+clause was doing two jobs — a difficulty signal, and a stand-in for the real competitive contrast
+— and the second job is done better by a clause that was already in the list. **ASU's limitation
+is not that they have a server. It is that they need LiDAR for one campus.** *"Anywhere OSM and
+vector tiles reach"* is the sharper statement of that same advantage, and unlike the browser
+clause it survives the §7 decision intact. What is genuinely lost is the difficulty flex, and it
+was traded deliberately for accuracy headroom — do not pretend it cost nothing.
 
 **The clause that is not ours, stated so no session re-claims it.** Advancing the sun along a
 walk is *not* unprecedented: Fujiwara et al., *Building and Environment*, 13 Sep 2024, §6.2
@@ -94,8 +97,15 @@ integrates accumulated irradiance over a walk using departure time, walking spee
 position-specific timestamps. They compare **three predefined routes**. What survives as ours is
 everything after the first clause — traversal-time exposure as the *cost function of a
 constrained search* over `(node, arrivalTime, accumulatedExposure)`, inverted into reachability,
-in a browser, repaired by an agent, with the gap published. Evaluating three fixed routes is not
-that. See #206; cite the paper as related work in `sun-budget-model.md`, not as a threat.
+repaired by an agent, with the gap published. Evaluating three fixed routes is not that. Cite the
+paper as related work in `sun-budget-model.md`, not as a threat.
+
+**And it is not contested by the 2026-09-09 pass (§5c) — recorded because all three papers were
+checked for exactly this.** None of Wen 2025, Buo 2026 or Ma 2025 advances the sun along the
+walk: Buo prices a route against the MRT map *"closest to the user-defined time"*, and Ma is
+explicitly *"stationary PET … did not consider the dynamic thermal conditions along the routes"*.
+**Two of the three name it as their own future work.** Fujiwara remains the honest prior art; the
+frontier has not closed the clause since.
 
 ### Anti-goals
 
