@@ -1,0 +1,339 @@
+# Evidence
+
+Every measurement this project has made, with the method that produced it and the case where
+it did worst. Nothing here is an estimate, and nothing here is rounded in the flattering
+direction.
+
+**Stamped at commit `6a4b58f`, 2026-09-09.** Every figure below names the commit or fixture it
+came from, because a published number that a later PR invalidates is a lie with a timestamp.
+This page is written once and *revised* — sections that say "not measured" are not placeholders
+waiting for a launch, they are the current honest state.
+
+## How to read this page
+
+Three rules govern it.
+
+1. **No number appears without its method.** What was measured, on what data, on what
+   hardware, and what it does not say.
+2. **The evaluation layers stay separate.** Geometry, routing, agent and systems have different
+   oracles and different failure modes. Merging them is how a portfolio number becomes a lie —
+   a rendering agreement figure quoted as routing quality would be exactly that.
+3. **An empty row stays empty.** Where there is no measurement, this page says so rather than
+   borrowing a neighbouring one. Several rows below are empty. That is the point.
+
+## Status at a glance
+
+| Layer | Oracle | What exists today | State |
+|---|---|---|---|
+| **Geometry** | synthetic analytic fixtures; independent observation | shade-field ↔ pixel-sampler agreement, 150 cases, CI-gated | ⚠️ **method agreement only — no physical accuracy number exists** |
+| **Routing** | tiny exact fixtures; independently checked constraints | unit tests of the cost model and Pareto search | ⬜ **no approximation gap, no violation rate, no optimality bound** |
+| **Agent** | final app state + task graders | 18 orchestrator scenarios + a sabotage suite, scripted model | ⚠️ **contract only — no live-model or task-completion number** |
+| **Systems** | documented hardware, fixed snapshots | shadow-index microbenchmark, bundle sizes, CI suite, one browser smoke test | ⚠️ **Node microbenchmark and build sizes only — no browser latency budget** |
+
+---
+
+## 1. Geometry
+
+### 1.1 Shade field vs pixel sampler — agreement
+
+Routing used to read shade off the map canvas. It now samples building geometry
+(`app/lib/shade/ShadeField.ts`) and falls back to the canvas per edge. This harness measures
+how far the two disagree, so that the swap was a number rather than an opinion.
+
+**Source.** `app/lib/shade/__tests__/agreement/` — `fixtures.ts` builds the corpus,
+`harness.ts` runs it, `agreement.test.ts` holds the ceilings.
+**Reproduce.** `npx vitest run app/lib/shade/__tests__/agreement/agreement.test.ts` — the report
+line prints on every run, passing or failing. Deterministic: no network, no key, no clock.
+**Measured at** `6a4b58f`.
+
+| Metric | Measured | Committed ceiling |
+|---|---:|---:|
+| Cases | 150 | ≥ 100 |
+| Sidewalk readings | 300 | — |
+| Mean absolute disagreement | **2.6 pp** | ≤ 4.0 pp |
+| p90 | **0.0 pp** | ≤ 5.0 pp |
+| Worst single reading | **62.5 pp** | *(not gated)* |
+| Severe share (> 25 pp) | **3.3 %** — 10 of 300 readings | ≤ 4.0 % |
+| Exact agreement | 271 of 300 readings (90.3 %) | — |
+
+Per city, mean absolute disagreement, 50 cases each:
+
+| City | Morphology | Mean | Ceiling |
+|---|---|---:|---:|
+| Madrid | dense mid-rise grid with courtyards, 40.4°N | 2.2 pp | ≤ 8.0 pp |
+| Singapore | sparse towers, 1.4°N, sun near overhead | 2.3 pp | ≤ 8.0 pp |
+| Kent, WA | low-rise suburb, 47.4°N, long winter shadows | 3.4 pp | ≤ 8.0 pp |
+
+The ceilings are set just above what the corpus currently reports, so a regression trips them.
+They are meant to be *lowered* as the field improves, never raised to make a failure go away —
+raising one is a product decision, because it means accepting more divergence between what the
+map paints and what routing believes.
+
+**The worst case, described.** One sidewalk reading differed by 62.5 pp, and the severe tail is
+almost entirely one situation: a shadow boundary running *parallel* to a street and landing
+within a pixel of the sidewalk line, so every sample along that edge flips together instead of
+scattering. The field is the more accurate side there — it samples the true ±4 m offset while
+the canvas path rounds to the nearest pixel — but the renderer is what the user believes, so
+the count is gated rather than footnoted. p90 cannot see this at all: nine readings in ten agree
+exactly, which is why the severe share is a separate gate.
+
+**What this does not say.**
+
+- **It is not physical accuracy.** Two models are compared *to each other*, on the same
+  synthetic geometry. Neither is ground truth. There is no measurement anywhere in this project
+  of how either compares to a real shadow in a real street — see §1.2.
+- **It does not measure geometry disagreement.** Both sides see identical buildings by
+  construction. The disagreements it can see are the ±4 m sidewalk offsets landing on different
+  pixels, quantization at shadow edges, the blue-dominant predicate round-trip, and sample-count
+  differences. The disagreements it cannot see are the ones from MapTiler's tile geometry versus
+  Overpass's, missing OSM heights, and hidden landmark buildings. Those need the pixel sampler's
+  answers recorded from a real browser over real tiles, and **that corpus does not exist.** The
+  fixture format is already the format such a recording produces, so it drops in without
+  changing the metric — the harness names issue #121 as the blocker, and that reason is now
+  stale (see [`browser-verification.md`](./browser-verification.md)); the corpus is simply
+  unrecorded.
+- **150 cases are not 150 independent scenes.** They come from **3** synthetic city layouts
+  (a 3×3 block grid each), 10 street edges per city, and 2 dates × 5 hours per city — paired by
+  parity so every edge and every hour is used. Adjacent cases share buildings and share a sun
+  position. Read it as broad coverage of one *kind* of geometry, not as a sample of the world.
+- **The footprints are rectangles.** Real footprints are not, and irregular rings are where a
+  triangulation-based field and a rasterised one have the most room to differ.
+
+### 1.2 Physical accuracy — **not measured**
+
+There is **no measurement in this project of how well its shadows match reality.** No
+comparison against observed shadow boundaries, no photographs, no survey, no independent
+irradiance data. §1.1 is agreement between two of our own models, and it must never be quoted
+as accuracy.
+
+### 1.3 Confidence values are priors, not measurements
+
+`ShadeField.ts:198` says so in the source, and it is repeated here because it is the kind of
+thing that quietly gets promoted:
+
+> Neither is measured ground truth — these are priors, and A3's agreement harness is what turns
+> them into calibrated numbers.
+
+The per-edge confidence the field attaches to a shade answer is a hand-set prior over source
+quality and sun-altitude conditions. It has not been calibrated against outcomes. The route
+provenance line the UI shows (`app/lib/shadeProvenance.ts`) is derived from these priors, so it
+reports *where a number came from* — building geometry, the map view, mixed, or unknown — and
+deliberately not how right it is.
+
+---
+
+## 2. Routing
+
+### 2.1 Approximation gap — **not measured**
+
+The route search is Pareto label-setting with dominance pruning (`app/lib/routing.ts`). It is
+covered by unit tests of the cost model and the dominance rule
+(`app/lib/__tests__/routing.test.ts`), which check that the implementation does what it says.
+
+**No optimality bound, no brute-force oracle comparison, and no published approximation gap
+exist.** The search must not be described as optimal, and the phrase "shadiest route" is a
+description of the objective, not a claim about the result.
+
+### 2.2 Time-dependent exposure — **not implemented**
+
+Exposure is currently priced at one timestamp, not at each segment's traversal time. Anything
+measured about a time-dependent search would be measured about code that is not written yet.
+
+### 2.3 Constraint-violation rate — **not measured**
+
+---
+
+## 3. Agent
+
+### 3.1 Orchestrator eval — 18 scenarios plus a sabotage suite
+
+**Source.** `app/lib/agent/__tests__/` — `harness.ts` replays scripted model turns and tool
+results through the real `runAgent` and records a trace; `scenarios/` holds the cases.
+**Reproduce.** `npx vitest run app/lib/agent/__tests__/agentScenarios.test.ts`.
+**Measured at** `6a4b58f`. **28 assertions, all green.**
+
+| Group | Scenarios | What it pins down |
+|---|---:|---|
+| Planning | 6 | tool order, the fallback plot when the model forgets, no duplicate plot when it doesn't, locate-then-search, time set before shade is read, route endpoints becoming pins |
+| Grounding | 6 | a tool error is fed back rather than swallowed, an empty search plots and names nothing, an off-topic turn spends no tools, an unlocated map asks instead of inventing, the pin cap, coordinate de-duplication |
+| Budget | 3 | the 8-step research cap still plots before the write call, the 8-pin cap, the shared-model fast path skipping the write call |
+| Degradation | 3 | a safety block ends the turn with no tools and no pins, an empty research turn still reaches the write call, an empty write returns a plain retry message |
+| **Sabotage** | 3 | the harness's own teeth: pins that never reach the map, an answer naming a place no tool returned, and a plan left half-plotted must each turn the suite red |
+
+**Broken out rather than folded into a rate.** Three of the eighteen scenarios assert that the
+agent *declines* — no pins, no invented place, a request for an area it does not have. Counting
+those as successes alongside completed plans would make conservative behaviour look falsely
+perfect, so they are their own group and are not summed into a headline number.
+
+**What this does not say.**
+
+- **The model is scripted.** Every model turn is a fixture we wrote. This measures the
+  orchestrator's decisions — which tools ran, in what order, which pins reached the map, what
+  the write call was told — under known model output. It says nothing about how a live model
+  behaves.
+- **It is not task completion.** No scenario asks whether the resulting plan is a good plan, or
+  whether a user's day worked out. There is no task grader and no live-model eval in this
+  project.
+- **Prose is never asserted.** The one string assertion allowed is which scripted turn came
+  back, which checks the loop returned the write answer rather than a research draft. Fluent
+  output is not evidence and is not counted.
+
+### 3.2 Live-model groundedness, recovery, revision minimality — **not measured**
+
+---
+
+## 4. Systems
+
+### 4.1 Shadow-index speedup — a Node microbenchmark
+
+**This is a synthetic Node microbenchmark of `ShadeField.sampleEdges` in isolation. It is not
+end-to-end browser route time, and it must not be quoted as one.** (Issue #207 exists to keep
+that qualification attached wherever the number appears.)
+
+**Source.** `app/lib/shade/__benchmarks__/shadeField.bench.ts`. **Reproduce.** `npm run bench`
+(`SHADEMAP_BENCH_FULL=1` adds the city-scale case).
+**Measured 2026-09-04.** Before: `main` at `c2821f7`. After: `shade/shadow-index` at `c6b21a1`
+(PR #164). **Hardware:** WSL2 Linux `6.18.33.2-microsoft-standard-WSL2`, Node `v20.20.1`.
+8 iterations each, 3 for the last; margins are Tinybench's relative margin of error.
+
+| Case | Before (mean) | After (mean) | Change |
+|---|---:|---:|---:|
+| 400 prisms × 200 edges | 691.5 ms ±0.9% | 0.66 ms ±2.3% | ~1,050× |
+| 800 prisms × 200 edges | 1282.6 ms ±1.5% | 0.91 ms ±26.9% | ~1,410× |
+| 1600 prisms × 200 edges | 2347.4 ms ±0.8% | 1.40 ms ±13.8% | ~1,670× |
+| 400 prisms × 400 edges | 1366.8 ms ±1.2% | 1.27 ms ±13.8% | ~1,075× |
+| 2000 prisms × 1000 edges | 13899.5 ms ±1.4% | 6.31 ms ±22.0% | ~2,200× |
+
+**What this does not say**, in the benchmark's own four caveats:
+
+1. **These are warm-JIT, steady-state figures.** The first `sampleEdges` call in a real session
+   is slower than the table suggests on *both* sides. A cold single-shot pass on the same
+   fixtures measured 773 ms → 16 ms for 400 × 200 — the same change viewed cold.
+2. **The wide margins in the "after" column are timer noise, not instability.** Those operations
+   now run in about a millisecond, where GC and clock granularity dominate in relative terms.
+   The before column is stable to ~1% and reproduced within 1% across two runs.
+3. **The footprints are squares**, which makes `earcut` nearly free. This understates
+   triangulation cost against real tile or Overpass geometry. It affects both columns, so the
+   ratio holds; the absolute numbers are optimistic.
+4. **A full route graph is not measured.** ~5,400 edges takes minutes per iteration on the
+   pre-index code and reports nothing. The 200-vs-400 edge pair is in the table to show scaling
+   is linear in edges.
+
+Full method: [`performance-baseline.md`](./performance-baseline.md).
+
+### 4.2 Bundle size
+
+**Measured 2026-09-08**, Node `v20.20.1`, clean `npm ci`. Before: `main` at `4180e02`; after:
+`feat/d0-real-timezones` (#204). Recorded because replacing a longitude offset estimate with an
+IANA zone lookup is the kind of change that quietly costs 30 kB on the entry path.
+
+| Artifact | Before (gzip) | After (gzip) | Change |
+|---|---:|---:|---:|
+| `index-*.js` | 65.55 kB | 66.22 kB | +0.67 kB |
+| `MapView-*.js` | 17.39 kB | 17.41 kB | +0.02 kB |
+| `agentLoop-*.js` | 6.63 kB | 6.67 kB | +0.04 kB |
+| `tz-*.js` *(new, async)* | — | 29.60 kB | +29.60 kB |
+
+**The entry path grew by 0.67 kB gzip, not 30.** The boundary dataset sits behind a dynamic
+`import()`, so it is fetched after first paint and nothing blocks on it. Total `dist/` was
+1.6 MiB at `dca020d` (2026-08-15). There is **no enforced bundle budget** — these are recorded
+numbers, not a gate.
+
+### 4.3 Test suite and CI
+
+**Measured at `6a4b58f`**: `npm test` → **550 tests across 48 files, all passing**, in ~5 s.
+CI runs lint → typecheck → test → build on every PR and every push to `main`, then the browser
+smoke test. It needs no secrets: the suite is hermetic — no network, no env, no clock.
+
+**What this does not say.** `npm test` never opens a browser. A green suite says nothing about
+rendering, about WebGL, or about anything the user sees.
+
+### 4.4 Browser smoke test — one path
+
+`npm run e2e` (`e2e/smoke.spec.ts`) loads the built app in Chromium and asserts, in order:
+blue-dominant shadow pixels appear on the map canvas and then stop changing on their own;
+dragging the timeline lands within ±2 minutes of the expected clock time and moves the shadow
+mask; and a two-point route calculates and its line reaches the canvas.
+
+It runs as two projects. `smoke` serves a synthetic basemap style, so it needs no API key and
+runs on every PR including from forks. `smoke-live` repeats the same assertions against real
+MapTiler tiles and appears only when a key is present — it is the only check that the app still
+parses MapTiler's real `building` schema.
+
+**What this does not say.** It is **one path**. It is not a performance measurement, not a
+visual regression test, and it covers no other screen, mode, or interaction in the app.
+
+### 4.5 Browser latency, memory and throughput — **not measured**
+
+No time-to-interactive, no route-calculation timing from a real browser, no memory ceiling, no
+throttled-network figure. Route instrumentation is exposed at `window.__shadeMapMetrics` and
+nothing consumes it yet. A browser *is* now runnable locally (see
+[`browser-verification.md`](./browser-verification.md)), so the old "no browser binary" reason
+is stale — the measurements are simply missing.
+
+---
+
+## 5. Numbers the app shows, and where each one comes from
+
+| The app shows | Computed by | Method | Standing |
+|---|---|---|---|
+| `<n>% shade` on a route card | `routing.ts:530` — shaded distance ÷ total distance | §1.1 is the only evidence about how right the underlying per-edge shade calls are | agreement-checked, **not accuracy-checked** |
+| `from building geometry` / `from the map view` / `mixed sources` / `low confidence` | `shadeProvenance.ts` | §1.3 — aggregated over the walked path, weighted by distance | provenance, not quality |
+| `<d> km`, `<n> min total` | summed edge lengths; time is distance ÷ a constant speed — 1.4 m/s walking, 4.5 m/s cycling (`travelMode.ts`) | there is no timing model beyond that constant: no crossings, no signals, no elevation, no fatigue | **an assumption, not a measurement** |
+| `Strong heat stress · Heat <n> vs <m>` | `app/lib/heat/score.ts`, method version `shade-radiation-v1` | [`heat-score.md`](./heat-score.md) | **experimental**, labelled so in the UI; ordinal, comparable only between the routes on screen at that hour |
+| `About 4–6 min of full sun (<lo>–<hi> SED)` | `app/lib/heat/dose.ts`, method version `sed-uvi-v1` | [`heat-model.md`](./heat-model.md) | **experimental**, labelled so in the UI |
+| the hour every solar figure is computed for | `app/lib/timezone.ts`, `tzLookup.ts` | [`timezone.md`](./timezone.md) | real IANA zone, with the residual error stated there |
+
+The app links [`heat-model.md`](./heat-model.md) directly, under a **How these are estimated**
+link beside the two experimental numbers; that page links the other two. All of them resolve
+on the public repo.
+
+---
+
+## 6. Corrections this page carries
+
+A project that publicly corrects its own overclaim is doing the thing this page exists to prove.
+
+**The novelty claim was overstated (#206).** Advancing the sun along a walk is not
+unprecedented. Fujiwara et al., *Building and Environment*, 13 Sep 2024, §6.2 integrates
+accumulated irradiance over a walk using departure time, walking speed and position-specific
+timestamps — over **three predefined routes**. That is prior art for traversal-time exposure and
+is cited here as related work, not as a threat. What is ours is what comes after: traversal-time
+exposure as the *cost function of a constrained search*, inverted into a reachability question,
+in a browser, with the gap published. Evaluating three fixed routes is not that — and §2.1 says
+plainly that our gap is not yet published, because it has not been measured.
+
+**The speedup was unqualified (#207).** ~1,000–2,200× is a Node microbenchmark of one function,
+not end-to-end browser route time. §4.1 carries the qualification wherever the number goes.
+
+**A shipped dependency carries a critical advisory (#211).** `maplibre-gl` is pinned at exactly
+`5.9.0` because v5.10+ breaks the shadow simulator's WebGL2 texture call — hard invariant #1.
+That pin holds a package with a real critical XSS advisory. Stated precisely in both directions:
+the advisory is real and unfixed in this app's dependency tree; there is **no demonstrated
+exploit path in this app**, because the one `setHTML` call pre-escapes its input; and the
+upstream fix is a semver major the invariant forbids. It is a live accepted risk, not a
+non-issue and not a compromise.
+
+**The shade source was described wrongly.** Routing is not "a pixel sampler". It is a
+geometry-backed `ShadeField` with a per-edge canvas fallback, and §1.1 is the measurement that
+made the swap defensible. An earlier research pass got this wrong and the impression persisted;
+it is corrected here.
+
+---
+
+## 7. What would have to happen for this page to say more
+
+Named so the empty rows have owners rather than looking like oversights:
+
+- **A physical accuracy number** (§1.2) needs an independent observation of real shadows, and
+  nothing in the current toolchain produces one.
+- **A recorded real-city agreement corpus** (§1.1) needs the pixel sampler's answers captured
+  from a real browser over real tiles. The fixture format already matches, and a browser now
+  runs locally, so nothing but the recording is missing.
+- **An approximation gap** (§2.1) needs a brute-force oracle over tiny exact fixtures.
+- **A live-model agent eval** (§3.2) needs task graders and a groundedness oracle.
+- **Browser latency budgets** (§4.5) need the existing `window.__shadeMapMetrics` captured from
+  a real session and given a CI-enforced ceiling.
+
+Until then those sections stay empty, and no number from an adjacent section is allowed to
+stand in for them.

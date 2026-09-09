@@ -13,6 +13,12 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
+## Evidence
+
+Every measurement this project has made — with its method, its sample counts, and its worst
+case — is on one page: **[docs/notes/evidence.md](docs/notes/evidence.md)**. It also names what
+is *not* measured, which is most of it.
+
 ## Repo guide
 
 The repository is self-describing for contributors and coding agents:
