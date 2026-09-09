@@ -17,6 +17,12 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **Take G8 and G7 before G3.** Both are `docs/ROADMAP.md` Wave 0 — they block claims rather
   than features. G8 now also owns the Nominatim policy violation (below); the public-mirror
   work moved to **Track P (P1)**, which owns the public surface.
+- **Done:** **#212** — the place popup's `href`/`src` accept an `http(s)` URL only. `escapeHtml`
+  is no defence in URL position, so the scheme is now checked before interpolation: `javascript:`,
+  `data:` and protocol-relative values drop their row, `tel:` is built from dialable characters
+  only, and `escapeHtml` also escapes quotes so a value cannot end the attribute it sits in. The
+  popup body moved to `app/components/placePopup.ts`, which is what makes the emitted HTML
+  testable.
 - **Done:** **G4, delivered by Track A** — `app/lib/shade/__tests__/agreement/` meets G4's
   acceptance in full (prints the metric every run, enforces committed ceilings, adding a city is
   a data change). G owns how it runs; A owns what is in it.
