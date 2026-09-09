@@ -1129,8 +1129,12 @@ describe("parallelSidewalkEdges", () => {
   const CANON_LEFT = 1;
   const CANON_RIGHT = 0;
 
+  /** The plain street edge overpass.ts builds, before shade sampling splits it. */
+  const srcEdge = (toId: number, tags: Partial<GraphEdge> = {}): GraphEdge =>
+    ({ toId, distanceM: 100, shadeFactor: 0, ...tags });
+
   it("walking canonically, canonical-left is the traveller's left", () => {
-    const [left, right] = parallelSidewalkEdges(1, 2, 100, CANON_LEFT, CANON_RIGHT);
+    const [left, right] = parallelSidewalkEdges(1, srcEdge(2), CANON_LEFT, CANON_RIGHT);
     expect(left.side).toBe("left");
     expect(left.shadeFactor).toBe(CANON_LEFT);
     expect(right.side).toBe("right");
@@ -1141,7 +1145,7 @@ describe("parallelSidewalkEdges", () => {
     // Same physical street, opposite direction. This is the assertion that fails if
     // the canonicality flip is dropped or inverted — the bug this helper exists to
     // make visible, and which is invisible at pitch 0 and in every aggregate.
-    const [left, right] = parallelSidewalkEdges(2, 1, 100, CANON_LEFT, CANON_RIGHT);
+    const [left, right] = parallelSidewalkEdges(2, srcEdge(1), CANON_LEFT, CANON_RIGHT);
     expect(left.side).toBe("left");
     expect(left.shadeFactor).toBe(CANON_RIGHT);
     expect(right.side).toBe("right");
@@ -1150,16 +1154,33 @@ describe("parallelSidewalkEdges", () => {
 
   it("labels are always left-then-right regardless of direction", () => {
     for (const [a, b] of [[1, 2], [2, 1]] as const) {
-      const pair = parallelSidewalkEdges(a, b, 100, 0.3, 0.7);
+      const pair = parallelSidewalkEdges(a, srcEdge(b), 0.3, 0.7);
       expect(pair.map((e) => e.side)).toEqual(["left", "right"]);
       expect(pair.every((e) => e.toId === b && e.distanceM === 100)).toBe(true);
     }
   });
 
   it("keeps both kerbs' shade — the pair carries the same two values either way", () => {
-    const fwd = parallelSidewalkEdges(1, 2, 100, 0.3, 0.7).map((e) => e.shadeFactor);
-    const rev = parallelSidewalkEdges(2, 1, 100, 0.3, 0.7).map((e) => e.shadeFactor);
+    const fwd = parallelSidewalkEdges(1, srcEdge(2), 0.3, 0.7).map((e) => e.shadeFactor);
+    const rev = parallelSidewalkEdges(2, srcEdge(1), 0.3, 0.7).map((e) => e.shadeFactor);
     expect([...fwd].sort()).toEqual([...rev].sort());
     expect(fwd).not.toEqual(rev);
+  });
+
+  it("carries the source edge's OSM access tags onto both sidewalks", () => {
+    // The split is where access tags used to vanish: an untagged edge reads as
+    // "no restriction" to every predicate, so a footway=no street looks walkable.
+    const tags = {
+      highway: "footway",
+      surface: "asphalt",
+      cycleway: "lane",
+      bicycle: "designated",
+      foot: "no",
+    };
+    for (const [a, b] of [[1, 2], [2, 1]] as const) {
+      for (const edge of parallelSidewalkEdges(a, srcEdge(b, tags), 0.3, 0.7)) {
+        expect(edge).toMatchObject(tags);
+      }
+    }
   });
 });

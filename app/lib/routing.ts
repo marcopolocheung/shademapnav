@@ -389,20 +389,24 @@ export function snapToEdge(
  * left; walking against it you face the other way, so right-of-canonical is. This
  * resolves that once, so callers never have to reason about it again — and so the
  * flip is testable, which it is not when spelled inline at the call site.
+ *
+ * Both outputs are the source edge with only `shadeFactor` and `side` replaced, so
+ * every OSM access tag it carries (`highway`, `foot`, `bicycle`, …) survives the
+ * split. Rebuilding the edge from scratch instead dropped them silently: the edge
+ * still looked well-formed, so any access predicate read it as "no restriction".
  */
 export function parallelSidewalkEdges(
   fromId: number,
-  toId: number,
-  distanceM: number,
+  sourceEdge: GraphEdge,
   canonicalLeftShade: number,
   canonicalRightShade: number
 ): [GraphEdge, GraphEdge] {
-  const isCanonical = fromId < toId;
+  const isCanonical = fromId < sourceEdge.toId;
   const travellerLeft = isCanonical ? canonicalLeftShade : canonicalRightShade;
   const travellerRight = isCanonical ? canonicalRightShade : canonicalLeftShade;
   return [
-    { toId, distanceM, shadeFactor: travellerLeft, side: "left" },
-    { toId, distanceM, shadeFactor: travellerRight, side: "right" },
+    { ...sourceEdge, shadeFactor: travellerLeft, side: "left" },
+    { ...sourceEdge, shadeFactor: travellerRight, side: "right" },
   ];
 }
 

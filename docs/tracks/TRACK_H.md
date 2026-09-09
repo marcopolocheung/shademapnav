@@ -18,7 +18,10 @@ G's fixture and benchmark infrastructure).
   interactive speed; H3 without G2 has no committed baseline, and this track's central claim is
   a *comparison* against the static method. Starting early produces a demo that cannot be
   defended, which is the one outcome this track exists to avoid.
-- **Done:** nothing.
+- **Done:** nothing in H1–H4. One prerequisite cleared: **#208** — `parallelSidewalkEdges`
+  rebuilt each sidewalk edge from scratch and silently dropped the five OSM access tags
+  `overpass.ts` had filled in, so H2/H3's "hard constraint" had nothing to read. It now
+  returns the source edge with only `shadeFactor` and `side` replaced.
 - **Open PRs:** none.
 - **Decisions made:** none yet. The design notes below are the starting position, not
   decisions — record real ones here as they are made.
@@ -26,7 +29,7 @@ G's fixture and benchmark infrastructure).
   building either here.
 - **Next action:** H1 — traversal-time exposure, behind a flag, with the H4 oracle written in
   the same PR or the one immediately after.
-- **Last verified:** 2026-09-07 — brief created; `main` green at 411 tests / 35 files.
+- **Last verified:** 2026-09-08 — #208 fixed; access tags now survive the sidewalk split.
 
 ---
 

@@ -1209,7 +1209,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           const hi = Math.max(fromId, edge.toId);
           const { left, right } = edgeShadeCache.get(`${lo},${hi}`) ?? { left: 0, right: 0 };
           routingAdj.get(fromId)!.push(
-            ...parallelSidewalkEdges(fromId, edge.toId, edge.distanceM, left, right)
+            ...parallelSidewalkEdges(fromId, edge, left, right)
           );
         }
       }
