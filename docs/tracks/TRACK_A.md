@@ -36,15 +36,20 @@
   A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6.
 - **A6 landed with its acceptance criterion unmet, and the measurement is the deliverable.**
   A 14-hour sweep over a 3 km route was to cost *"< 2× a single-hour sample"*. It costs
-  **20.9×**, and on `main` it cost 17.6× — **the ratio got worse while every absolute number
+  **~21×**, and on `main` it cost ~17× — **the ratio got worse while every absolute number
   improved**, because the denominator sped up more than the numerator. What did happen: the
   sweep went 34.4 ms → 21.9 ms and a single-hour `sampleEdges` went 1.96 ms → 1.04 ms (1.9×,
   which routing gets for free). Everything a sweep can hoist is hoisted; the remainder is the
-  point-in-shadow queries, and those are per-instant because the shadow moves. At graph scale
-  `sweep` and N `sampleEdges` calls now measure within 1% of each other. **Beating N× needs a
-  different predicate, not more sharing** — the design, the three cheaper wins that were
-  measured and declined, and the per-phase split are in
+  point-in-shadow queries, and those are per-instant because the shadow moves — at graph scale
+  `sweep` beats N `sampleEdges` calls by only 0–11%, and that margin is the batch plan, which
+  does not grow with the number of times. **Beating N× needs a different predicate, not more
+  sharing** — filed as **#267**. The design, the three cheaper wins that were measured and
+  declined (**#268**, **#269**, and the far-cap reuse), and the per-phase split are in
   `docs/notes/performance-baseline.md` § Time Sweep (A6).
+- **The sweep still has no multi-time consumer.** `useHourlyExposure.ts:93` is the only
+  `sweep` call site in `app/` and it passes one time. The win the app collects today is the
+  ~1.9× on `sampleEdges`; the N-time sharing is built for **H1**, and **#270** tells Track H
+  what to budget, because its gate text assumed A6 would make N buckets cheap and it does not.
 - **#245 (the one-hour max-shade window) was decided, not deferred: declined.**
   `docs/notes/one-hour-shade-window.md` has the reasons — the chief one being that A6's
   measurement destroyed the "nearly free" premise the proposal rested on (a 10-minute-step
@@ -433,8 +438,15 @@ return a stable array and neither mutates one). The sun-cell partition, each cel
 and each edge's sidewalk offsets and sample count are computed once per batch instead of once
 per hour. Three trig calls moved out of a per-prism loop. Every float is unchanged: the shift
 is spelled exactly as before, `earcut` sees exactly the coordinates `triangulateRing` fed it,
-and the flat emission is pinned point-for-point against `buildShadowTriangles` by the frozen
-reference in `shadowIndex.test.ts`.
+and `shadowTrianglesFlat` is pinned **vertex for vertex** against `buildShadowTriangles` over
+ragged concave rings, open and closed — a test added because the frozen reference compares the
+two only *through* `isShaded`, which cannot see a cap cut differently over the same polygon.
+
+**One inexact short-circuit was found in cold review and removed.** A footprint-bounds test in
+front of the ray cast is exact for a finite ring and **not** for a ring carrying a NaN vertex,
+which the bounds sweep silently excludes while the ray cast still flips parity on its edges —
+140 of 160,801 grid points diverged on a constructed case. No ingest path produces one, and it
+was worth ~2%. Removed rather than documented as an exception.
 
 **Second criterion met and tested:** results match N individual `sampleEdges` calls exactly,
 now over a corpus that actually exercises the sharing — 100 buildings, a 6 km route crossing

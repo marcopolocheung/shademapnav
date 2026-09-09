@@ -25,10 +25,12 @@ hours in one pass is exactly the shape needed to take a max over a window."*
 A6 measured what a sweep actually amortises. Everything that does not depend on the
 hour is now shared — the provider resolution, the sun-cell partition, each prism's
 ring bounds and footprint bucket — and what remains is dominated by the point-in-shadow
-queries, which are irreducibly per-instant because the shadow moves. On a 3 km route,
-`sweep` at 10-minute steps costs **6.8× the same sweep at hourly steps** (162 ms vs
-21.9 ms), and at graph scale `sweep` and N separate `sampleEdges` calls are within 1%
-of each other. Numbers and method: `performance-baseline.md` § Time Sweep (A6).
+queries, which are irreducibly per-instant because the shadow moves. **The sweep is
+linear in times:** on a 3 km route, `sweep` at 10-minute steps costs **6.9× the same
+sweep at hourly steps**, against a linear floor of 6.0×. At graph scale it beats N
+separate `sampleEdges` calls by 0–11%, and that margin is the batch plan — it does not
+grow with the number of times. Numbers and method: `performance-baseline.md`
+§ Time Sweep (A6).
 
 So a one-hour window is priced at its sub-sample count, on the main thread, for a
 feature that biases the answer in the dangerous direction. It is not nearly free.

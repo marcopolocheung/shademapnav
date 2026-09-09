@@ -290,7 +290,11 @@ function castersNear(
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
       const bucket = grid.cells[y * grid.nx + x];
-      if (bucket !== undefined) hits.push(...bucket);
+      // Appended one at a time rather than spread: `push(...bucket)` passes the whole
+      // bucket as call arguments, and a degenerate footprint distribution — every
+      // prism in one cell, which the zero-span fallback above makes reachable — would
+      // throw `RangeError` on a large enough set.
+      if (bucket !== undefined) for (const index of bucket) hits.push(index);
     }
   }
 
@@ -459,15 +463,14 @@ export function buildShadowIndexFor(
       // candidate set must be ruled out before any triangle is tested — interleaving
       // silently changes the answer wherever those two overlap.
       //
-      // The bounds test in front of the ray cast is an exact short-circuit, not an
-      // approximation: `pointInPolygonFlat` cannot report a point outside the ring's
-      // own bounds as inside it.
+      // No bounds short-circuit in front of the ray cast, tempting as it looks. It
+      // would be exact for a finite ring, and it is not exact for a ring carrying a
+      // NaN vertex: NaN loses every comparison in the bounds sweep, so the bounds
+      // exclude it while `pointInPolygonFlat` still flips parity on its edges. The
+      // per-query path this index replaces cast the ray unconditionally, and matching
+      // it is worth more than the ~2% the short-circuit measured.
       for (const i of bucket) {
-        const caster = candidates[i].caster;
-        if (lng < caster.west || lng > caster.east || lat < caster.south || lat > caster.north) {
-          continue;
-        }
-        if (pointInPolygonFlat(lng, lat, caster.flat)) return false;
+        if (pointInPolygonFlat(lng, lat, candidates[i].caster.flat)) return false;
       }
       for (const i of bucket) {
         if (pointInTrianglesFlat(lng, lat, triangles[i])) return true;
@@ -491,8 +494,17 @@ export function buildShadowIndexFor(
  * not move when the sun does. The far cap is cut per sun over the same flat
  * coordinates `triangulateRing` would have built, so `earcut` sees identical input
  * and returns identical indices.
+ *
+ * Exported only so that test can exist. `shadowIndex.test.ts`'s frozen reference
+ * compares the two *through* `isShaded`, which cannot see a difference that changes
+ * the triangles without changing the region they cover — and a translated ring is
+ * exactly that kind of difference. Nothing in `app/` calls this.
  */
-function shadowTrianglesFlat(caster: Caster, dLng: number, dLat: number): Float64Array {
+export function shadowTrianglesFlat(
+  caster: Caster,
+  dLng: number,
+  dLat: number
+): Float64Array {
   const n = caster.openCount;
   if (n < 3) return EMPTY_TRIANGLES;
 

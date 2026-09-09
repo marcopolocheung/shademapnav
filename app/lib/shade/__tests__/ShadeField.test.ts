@@ -328,6 +328,13 @@ describe("sweep", () => {
    * `SUN_CELL_M` cell and the prism set clears `GRID_MIN_CASTERS`. This corpus does
    * both: 100 buildings under a 6 km route that crosses several cells, swept across
    * a full day including the hours either side of sunrise and sunset.
+   *
+   * **What this cannot catch, deliberately.** Both sides now run the same `planBatch` and
+   * the same prepared casters, so this is self-consistency: it pins A6's acceptance
+   * criterion — *"results match N individual `sampleEdges` calls exactly"* — and nothing
+   * else. Change the sun-cell size and both sides move together and this still passes.
+   * What anchors the numbers to what `main` produced is the frozen pre-index reference in
+   * `shadowIndex.test.ts`, not this.
    */
   it("still matches sampleEdges exactly across many cells, buildings and hours", () => {
     const prisms: PrismSet = { prisms: [], maxHeightM: 90 };

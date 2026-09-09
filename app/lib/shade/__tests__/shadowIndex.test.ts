@@ -18,7 +18,12 @@ import {
   buildShadowTriangles,
   metersPerDegree,
 } from "../geometry";
-import { buildShadowIndex, buildShadowIndexFor, prepareShadowCasters } from "../shadowIndex";
+import {
+  buildShadowIndex,
+  buildShadowIndexFor,
+  prepareShadowCasters,
+  shadowTrianglesFlat,
+} from "../shadowIndex";
 
 // ─── Pre-index implementation, copied from main ───────────────────────────────
 
@@ -314,6 +319,144 @@ describe("prepared casters", () => {
         }
       }
     }
+  });
+
+  it("keeps every far shadow that reaches a region far tighter than the reach", () => {
+    // The test above is one hand-built scenario at one sun angle. This is the same
+    // property asked in bulk: a 60 m region inside a corpus that spans ~560 m, whose
+    // tallest prism throws an ~800 m shadow at the lowest sun here. Every prism in
+    // the set is therefore a live candidate for this region and none may be dropped.
+    // `WIDE_REGION` cannot see this — it is ±4 km, so the expansion radius never
+    // matters there and a pre-filter that expanded by nothing would still pass.
+    const prisms = corpus(21, DENSE_HALF);
+    expect(prepareShadowCasters(prisms).grid).not.toBeNull();
+
+    const region = {
+      west: LNG - 30 / mPerLng,
+      east: LNG + 30 / mPerLng,
+      south: LAT - 30 / mPerLat,
+      north: LAT + 30 / mPerLat,
+    };
+
+    let shaded = 0;
+    let compared = 0;
+    for (const sun of SUN_POSITIONS) {
+      const index = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, region);
+      for (let gx = -5; gx <= 5; gx++) {
+        for (let gy = -5; gy <= 5; gy++) {
+          const lng = LNG + (gx * 5) / mPerLng;
+          const lat = LAT + (gy * 5) / mPerLat;
+          const before = refPointInPrismShadow(
+            prisms, lng, lat, sun.azimuth, sun.altitude, mPerLat, mPerLng
+          );
+          expect(index.isShaded(lng, lat)).toBe(before);
+          compared++;
+          if (before) shaded++;
+        }
+      }
+    }
+
+    expect(shaded).toBeGreaterThan(30);
+    expect(shaded).toBeLessThan(compared - 30);
+  });
+
+  it("agrees on ragged rings, open and closed, where earcut has a real choice to make", () => {
+    // Every ring in the rest of this file is a four-vertex axis-aligned rectangle,
+    // which `earcut` triangulates one way and only one way, and which `openRing`
+    // never has to shorten. Neither the near cap cut once in `prepareShadowCasters`
+    // nor the far cap cut per sun is under any pressure there. These rings are
+    // concave, 6 to 9 vertices, and half of them arrive closed.
+    const rand = rng(4242);
+    const prisms: BuildingPrism[] = [];
+    for (let b = 0; b < 90; b++) {
+      const eastM = ((b % 10) - 5) * 90 + (rand() - 0.5) * 20;
+      const northM = (Math.floor(b / 10) - 4) * 90 + (rand() - 0.5) * 20;
+      const points = 6 + Math.floor(rand() * 4);
+      const ring: [number, number][] = [];
+      for (let v = 0; v < points; v++) {
+        // Alternating radii make the ring a star: concave everywhere, and never
+        // self-intersecting, so `earcut` has a genuine choice of diagonals.
+        const angle = (v / points) * 2 * Math.PI;
+        const radius = (v % 2 === 0 ? 30 : 12) * (0.7 + rand() * 0.6);
+        ring.push([
+          LNG + (eastM + Math.cos(angle) * radius) / mPerLng,
+          LAT + (northM + Math.sin(angle) * radius) / mPerLat,
+        ]);
+      }
+      if (b % 2 === 0) ring.push([ring[0][0], ring[0][1]]);
+      prisms.push({ ring, heightM: 10 + rand() * 80 });
+    }
+
+    let shaded = 0;
+    let compared = 0;
+    for (const sun of SUN_POSITIONS) {
+      const index = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, WIDE_REGION);
+      for (let gx = -14; gx <= 14; gx++) {
+        for (let gy = -12; gy <= 12; gy++) {
+          const lng = LNG + (gx * 22) / mPerLng;
+          const lat = LAT + (gy * 22) / mPerLat;
+          const before = refPointInPrismShadow(
+            prisms, lng, lat, sun.azimuth, sun.altitude, mPerLat, mPerLng
+          );
+          expect(index.isShaded(lng, lat)).toBe(before);
+          compared++;
+          if (before) shaded++;
+        }
+      }
+    }
+
+    expect(shaded).toBeGreaterThan(200);
+    expect(shaded).toBeLessThan(compared - 200);
+  });
+
+  it("emits the triangles buildShadowTriangles emits, vertex for vertex", () => {
+    // The renderer still calls `buildShadowTriangles`; the index now emits the same
+    // triangles itself, flat. Nothing else pins the two together — the frozen
+    // reference compares them *through* `isShaded`, which cannot see a difference
+    // that changes the triangles without changing the region they cover, and a
+    // differently-cut cap over the same polygon is exactly that. So compare the
+    // vertices directly, over rings where the cut is not forced.
+    const rand = rng(31337);
+    let compared = 0;
+
+    for (let b = 0; b < 60; b++) {
+      const points = 5 + Math.floor(rand() * 5);
+      const ring: [number, number][] = [];
+      for (let v = 0; v < points; v++) {
+        const angle = (v / points) * 2 * Math.PI;
+        const radius = (v % 2 === 0 ? 28 : 11) * (0.7 + rand() * 0.6);
+        ring.push([
+          LNG + (Math.cos(angle) * radius) / mPerLng,
+          LAT + (Math.sin(angle) * radius) / mPerLat,
+        ]);
+      }
+      // Half closed, half open: `openRingLength` has to shorten one and not the other.
+      if (b % 2 === 0) ring.push([ring[0][0], ring[0][1]]);
+
+      const heightM = 10 + rand() * 80;
+      const [caster] = prepareShadowCasters([{ ring, heightM }]).casters;
+
+      for (const sun of SUN_POSITIONS) {
+        const shadowLengthM = heightM / Math.tan(sun.altitude);
+        const dLat = (Math.cos(sun.azimuth) * shadowLengthM) / mPerLat;
+        const dLng = (Math.sin(sun.azimuth) * shadowLengthM) / mPerLng;
+
+        const expected = buildShadowTriangles(
+          ring, heightM, sun.azimuth, sun.altitude, mPerLat, mPerLng
+        );
+        const actual = shadowTrianglesFlat(caster, dLng, dLat);
+
+        expect(actual.length).toBe(expected.length * 2);
+        for (let i = 0; i < expected.length; i++) {
+          expect(actual[i * 2]).toBe(expected[i][0]);
+          expect(actual[i * 2 + 1]).toBe(expected[i][1]);
+        }
+        compared += expected.length;
+      }
+    }
+
+    // Guard against a vacuous pass: rings that produced nothing would agree trivially.
+    expect(compared).toBeGreaterThan(10000);
   });
 
   it("scans everything when the sun is too low for a bounded reach", () => {
