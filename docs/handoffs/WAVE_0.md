@@ -129,11 +129,13 @@ Cleared to zero. Recorded so the decisions are not re-derived when Dependabot re
 | #112 typescript 7.0.2 | **Closed** — a major with no security driver, and TS 7 is the compiler rewrite. Deliberate change, not triage. |
 | #140 vitest 5, #141 jsdom 30, #142 `@types/node` 26 | **Closed — all three blocked by one thing: CI pins Node 20.** See **#215**. |
 
-**#215 is the single unlock.** vitest 5 needs Node `^22.12`, jsdom 30 needs `^22.22.2`, and
-`@types/node` 26 would describe Node 26 APIs to `tsc` while CI runs Node 20. None carries an
-advisory — #213 cleared all five on Node 20 — so this is ordinary currency, deferred on purpose.
-**Take #215 after Wave 0 and before G2**, so the benchmark's baseline is measured on the runtime
-it will keep.
+**#215 was the single unlock, and it is done.** vitest 5 needs Node `^22.12`, jsdom 30 needs
+`^22.22.2`, and `@types/node` 26 would describe Node 26 APIs to `tsc` while CI pinned Node 20.
+None carries an advisory — #213 cleared all five on Node 20 — so this was ordinary currency,
+deferred on purpose. It landed before G2 as planned, on **Node 24.21.0**, not the 22 the issue
+proposed: Vercel runs **24.x**, so 22 would have left CI testing a runtime production does not
+use. **#140/#141/#142 can now be re-raised together — but `@types/node` 24, not 26**, because
+types track the runtime and nothing runs 26.
 
 ~~Still owed here: the **dependency-bump policy** G8 asks for, written into `TRACK_G.md`.~~
 **Done 2026-09-08** — it is `TRACK_G.md` → G8 → *Dependency-bump policy*, six rules covering
