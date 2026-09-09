@@ -13,7 +13,15 @@ function place(overrides: Partial<FoursquarePlaceInfo>): FoursquarePlaceInfo {
  */
 describe("renderPlaceInfoHtml — URL position", () => {
   it("drops a website whose scheme is not http(s)", () => {
-    for (const website of ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "//evil.example"]) {
+    const rejected = [
+      "javascript:alert(1)",
+      "JavaScript:alert(1)",
+      "  javascript:alert(1)",
+      "java\nscript:alert(1)",
+      "data:text/html,<script>alert(1)</script>",
+      "//evil.example",
+    ];
+    for (const website of rejected) {
       const html = renderPlaceInfoHtml(place({ website }), "");
       expect(html).not.toContain("href=");
       expect(html).not.toContain("Website");
