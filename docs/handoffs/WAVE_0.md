@@ -134,8 +134,10 @@ Cleared to zero. Recorded so the decisions are not re-derived when Dependabot re
 None carries an advisory — #213 cleared all five on Node 20 — so this was ordinary currency,
 deferred on purpose. It landed before G2 as planned, on **Node 24.21.0**, not the 22 the issue
 proposed: Vercel runs **24.x**, so 22 would have left CI testing a runtime production does not
-use. **#140/#141/#142 can now be re-raised together — but `@types/node` 24, not 26**, because
-types track the runtime and nothing runs 26.
+use. **#141 (jsdom 30) and #142 (`@types/node`, taken at 24 not 26) are done.** **#140
+(vitest 5) is declined and refiled as #254** — vitest 5 drops the `bench` export, so the shade
+benchmark stops compiling and stops running while all 550 tests still pass. Porting it is
+measurement-harness work, not a bump, and it must not land right before G2.
 
 ~~Still owed here: the **dependency-bump policy** G8 asks for, written into `TRACK_G.md`.~~
 **Done 2026-09-08** — it is `TRACK_G.md` → G8 → *Dependency-bump policy*, six rules covering
