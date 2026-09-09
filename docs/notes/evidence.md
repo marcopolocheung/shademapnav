@@ -339,8 +339,9 @@ the interface:
   (`subway 0.0`, `light_rail 0.25`, `monorail 0.1`) with no measurement behind them.
 
 None of those is wrong as an internal quantity. All of them are labelled as if they were the
-walking equivalents. Filed as a defect rather than fixed here — Track P publishes, it does not
-change application code.
+walking equivalents, so a user comparing a walking card against a transit card is comparing two
+different measurements. Filed as **#236** rather than fixed here — this page publishes, it does
+not change application code.
 
 ### 5.4 Numbers with no method behind them
 
@@ -349,17 +350,17 @@ here**. Three do not trace to anything, and naming them is the only honest way t
 
 | The app shows | Where | What is actually behind it |
 |---|---|---|
-| `4.4 ★` | `PlaceDetail.tsx:40` | **A hardcoded literal.** When Foursquare returns no rating, the app prints `4.4` in the same position, weight and colour as a real one. Nothing distinguishes the two on screen. |
-| `$$` | `PlaceDetail.tsx:10` | The same, for price level. |
-| `shadeFraction: 0.73` to the assistant | `app/lib/agent/tools.ts:369,380` | A shade probe rounded to **two decimals** and handed to a language model, which renders it as prose. Two decimals on a quantity whose worst agreement reading is 62.5 pp, with none of §1.1's caveats travelling with it. |
+| `4.4 ★` *(#235)* | `PlaceDetail.tsx:40` | **A hardcoded literal.** When Foursquare returns no rating, the app prints `4.4` in the same position, weight and colour as a real one. Nothing distinguishes the two on screen. |
+| `$$` *(#235)* | `PlaceDetail.tsx:10` | The same, for price level. |
+| `shadeFraction: 0.73` to the assistant *(#237)* | `app/lib/agent/tools.ts:369,380` | A shade probe rounded to **two decimals** and handed to a language model, which renders it as prose. Two decimals on a quantity whose worst agreement reading is 62.5 pp, with none of §1.1's caveats travelling with it. |
 
 The same file already knows how to decline: `PlaceDetail.tsx:45` prints
 `(reviews unavailable)` when the review count is zero, and `:119` labels its review histogram
 `Showing placeholders`. The rating and the price are the two that do not.
 
-**These are open defects, not published figures.** They are listed here because a page that
-claims to trace every UI number and quietly skips the fabricated ones would be worse than no
-page at all.
+**These are open defects (#235, #237), not published figures.** They are listed here because a
+page that claims to trace every UI number and quietly skips the fabricated ones would be worse
+than no page at all.
 
 ### 5.5 Timezone lookup — a measured error rate
 
@@ -430,10 +431,11 @@ Named so the empty rows have owners rather than looking like oversights:
 - **Browser latency budgets** (§4.5) need the existing `window.__shadeMapMetrics` captured from
   a real session and given a CI-enforced ceiling. Until then `metrics.ts`'s < 3000 ms and
   < 500 ms are targets nobody has checked.
-- **The three numbers in §5.4 need removing from the app, not documenting better.** A hardcoded
-  `4.4 ★` is not a figure this page can qualify into honesty; it has to stop rendering.
-- **The transit card's labels (§5.3) need to say what they cover** — a walk-legs-only distance
-  under the same word as a walking route's total distance is a labelling defect, not a
+- **The three numbers in §5.4 need removing from the app, not documenting better** (#235, #237).
+  A hardcoded `4.4 ★` is not a figure this page can qualify into honesty; it has to stop
+  rendering.
+- **The transit card's labels (§5.3) need to say what they cover** (#236) — a walk-legs-only
+  distance under the same word as a walking route's total distance is a labelling defect, not a
   measurement gap.
 
 Until then those sections stay empty, and no number from an adjacent section is allowed to
