@@ -26,7 +26,7 @@ an item passing one.
 | `docs/research/*.md` | the outside evidence this roadmap was reconciled against (§5) |
 | the code | anything factual. Always. |
 
-Last reconciliation: **2026-09-08**. **Current state lives in the briefs** — the session-start
+Last reconciliation: **2026-09-09** (§5c — three frontier papers). **Current state lives in the briefs** — the session-start
 hook prints every track's active checkpoint, and that is the only state worth trusting.
 
 ---
@@ -79,6 +79,14 @@ So the differentiator is **not** "shade routing". It is this combination, which 
 
 Each clause carries weight. Drop the time dimension and it is Google's toggle. Drop the browser
 and it is ASU's research tool. Drop the published numbers and it is every other portfolio.
+
+> **⚠️ Two clauses above are under revision — do not transcribe this paragraph until #248 and
+> #206 land.** *"Entirely in a browser"* is being **retired by decision** (2026-09-09: the owner
+> lifted the client-side-only constraint — see §7 and **#248**), which means the sentence above
+> naming it as the thing separating us from ASU no longer holds and the claim must be restated
+> around what actually remains. Separately, *"ASU … with no app"* below is **factually wrong** —
+> Cool Routes is a deployed Flask web app; the true limits are single-user, campus-only,
+> POI-to-POI, and LiDAR-dependent (**#206**, **#195**). See §5c.
 
 **The clause that is not ours, stated so no session re-claims it.** Advancing the sun along a
 walk is *not* unprecedented: Fujiwara et al., *Building and Environment*, 13 Sep 2024, §6.2
@@ -213,10 +221,18 @@ recording · ~~P4 publish the numbers~~ *(Wave 0.5)* · P5 design notes · P6 th
 
 ### LATER — Wave 4: pick exactly one specialization
 
-**Decide; do not accumulate.** All three are credible; doing two halfway is worse than one
+**Decide; do not accumulate.** All four are credible; doing two halfway is worse than one
 properly. Record the choice in this file when it is made. None has a brief yet — write one when
-chosen. **Option C was added 2026-09-08** from the Google-roles research; it is the cheapest of
-the three by a wide margin and the only one that needs no data collection at all.
+chosen. **Option C was added 2026-09-08** from the Google-roles research; it needs no data
+collection at all. **Option D was added 2026-09-09** from the frontier-literature pass (§5c) and
+is the current frontrunner — it is the only one that answers a question the literature explicitly
+poses, and the only one whose prerequisites are already on Wave 1.
+
+**Two of these moved on 2026-09-09 without new evidence, purely because the client-side-only
+constraint was lifted (#248).** Record why, so it is not re-litigated: **Option B weakened** —
+"keep planning with no network" draws its portfolio interest from the constraint that no longer
+binds, and offline remains a real user need but a thinner *story*. **Option C strengthened** — its
+weakest section now has published method (see #209).
 
 **Option A — Reality Check (the perception-ML story).** Users flag where predicted shade
 disagrees with what they observe; a learned correction improves on the geometry baseline.
@@ -290,6 +306,50 @@ the upper bound. Full model in **#209**.
   modeled coverage ≠ maximizing benefit after users reroute — re-run the planner to check that
   separately. Models shade; not validated urban cooling, not structural engineering.
 
+**Option D — The Comfort Engine (the applied-science story).** *(added 2026-09-09 from §5c)*
+*"Is shade actually a good proxy for thermal comfort — and where isn't it?"* Answered at breadth,
+across climates, and published including the part that makes this product look worse.
+
+> **Why this is the frontrunner.** It is the only option that answers a question the literature
+> **explicitly poses and leaves open.** Buo et al. 2026 §4.4: *"Future work should systematically
+> compare shade-based and MRT-based routing approaches to evaluate trade-offs between
+> computational efficiency and physiological accuracy."* Ma et al. 2025 answered it for **one
+> district on one summer day** and found shade-optimal routing *worse than the plain shortest
+> route in 24% of trips*. Nobody has done it across climates, and nobody who **ships** shade
+> routing has published evidence about when shade routing is wrong. That last clause is §2's
+> honesty thesis at full strength, and it is not available to any other option on this list.
+
+- **What it is, in four steps.** (1) Build the MRT approximation — **A6**'s shadow geometry +
+  **A9**'s sky view factor + a radiation balance from the live forecast (**#247**; Tier 1
+  geometry, Tier 2 radiation, per §7). (2) Route on it, as a third objective beside distance and
+  sun-minutes — this is where **H** and **D** finally become one engine. (3) Run the comparison at
+  breadth: several cities across climate types × O-D pairs × hours, scoring shade-optimal vs.
+  comfort-optimal vs. shortest, and publish where shade routing **wins, ties and loses**.
+  (4) Validate against what is actually publishable — Buo et al.'s MaRTy statistics, ISO 7726's
+  ±5 °C band, and Option A's *cheap* calibration set.
+- **Why it is affordable.** No training corpus, no fieldwork, no season lock, no permissions, no
+  new provider. Open-Meteo is already integrated; the one genuinely expensive input is canopy,
+  which is **A8 and already on Wave 1**. Contrast Option A, whose corpus is months and
+  season-locked. Its prerequisites are the only ones on this list that Wave 1 was going to build
+  anyway.
+- **It subsumes D8** rather than adding to it, and it makes **Option A's calibration set a
+  prerequisite rather than optional** — you cannot validate a comfort model against another
+  model, which is the same trap **A3** already documents.
+- **Honesty, and this is the whole discipline of the option.** Ours is an approximation *of an
+  approximation*: SOLWEIG itself misses ISO 7726's band on transient walks (RMSE 8.4 °C), so
+  nothing here may be presented as MRT-grade. Comparing our shade model against our comfort model
+  is **model-vs-model agreement**, exactly what `ShadeField.ts:199` already refuses to call
+  accuracy — physical validation needs the calibration set and nothing else substitutes.
+  Ma et al.'s 24% is **one district, one day, simulated**; reproducing it is the point,
+  assuming it is not.
+- **The result may partially devalue the product, and it ships anyway.** If shade routing turns
+  out to be a poor comfort proxy in humid climates, that is the finding. §7's stopping rules
+  already say a note explaining what you did *not* ship is itself an artifact; this is the
+  version of that with a number attached.
+- **Trap:** this balloons into "build SOLWEIG" if unmanaged. Stop at the rung where the
+  comparison is answerable, not at the rung where the physics is complete.
+- **Prerequisites:** A6, A8, A9, #247, #248. **H is not a prerequisite** — it is the consumer.
+
 ### LATER — playful, one PR each, after Wave 3
 
 Each reuses Track H's planner rather than adding a system, and each is what makes someone want
@@ -316,7 +376,7 @@ proposals that were considered and declined.
 | A second LLM provider or a paid model | **Declined** | Free-tier guardrail. |
 | Accounts / sync | **Declined** | Local-first; `localStorage` holds profiles and saved trips. |
 | Driving navigation | **Declined** | Out of mission — under own power only. |
-| In-browser SOLWEIG/CFD microclimate | **Declined** | ASU needed lidar and a campus. Approximate honestly and say so (D4/D8). |
+| In-browser SOLWEIG/CFD microclimate | **Declined** *(reason sharpened 2026-09-09)* | Still declined **in the browser**. But the blocker was misdiagnosed: ASU's four hours per 24 h of MRT is dominated by redoing *geometry* every hour, which A6 exists to avoid, and their real constraint is **LiDAR — a data problem, not a compute one**, with a free global substitute (OSM heights + Meta/WRI 1 m canopy + Copernicus DEM). §7 Tier 1 always permitted precomputed physics; #248 permits the weather-conditioned half. **CFD (ENVI-met) stays declined outright** — commercial, licensed, hours per domain. See #247. |
 | A native app | **Deferred** | PWA first; revisit only if background location or notifications block D7. |
 | A 50–100 task agent benchmark | **Rescoped** | Cerebras is 5 req/min; 100 tasks with repeats is hours per run. C1's ~15 recorded, network-free scenarios is the right start — **grow from real failures, not to a target number.** |
 | Chasing Google's feature list | **Declined** | The answer to "Prefer shade" is not a better toggle. It is §2's five clauses. |
@@ -358,8 +418,10 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 **Wave 3 — Track P, the rest** *(P2/P4 moved to Wave 0.5)*
 - [ ] **P3** demo recording · [ ] **P5** design notes · [ ] **P6** ledger
 
-**Wave 4 — one specialization**
-- [ ] Option A Reality Check · [ ] Option B City Capsules · *decision recorded on:* ______
+**Wave 4 — one specialization** *(pick exactly one)*
+- [ ] Option A Reality Check · [ ] Option B City Capsules *(weakened by #248)* ·
+  [ ] Option C Shade Design Studio *(#209)* · [ ] **Option D The Comfort Engine** *(#250 —
+  current frontrunner)* · *decision recorded on:* ______
 
 **Conditional** — not on a wave, but required the moment a precondition is met:
 - [ ] **C10** untrusted content and tool authority — **required before any tool returns
@@ -462,6 +524,61 @@ kept only for the perception-ML one.
 | Street View as a training corpus | **Prohibited** | Maps Platform Terms §3.2.3 restricts extraction and model training/testing/validation and building a tree-location index. Own photographs only. Not a judgment call. |
 | Offline Python training + versioned derived artifacts | **Adopted with a boundary** | This is the one real architecture change it proposes and it does not flag it as one. Permitted as a **build step producing versioned static assets**, never as a request-path service — see §7. |
 
+### 5c. The 2026-09-09 frontier-literature pass
+
+Three peer-reviewed papers, read in full and reconciled in
+`docs/research/shade-thermal-comfort-literature-2026-09-09.md` (which holds the detail, the
+caveats and the citations — this is the index):
+
+| | Paper | What it is |
+|---|---|---|
+| **P1** | Wen et al. 2025, *CEUS* 122:102337 | MIT Senseable, Dubai. Street-view segmentation → binary shade; **distance-dependent sigmoid shade reward** |
+| **P2** | Buo et al. 2026, *Build. Environ.* 298:114622 | **This is "ASU Cool Routes."** SOLWEIG MRT @ 1 m from LiDAR; MaRTy-validated |
+| **P3** | Ma et al. 2025, *Sustain. Cities Soc.* 131:106697 | Tsinghua, Hong Kong. ENVI-met → PET; 2.2 M routes exhaustively enumerated |
+
+**None is a dependency.** No code released, all data "on request" (P3's abstract claims an
+open-access dataset; its data statement does not). They are **evidence and adversaries**, not
+software. Do not plan a checkpoint around P3's corpus arriving.
+
+| Finding | Verified | Went to |
+|---|---|---|
+| **Shade is not a reliable proxy for comfort.** Minimising *unshaded metres* — exactly H2's corrected objective — scored **worse** than the plain shortest route in **24%** of 1200 O-D pairs (41% at 08:00; worst −472%) | ✅ P3 §4.2.2, §5.1 | **#241** — bounds H2's claim; H2 still lands |
+| **P1's dynamic reward makes edge cost path-dependent, and their Dijkstra keeps one label per node** — a label carrying more distance is *advantaged* downstream, so cost-only pruning can discard the optimum. This is H1's stated open question, unresolved, in print | ✅ P1 §2.3.3 | **#242** — the highest-value new item, and entirely client-side |
+| **The useful detour is ~1.1×, not 2.0×** — three climates, three methods, converging: +1.3%, <3%, plateau at 110% | ✅ all three | **#243** — measure via G2, do not blind-edit |
+| **Tree shade ≈ 0.5 × building shade** (indoor 1.5×), and tree shade dominates at midday precisely when building shade collapses | ✅ P1, via Melnikov 2022 | **#244** — A7/A8 gets a published weight; supports A7/A8-before-H3 |
+| P1 takes a **one-hour max-shade window** on behavioural grounds — "a pedestrian will step a few metres" | ✅ P1 §2.3.2 | **#245** — adopt deliberately or decline in writing |
+| **PetL** = `Σ (PET − 33)⁺ × length` — a threshold-excess *dose*, the companion our intensity score documents itself as lacking | ✅ P3 §3.3.2 | **#246** — Track D |
+| **SOLWEIG splits into expensive geometry (once per area) + cheap radiation balance (per query).** A6 + A9 already are the first half; ASU's blocker was **LiDAR, not compute**, and it has a free global substitute | ✅ P2 §2.3.1, §3.1 | **#247** — D8 is no longer a stretch; §3, §7 |
+| **§2's "ASU … with no app" is false** — Flask web app, interactive map, 171 POIs, 3-day forecasts, ~2 s. True limits: single-user, campus-only, POI-to-POI, LiDAR-bound | ✅ P2 §2.1–2.3, §4.4 | **#206**, **#195** (which also corrects −4.5 °C → −1–2 °C mean, −3.8 °C best case) |
+| **P2's validation gives P4 an external scale**: d = 0.73, RMSE 8.4 °C, MBE −2.0, only 72% of edges under RMSE, **ISO 7726's ±5 °C band exceeded** — and their tail is dominated by sun–shade misclassification, structurally the same failure as our `worst 62.5pp` | ✅ P2 §3.2, §4.2 | **#249** — P4 |
+| **Option C's weakest point has published method**: derive demand from the *optimiser's own* chosen routes, not the shortest-path network, because pedestrians avoid the streets you would otherwise renovate | ✅ P3 §5.2, P2 §4.3 | comment on **#209** |
+
+**The differentiator survives, and two of the three name it as their own future work.** None of the
+three advances the sun along the walk: P2 uses the MRT map *"closest to the user-defined time"*
+and lists temporal exposure dynamics as not captured; P3 is explicitly *"stationary PET … did not
+consider the dynamic thermal conditions along the routes"*; P1's one-hour window does not advance
+either. Fujiwara 2024 remains the honest prior art (**#206**) — that does not change.
+
+**Two areas are uncontested and worth knowing are uncontested.** **UV**: none of the three
+mentions it at all, so `heat-model.md`'s SED/UVI dose model has no counterpart in this
+literature. **Mobile navigation**: all three are desktop research tools and P2 is explicitly
+single-user with no concurrency, so Track B has no competitor here.
+
+**The shared gap under all of it is behavioural, and servers do not fix it.** P1 calibrates
+*Dubai* on *Singapore* data; P3 says subjective validation is needed before practical use; P2
+wants a detour-tolerance parameter it does not have. Every one routes back to Melnikov et al.
+2022 — one experiment, one city, 13 tasks. The behavioural foundation under this field is
+thinner than the physics on top of it.
+
+**What was declined.** MRT/PET *as a routing objective* (P2/P3's ceiling; needs LiDAR plus
+offline physics per city — §3's row, reason now sharpened). ENVI-met in any form (commercial
+CFD). Reopening Wave 4 on this evidence — P1's street-view segmentation is superficially Option
+A's method, but they performed **no validation against measured shade**, only a visual
+sun-position check, so it is weak support and the demotion stands.
+
+**Changed nothing:** Wave 0 (D0, G8, #208, G7), **Track C entirely** — there is no agent,
+tool-use or evaluation content in any of these papers — and Track B.
+
 ---
 
 ## 6. The resume-line ledger
@@ -500,14 +617,38 @@ the answer for everything heavy, and it is free.
 |---|---|---|
 | **0 — client** | shadow render, shade sampling, graph search | Already interactive. The complaint is main-thread blocking, and **A5 fixes that for free**. Needs no service. |
 | **1 — offline batch → versioned static artifacts** | SAM masks, model training, embeddings, canopy field tiles, Option C's coverage matrices | **Adopted.** Runs on a laptop or free Colab/Kaggle; ships compact versioned files over the CDN already in use. Zero marginal cost, zero new service, no request-path latency, scales to any number of users. It is also the architecture the 09-08 research cites from Google's own routing work — expensive inference offline, stored, fast online graph search. |
-| **2 — request-path service** *(what Cerebras is)* | per-request inference that cannot be precomputed | **Justified only when work can be neither precomputed nor run on the client.** For this app that is close to nothing: shade is a deterministic function of geometry the client already holds. Cerebras qualifies because every prompt is new; shade does not. |
+| **2 — request-path service** *(what Cerebras is)* | per-request inference that cannot be precomputed | **Reopened 2026-09-09 — #248.** Was: *"justified only when work can be neither precomputed nor run on the client; for this app that is close to nothing."* The owner has lifted the client-side-only constraint, so the test is now **"does it buy accuracy that cannot be precomputed?"** — which admits weather-conditioned radiant load (a live forecast cannot be baked into a static tile) and personalised thermal comfort. It does **not** admit moving shade geometry off the client: that is deterministic, the client already holds the inputs, and Tier 1 covers it. |
 
-The Cerebras precedent does **not** generalize to shade. Moving shade computation server-side
-adds a round trip per route, adds per-user cost, and deletes *"entirely in a browser"* from §2's
-novelty claim — a clause being counted as a differentiator. Tier 1 gets the heavy work off the
-user's machine *and* keeps that clause. The one case that would genuinely earn Tier 2 is live
-segmentation of **user-submitted** photos, which cannot be precomputed; the curated-corpus-first
-approach in Option A specifically avoids needing it.
+**The half of this that still holds.** Moving *shade geometry* server-side remains wrong: it adds
+a round trip per route and a per-user cost to compute something deterministic from inputs the
+client already has. Tier 1 gets that heavy work off the user's machine without either. Nothing
+below repeals that.
+
+**The half that changed on 2026-09-09 (#248).** The old text argued Tier 2 was unjustifiable
+*because* it would delete *"entirely in a browser"* from §2. The owner has now traded that clause
+away deliberately, so the argument no longer decides anything and §2 must be restated (see the
+warning in §2). What Tier 2 buys is narrower than "run the physics", because **Tier 1 already
+permitted precomputed physics** — the genuinely new capability is work that depends on **today's
+weather or this user** and therefore cannot be baked into a static artifact. Worked example, and
+the shape to copy (#247):
+
+| Half of an MRT model | Depends on | Cost | Tier |
+|---|---|---|---|
+| **Geometry** — sky view factor, shadow volumes per sun position | buildings, canopy, terrain | expensive, **once per area** | **1** — and A6 + A9 already are this |
+| **Radiation balance** — six-directional fluxes → MRT | air temp, humidity, wind, shortwave | **cheap per query** | **2** — needs a live forecast |
+
+**Three guardrails on the new tier, so it does not become the thing §2's anti-goals warn about.**
+The anti-goals are **re-affirmed, not repealed** — they were about *unjustified* infrastructure,
+and a small service behind a real workload is not that, while Kubernetes on this still is.
+Second: server-side buys **accuracy, not responsiveness** — ASU's tool takes ~2 s per route on a
+*precomputed* campus, our client routing is already interactive, and the jank that actually
+exists is main-thread blocking that **A5 fixes for free** (#38). Do not justify a service on
+speed. Third, the free-tier guardrail survives with a new boundary: **a fixed monthly floor is
+acceptable; per-user marginal cost that scales with traffic is not.**
+
+The other case that would earn Tier 2 is unchanged: live segmentation of **user-submitted**
+photos, which cannot be precomputed; the curated-corpus-first approach in Option A specifically
+avoids needing it.
 
 **Stopping rules.** Stop or redirect any item when it adds maintenance without improving an
 agreed outcome, when the data cannot support the claim, or when a simpler baseline wins. **A

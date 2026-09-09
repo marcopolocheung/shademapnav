@@ -57,3 +57,11 @@ out/
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# Publisher PDFs read for docs/research/*.md analyses. Kept locally, never committed:
+# they are Elsevier copyright ("All rights are reserved"), ~35 MB, and this repo is
+# publicly mirrored. The reconciliation notes cite them; the files stay out.
+docs/research/shadestudy*.pdf
+
+# Local scratch: app screenshots kept for reference, not repo content.
+issues/
