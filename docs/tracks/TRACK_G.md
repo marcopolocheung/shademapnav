@@ -46,9 +46,16 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   `api/*.js` on **24.x** all along, so 22 would have narrowed a CI/production runtime gap
   that 24 closes — and 24 is Active LTS while 22 is in maintenance. `engines.node` is
   `24.x` in `package.json`, which Vercel reads, so the deployed runtime is now declared in
-  version control instead of only in a dashboard. **#140/#141/#142 are unblocked** and are
-  the next dependency item; take `@types/node` **24**, not the 26 #142 offered — the rule
-  in G8 is that types track the runtime, and nothing runs 26.
+  version control instead of only in a dashboard.
+- **Done — two of the three deps #215 unblocked.** `jsdom` **30.0.1** (#141) and `@types/node`
+  **24.13.3** (#142, taken at 24 not the 26 offered — G8's rule is that types track the runtime,
+  and nothing runs 26). **`vitest` 5 was declined and filed as #254:** it removes the `bench`
+  export outright, so `shadeField.bench.ts` fails `tsc` and `npm run bench` dies with
+  `TypeError: bench is not a function`. All 550 tests pass on vitest 5 — the benchmark file is
+  outside the test glob by design, which is exactly why nothing in CI would have caught it.
+  Porting the benchmark is a change to how this repo measures things, not a dependency bump,
+  and it should not land immediately before **G2**, which is entirely about benchmarking.
+  **#254 also owns a naming collision G2 will hit:** `npm run bench` is already taken.
 - **Filed, not fixed:** **#229** — `api/overpass.js` and `api/nominatim.js` take requests from
   any origin with no rate limit, unlike `api/fsq.js` and `api/agent.js`. Pre-existing in the
   Overpass proxy; the Nominatim one followed its idiom rather than inventing a one-off, so the
@@ -321,6 +328,12 @@ issue proposed, because production was already there. It came *after* Wave 0 and
 the benchmark's baseline is measured on the runtime it will keep. **Corollary the bump earned:**
 check what the deploy platform actually runs before picking a version. CI had been verifying
 Node 20 for a runtime that has never run this app.
+
+**4b. A bump that breaks a *tool* is still a breaking change, even when every test passes.**
+vitest 5 removes the `bench` API; the 550-test suite is green on it because `*.bench.ts` sits
+outside the test glob on purpose. The gate that caught it was `tsc`, and the gate that would
+have caught it later was a human running `npm run bench` during a performance claim. Split the
+port from the bump (#254) rather than growing one PR into both.
 
 **5. Security bumps are taken, and one PR may clear several.** #213 cleared the vite/vitest
 advisories on Node 20 in one change, which is why #81, #82 and #139 were closed as superseded
