@@ -155,6 +155,11 @@ reviewer arrives. Nothing was checking that.
 
 ## 6. G7 — repo hygiene, *only if there is time left*
 
+> **#52 and #53 done 2026-09-08.** MIT LICENSE added; `.env.example` committed with the
+> dev-client / server-only split described below, and `CLAUDE.md` and the README no longer say
+> `.env.local` or promise per-directory `CLAUDE.md` files — which closed **#50** too. The rest
+> of the cluster (#55, #48, #51, #56, #54, #58) is untouched and still lives in `TRACK_G.md`.
+
 **#52 LICENSE first** — the repo calls itself open-source, has none, and is now publicly
 mirrored. Then **#53 `.env.example`** with the live half of #50 (`CLAUDE.md:57` and the README
 say `.env.local`; the tree has `.env`).

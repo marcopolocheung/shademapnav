@@ -51,10 +51,13 @@ grep_tree() {
 }
 
 # 1. Files that are private by name. `.gitignore` already covers `.env*`, so a
-#    match here means someone committed one with `--force`.
+#    match here means someone committed one with `--force`. `.env.example` is the
+#    one deliberate exception: it is committed, and it carries names and empty
+#    values only — which is also why it is safe to publish.
 tree=$(git ls-tree -r --name-only "$ref")
 paths=$(printf '%s\n' "$tree" \
-  | grep -Ei '(^|/)\.env($|\.)|(^|/)\.npmrc$|(^|/)\.netrc$|\.pem$|\.p12$|\.pfx$|(^|/)id_(rsa|ed25519)$|(^|/)\.vercel/' || true)
+  | grep -Ei '(^|/)\.env($|\.)|(^|/)\.npmrc$|(^|/)\.netrc$|\.pem$|\.p12$|\.pfx$|(^|/)id_(rsa|ed25519)$|(^|/)\.vercel/' \
+  | grep -Ev '(^|/)\.env\.example$' || true)
 if [ -n "$paths" ]; then
   report "private-by-name files are tracked:" $paths
 fi

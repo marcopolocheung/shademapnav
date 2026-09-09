@@ -19,6 +19,13 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **Done in G7:** **#52** — the repo has a LICENSE. Two files called it open-source while
   `license: NONE` made it all-rights-reserved; it is MIT now, declared in `package.json` and
   linked from the README, so the mirror shows a licence a reader can act on.
+- **Done in G7:** **#53 and the last live bullet of #50** — `.env.example` is committed (the
+  `.gitignore` needed a `!.env.example` negation, and `mirror-guard.sh` an exception, or the
+  template would have been ignored and then blocked from publication). It separates the two
+  `VITE_`-prefixed dev-only client keys from the server-only ones and says why the prefix is
+  the whole difference. `CLAUDE.md` and the README no longer say `.env.local`, and the README
+  no longer promises per-directory `CLAUDE.md` files. **P2 owns the same README lines** — it
+  inherits them fixed.
 - **Done:** **#205** — the two provider-policy defects in the search path. Nominatim is now
   reached only through a same-origin proxy (`api/nominatim.js` in production, the Vite
   `/__nominatim` proxy in dev), which is the only place a `User-Agent` can actually be set:
@@ -234,8 +241,8 @@ tracks pause edits to these files while it's in flight.**
 
 ### G7 — Repo hygiene, batched
 The p4 cluster, one PR each, taken *between* larger items and never instead of them:
-**#52** LICENSE (the repo calls itself open-source and has none), **#50** doc drift (see the
-re-scope below), **#53** `.env.example`, **#55** PR/issue templates + CODEOWNERS, **#48**
+~~**#52** LICENSE~~ ✅, ~~**#50** doc drift~~ ✅ (see the re-scope below),
+~~**#53** `.env.example`~~ ✅, **#55** PR/issue templates + CODEOWNERS, **#48**
 formatter repo-wide + `format:check` in CI, **#51** prune 27 stale branches, **#56**
 CHANGELOG/tags, **#54** repo cruft, **#58** branch protection decision.
 
@@ -249,9 +256,10 @@ as four bullets and three have since been resolved a different way:
   corrected in the same PR.
 - *"points at `tools/tailor/`"* — root `CLAUDE.md`'s repo map already marks it gone.
 - *"`AGENTS.md` points at `docs/kb/INDEX.md`"* — `AGENTS.md` no longer exists.
-- *"says env lives in `.env.local`; the repo uses `.env`"* — **still true.** `CLAUDE.md:57` and
-  the README both say `.env.local`; the working tree has `.env` and no `.env.example`. This is
-  the live half of #50 and it pairs with #53.
+- *"says env lives in `.env.local`; the repo uses `.env`"* — **resolved with #53.** Both files
+  now say `.env` and point at the committed `.env.example`, and the README's last stale
+  promise — a `CLAUDE.md` in every source directory — was replaced by the `.claude/rules/`
+  line that is actually true. **That was #50's fourth and last live bullet, so #50 is closed.**
 
 **Priority within the cluster: #52 (LICENSE) first** — it is what a public repo without one
 looks wrong for, and Track P's public surface depends on it.
