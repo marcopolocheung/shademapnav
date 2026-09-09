@@ -55,7 +55,7 @@ CI (`.github/workflows/ci.yml`) runs lint → typecheck → test → build on ev
 build inlines missing `VITE_*` vars as `undefined`, the test suite is hermetic (no
 network, no env), and the smoke test's `smoke` project stubs every request it makes.
 
-Env (`.env.local`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
+Env (`.env` — copy `.env.example`): `VITE_MAPTILER_API_KEY` (required), `VITE_FOURSQUARE_API_KEY`
 (place popups — **dev only**; production reads server-only `FSQ_API_KEY` inside `api/fsq.js`
 and the browser sends no Foursquare credential at all. Foursquare service keys support no
 origin restriction, so the key must not reach the bundle; the `import.meta.env.DEV` guard in

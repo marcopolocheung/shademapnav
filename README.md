@@ -8,7 +8,8 @@ Visit here: https://shademapnav.vercel.app/
 ## Quick start
 
 ```bash
-npm install            # then put VITE_MAPTILER_API_KEY in .env.local (see .env.example)
+cp .env.example .env   # then put your VITE_MAPTILER_API_KEY in it
+npm install
 npm run dev            # http://localhost:5173
 ```
 
@@ -16,7 +17,8 @@ npm run dev            # http://localhost:5173
 
 The repository is self-describing for contributors and coding agents:
 - **`CLAUDE.md`** (root) — commands, hard invariants, repo map, task→edit-point table. Start here.
-- Nearest **`CLAUDE.md`** in each source directory — file-by-file notes.
+- **`.claude/rules/`** — path-scoped rules that load themselves when you open a matching
+  file (routing, the shadow renderer, components and the map, external APIs).
 
 ## License
 
