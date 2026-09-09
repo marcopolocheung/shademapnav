@@ -1,9 +1,10 @@
-# Handoff — the shade thread: G2 → A6 → A7/A8 → A5 → H1–H5
+# Handoff — the shade thread: ~~G2~~ → ~~A6~~ → A7/A8 → A5 → H1–H5
 
 **Mission.** Build the differentiator. `ROADMAP.md` §2: everything else is table stakes or
 catch-up; **this is the part a hiring manager asks a second question about.**
 
-**Verified 2026-09-09 at `f159b25`.** Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
+**Verified 2026-09-09 at `f159b25`; A6 section rewritten 2026-09-09 against its own measurement.**
+Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
 
 > **One checkpoint per PR.** This is a long thread — do not batch. A change that grows past its
 > checkpoint stops being reviewable, and the reviewer is one person reading a four-sentence
@@ -11,7 +12,7 @@ catch-up; **this is the part a hiring manager asks a second question about.**
 
 ---
 
-## G2 is done — start here: A6
+## G2 and A6 are done — start here: A7/A8 (or A5a)
 
 **Landed 2026-09-09 as #260 into #258.** Both halves shipped: the instrument fix (#182, #183 —
 `p50TotalMs`, a percentile that does not degenerate, `clearMetrics` on the window, and the first
@@ -45,12 +46,52 @@ every scenario**, so a claimed win under ~25% needs the repeat counts raised fir
 which blocks on **#262**). Do not quote a per-row reproducibility figure: two sessions of three
 runs produced near-opposite orderings of which scenario is tightest.
 
-### Next: A6 — the time sweep
+### A6 is done — and it disproved the premise this thread stated for it
 
-**It gates Track H entirely**, which is why it is next rather than A5a. H1 prices every edge at its
-own traversal time — N time buckets per route — and without the sweep that is N× a full sample and
-will not run at interactive speed. `TRACK_A.md` → A6 has the acceptance; #245 (the one-hour
-max-shade window) is the design decision to take or decline *in writing* while you are there.
+**Landed 2026-09-09 as PR #271.** #245 was decided in the same PR: **declined**, in writing, at
+`docs/notes/one-hour-shade-window.md`.
+
+This section used to say *"without the sweep that is N× a full sample and will not run at
+interactive speed."* **A6 measured that, and with the sweep it is still about N× a sample.** Read
+this before writing H1, because the gate's rationale no longer holds even though the gate itself
+is discharged:
+
+- A 3 km route's 14-hour sweep went **34.4 ms → 21.9 ms**, and a single-hour `sampleEdges` went
+  **1.96 ms → 1.04 ms** — which route calculation collects directly, and which is the win the app
+  actually ships today.
+- The acceptance criterion — *"a 14-hour sweep costs < 2× a single-hour sample"* — is **not met**.
+  It costs ~21×; on `main` it was ~17×, so **the ratio got worse while every absolute number
+  improved**, because the denominator sped up more. A ratio like that is optimised by making a
+  single sample slower, which is why the absolute figures are the ones to quote.
+- **The waste is gone and what remains is real work.** Everything sun-independent is now shared
+  once — prism preparation, the sun-cell partition, per-edge offsets. The remainder is the
+  point-in-shadow queries, and those are per-instant because the shadow moves. At graph scale
+  `sweep` beats N separate `sampleEdges` calls by only **0–11%**, and that margin is the batch
+  plan, which does not grow with the number of times.
+- Beating N× needs a **different predicate**, not more sharing — **#267** has the design (per-
+  (point, prism) angular intervals) and what it trades. Three cheaper wins were measured and
+  declined: **#268** (~40%, blocked on **#163**), **#269** (~25%, helps every path equally so does
+  nothing for the ratio), and a far-cap triangulation reuse (~11%) that **no test in this repo can
+  distinguish from the correct version** — which is why it was not taken.
+
+**What this changes for H1 (#270).** The gate is discharged: `sweep` exists, it is exact, it is
+1.6× faster. But H1 must budget **N time buckets at roughly N× a sample**, scaling linearly in
+edges and buckets, and pick its bucket count from that number rather than from an amortisation
+that does not exist. Do not wait for a faster sweep; #267 is a checkpoint of its own.
+
+**What this changes for D6.** `TRACK_D.md` says *"switch the sampler to `sweep()` so a 14-hour
+answer is instant"*. It is not instant — 22 ms on a desktop with synthetic square footprints, and
+materially more on a phone with real geometry. `useHourlyExposure.ts` already computes one hour
+per frame for exactly that reason and should keep doing so. Filed as **#272**.
+
+**One thing to know before building on it:** `useHourlyExposure.ts:93` is still the only `sweep`
+call site in `app/`, and it passes a **single** time. The N-time sharing has no consumer in
+shipped code yet; it is built for H1.
+
+Full record — per-phase split, the alternative design, the declined wins, and the sub-hourly
+cost that decided #245: `docs/notes/performance-baseline.md` § Time Sweep (A6).
+
+### Next: A7/A8, or A5a's diagnostics first
 
 **A5a's two diagnostic steps are small, cheap and optional now.** Pure Node, no browser, no key:
 reproduce the `coverage()`/`sampleEdges()` bbox mismatch in a test, and surface `EdgeShade.source`
@@ -70,7 +111,7 @@ A7/A8 ─────────────► (better inputs to all of it)
 | Step | Why it is here, not later |
 |---|---|
 | ~~**G2** route benchmark~~ ✅ | A5's acceptance is literally *"no benchmark → no claim"*, and H's central claim is a **comparison**. Building the measurement before claiming the improvement is the senior-shaped decision in this whole thread. **It paid immediately: the first thing it measured was A4 not meeting its own acceptance criterion (#259).** |
-| **A6** time sweep | H1 prices every edge at its own traversal time = N time buckets per route. Without the sweep that is N× a full sample and will not run at interactive speed. **A6 gates H entirely.** |
+| ~~**A6** time sweep~~ ✅ | Gate discharged — but **not** for the reason stated here. A6 measured that N time buckets still cost roughly N× a sample even with the sweep; what it bought was ~1.6–1.9× in absolute terms. H1 budgets linearly. See the A6 section above and **#270**. |
 | **A7/A8** canopy | See below — this is the promoted item and it is also an experiment. |
 | **A5** worker offload → **A5a/A5b** | H3's budget slider must never block the main thread — and G2 measured *which* thing blocks it. **A5a** wakes the dormant geometry path and deletes the canvas read; **A5b** offloads what remains, if anything still justifies it. Re-scoped in `TRACK_A.md`. |
 | **H1–H5** | The track. |
@@ -94,7 +135,7 @@ a new, optional, high-value piece of work.
 | **#241** | **H2** | Minimising unshaded metres — H2's corrected objective — scored **worse than the plain shortest route in 24%** of 1200 O-D pairs (41% at 08:00). H2 still lands; maximised `shadeM` is a real defect. But the note must say the corrected objective is *better than shade* and *still not comfort*. Read before writing it. |
 | **#243** | **G2 → H2/H3** | `maxDetourFactor = 2.0` (+250 m flat) is ~10× the detour three independent studies find useful (+1.3%, <3%, plateau at 110%). **Measure it in G2's sweep**; do not edit the constant on the strength of a citation. Cheapest available win for H3's frontier. |
 | **#244** | **A7/A8** | Tree shade is worth **0.5×** building shade — published (Melnikov 2022 via Wen 2025), so A7 need not invent a weight. Same paper shows tree shade dominating at midday when building shade collapses, which is the *data* behind sequencing A7/A8 before H3. |
-| **#245** | **A6/A7** | A one-hour **max-shade window** ("a pedestrian will step a few metres to find shade") — adopt deliberately with the A3 effect measured, or decline in writing. Biases *towards* reporting shade, the dangerous direction. |
+| ~~**#245**~~ ✅ | ~~**A6/A7**~~ | **Declined in writing**, 2026-09-09, at `docs/notes/one-hour-shade-window.md`. Its case was that A6 would make a window nearly free; the sweep is **linear in times**, so 10-minute steps cost ~6.9× the hourly sweep against a 6.0× floor. It also biases *towards* reporting shade with no instrument able to measure the bias — A3 compares against a pixel reading at an **instant** — and H1 is about to price shade far finer than an hour. |
 | **#242** | **H1 + H4** *(new work, optional)* | Wen et al. publish a distance-dependent shade reward that makes edge cost **path-dependent**, then solve it with Dijkstra keeping **one label per node**. A label carrying more distance is *advantaged* downstream, so cost-only pruning can drop the optimum. **This is H1's stated open question, unresolved, in print** — and `paretoRoutes` is already the right machinery. Implementing it and publishing where the two searches diverge is H4's oracle-and-gap against an *external, citable* model. |
 
 **If you take one thing into H2:** #241, because it is a claim you would otherwise have to walk
