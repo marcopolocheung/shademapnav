@@ -91,7 +91,11 @@ not a framework list. **No badge wall** — every badge is a claim a reviewer ca
 Agent-facing instructions stay in `CLAUDE.md` and `.claude/`; this file is for people.
 **Acceptance.** The promise, a working demo, and the numbers page are each reachable from the
 top of the README; nothing in it is a claim without a link; the stale per-directory `CLAUDE.md`
-and `.env.example` references are gone (coordinate with **G7**, which owns the same lines).
+and `.env.example` references are gone (coordinate with **G7**, which owns the same lines);
+and **the public repo has no failing workflow runs and no open PRs when a reviewer arrives** —
+nothing was checking that, and #216 found the mirror running its own CI and Dependabot, red on
+its own `main`. Its remaining half (toggling Dependabot version updates off on the mirror) is a
+settings change on the public repo, not a code change here.
 **Files.** `README.md`. **Size.** Medium. **Wants P3 and P4 to exist first.**
 
 ### P3 — The demo, recorded
