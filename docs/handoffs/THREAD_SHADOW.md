@@ -1,4 +1,4 @@
-# Handoff — the shadow thread: ~~G2~~ → ~~A6~~ → A7/A8 → A5 → H1–H5
+# Handoff — the shadow thread: ~~G2~~ → ~~A6~~ → ~~A7a/A7b~~ → A7c/A8 → A5 → H1–H5
 
 **Mission.** Build the differentiator. `ROADMAP.md` §2: everything else is table stakes or
 catch-up; **this is the part a hiring manager asks a second question about.**
@@ -12,7 +12,7 @@ Briefs: `TRACK_G.md`, `TRACK_A.md`, `TRACK_H.md`.
 
 ---
 
-## G2 and A6 are done — start here: A7/A8 (or A5a)
+## G2, A6 and A7's first two slices are done — start here: A7c/A8 (or A5a)
 
 **Landed 2026-09-09 as #260 into #258.** Both halves shipped: the instrument fix (#182, #183 —
 `p50TotalMs`, a percentile that does not degenerate, `clearMetrics` on the window, and the first
@@ -91,7 +91,42 @@ shipped code yet; it is built for H1.
 Full record — per-phase split, the alternative design, the declined wins, and the sub-hourly
 cost that decided #245: `docs/notes/performance-baseline.md` § Time Sweep (A6).
 
-### Next: A7/A8, or A5a's diagnostics first
+### A7a/A7b are done — and the census is the part to read
+
+**Landed 2026-09-09.** Canopy is fetched (`fetchCanopyAround`), modelled (`canopy.ts`) and
+blended into `ShadowField` as a fractional `"canopy"`/`"mixed"` contribution. **#276 is fixed**
+— footprint exclusion is now a property of the caster, and an elevated one sweeps its shadow
+from its base rather than its footprint. **#244 is honoured without being applied**: the 0.5
+weight is published with its citation for Track E's cost model, and the field keeps `shadow`
+physical. The full decision list is in `TRACK_A.md` → *A7 — canopy v1*.
+
+**The measurement is the finding, and it is worse than the checkpoint assumed.** A tagged-canopy
+census over the three corpus cities (`docs/notes/canopy-coverage-2026-09-09.md`, reproduce with
+`node scripts/canopy-census.mjs`):
+
+- OSM holds **at most ~23% of Madrid's inventoried street trees** and **~1.0% of Singapore's**.
+  In the framing that motivated the census: on a forty-tree street, Madrid has about ten and
+  Singapore about half of one.
+- `diameter_crown` is tagged on **0.14% of Madrid's trees and 0% of Singapore's and Kent's**;
+  `height` on **0.33% / 0% / 0%**. **The crown model is its own defaults**, applied to a bare
+  point, essentially always. That is where the honesty has to live — in the confidence, not in
+  a better transmittance figure.
+- The A3 corpus centre in **Singapore has zero tagged canopy of any kind in 2 km²** — no trees,
+  no rows, no woodland, not even a park polygon — in the city where the 0.5 weight was measured.
+  Never claim Umbra "routes around tree shadow" in a city without checking its number first.
+
+**What this decides for #275 (painting canopy): not on this data.** #275 was explicitly to be
+decided against A7's measured coverage, and the answer is no for now. Painting 23% of a street's
+trees makes the map *visibly* wrong in a new way; painting none reads as "the map does not draw
+trees". A number can carry a confidence; a paint stroke cannot. Revisit against **A8's raster**,
+which does not depend on anyone having tagged a point — which also makes A8 the better next
+canopy checkpoint than A7c.
+
+**What this changes for the Wave 4 residual.** Whatever A7 fails to close will be mostly
+*missing tags*, not a wrong crown model. 1% coverage cannot be fixed by better physics. Measure
+the residual as the roadmap asks, but expect it to point at A8 before it points at a photo corpus.
+
+### Next: A7c/A8, or A5a's diagnostics first
 
 **A5a's two diagnostic steps are small, cheap and optional now.** Pure Node, no browser, no key:
 reproduce the `coverage()`/`sampleEdges()` bbox mismatch in a test, and surface `EdgeShadow.source`
@@ -112,7 +147,7 @@ A7/A8 ─────────────► (better inputs to all of it)
 |---|---|
 | ~~**G2** route benchmark~~ ✅ | A5's acceptance is literally *"no benchmark → no claim"*, and H's central claim is a **comparison**. Building the measurement before claiming the improvement is the senior-shaped decision in this whole thread. **It paid immediately: the first thing it measured was A4 not meeting its own acceptance criterion (#259).** |
 | ~~**A6** time sweep~~ ✅ | Gate discharged — but **not** for the reason stated here. A6 measured that N time buckets still cost roughly N× a sample even with the sweep; what it bought was ~1.6–1.9× in absolute terms. H1 budgets linearly. See the A6 section above and **#270**. |
-| **A7/A8** canopy | See below — this is the promoted item and it is also an experiment. |
+| ~~**A7a/A7b**~~ canopy ✅ | Landed 2026-09-09 with #276 and #244. The census it carried is the part that matters: OSM holds ~23% of Madrid's street trees and ~1% of Singapore's, and the crown model is its own defaults. **A8 now outranks A7c** — see the A7 section above and `docs/notes/canopy-coverage-2026-09-09.md`. |
 | **A5** worker offload → **A5a/A5b** | H3's budget slider must never block the main thread — and G2 measured *which* thing blocks it. **A5a** wakes the dormant geometry path and deletes the canvas read; **A5b** offloads what remains, if anything still justifies it. Re-scoped in `TRACK_A.md`. |
 | **H1–H5** | The track. |
 
@@ -134,7 +169,7 @@ a new, optional, high-value piece of work.
 |---|---|---|
 | **#241** | **H2** | Minimising unshadowed metres — H2's corrected objective — scored **worse than the plain shortest route in 24%** of 1200 O-D pairs (41% at 08:00). H2 still lands; maximised `shadowM` is a real defect. But the note must say the corrected objective is *better than shadow* and *still not comfort*. Read before writing it. |
 | **#243** | **G2 → H2/H3** | `maxDetourFactor = 2.0` (+250 m flat) is ~10× the detour three independent studies find useful (+1.3%, <3%, plateau at 110%). **Measure it in G2's sweep**; do not edit the constant on the strength of a citation. Cheapest available win for H3's frontier. |
-| **#244** | **A7/A8** | Tree shadow is worth **0.5×** building shadow — published (Melnikov 2022 via Wen 2025), so A7 need not invent a weight. Same paper shows tree shadow dominating at midday when building shadow collapses, which is the *data* behind sequencing A7/A8 before H3. |
+| ~~**#244**~~ | ~~**A7/A8**~~ | **Honoured 2026-09-09, deliberately without applying it.** 0.5 is *perceived* intensity and belongs in a route cost model; `ShadowField.shadow` is a physical fraction, so `canopy.ts` applies transmittance and exports `CANOPY_PREFERENCE_WEIGHT` with the citation and caveat for **Track E**. It cannot be applied until `EdgeShadow` says how much of a blended fraction was canopy — **#277**. |
 | ~~**#245**~~ ✅ | ~~**A6/A7**~~ | **Declined in writing**, 2026-09-09, at `docs/notes/one-hour-shadow-window.md`. Its case was that A6 would make a window nearly free; the sweep is **linear in times**, so 10-minute steps cost ~6.9× the hourly sweep against a 6.0× floor. It also biases *towards* reporting shadow with no instrument able to measure the bias — A3 compares against a pixel reading at an **instant** — and H1 is about to price shadow far finer than an hour. |
 | **#242** | **H1 + H4** *(new work, optional)* | Wen et al. publish a distance-dependent shadow reward that makes edge cost **path-dependent**, then solve it with Dijkstra keeping **one label per node**. A label carrying more distance is *advantaged* downstream, so cost-only pruning can drop the optimum. **This is H1's stated open question, unresolved, in print** — and `paretoRoutes` is already the right machinery. Implementing it and publishing where the two searches diverge is H4's oracle-and-gap against an *external, citable* model. |
 
@@ -146,6 +181,10 @@ back after publishing. **If you take one thing into A7:** #244, because it is fr
 ---
 
 ## A7/A8 — promoted into Wave 1 on 2026-09-08, and why it matters twice
+
+> **A7a and A7b landed 2026-09-09.** The three fiddly things below were all real, and the
+> section above records what the measurement did to them. Read this for the *why*; read the
+> A7 section above and `docs/notes/canopy-coverage-2026-09-09.md` for what is now known.
 
 **The app reports "exposed" on a tree-lined street in July.** `ROADMAP.md` §2 concedes Geuneullo
 already models street trees, so this is the gap between us and the *consumer* state of the art —
@@ -167,7 +206,8 @@ blocker:**
 1. **Tag sparsity is the real one.** OSM street-tree coverage is wildly uneven. A canopy provider
    must report its own coverage honestly, the way `PrismProvider`'s doc comment demands —
    *"'no buildings here' and 'I haven't loaded this area' produce the same shadow number and very
-   different confidence."*
+   different confidence."* — **This was the right thing to worry about, and it is worse than
+   "uneven": ~23% in Madrid, ~1% in Singapore, 0% of crown diameters tagged anywhere.**
 2. **A tree is not a prism.** Modelling a crown as an opaque solid **overstates** shadow, which is
    the dangerous direction — you would route someone into sun while promising shadow. The
    fractional `shadow` field is what saves you.

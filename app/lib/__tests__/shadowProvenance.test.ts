@@ -126,6 +126,18 @@ describe("describeShadowProvenance", () => {
     );
   });
 
+  it("names canopy when A7 blended it in, rather than falling through to unknown", () => {
+    // `mixed` and `canopy` are what the field emits once a canopy source has geometry
+    // for the area. Left unnamed they would have landed on "source unknown", which
+    // would have made every tree-lined route read as unsourced.
+    expect(summarize([shadow("mixed"), shadow("mixed"), shadow("mixed")])).toBe(
+      "from building geometry and tree canopy"
+    );
+    expect(summarize([shadow("canopy"), shadow("canopy"), shadow("canopy")])).toBe(
+      "from tree canopy"
+    );
+  });
+
   it("names the map view when the pixel sampler answered", () => {
     expect(summarize([shadow("canvas"), shadow("canvas"), shadow("canvas")])).toBe(
       "from the map view"

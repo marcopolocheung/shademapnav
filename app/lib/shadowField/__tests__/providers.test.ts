@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { BuildingFootprint } from "../../overpass";
+import type { BuildingFootprint, CanopyFeature } from "../../overpass";
 import {
   type BBox,
   LOW_CONFIDENCE,
@@ -11,6 +11,7 @@ import type { BuildingFeatureLike } from "../geometry";
 import {
   type TileMapLike,
   bboxRadiusM,
+  createOverpassCanopyProvider,
   createOverpassPrismProvider,
   createTilePrismProvider,
 } from "../providers";
@@ -241,6 +242,107 @@ describe("createOverpassPrismProvider", () => {
     expect(provider.prismsFor(areas[0])).not.toBeNull();
     expect(provider.prismsFor(areas[4])).not.toBeNull();
     expect(provider.prismsFor(areas[1])).toBeNull(); // the untouched oldest is gone
+  });
+});
+
+describe("createOverpassCanopyProvider", () => {
+  const bbox = bboxAroundPoint(LNG, LAT, 200);
+  const JULY = new Date("2026-07-15T12:00:00Z");
+  const JANUARY = new Date("2026-01-15T12:00:00Z");
+
+  function trees(): CanopyFeature[] {
+    return [{ id: 1, kind: "tree", points: [[LNG, LAT]], tags: { leaf_type: "broadleaved" } }];
+  }
+
+  it("answers nothing before anything is loaded", () => {
+    expect(createOverpassCanopyProvider({ fetchCanopy: vi.fn() }).prismsFor(bbox, JULY)).toBeNull();
+  });
+
+  it("answers from cache after load", async () => {
+    const fetchCanopy = vi.fn(async () => trees());
+    const provider = createOverpassCanopyProvider({ fetchCanopy });
+
+    await provider.load?.(bbox);
+
+    expect(provider.prismsFor(bbox, JULY)?.prisms).toHaveLength(1);
+    expect(fetchCanopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands back the identical array for the same area and month", async () => {
+    // Load-bearing, not an optimisation: `ShadowField` keys its prepared casters on
+    // this array's identity, so a fresh array per query would miss that cache on every
+    // single sample and re-flatten every crown in the neighbourhood.
+    const provider = createOverpassCanopyProvider({ fetchCanopy: async () => trees() });
+    await provider.load?.(bbox);
+
+    const first = provider.prismsFor(bbox, JULY);
+    const sameHour = provider.prismsFor(bbox, JULY);
+    const laterThatDay = provider.prismsFor(bbox, new Date("2026-07-15T18:00:00Z"));
+    const laterThatMonth = provider.prismsFor(bbox, new Date("2026-07-28T09:00:00Z"));
+
+    expect(sameHour).toBe(first);
+    expect(laterThatDay).toBe(first);
+    expect(laterThatMonth).toBe(first);
+  });
+
+  it("rebuilds the crowns when the season changes, without refetching", async () => {
+    const fetchCanopy = vi.fn(async () => trees());
+    const provider = createOverpassCanopyProvider({ fetchCanopy });
+    await provider.load?.(bbox);
+
+    const summer = provider.prismsFor(bbox, JULY);
+    const winter = provider.prismsFor(bbox, JANUARY);
+
+    expect(winter).not.toBe(summer);
+    expect(winter?.prisms[0].opacity).toBeLessThan(summer?.prisms[0].opacity ?? 1);
+    // Geometry is not seasonal; only the opacity is. One fetch covers both.
+    expect(fetchCanopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches a radius wider than the bbox, since crowns outside it still cast in", async () => {
+    const fetchCanopy = vi.fn(async (_lng: number, _lat: number, _radiusM: number) => trees());
+    await createOverpassCanopyProvider({ fetchCanopy }).load?.(bbox);
+
+    const [, , radiusM] = fetchCanopy.mock.calls[0];
+    expect(radiusM).toBeGreaterThan(bboxRadiusM(bbox));
+  });
+
+  it("collapses concurrent loads of the same area into one request", async () => {
+    const fetchCanopy = vi.fn(async () => trees());
+    const provider = createOverpassCanopyProvider({ fetchCanopy });
+
+    await Promise.all([provider.load?.(bbox), provider.load?.(bbox), provider.load?.(bbox)]);
+
+    expect(fetchCanopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("declines an area too large for one Overpass call", async () => {
+    const fetchCanopy = vi.fn(async () => trees());
+    const provider = createOverpassCanopyProvider({ fetchCanopy, maxFetchRadiusM: 500 });
+
+    await provider.load?.(bboxAroundPoint(LNG, LAT, 5000));
+
+    expect(fetchCanopy).not.toHaveBeenCalled();
+  });
+
+  it("caches nothing when the fetch fails, rather than claiming a bare street", async () => {
+    const provider = createOverpassCanopyProvider({
+      fetchCanopy: async () => {
+        throw new Error("Overpass canopy API error: 429 Too Many Requests");
+      },
+    });
+
+    await expect(provider.load?.(bbox)).resolves.toBeUndefined();
+    expect(provider.prismsFor(bbox, JULY)).toBeNull();
+  });
+
+  it("reports an area it fetched and found bare, which is not the same as declining", async () => {
+    const provider = createOverpassCanopyProvider({ fetchCanopy: async () => [] });
+    await provider.load?.(bbox);
+
+    const set = provider.prismsFor(bbox, JULY);
+    expect(set).not.toBeNull();
+    expect(set?.prisms).toHaveLength(0);
   });
 });
 

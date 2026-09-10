@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   LOW_CONFIDENCE,
   type BBox,
+  type CanopyProvider,
   type EdgeRef,
   type PrismProvider,
   bboxAroundEdges,
@@ -13,6 +14,7 @@ import {
   createGeometryShadowField,
   QUERY_PAD_M,
   sidewalkOffsets,
+  staticCanopyProvider,
   staticPrismProvider,
 } from "../ShadowField";
 import { type PrismSet, metersPerDegree } from "../geometry";
@@ -575,5 +577,203 @@ describe("bbox helpers", () => {
     expect(bboxContains(outer, bboxAroundPoint(LNG, LAT, 100))).toBe(true);
     expect(bboxContains(outer, bboxAroundPoint(LNG, LAT, 900))).toBe(false);
     expect(bboxContains(outer, bboxAroundPoint(LNG + 0.02, LAT, 100))).toBe(false);
+  });
+});
+
+// ─── Canopy (A7) ──────────────────────────────────────────────────────────────
+
+describe("canopy", () => {
+  /** Far enough across the shadow direction that no building shadow reaches it. */
+  const GROVE = acrossShadow(300);
+  const CANOPY_OPACITY = 0.9;
+
+  /** A 60 m square of crown, 9 m tall on a 3 m trunk — one patch, hand-sized. */
+  function canopyPatch(opacity = CANOPY_OPACITY): PrismSet {
+    const half = 30;
+    const dLat = half / mPerLat;
+    const dLng = half / mPerLng;
+    return {
+      prisms: [
+        {
+          heightM: 9,
+          baseM: 3,
+          opacity,
+          ring: [
+            [GROVE[0] - dLng, GROVE[1] - dLat],
+            [GROVE[0] + dLng, GROVE[1] - dLat],
+            [GROVE[0] + dLng, GROVE[1] + dLat],
+            [GROVE[0] - dLng, GROVE[1] + dLat],
+            [GROVE[0] - dLng, GROVE[1] - dLat],
+          ],
+        },
+      ],
+      maxHeightM: 9,
+    };
+  }
+
+  /** A 20 m edge through the middle of the grove, across the shadow direction. */
+  const underGrove: EdgeRef = {
+    from: [GROVE[0] - 10 / mPerLng, GROVE[1]],
+    to: [GROVE[0] + 10 / mPerLng, GROVE[1]],
+  };
+
+  const tiles = () => staticPrismProvider(oneBuilding(), WIDE_COVERAGE, "tiles");
+  const canopy = (set = canopyPatch()) => staticCanopyProvider(set, WIDE_COVERAGE);
+
+  it("reports canopy shadow where buildings report none", () => {
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const with_ = createGeometryShadowField([tiles()], [canopy()]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+
+    expect(without.left).toBe(0);
+    expect(without.right).toBe(0);
+    expect(with_.left).toBeGreaterThan(0.5);
+    expect(with_.right).toBeGreaterThan(0.5);
+  });
+
+  it("reports the crown's opacity, not full shadow", () => {
+    // The whole reason `shadow` is a fraction rather than a boolean. A crown that read
+    // 1 here would let routing price a plane tree exactly like a tower.
+    const [edge] = createGeometryShadowField([tiles()], [canopy()]).sampleEdges(
+      [underGrove], NOON
+    );
+    expect(edge.left).toBeCloseTo(CANOPY_OPACITY, 10);
+    expect(edge.left).toBeLessThan(1);
+  });
+
+  it("lets an opaque building win outright where the two overlap", () => {
+    // A crown standing over a building's shadow cannot make the ground darker than 1.
+    const inBuildingShadow: EdgeRef = {
+      from: alongShadow(25),
+      to: alongShadow(35),
+    };
+    const overEverything: PrismSet = {
+      prisms: [
+        {
+          heightM: 9,
+          baseM: 3,
+          opacity: CANOPY_OPACITY,
+          ring: [
+            [LNG - 0.01, LAT - 0.01],
+            [LNG + 0.01, LAT - 0.01],
+            [LNG + 0.01, LAT + 0.01],
+            [LNG - 0.01, LAT + 0.01],
+            [LNG - 0.01, LAT - 0.01],
+          ],
+        },
+      ],
+      maxHeightM: 9,
+    };
+    const [edge] = createGeometryShadowField(
+      [tiles()], [staticCanopyProvider(overEverything, WIDE_COVERAGE)]
+    ).sampleEdges([inBuildingShadow], NOON);
+    expect(edge.left).toBe(1);
+  });
+
+  it("labels the answer mixed, and docks it for resting on a crown model", () => {
+    const buildingsOnly = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const [edge] = createGeometryShadowField([tiles()], [canopy()]).sampleEdges(
+      [underGrove], NOON
+    );
+
+    expect(buildingsOnly.source).toBe("tiles");
+    expect(edge.source).toBe("mixed");
+    expect(edge.confidence).toBeLessThan(buildingsOnly.confidence);
+    // Still worth routing on: more information, not less.
+    expect(edge.confidence).toBeGreaterThan(LOW_CONFIDENCE);
+  });
+
+  it("answers from canopy alone below LOW_CONFIDENCE when no building source can", () => {
+    // A tree layer knows nothing about the tower across the street, so an answer
+    // resting on it alone is a request to fall back rather than a routing input.
+    const [edge] = createGeometryShadowField([], [canopy()]).sampleEdges([underGrove], NOON);
+    expect(edge.source).toBe("canopy");
+    expect(edge.confidence).toBeLessThan(LOW_CONFIDENCE);
+    expect(edge.confidence).toBeGreaterThan(0);
+  });
+
+  it("changes nothing when the canopy source cannot speak for the area", () => {
+    // The provider contract's one hard rule, from the canopy side: declining an area
+    // must be indistinguishable from there being no canopy provider at all.
+    const elsewhere = bboxAroundPoint(LNG + 5, LAT, 100);
+    const declines: CanopyProvider = {
+      source: "canopy",
+      prismsFor: (bbox) => (bboxContains(elsewhere, bbox) ? canopyPatch() : null),
+    };
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const declined = createGeometryShadowField([tiles()], [declines]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+    expect(declined).toEqual(without);
+  });
+
+  it("does not dock an area a canopy source covered and found bare", () => {
+    // "I looked and there are no trees" is knowledge, not a gap — so it neither adds
+    // shadow nor costs confidence, and the label stays the building source's.
+    const bare = staticCanopyProvider({ prisms: [], maxHeightM: 1 }, WIDE_COVERAGE);
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const covered = createGeometryShadowField([tiles()], [bare]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+    expect(covered).toEqual(without);
+  });
+
+  it("halves nothing: the 0.5 preference weight is not folded into the fraction", () => {
+    // #244 keeps perceived intensity (0.5, for a route cost model) apart from
+    // transmittance (the opacity here). If a future change multiplies them, this fails.
+    const [edge] = createGeometryShadowField([tiles()], [canopy()]).sampleEdges(
+      [underGrove], NOON
+    );
+    expect(edge.left).toBeCloseTo(CANOPY_OPACITY, 10);
+  });
+
+  it("reports the blended source from coverage(), building no geometry", () => {
+    const area = bboxAroundEdges([underGrove], QUERY_PAD_M) as BBox;
+    const field = createGeometryShadowField([tiles()], [canopy()]);
+    expect(field.coverage(area, NOON).source).toBe("mixed");
+    expect(field.coverage(area, NOON).confidence).toBe(
+      field.sampleEdges([underGrove], NOON)[0].confidence
+    );
+  });
+
+  it("blends canopy into a point probe too", () => {
+    const field = createGeometryShadowField([tiles()], [canopy()]);
+    const sample = field.shadowAt(GROVE[0], GROVE[1], NOON);
+    expect(sample.shadow).toBeCloseTo(CANOPY_OPACITY, 10);
+    expect(sample.source).toBe("mixed");
+  });
+
+  it("sweeps N times to exactly what N samples produce", () => {
+    // A6's parity guarantee, re-asserted with canopy in play: the sweep now resolves a
+    // seasonal source per time, and it must still be the same floats.
+    const times = [4, 8, 12, 16, 20].map(
+      (hour) => new Date(Date.UTC(2026, 5, 21, hour, 0, 0))
+    );
+    const field = createGeometryShadowField([tiles()], [canopy()]);
+    const swept = field.sweep([underGrove], times);
+    times.forEach((when, i) => {
+      expect(swept[i]).toEqual(field.sampleEdges([underGrove], when));
+    });
+  });
+
+  it("preloads canopy sources alongside building ones", async () => {
+    const loaded: string[] = [];
+    const building: PrismProvider = {
+      source: "overpass",
+      prismsFor: () => null,
+      load: async () => {
+        loaded.push("overpass");
+      },
+    };
+    const trees: CanopyProvider = {
+      source: "canopy",
+      prismsFor: () => null,
+      load: async () => {
+        loaded.push("canopy");
+      },
+    };
+    await createGeometryShadowField([building], [trees]).ready(WIDE_COVERAGE);
+    expect(loaded.sort()).toEqual(["canopy", "overpass"]);
   });
 });

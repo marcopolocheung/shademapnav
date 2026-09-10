@@ -10,7 +10,10 @@
 
 ## Current state
 
-- **Active checkpoint:** A5. **A6 is landed** — see its own note below; it did not meet its
+- **Active checkpoint:** A7c (the UI slice) or A5. **A7a+A7b are landed** — canopy is fetched,
+  modelled and blended into the field, and the coverage census that decides #275 is in
+  `docs/notes/canopy-coverage-2026-09-09.md`. See the A7 note below for what the census found
+  and what it changes. **A6 is landed** — see its own note below; it did not meet its
   acceptance criterion and says so with numbers. A4b (the `useNavigation.ts` swap) is landed, but read the A4b
   notes before assuming the canvas is retired: the geometry path is **wired and dormant** in
   practice, because the only source that can cover a route bbox is the tile provider and it is
@@ -33,7 +36,17 @@
   play and they imply different fixes. #259 lists the two cheap steps that settle it — a pure
   Node test and surfacing `EdgeShadow.source` in the metrics. **Do both before writing A5.**
 - **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
-  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6.
+  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6, A7a+A7b (#276, #244).
+- **A7's census is the finding, and it is worse than the checkpoint assumed.** OSM holds
+  **at most ~23% of Madrid's inventoried street trees and ~1.0% of Singapore's**, and
+  `diameter_crown` and `height` are tagged on **under 1% of trees in Madrid and 0% in
+  Singapore and Kent** — so the crown model is, in practice, its own defaults applied to a
+  bare point. The A3 corpus centre in Singapore has **zero** tagged canopy of any kind in
+  2 km². Full table, method and the five things it changes:
+  `docs/notes/canopy-coverage-2026-09-09.md`; reproduce with `node scripts/canopy-census.mjs`.
+  **#275 has its answer on this data: do not paint canopy yet** — 23% of a street's trees
+  rendered reads as a bug, where none rendered reads as "the map does not draw trees", and a
+  number can carry a confidence where a paint stroke cannot. Revisit against A8's raster.
 - **A6 landed with its acceptance criterion unmet, and the measurement is the deliverable.**
   A 14-hour sweep over a 3 km route was to cost *"< 2× a single-hour sample"*. It costs
   **~21×**, and on `main` it cost ~17× — **the ratio got worse while every absolute number
@@ -459,8 +472,52 @@ split, the alternative design, and the three measured-and-declined wins: `docs/n
 § Time Sweep (A6). **Read that before taking H1** — H must budget N time buckets at roughly
 N× a sample, not at a discount.
 
+**A7 — canopy v1 (slices a and b landed; c is the UI and is not started)**
+- **`shadow` stays physical; the 0.5 preference weight is published and not applied.** #244's
+  0.5 is *perceived* intensity, for a route cost model. `ShadowField.shadow` is documented as a
+  fraction of the direct beam, and multiplying a preference into it would corrupt the exposure
+  series, the heat score and the assistant's spot checks alike. So `canopy.ts` applies
+  transmittance (~10% leaf-on / ~70% leaf-off → opacity 0.90 / 0.30) and exports
+  `CANOPY_PREFERENCE_WEIGHT` with the citation and its caveat for Track E. Nothing applies it
+  yet, and it cannot be applied yet: `EdgeShadow` reports one blended fraction and does not say
+  how much of it was canopy, so there is nothing to weight. **Filed as #277 against Track E.**
+- **A canopy provider is a separate list, not another `PrismProvider`.** Buildings resolve
+  first-one-wins; canopy is *additive* on top of whichever answered. One list would mean either
+  a canopy source shadowing a building source or the field guessing which it held.
+  `CanopyProvider.prismsFor` also takes the date, because a crown's geometry is fixed and its
+  opacity is not — and it must return the **same array** per area and leaf state, since
+  `ShadowField` keys its prepared casters on that array's identity.
+- **Two indexes per sun cell, not one over the concatenation.** The building path stays provably
+  the geometry it always was — same casters, same grid, same order — which is what lets A3's
+  agreement numbers and A6's sweep parity keep meaning what they meant; and the prepared-caster
+  cache is keyed on array identity, which a per-call concatenation would miss every time. The
+  building index is consulted first and wins outright when it answers, so canopy costs nothing
+  where there is none.
+- **#276: footprint exclusion is a property of the caster.** `BuildingPrism` gained `baseM` and
+  `opacity`, both defaulting to what every building has. A caster with `baseM > 0` does not
+  occlude its own footprint — under a crown is where its shadow *is* — and its shadow sweeps
+  from the base shift to the top shift rather than from the footprint. That second half is not
+  optional: a ground-to-crown solid over-reports the whole displacement, ~14 m of it at a 10°
+  sun, which is the direction that routes someone into sun while promising shadow.
+- **Everything with a direction leans towards less shadow.** Inscribed crown polygons (~90% of
+  the circle, not ~110%); untagged leaf cycle read as deciduous; row crowns spaced to touch
+  rather than overlap; a height range read at its lower bound. Stated because the census makes
+  the defaults the model, not a fallback.
+- **Confidence goes *down* when canopy is blended in** (`CANOPY_MIX_FACTOR`, 0.9), and canopy
+  alone scores 0.35 — below `LOW_CONFIDENCE`, so it reads as a request to fall back. Adding
+  canopy removes a known bias and adds model uncertainty; both are true, and the second is the
+  one a route card must not hide. Like the other priors here, A3 cannot calibrate it: the pixel
+  sampler it compares against cannot see a tree at all.
+- **Woodland relations are skipped**, ways only. A half-assembled multipolygon reports shadow in
+  the wrong place with no way for a caller to tell. Tree rows are capped at 300 crowns.
+- **Not done in this slice:** the UI (A7c), the renderer (**#275** — declined for now against
+  the census, with the numbers recorded on the issue), and a canopy share on `EdgeShadow` for
+  Track E to weight (**#277**).
+
 ### A7 — Canopy v1 (Overpass trees)
-**Goal.** Stop under-reporting shadow on the streets shadow-seekers actually use. Closes **#46**.
+**Status.** Slices (a) fetch + model and (b) field integration are landed, with #276 and #244.
+Slice (c), the UI, is not started. #46 is already closed.
+**Goal.** Stop under-reporting shadow on the streets shadow-seekers actually use.
 **Approach.** Extend the Overpass query with `natural=tree`, `natural=tree_row`, `landuse=forest`, `leaf_type`. Crown model: radius from `diameter_crown` when tagged, else a species/`leaf_type` default (document the defaults); height from `height` else a default. Contribute as `source: "canopy"` with **lower confidence than buildings** — the tagging is sparse and the model is crude.
 **Acceptance.** A tree-lined Madrid/Barcelona street reports materially more shadow than before; confidence reflects tag sparsity; the UI can distinguish building shadow from tree shadow; seasonal honesty: deciduous canopy is discounted outside leaf-on months (document the month window per hemisphere).
 **Files.** `app/lib/overpass.ts`, `app/lib/shadowField/canopy.ts` (new).

@@ -12,6 +12,16 @@
  * same `buildShadowTriangles`, keeps footprint exclusion as a *complete* first pass,
  * and holds vertices as float64 so nothing is rounded on the way in.
  *
+ * **A caster need not stand on the ground or be opaque (A7, issues #276 and #244).**
+ * A `BuildingPrism` carries a base height and an opacity, both defaulting to the
+ * values every building has — 0 and 1 — so a set of buildings produces the same
+ * floats it always did, vertex for vertex. What the two add is a canopy: a crown
+ * starts at the top of a trunk, so its shadow is the footprint swept between the
+ * base shift and the top shift rather than from the footprint itself, and it does
+ * *not* occlude its own footprint — the ground under a tree is the one place its
+ * shadow is certain to fall. `opacityAt` is the fractional form of `isShadowed`,
+ * which stays exactly `opacityAt(...) > 0`.
+ *
  * This module is pure — no map, no WebGL, no network — like `geometry.ts` beneath it.
  *
  * **Casters are prepared once and reused across sun positions (A6).** A prism's ring,
@@ -51,6 +61,17 @@ export interface IndexRegion {
 export interface ShadowIndex {
   /** Exactly `pointInPrismShadow`'s answer, for the projection this index was built with. */
   isShadowed(lng: number, lat: number): boolean;
+  /**
+   * How much of the direct beam is stopped here, 0–1 — the largest opacity among the
+   * casters shadowing this point, or 0 if none do.
+   *
+   * Over an all-opaque set this is `isShadowed` with 1 and 0 for its two answers, and
+   * `isShadowed` is defined as `opacityAt(...) > 0` so the two can never drift. It is
+   * a maximum rather than a sum because two overlapping crowns are not twice as dark:
+   * the beam is either through a canopy or it is not, and compounding two 0.9s into
+   * 0.99 would claim a precision the crown model does not have.
+   */
+  opacityAt(lng: number, lat: number): number;
   /** Prisms that survived the region filter and were triangulated. Diagnostics and tests. */
   readonly prismCount: number;
 }
@@ -76,15 +97,23 @@ const MAX_CELLS = 1e6;
 /** Nothing casts a shadow here, so nothing is shadowed. Shared — it holds no state. */
 const EMPTY_INDEX: ShadowIndex = {
   isShadowed: () => false,
+  opacityAt: () => 0,
   prismCount: 0,
 };
 
 /** One prism that cleared phases 1 and 2, with the shadow bounds that got it there. */
 interface Candidate {
   caster: Caster;
-  /** The shift phase 1 already computed; phase 3 reuses it rather than redoing it. */
-  dLng: number;
-  dLat: number;
+  /**
+   * The two shifts phase 1 already computed; phase 3 reuses them rather than redoing
+   * them. `base` is where the caster's underside projects and `top` where its top
+   * does — the shadow is the footprint swept between them. For anything standing on
+   * the ground the base shift is exactly zero, so the sweep starts at the footprint.
+   */
+  dLngBase: number;
+  dLatBase: number;
+  dLngTop: number;
+  dLatTop: number;
   west: number;
   south: number;
   east: number;
@@ -113,6 +142,18 @@ interface Caster {
    */
   capIndices: number[] | null;
   heightM: number;
+  /** Height of the underside above ground; 0 for anything standing on it. */
+  baseM: number;
+  /** Share of the beam this caster stops, 0–1. 1 for anything opaque. */
+  opacity: number;
+  /**
+   * Whether a point on this caster's own footprint is *not* shadowed by it.
+   *
+   * True for a building, whose roof the renderer paints lit. False for anything
+   * elevated — a crown, an awning, a bridge deck — where the ground beneath is
+   * precisely where the shadow lands. Issue #276.
+   */
+  occludesOwnFootprint: boolean;
   /** Bounds of the ring itself — the shadow's bounds before the sun shifts it. */
   west: number;
   south: number;
@@ -195,11 +236,15 @@ export function prepareShadowCasters(prisms: BuildingPrism[]): ShadowCasters {
       flat[i * 2] = ring[i][0];
       flat[i * 2 + 1] = ring[i][1];
     }
+    const baseM = prism.baseM ?? 0;
     casters.push({
       flat,
       openCount: openRingLength(ring),
       capIndices: null,
       heightM: prism.heightM,
+      baseM,
+      opacity: prism.opacity ?? 1,
+      occludesOwnFootprint: baseM <= 0,
       west: rw, south: rs, east: re, north: rn,
     });
     const absHeight = Math.abs(prism.heightM);
@@ -373,9 +418,18 @@ export function buildShadowIndexFor(
     const re = caster.east;
     const rn = caster.north;
 
-    const shadowLengthM = caster.heightM / tanAltitude;
-    const dLat = (cosAzimuth * shadowLengthM) / mPerLat;
-    const dLng = (sinAzimuth * shadowLengthM) / mPerLng;
+    const topLengthM = caster.heightM / tanAltitude;
+    const dLatTop = (cosAzimuth * topLengthM) / mPerLat;
+    const dLngTop = (sinAzimuth * topLengthM) / mPerLng;
+
+    // A caster standing on the ground casts from its own footprint at every sun angle,
+    // so its base shift is a literal 0 rather than `0 / tanAltitude` — which is NaN for
+    // a sun exactly on the horizon and would poison the finiteness test below. Spelled
+    // this way, every building's bounds are the floats they were before elevated
+    // casters existed, and only a crown pays for the extra arithmetic.
+    const baseLengthM = caster.baseM === 0 ? 0 : caster.baseM / tanAltitude;
+    const dLatBase = baseLengthM === 0 ? 0 : (cosAzimuth * baseLengthM) / mPerLat;
+    const dLngBase = baseLengthM === 0 ? 0 : (sinAzimuth * baseLengthM) / mPerLng;
 
     // A sun on the horizon makes the shift infinite, and an infinite coordinate does
     // the same to the bounds. Either would leave the grid with a non-finite extent,
@@ -385,19 +439,24 @@ export function buildShadowIndexFor(
     // needs no guard: it loses every `<` and `>` in the ring sweep that produced
     // these bounds, so they stay finite and the prism keeps the same harmless
     // triangles it always had.)
-    if (!Number.isFinite(dLat + dLng)) continue;
+    if (!Number.isFinite(dLatTop + dLngTop + dLatBase + dLngBase)) continue;
 
-    const cw = Math.min(rw, rw + dLng);
-    const ce = Math.max(re, re + dLng);
-    const cs = Math.min(rs, rs + dLat);
-    const cn = Math.max(rn, rn + dLat);
+    // The shadow is the footprint swept from the base shift to the top shift, so its
+    // bounds are the union of the two shifted rings' bounds.
+    const cw = Math.min(rw + dLngBase, rw + dLngTop);
+    const ce = Math.max(re + dLngBase, re + dLngTop);
+    const cs = Math.min(rs + dLatBase, rs + dLatTop);
+    const cn = Math.max(rn + dLatBase, rn + dLatTop);
 
     // ─── Phase 2: region filter ───────────────────────────────────────────────
     if (region && (cw > region.east || ce < region.west || cs > region.north || cn < region.south)) {
       continue;
     }
 
-    candidates.push({ caster, dLng, dLat, west: cw, south: cs, east: ce, north: cn });
+    candidates.push({
+      caster, dLngBase, dLatBase, dLngTop, dLatTop,
+      west: cw, south: cs, east: ce, north: cn,
+    });
     if (cw < west) west = cw;
     if (ce > east) east = ce;
     if (cs < south) south = cs;
@@ -407,7 +466,9 @@ export function buildShadowIndexFor(
   if (candidates.length === 0) return EMPTY_INDEX;
 
   // ─── Phase 3: triangulate the survivors, and only them ──────────────────────
-  const triangles = candidates.map((c) => shadowTrianglesFlat(c.caster, c.dLng, c.dLat));
+  const triangles = candidates.map((c) =>
+    shadowTrianglesFlat(c.caster, c.dLngBase, c.dLatBase, c.dLngTop, c.dLatTop)
+  );
 
   // ─── The grid ───────────────────────────────────────────────────────────────
   // Sized off the objects rather than a constant: shadows grow at low sun, and a
@@ -448,34 +509,55 @@ export function buildShadowIndexFor(
     }
   }
 
+  function opacityAt(lng: number, lat: number): number {
+    if (lng < west || lng > east || lat < south || lat > north) return 0;
+
+    const bucket =
+      cells[cellIndex(lat - south, cellDeg, ny) * nx + cellIndex(lng - west, cellDeg, nx)];
+    if (bucket === undefined) return 0;
+
+    // Two complete passes, never interleaved. A roof is painted lit even when it
+    // stands inside a taller neighbour's shadow, so every footprint in the
+    // candidate set must be ruled out before any triangle is tested — interleaving
+    // silently changes the answer wherever those two overlap.
+    //
+    // Only casters standing on the ground rule their footprint out. An elevated one
+    // shadows the ground beneath it — that is where its shadow *is* — and running the
+    // old unconditional pass made a tree shadow everything except the spot under it
+    // (issue #276). A set of buildings takes the same branch on every caster, so its
+    // answer is untouched.
+    //
+    // No bounds short-circuit in front of the ray cast, tempting as it looks. It
+    // would be exact for a finite ring, and it is not exact for a ring carrying a
+    // NaN vertex: NaN loses every comparison in the bounds sweep, so the bounds
+    // exclude it while `pointInPolygonFlat` still flips parity on its edges. The
+    // per-query path this index replaces cast the ray unconditionally, and matching
+    // it is worth more than the ~2% the short-circuit measured.
+    for (const i of bucket) {
+      const caster = candidates[i].caster;
+      if (caster.occludesOwnFootprint && pointInPolygonFlat(lng, lat, caster.flat)) return 0;
+    }
+
+    // The largest opacity wins, and an opaque hit ends the search — which is every
+    // hit over a set of buildings, so that path still stops at the first triangle it
+    // lands in, testing the same triangles in the same order it always did.
+    let max = 0;
+    for (const i of bucket) {
+      const opacity = candidates[i].caster.opacity;
+      if (opacity <= max) continue;
+      if (pointInTrianglesFlat(lng, lat, triangles[i])) {
+        max = opacity;
+        if (max >= 1) return 1;
+      }
+    }
+    return max;
+  }
+
   return {
     prismCount: candidates.length,
-
+    opacityAt,
     isShadowed(lng: number, lat: number): boolean {
-      if (lng < west || lng > east || lat < south || lat > north) return false;
-
-      const bucket =
-        cells[cellIndex(lat - south, cellDeg, ny) * nx + cellIndex(lng - west, cellDeg, nx)];
-      if (bucket === undefined) return false;
-
-      // Two complete passes, never interleaved. A roof is painted lit even when it
-      // stands inside a taller neighbour's shadow, so every footprint in the
-      // candidate set must be ruled out before any triangle is tested — interleaving
-      // silently changes the answer wherever those two overlap.
-      //
-      // No bounds short-circuit in front of the ray cast, tempting as it looks. It
-      // would be exact for a finite ring, and it is not exact for a ring carrying a
-      // NaN vertex: NaN loses every comparison in the bounds sweep, so the bounds
-      // exclude it while `pointInPolygonFlat` still flips parity on its edges. The
-      // per-query path this index replaces cast the ray unconditionally, and matching
-      // it is worth more than the ~2% the short-circuit measured.
-      for (const i of bucket) {
-        if (pointInPolygonFlat(lng, lat, candidates[i].caster.flat)) return false;
-      }
-      for (const i of bucket) {
-        if (pointInTrianglesFlat(lng, lat, triangles[i])) return true;
-      }
-      return false;
+      return opacityAt(lng, lat) > 0;
     },
   };
 }
@@ -490,10 +572,18 @@ export function buildShadowIndexFor(
  * immediately, and a sweep pays that for every prism at every hour. Here the only
  * allocations are the shifted ring and the output.
  *
- * The near cap is cut once in `prepareShadowCasters` and reused: the footprint does
- * not move when the sun does. The far cap is cut per sun over the same flat
- * coordinates `triangulateRing` would have built, so `earcut` sees identical input
- * and returns identical indices.
+ * **The sweep runs between two shifts, not from the footprint (A7, issue #276).**
+ * `buildShadowTriangles` sweeps a ground-standing prism from its footprint to the
+ * projection of its top. A caster with an elevated underside — a tree crown above its
+ * trunk — sweeps from the projection of that underside instead, which is what puts a
+ * crown's shadow beside the trunk rather than around it. A ground-standing caster
+ * passes `dLngBase`/`dLatBase` of 0, so its near ring *is* its footprint and every
+ * emitted float is the one it always was; that is the case the parity test pins.
+ *
+ * The near cap is cut once in `prepareShadowCasters` and reused for those casters:
+ * the footprint does not move when the sun does. An elevated caster's near ring does
+ * move, so it is cut per sun, over the same flat coordinates `triangulateRing` would
+ * have built. The far cap is cut per sun either way.
  *
  * Exported only so that test can exist. `shadowIndex.test.ts`'s frozen reference
  * compares the two *through* `isShadowed`, which cannot see a difference that changes
@@ -502,37 +592,51 @@ export function buildShadowIndexFor(
  */
 export function shadowTrianglesFlat(
   caster: Caster,
-  dLng: number,
-  dLat: number
+  dLngBase: number,
+  dLatBase: number,
+  dLngTop: number,
+  dLatTop: number
 ): Float64Array {
   const n = caster.openCount;
   if (n < 3) return EMPTY_TRIANGLES;
 
   const ring = caster.flat;
-  const shifted = new Float64Array(n * 2);
-  for (let i = 0; i < n; i++) {
-    shifted[i * 2] = ring[i * 2] + dLng;
-    shifted[i * 2 + 1] = ring[i * 2 + 1] + dLat;
+  const grounded = dLngBase === 0 && dLatBase === 0;
+
+  let near: Float64Array;
+  let nearCap: number[];
+  if (grounded) {
+    near = ring;
+    caster.capIndices ??= earcut(ring.subarray(0, n * 2), [], 2);
+    nearCap = caster.capIndices;
+  } else {
+    near = new Float64Array(n * 2);
+    for (let i = 0; i < n; i++) {
+      near[i * 2] = ring[i * 2] + dLngBase;
+      near[i * 2 + 1] = ring[i * 2 + 1] + dLatBase;
+    }
+    nearCap = earcut(near, [], 2);
   }
 
-  if (caster.capIndices === null) {
-    caster.capIndices = earcut(ring.subarray(0, n * 2), [], 2);
+  const far = new Float64Array(n * 2);
+  for (let i = 0; i < n; i++) {
+    far[i * 2] = ring[i * 2] + dLngTop;
+    far[i * 2 + 1] = ring[i * 2 + 1] + dLatTop;
   }
-  const nearCap = caster.capIndices;
-  const farCap = earcut(shifted, [], 2);
+  const farCap = earcut(far, [], 2);
 
   const out = new Float64Array((6 * n + nearCap.length + farCap.length) * 2);
   let w = 0;
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    const ix = ring[i * 2];
-    const iy = ring[i * 2 + 1];
-    const jx = ring[j * 2];
-    const jy = ring[j * 2 + 1];
-    const six = shifted[i * 2];
-    const siy = shifted[i * 2 + 1];
-    const sjx = shifted[j * 2];
-    const sjy = shifted[j * 2 + 1];
+    const ix = near[i * 2];
+    const iy = near[i * 2 + 1];
+    const jx = near[j * 2];
+    const jy = near[j * 2 + 1];
+    const six = far[i * 2];
+    const siy = far[i * 2 + 1];
+    const sjx = far[j * 2];
+    const sjy = far[j * 2 + 1];
     // pts[i], pts[j], shifted[i] — then pts[j], shifted[j], shifted[i].
     out[w] = ix; out[w + 1] = iy;
     out[w + 2] = jx; out[w + 3] = jy;
@@ -543,12 +647,12 @@ export function shadowTrianglesFlat(
     w += 12;
   }
   for (const index of nearCap) {
-    out[w++] = ring[index * 2];
-    out[w++] = ring[index * 2 + 1];
+    out[w++] = near[index * 2];
+    out[w++] = near[index * 2 + 1];
   }
   for (const index of farCap) {
-    out[w++] = shifted[index * 2];
-    out[w++] = shifted[index * 2 + 1];
+    out[w++] = far[index * 2];
+    out[w++] = far[index * 2 + 1];
   }
   return out;
 }
@@ -609,7 +713,8 @@ function cellIndex(offsetDeg: number, cellDeg: number, n: number): number {
  *
  * A point standing on a building's own footprint is reported as *not* shadowed:
  * the renderer paints roofs lit, and a sidewalk sample that lands on a footprint
- * is a geometry-precision artefact rather than real shadow.
+ * is a geometry-precision artefact rather than real shadow. A prism whose `baseM`
+ * lifts it off the ground is exempt — under a tree crown is where its shadow is.
  *
  * One query, one index — the same O(prisms) triangulation the per-query form always
  * did, so nothing here got slower. It lives on for the callers that genuinely ask

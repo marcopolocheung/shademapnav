@@ -444,7 +444,8 @@ describe("prepared casters", () => {
         const expected = buildShadowTriangles(
           ring, heightM, sun.azimuth, sun.altitude, mPerLat, mPerLng
         );
-        const actual = shadowTrianglesFlat(caster, dLng, dLat);
+        // A ground-standing caster sweeps from its own footprint: base shift 0.
+        const actual = shadowTrianglesFlat(caster, 0, 0, dLng, dLat);
 
         expect(actual.length).toBe(expected.length * 2);
         for (let i = 0; i < expected.length; i++) {
@@ -521,6 +522,116 @@ describe("footprint precedence", () => {
       expect(reversed.isShadowed(LNG + 15 / mPerLng, lat)).toBe(
         forward.isShadowed(LNG + 15 / mPerLng, lat)
       );
+    }
+  });
+});
+
+// ─── Elevated and translucent casters (A7, issues #276 and #244) ──────────────
+
+describe("elevated casters", () => {
+  const DUE_SOUTH = 0;
+  /** Steep enough that a 3 m base shift is much shorter than the crown's own radius. */
+  const ALT_80 = (80 * Math.PI) / 180;
+  const ALT_45 = Math.PI / 4;
+
+  /** A crown-sized octagon centred `eastM`/`northM` from the origin. */
+  function crown(eastM: number, northM: number, radiusM: number): [number, number][] {
+    const ring: [number, number][] = [];
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * 2 * Math.PI;
+      ring.push([
+        LNG + (eastM + Math.cos(angle) * radiusM) / mPerLng,
+        LAT + (northM + Math.sin(angle) * radiusM) / mPerLat,
+      ]);
+    }
+    ring.push([ring[0][0], ring[0][1]]);
+    return ring;
+  }
+
+  /** A 9 m tree with a 3.5 m crown starting 3.15 m up — `canopy.ts`'s defaults. */
+  const tree: BuildingPrism = {
+    ring: crown(0, 0, 3.5),
+    heightM: 9,
+    baseM: 9 * 0.35,
+    opacity: 0.9,
+  };
+
+  it("shadows the ground directly beneath it, which the footprint pass used to veto", () => {
+    // The whole of issue #276: exclusion is a property of the caster, not the index.
+    // At 80° the crown's shadow is displaced 0.56 m — well inside a 3.5 m radius — so
+    // the point under the trunk is genuinely in shadow and must be reported so.
+    const index = buildShadowIndex([tree], DUE_SOUTH, ALT_80, mPerLat, mPerLng, null);
+    expect(index.isShadowed(LNG, LAT)).toBe(true);
+    expect(index.opacityAt(LNG, LAT)).toBeCloseTo(0.9, 10);
+  });
+
+  it("keeps a ground-standing building's roof lit", () => {
+    // The other half of #276's acceptance: nothing about the building case moved.
+    const building: BuildingPrism = { ring: block(0, 0, 30, 30), heightM: 60 };
+    const index = buildShadowIndex([building], DUE_SOUTH, ALT_45, mPerLat, mPerLng, null);
+    expect(index.isShadowed(LNG + 15 / mPerLng, LAT + 15 / mPerLat)).toBe(false);
+  });
+
+  it("leaves the gap a ground-to-crown solid would wrongly fill", () => {
+    // The other half of `baseM`, and the reason A7 needs it rather than just the
+    // exclusion flag. At 10° the 3.15 m trunk displaces the crown's shadow 17.9 m, so
+    // the ground 8 m from the trunk is in full sun. Model the crown from the ground up
+    // and the same point reads shadowed — overstating, which is the direction that
+    // routes someone into sun while promising shadow.
+    const ALT_10 = (10 * Math.PI) / 180;
+    const gap: [number, number] = [LNG, LAT + 8 / mPerLat];
+    const elevated = buildShadowIndex([tree], DUE_SOUTH, ALT_10, mPerLat, mPerLng, null);
+    const grounded = buildShadowIndex(
+      [{ ...tree, baseM: 0 }], DUE_SOUTH, ALT_10, mPerLat, mPerLng, null
+    );
+
+    expect(elevated.isShadowed(...gap)).toBe(false);
+    expect(grounded.isShadowed(...gap)).toBe(true);
+  });
+
+  it("still reaches as far as a ground-based caster of the same height", () => {
+    // The far edge is set by the top, so lifting the base shortens the shadow's near
+    // end and not its reach. A point 8 m north at 45° is under both.
+    const far: [number, number] = [LNG, LAT + 8 / mPerLat];
+    expect(buildShadowIndex([tree], DUE_SOUTH, ALT_45, mPerLat, mPerLng, null).isShadowed(...far))
+      .toBe(true);
+  });
+
+  it("reports the largest opacity among overlapping casters, never their sum", () => {
+    const sparse: BuildingPrism = { ...tree, opacity: 0.3 };
+    const dense: BuildingPrism = { ...tree, opacity: 0.9 };
+    const index = buildShadowIndex([sparse, dense], DUE_SOUTH, ALT_80, mPerLat, mPerLng, null);
+    expect(index.opacityAt(LNG, LAT)).toBeCloseTo(0.9, 10);
+  });
+
+  it("agrees with isShadowed everywhere, in both directions", () => {
+    const building: BuildingPrism = { ring: block(20, 20, 30, 30), heightM: 40 };
+    const index = buildShadowIndex(
+      [tree, building], DUE_SOUTH, ALT_45, mPerLat, mPerLng, null
+    );
+    let shadowed = 0;
+    for (let e = -20; e <= 80; e += 2) {
+      for (let n = -20; n <= 80; n += 2) {
+        const lng = LNG + e / mPerLng;
+        const lat = LAT + n / mPerLat;
+        const opacity = index.opacityAt(lng, lat);
+        expect(index.isShadowed(lng, lat)).toBe(opacity > 0);
+        if (opacity > 0) shadowed++;
+      }
+    }
+    // Guard against a vacuous pass over an all-sunlit grid.
+    expect(shadowed).toBeGreaterThan(100);
+  });
+
+  it("leaves an all-opaque set answering 1 and 0, exactly as before", () => {
+    const prisms = corpus(42, 4);
+    const index = buildShadowIndex(prisms, 0.7, ALT_45, mPerLat, mPerLng, null);
+    for (let e = -100; e <= 100; e += 7) {
+      for (let n = -100; n <= 100; n += 7) {
+        const lng = LNG + e / mPerLng;
+        const lat = LAT + n / mPerLat;
+        expect(index.opacityAt(lng, lat)).toBe(index.isShadowed(lng, lat) ? 1 : 0);
+      }
     }
   });
 });
