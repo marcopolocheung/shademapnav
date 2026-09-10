@@ -95,6 +95,63 @@ describe("ShadeField.sampleEdges", () => {
 });
 
 /**
+ * A6's number: N hours against one hour, over the same route.
+ *
+ * A 3 km route is 60 edges of 50 m, which `edgeSampleCount` walks 4 points deep on
+ * each sidewalk — 480 point queries per hour. The 14 hours run 11:00–24:00 UTC, i.e.
+ * a full New York day either side of solar noon, because a sweep whose hours are
+ * mostly below the horizon measures the short-circuit rather than the sweep.
+ *
+ * Three cases on purpose. `sweep(14)` against `sampleEdges` x14 is what A6 actually
+ * improved — the shared preparation. `sampleEdges` alone is the denominator A6's
+ * acceptance criterion names, and it is the one that says how much of the per-hour
+ * cost no amount of sharing can remove.
+ */
+describe("ShadeField.sweep — a 3 km route across a day", () => {
+  const SWEEP_HOURS: Date[] = [];
+  for (let hour = 11; hour < 25; hour++) {
+    SWEEP_HOURS.push(new Date(Date.UTC(2026, 7, 16, hour, 0, 0)));
+  }
+
+  /** 50 m edges in an L-turning chain, so the route wanders like a real one. */
+  function routeEdges(totalM: number): EdgeRef[] {
+    const out: EdgeRef[] = [];
+    let eastM = -1000;
+    let northM = -1000;
+    for (let done = 0, i = 0; done < totalM; done += 50, i++) {
+      const from: [number, number] = [LNG + eastM / mPerLng, LAT + northM / mPerLat];
+      if (Math.floor(i / 4) % 2 === 0) eastM += 50;
+      else northM += 50;
+      out.push({ from, to: [LNG + eastM / mPerLng, LAT + northM / mPerLat] });
+    }
+    return out;
+  }
+
+  // More iterations than `REPEAT`: the one-hour case is the denominator of the
+  // headline ratio, and at 8 iterations it reported a ±35% margin — wide enough to
+  // move the ratio by a third on noise alone.
+  const SWEEP_REPEAT = { time: 0, iterations: 40, warmupIterations: 10 } as const;
+
+  const set = prismSet(2000);
+  const route = routeEdges(3000);
+  const coverage = bboxAroundEdges(route, 5000);
+  if (!coverage) throw new Error("no edges");
+  const field = createGeometryShadeField([staticPrismProvider(set, coverage, "tiles")]);
+
+  bench("sampleEdges, one hour", () => {
+    field.sampleEdges(route, SWEEP_HOURS[3]);
+  }, SWEEP_REPEAT);
+
+  bench("sampleEdges x14, one hour at a time", () => {
+    for (const when of SWEEP_HOURS) field.sampleEdges(route, when);
+  }, SWEEP_REPEAT);
+
+  bench("sweep, 14 hours in one call", () => {
+    field.sweep(route, SWEEP_HOURS);
+  }, SWEEP_REPEAT);
+});
+
+/**
  * City-scale: ~2,000 buildings, the prism count `querySourceFeatures` returns over
  * Midtown. Opt-in because one iteration took ~20 s before the shadow index landed.
  *

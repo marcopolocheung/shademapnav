@@ -17,10 +17,17 @@
 
 import SunCalc from "suncalc";
 import {
+  type BuildingPrism,
   type PrismSet,
   metersPerDegree,
 } from "./geometry";
-import { type IndexRegion, type ShadowIndex, buildShadowIndex } from "./shadowIndex";
+import {
+  type IndexRegion,
+  type ShadowCasters,
+  type ShadowIndex,
+  buildShadowIndexFor,
+  prepareShadowCasters,
+} from "./shadowIndex";
 
 // ─── The published contract ───────────────────────────────────────────────────
 
@@ -305,6 +312,33 @@ interface SunCell {
   index: ShadowIndex | null;
 }
 
+/**
+ * One `SUN_CELL_M` cell, with everything about it that no time changes.
+ *
+ * The partition, each cell's centroid, its projection frame and the region its
+ * samples provably stay inside are all pure functions of the edges — so a sweep
+ * computes them once and reuses them at every hour (A6). Only `SunCalc.getPosition`
+ * and the shadow index itself are per-time.
+ */
+interface SunCellPlan {
+  /** Indices into the edge batch, in batch order. */
+  members: number[];
+  lng: number;
+  lat: number;
+  mPerLat: number;
+  mPerLng: number;
+  region: IndexRegion;
+}
+
+/** A batch of edges, with everything about it that no time changes (A6). */
+interface BatchPlan {
+  cells: SunCellPlan[];
+  /** Per edge: its two sidewalk offsets and how many points to walk along each. */
+  left: Array<[number, number]>;
+  right: Array<[number, number]>;
+  steps: number[];
+}
+
 /** The bbox of exactly these points — the region a caller may then query within. */
 function regionOver(points: Array<[number, number]>): IndexRegion {
   let west = Number.POSITIVE_INFINITY;
@@ -318,6 +352,135 @@ function regionOver(points: Array<[number, number]>): IndexRegion {
     if (lat > north) north = lat;
   }
   return { west, south, east, north };
+}
+
+/**
+ * Everything about a batch of edges that no time changes, computed once.
+ *
+ * Each edge's sidewalk offsets and sample count come first — they are pure functions
+ * of the edge, and recomputing them per hour was `metersPerDegree` and a pair of
+ * allocations per edge per hour.
+ *
+ * The batch is then cut into `SUN_CELL_M` cells.
+ *
+ * `SunCalc.getPosition` was called per edge midpoint, but an index is built for a
+ * single sun and a single projection frame. Cutting the batch into `SUN_CELL_M`
+ * cells bounds that substitution instead of hand-waving it, and the index's own
+ * region filter means each cell only triangulates prisms that can reach it — so
+ * the total earcut work stays ~P rather than P per cell.
+ *
+ * Nothing here depends on the time, which is the point: `sweep` computes the plan
+ * once and hands it to `sunCellsAt` at every hour, and `sampleEdges` computes the
+ * same plan for its one hour. That is what keeps the two paths identical.
+ */
+function planBatch(edges: EdgeRef[]): BatchPlan {
+  const left: Array<[number, number]> = [];
+  const right: Array<[number, number]> = [];
+  const steps: number[] = [];
+  for (const edge of edges) {
+    const offsets = sidewalkOffsets(edge);
+    left.push(offsets.left);
+    right.push(offsets.right);
+    steps.push(edgeSampleCount(edgeLengthM(edge)));
+  }
+
+  if (edges.length === 0) return { cells: [], left, right, steps };
+
+  // Cell size in degrees, from the batch's own latitude — one frame for the cut.
+  const batchLat = edges.reduce((sum, e) => sum + (e.from[1] + e.to[1]) / 2, 0) / edges.length;
+  const batch = metersPerDegree(batchLat);
+  const cellLng = SUN_CELL_M / batch.mPerLng;
+  const cellLat = SUN_CELL_M / batch.mPerLat;
+
+  const groups = new Map<string, number[]>();
+  for (let i = 0; i < edges.length; i++) {
+    const midLng = (edges[i].from[0] + edges[i].to[0]) / 2;
+    const midLat = (edges[i].from[1] + edges[i].to[1]) / 2;
+    const key = `${Math.floor(midLng / cellLng)},${Math.floor(midLat / cellLat)}`;
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, [i]);
+    else group.push(i);
+  }
+
+  const cells: SunCellPlan[] = [];
+  for (const members of groups.values()) {
+    // The cell's own centroid, not its geometric centre: tighter when a cell holds
+    // only a corner of a route, and still a pure function of the edges.
+    let sumLng = 0;
+    let sumLat = 0;
+    for (const i of members) {
+      sumLng += (edges[i].from[0] + edges[i].to[0]) / 2;
+      sumLat += (edges[i].from[1] + edges[i].to[1]) / 2;
+    }
+    const lng = sumLng / members.length;
+    const lat = sumLat / members.length;
+    const { mPerLat, mPerLng } = metersPerDegree(lat);
+
+    // The region is the bbox of the four offset corners of every edge in the cell.
+    // Every sample point is a convex combination of an edge's endpoints plus one of
+    // its two sidewalk offsets, so it provably lands inside — which is the
+    // precondition the index's region filter needs.
+    const corners: Array<[number, number]> = [];
+    for (const i of members) {
+      for (const end of [edges[i].from, edges[i].to]) {
+        for (const offset of [left[i], right[i]]) {
+          corners.push([end[0] + offset[0], end[1] + offset[1]]);
+        }
+      }
+    }
+
+    cells.push({ members, lng, lat, mPerLat, mPerLng, region: regionOver(corners) });
+  }
+  return { cells, left, right, steps };
+}
+
+/**
+ * One sun cell per edge at one time, from a plan computed once.
+ *
+ * The `sun.altitude <= 0` short-circuit is per-cell rather than per-edge, so a batch
+ * straddling sunrise resolves at cell granularity.
+ */
+function sunCellsAt(
+  plan: BatchPlan,
+  edgeCount: number,
+  when: Date,
+  casters: ShadowCasters | null
+): SunCell[] {
+  const out = new Array<SunCell>(edgeCount);
+  for (const cell of plan.cells) {
+    const sun = SunCalc.getPosition(when, cell.lat, cell.lng);
+    const index =
+      casters && sun.altitude > 0
+        ? buildShadowIndexFor(
+            casters, sun.azimuth, sun.altitude, cell.mPerLat, cell.mPerLng, cell.region
+          )
+        : null;
+    for (const i of cell.members) out[i] = { sun, index };
+  }
+  return out;
+}
+
+/**
+ * Prepared casters, keyed by the prism array they came from (A6).
+ *
+ * Preparation is per prism *set*, not per query, and both live providers already
+ * cache: they hand back the same array until the geometry actually changes, and
+ * neither mutates one in place — a new viewport or a new fetch builds a new array.
+ * Keying on that array is therefore exactly the right invalidation, and a `WeakMap`
+ * means a set that falls out of a provider's cache takes its preparation with it.
+ *
+ * Without this, `sampleEdges` flattened every prism in the city on every call, which
+ * a route calculation makes several of. Module-level rather than per field because
+ * two fields over the same provider are looking at the same geometry.
+ */
+const PREPARED = new WeakMap<BuildingPrism[], ShadowCasters>();
+
+function preparedCastersFor(prisms: BuildingPrism[]): ShadowCasters {
+  const hit = PREPARED.get(prisms);
+  if (hit) return hit;
+  const prepared = prepareShadowCasters(prisms);
+  PREPARED.set(prisms, prepared);
+  return prepared;
 }
 
 /**
@@ -382,8 +545,9 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     const offsets = POINT_OFFSETS_M.map(
       ([dxM, dyM]) => [lng + dxM / mPerLng, lat + dyM / mPerLat] as [number, number]
     );
-    const index = buildShadowIndex(
-      resolved.set.prisms, sunAzimuth, sunAltitude, mPerLat, mPerLng, regionOver(offsets)
+    const index = buildShadowIndexFor(
+      preparedCastersFor(resolved.set.prisms),
+      sunAzimuth, sunAltitude, mPerLat, mPerLng, regionOver(offsets)
     );
 
     let shaded = 0;
@@ -402,9 +566,12 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     return probe(resolved, lng, lat, sun.azimuth, sun.altitude);
   }
 
-  function sampleEdgesWithSun(edges: EdgeRef[], when: Date, resolved: Resolved | null): EdgeShade[] {
-    const cells = sunCellsFor(edges, when, resolved);
-
+  function sampleEdgesWithSun(
+    edges: EdgeRef[],
+    resolved: Resolved | null,
+    plan: BatchPlan,
+    cells: SunCell[]
+  ): EdgeShade[] {
     return edges.map((edge, edgeIndex) => {
       const cell = cells[edgeIndex];
       const sun = cell.sun;
@@ -414,8 +581,9 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
         return { left: 1, right: 1, source: night.source, confidence: night.confidence };
       }
 
-      const { left: leftOffset, right: rightOffset } = sidewalkOffsets(edge);
-      const steps = edgeSampleCount(edgeLengthM(edge));
+      const leftOffset = plan.left[edgeIndex];
+      const rightOffset = plan.right[edgeIndex];
+      const steps = plan.steps[edgeIndex];
 
       // One point per sample, exactly where `sampleBothSidewalks` reads its pixel.
       const walk = (offset: [number, number]) => {
@@ -450,85 +618,12 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     });
   }
 
-  /**
-   * One sun cell per edge, and one shadow index per cell.
-   *
-   * `SunCalc.getPosition` was called per edge midpoint, but an index is built for a
-   * single sun and a single projection frame. Cutting the batch into `SUN_CELL_M`
-   * cells bounds that substitution instead of hand-waving it, and the index's own
-   * region filter means each cell only triangulates prisms that can reach it — so
-   * the total earcut work stays ~P rather than P per cell.
-   *
-   * Deliberately computed here rather than in `sampleEdges`: `sweep` reaches this
-   * function directly, and the partition has to depend only on `(edges, when)` for
-   * the two paths to stay identical.
-   *
-   * The `sun.altitude <= 0` short-circuit moves from per-edge to per-cell with this,
-   * so a batch straddling sunrise resolves at cell rather than edge granularity.
-   */
-  function sunCellsFor(edges: EdgeRef[], when: Date, resolved: Resolved | null): SunCell[] {
-    if (edges.length === 0) return [];
-
-    // Cell size in degrees, from the batch's own latitude — one frame for the cut.
-    const batchLat = edges.reduce((sum, e) => sum + (e.from[1] + e.to[1]) / 2, 0) / edges.length;
-    const batch = metersPerDegree(batchLat);
-    const cellLng = SUN_CELL_M / batch.mPerLng;
-    const cellLat = SUN_CELL_M / batch.mPerLat;
-
-    const groups = new Map<string, number[]>();
-    for (let i = 0; i < edges.length; i++) {
-      const midLng = (edges[i].from[0] + edges[i].to[0]) / 2;
-      const midLat = (edges[i].from[1] + edges[i].to[1]) / 2;
-      const key = `${Math.floor(midLng / cellLng)},${Math.floor(midLat / cellLat)}`;
-      const group = groups.get(key);
-      if (group === undefined) groups.set(key, [i]);
-      else group.push(i);
-    }
-
-    const out = new Array<SunCell>(edges.length);
-    for (const members of groups.values()) {
-      // The cell's own centroid, not its geometric centre: tighter when a cell holds
-      // only a corner of a route, and still a pure function of the edges.
-      let sumLng = 0;
-      let sumLat = 0;
-      for (const i of members) {
-        sumLng += (edges[i].from[0] + edges[i].to[0]) / 2;
-        sumLat += (edges[i].from[1] + edges[i].to[1]) / 2;
-      }
-      const lng = sumLng / members.length;
-      const lat = sumLat / members.length;
-
-      const sun = SunCalc.getPosition(when, lat, lng);
-      const { mPerLat, mPerLng } = metersPerDegree(lat);
-
-      let index: ShadowIndex | null = null;
-      if (resolved && sun.altitude > 0) {
-        // The region is the bbox of the four offset corners of every edge in the
-        // cell. Every sample point is a convex combination of an edge's endpoints
-        // plus one of its two sidewalk offsets, so it provably lands inside — which
-        // is the precondition `buildShadowIndex`'s region filter needs.
-        const corners: Array<[number, number]> = [];
-        for (const i of members) {
-          const { left, right } = sidewalkOffsets(edges[i]);
-          for (const end of [edges[i].from, edges[i].to]) {
-            for (const offset of [left, right]) {
-              corners.push([end[0] + offset[0], end[1] + offset[1]]);
-            }
-          }
-        }
-        index = buildShadowIndex(
-          resolved.set.prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, regionOver(corners)
-        );
-      }
-
-      for (const i of members) out[i] = { sun, index };
-    }
-    return out;
-  }
-
   function sampleEdges(edges: EdgeRef[], when: Date): EdgeShade[] {
     const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
-    return sampleEdgesWithSun(edges, when, bbox ? resolve(bbox) : null);
+    const resolved = bbox ? resolve(bbox) : null;
+    const plan = planBatch(edges);
+    const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
+    return sampleEdgesWithSun(edges, resolved, plan, sunCellsAt(plan, edges.length, when, casters));
   }
 
   return {
@@ -561,12 +656,19 @@ export function createGeometryShadeField(providers: PrismProvider[]): ShadeField
     },
 
     sweep(edges, times) {
-      // Resolving geometry once across all times is the only saving here so far.
-      // A6 replaces this with per-(prism, time) projections computed in one pass;
-      // the results must stay identical to N separate `sampleEdges` calls.
+      // A6. Everything that does not depend on the hour is computed once: the
+      // provider is resolved once, the sun-cell partition and each cell's region
+      // once, and each prism's ring bounds and footprint bucket once. What remains
+      // per hour is the sun position, the shadow shift, and the point queries —
+      // which is why N hours cost far less than N samples. The results are the same
+      // floats N separate `sampleEdges` calls produce, and a test pins that.
       const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
       const resolved = bbox ? resolve(bbox) : null;
-      return times.map((when) => sampleEdgesWithSun(edges, when, resolved));
+      const plan = planBatch(edges);
+      const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
+      return times.map((when) =>
+        sampleEdgesWithSun(edges, resolved, plan, sunCellsAt(plan, edges.length, when, casters))
+      );
     },
 
     async ready(bbox) {

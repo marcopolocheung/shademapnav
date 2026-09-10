@@ -10,7 +10,8 @@
 
 ## Current state
 
-- **Active checkpoint:** A5. A4b (the `useNavigation.ts` swap) is landed, but read the A4b
+- **Active checkpoint:** A5. **A6 is landed** — see its own note below; it did not meet its
+  acceptance criterion and says so with numbers. A4b (the `useNavigation.ts` swap) is landed, but read the A4b
   notes before assuming the canvas is retired: the geometry path is **wired and dormant** in
   practice, because the only source that can cover a route bbox is the tile provider and it is
   not trusted at the zooms where it can. A5's per-cell provider resolution is what turns it on.
@@ -32,7 +33,28 @@
   play and they imply different fixes. #259 lists the two cheap steps that settle it — a pure
   Node test and surfacing `EdgeShade.source` in the metrics. **Do both before writing A5.**
 - **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
-  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b (this PR).
+  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6.
+- **A6 landed with its acceptance criterion unmet, and the measurement is the deliverable.**
+  A 14-hour sweep over a 3 km route was to cost *"< 2× a single-hour sample"*. It costs
+  **~21×**, and on `main` it cost ~17× — **the ratio got worse while every absolute number
+  improved**, because the denominator sped up more than the numerator. What did happen: the
+  sweep went 34.4 ms → 21.9 ms and a single-hour `sampleEdges` went 1.96 ms → 1.04 ms (1.9×,
+  which routing gets for free). Everything a sweep can hoist is hoisted; the remainder is the
+  point-in-shadow queries, and those are per-instant because the shadow moves — at graph scale
+  `sweep` beats N `sampleEdges` calls by only 0–11%, and that margin is the batch plan, which
+  does not grow with the number of times. **Beating N× needs a different predicate, not more
+  sharing** — filed as **#267**. The design, the three cheaper wins that were measured and
+  declined (**#268**, **#269**, and the far-cap reuse), and the per-phase split are in
+  `docs/notes/performance-baseline.md` § Time Sweep (A6).
+- **The sweep still has no multi-time consumer.** `useHourlyExposure.ts:93` is the only
+  `sweep` call site in `app/` and it passes one time. The win the app collects today is the
+  ~1.9× on `sampleEdges`; the N-time sharing is built for **H1**, and **#270** tells Track H
+  what to budget, because its gate text assumed A6 would make N buckets cheap and it does not.
+- **#245 (the one-hour max-shade window) was decided, not deferred: declined.**
+  `docs/notes/one-hour-shade-window.md` has the reasons — the chief one being that A6's
+  measurement destroyed the "nearly free" premise the proposal rested on (a 10-minute-step
+  sweep costs 6.8× the hourly one). D6 and H1 can both call `sweep` today — but budget it at
+  roughly N× a single sample, not at a discount.
 - **How that went wrong, so it does not happen again:** #134→#137 were stacked, each based on
   the previous, and all four merged within 11 seconds — so #135, #136 and #137 landed on their
   *parent branches* and only #134 ever reached `main`. The tree survived at
@@ -399,7 +421,7 @@ scenario, so a win under ~25% needs higher repeat counts first (**#263**).
 (⚠️ contested — keep the diff surgical), `app/workers/routing.worker.ts` (new, A5b only).
 **Size.** A5a Medium, A5b Large. **Depends on G2** — landed.
 
-### A6 — Time sweep
+### A6 — Time sweep ✅ *(landed; one acceptance criterion unmet, in writing)*
 **Goal.** `sweep(edges, times[])` — N hours for far less than N× the cost.
 **Approach.** Load geometry once; vectorize sun positions across times; reuse the per-edge sample geometry. The shadow polygon for a prism is an affine function of sun azimuth/altitude — precompute per-prism projections per time, not per edge per time.
 **Acceptance.** A 14-hour sweep over a 3 km route costs < 2× a single-hour sample; results match 14 individual `sampleEdges` calls exactly.
@@ -408,6 +430,34 @@ scenario, so a win under ~25% needs higher repeat counts first (**#263**).
 **It also gates Track H entirely.** H1 prices every edge at its own traversal time, which
 means N time buckets per route; without the sweep that is N× a full sample and will not run
 at interactive speed. H is blocked until this lands — see `docs/tracks/TRACK_H.md`.
+
+**What landed.** `prepareShadowCasters` splits the sun-independent half of an index build —
+ring bounds, the flat ring, the near cap's triangulation, and a grid over footprints — out of
+`buildShadowIndex`, and `ShadeField` memoises it per prism array (both providers already
+return a stable array and neither mutates one). The sun-cell partition, each cell's region,
+and each edge's sidewalk offsets and sample count are computed once per batch instead of once
+per hour. Three trig calls moved out of a per-prism loop. Every float is unchanged: the shift
+is spelled exactly as before, `earcut` sees exactly the coordinates `triangulateRing` fed it,
+and `shadowTrianglesFlat` is pinned **vertex for vertex** against `buildShadowTriangles` over
+ragged concave rings, open and closed — a test added because the frozen reference compares the
+two only *through* `isShaded`, which cannot see a cap cut differently over the same polygon.
+
+**One inexact short-circuit was found in cold review and removed.** A footprint-bounds test in
+front of the ray cast is exact for a finite ring and **not** for a ring carrying a NaN vertex,
+which the bounds sweep silently excludes while the ray cast still flips parity on its edges —
+140 of 160,801 grid points diverged on a constructed case. No ingest path produces one, and it
+was worth ~2%. Removed rather than documented as an exception.
+
+**Second criterion met and tested:** results match N individual `sampleEdges` calls exactly,
+now over a corpus that actually exercises the sharing — 100 buildings, a 6 km route crossing
+several sun cells, 19 hours either side of sunrise and sunset.
+
+**First criterion not met — 20.9×, not < 2×.** The ratio is the wrong instrument (it improves
+when a single sample gets slower), the remaining cost is the per-instant point queries, and
+the route to beating it is a different predicate rather than more sharing. Numbers, per-phase
+split, the alternative design, and the three measured-and-declined wins: `docs/notes/performance-baseline.md`
+§ Time Sweep (A6). **Read that before taking H1** — H must budget N time buckets at roughly
+N× a sample, not at a discount.
 
 ### A7 — Canopy v1 (Overpass trees)
 **Goal.** Stop under-reporting shade on the streets shade-seekers actually use. Closes **#46**.
