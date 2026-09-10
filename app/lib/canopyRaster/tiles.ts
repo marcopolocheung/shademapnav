@@ -1,5 +1,5 @@
 /**
- * Web Mercator, zoom-10 quadkeys and COG overview selection for the Meta/WRI
+ * Web Mercator, zoom 10 quadkeys and COG overview selection for the Meta/WRI
  * canopy height map.
  *
  * Everything here is arithmetic over numbers the COG's header already reports, so
@@ -11,13 +11,13 @@
  *
  * The dataset's grid is fixed and documented in
  * `docs/notes/canopy-raster-feasibility-2026-09-09.md`: one 32768x32768 GeoTIFF per
- * zoom-10 quadkey, EPSG:3857, tiled 512x512, seven overview levels.
+ * zoom 10 quadkey, EPSG:3857, tiled 512x512, seven overview levels.
  */
 
 /** Web Mercator sphere radius, metres. EPSG:3857's defining constant. */
 const EARTH_RADIUS_M = 6378137;
 
-/** The dataset publishes one COG per zoom-10 quadkey. Not a tuning knob. */
+/** The dataset publishes one COG per zoom 10 quadkey. Not a tuning knob. */
 export const CANOPY_TILE_ZOOM = 10;
 
 /** Latitude beyond which Web Mercator is undefined for tiling purposes. */
@@ -50,13 +50,23 @@ export function mercatorToLonLat(x: number, y: number): [number, number] {
  * every measurement in the feasibility note was taken over.
  */
 export function quadkeyFor(lon: number, lat: number, zoom: number = CANOPY_TILE_ZOOM): string {
+  const [x, y] = tileXYFor(lon, lat, zoom);
+  return quadkeyForTileXY(x, y, zoom);
+}
+
+/** The XYZ tile indices containing a coordinate, clamped to the grid. */
+function tileXYFor(lon: number, lat: number, zoom: number): [number, number] {
   const clamped = Math.min(MERCATOR_MAX_LAT, Math.max(-MERCATOR_MAX_LAT, lat));
   const n = 2 ** zoom;
   const x = Math.min(n - 1, Math.max(0, Math.floor(((lon + 180) / 360) * n)));
   const latRad = (clamped * Math.PI) / 180;
   const yFraction = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2;
   const y = Math.min(n - 1, Math.max(0, Math.floor(yFraction * n)));
+  return [x, y];
+}
 
+/** XYZ tile indices folded into a base-4 quadkey, most significant level first. */
+function quadkeyForTileXY(x: number, y: number, zoom: number): string {
   let quadkey = "";
   for (let level = zoom; level > 0; level--) {
     const mask = 1 << (level - 1);
@@ -69,23 +79,30 @@ export function quadkeyFor(lon: number, lat: number, zoom: number = CANOPY_TILE_
 }
 
 /**
- * The distinct zoom-10 quadkeys an area of interest touches.
+ * Every distinct quadkey an area of interest touches, interior tiles included.
  *
  * A8a reads one tile. This exists so the reader can *say* when a bbox straddles
  * two, rather than silently answering for the corner it happened to sample —
  * spanning tiles is `CanopyTileStore`'s job (A8b), not a thing to paper over here.
+ *
+ * Sampling the four corners would satisfy that single-tile check and be wrong for
+ * the consumer this is named for: a box spanning three tiles across returns its
+ * two edge tiles and silently omits the one in the middle. It walks the tile
+ * range instead.
  */
 export function quadkeysForBbox(bbox: LonLatBbox, zoom: number = CANOPY_TILE_ZOOM): string[] {
   const [west, south, east, north] = bbox;
-  const corners: Array<[number, number]> = [
-    [west, south],
-    [west, north],
-    [east, south],
-    [east, north],
-  ];
-  const seen = new Set<string>();
-  for (const [lon, lat] of corners) seen.add(quadkeyFor(lon, lat, zoom));
-  return [...seen];
+  // North latitude gives the smaller row index, so it starts the row range.
+  const [minX, minY] = tileXYFor(west, north, zoom);
+  const [maxX, maxY] = tileXYFor(east, south, zoom);
+
+  const quadkeys: string[] = [];
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      quadkeys.push(quadkeyForTileXY(x, y, zoom));
+    }
+  }
+  return quadkeys;
 }
 
 /**

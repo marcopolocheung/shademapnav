@@ -24,8 +24,13 @@
  *
  * So the dates are resolved once, offline, by `scripts/canopy-acq-index.mjs`, and
  * shipped as a run-length-encoded 128x128 grid of date indices per tile:
- * **37.4 MB of GeoJSON becomes 9.4 KB, a ~3,960x reduction**, at a measured
- * 0.17-1.90% disagreement against a 4x finer rasterization of the same polygons.
+ * **37.4 MB of GeoJSON becomes a 9,822-byte file**, at a measured 0.17-1.90%
+ * disagreement against a 4x finer rasterization of the same polygons.
+ *
+ * The grid has one honest limit, measured by `--report`: a footprint smaller than
+ * one ~306 m cell paints no cell, so `acquisitionDatesIn` can list a date that
+ * `acquisitionAt` will never return. Two of Singapore's thirty footprints are in
+ * that position — 26 dates listed, 24 reachable.
  *
  * **One tile is not one date**, which is why this is a grid and not a field on a
  * tile record. Singapore's single tile is a mosaic of 30 footprints spanning
@@ -54,7 +59,7 @@ const expanded = new Map<string, Int16Array>();
 export interface CanopyAcquisition {
   /** ISO date of the source imagery, e.g. `"2020-02-19"`. */
   date: string;
-  /** The zoom-10 canopy tile the point falls in. */
+  /** The zoom 10 canopy tile the point falls in. */
   quadkey: string;
 }
 
@@ -90,7 +95,13 @@ export function acquisitionAt(lon: number, lat: number): CanopyAcquisition | nul
   return { date: tile.dates[dateIndex], quadkey };
 }
 
-/** Every acquisition date present in an indexed tile, ascending. */
+/**
+ * Every acquisition date present in an indexed tile, ascending.
+ *
+ * This is the truth about the *tile*, not the set `acquisitionAt` can return: a
+ * footprint smaller than one grid cell is in this list and on no cell. Use it to
+ * describe a tile's imagery span, not to enumerate answers.
+ */
 export function acquisitionDatesIn(quadkey: string): string[] {
   return tiles[quadkey]?.dates ?? [];
 }

@@ -21,7 +21,11 @@ import { markdownTable, ms } from "./stats";
  *   `source.coop` sends no `Timing-Allow-Origin`, so Resource Timing reports zero
  *   sizes cross-origin, and cloning each body to measure it undercounts once
  *   Chromium's cache is in play. Headers are exact, and readable here because the
- *   host sends `access-control-expose-headers: *`.
+ *   host sends `access-control-expose-headers: *`. Two limits worth knowing:
+ *   these are **body** bytes, so 26-146 sets of response headers are uncounted
+ *   and real wire cost is above the figure, most visibly on the smallest AOI; and
+ *   the three AOIs read one `.tif` in one browser session, so Chromium may serve
+ *   some ranges from cache with `Content-Length` intact.
  * - **decode** — `readRasters`: the range fetches plus DEFLATE, split from the
  *   open so the one-off IFD cost is visible separately from the per-AOI cost.
  * - **heap held** — `performance.memory.usedJSHeapSize` with the decoded raster
@@ -120,8 +124,6 @@ test("canopy COG reads browser-direct at route scale", async ({ page }) => {
 });
 
 /**
- * One AOI, read twice: once timed, once with the heap probe running.
- *
  * One read per AOI, with the heap baseline collected first so it is live memory
  * and not the previous AOI's raster waiting to be swept — a delta measured
  * against an inflated baseline reads *smaller* than the truth.

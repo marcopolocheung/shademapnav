@@ -72,9 +72,37 @@ describe("quadkeysForBbox", () => {
   });
 
   it("reports every tile a box straddles, so the reader can decline it", () => {
-    // A box wide enough to cross a zoom-10 tile edge wherever it is centred.
+    // A box wide enough to cross a zoom 10 tile edge wherever it is centred.
     const aoi = boxAround(MADRID, 80_000);
     expect(quadkeysForBbox(aoi).length).toBeGreaterThan(1);
+  });
+
+  /**
+   * The interior, not just the corners. Sampling a bbox's four corners is enough
+   * to decide "is this one tile?", and silently omits the middle of anything
+   * larger — a box three tiles across would report the two edges and drop the one
+   * between them. `CanopyTileStore` (A8b) is the named consumer, so the guarantee
+   * has to be the one the name claims.
+   */
+  it("includes interior tiles, not only the corner ones", () => {
+    const aoi = boxAround(MADRID, 120_000);
+    const reported = quadkeysForBbox(aoi);
+
+    // Ground truth: every tile hit by a dense lattice over the same box.
+    const sampled = new Set<string>();
+    const steps = 60;
+    for (let i = 0; i <= steps; i++) {
+      for (let j = 0; j <= steps; j++) {
+        const lon = aoi[0] + ((aoi[2] - aoi[0]) * i) / steps;
+        const lat = aoi[1] + ((aoi[3] - aoi[1]) * j) / steps;
+        sampled.add(quadkeyFor(lon, lat));
+      }
+    }
+
+    expect(new Set(reported)).toEqual(sampled);
+    expect(reported).toHaveLength(new Set(reported).size);
+    // A box this wide spans more tiles than it has corners.
+    expect(sampled.size).toBeGreaterThan(4);
   });
 });
 

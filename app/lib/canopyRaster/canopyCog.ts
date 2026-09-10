@@ -80,7 +80,9 @@ export interface CanopyHeightRaster {
  * What one read cost.
  *
  * `payloadBytes` is the compressed size of exactly the COG tiles the window
- * overlaps — the floor a perfect reader would transfer. The wire figure is
+ * overlaps — the floor a perfect reader would transfer. It is collected after the
+ * read from entries `readRasters` has already resolved, so it costs no request of
+ * its own. The wire figure is
  * deliberately *not* here: it belongs to whoever supplies `fetch`, because only a
  * counting `fetch` sees block alignment, range merging and the header walk. The
  * benchmark pairs the two, and the gap between them is what A8b's tile store is
@@ -119,7 +121,7 @@ export interface CanopyReadResult {
 /**
  * Read canopy heights over one area of interest, browser-direct.
  *
- * Rejects an AOI spanning more than one zoom-10 tile rather than answering for
+ * Rejects an AOI spanning more than one zoom 10 tile rather than answering for
  * part of it. Stitching tiles is A8b's `CanopyTileStore`, which has to dedupe and
  * cancel across two independent consumers (the viewport and the route corridor);
  * doing a corner of that job here would be the wrong half.
@@ -211,8 +213,6 @@ async function payloadBytesFor(
   const tileWidth = image.getTileWidth();
   const tileHeight = image.getTileHeight();
   const tilesAcross = Math.ceil(image.getWidth() / tileWidth);
-  const byteCounts = (await image.fileDirectory.loadValue("TileByteCounts")) as ArrayLike<number>;
-
   let bytes = 0;
   let tiles = 0;
   const firstCol = Math.floor(window[0] / tileWidth);
@@ -221,7 +221,17 @@ async function payloadBytesFor(
   const lastRow = Math.floor((window[3] - 1) / tileHeight);
   for (let row = firstRow; row <= lastRow; row++) {
     for (let col = firstCol; col <= lastCol; col++) {
-      bytes += byteCounts[row * tilesAcross + col] ?? 0;
+      // Indexed, not `loadValue("TileByteCounts")`. The whole-array form calls
+      // `loadAll()`, which `readRasters` never does — it resolves entries one at
+      // a time — so asking for the array costs an extra round trip and 4 KB, and
+      // those land inside the benchmark's own byte counters. Called after the
+      // read, every entry needed here is already resolved and this fetches
+      // nothing.
+      const count = await image.fileDirectory.loadValueIndexed(
+        "TileByteCounts",
+        row * tilesAcross + col,
+      );
+      bytes += Number(count ?? 0);
       tiles += 1;
     }
   }

@@ -121,6 +121,10 @@ for (const { city, quadkey } of CORPUS) {
       dates: dates.length,
       indexBytes: Buffer.byteLength(JSON.stringify(tiles[quadkey])),
       runs: runs.length,
+      // Dates present in the metadata but paintable on no cell: a footprint
+      // smaller than one ~306 m cell vanishes from the grid, so the tile can
+      // advertise a date that no lookup will ever return.
+      datesResolvable: new Set(cells.filter((c) => c >= 0)).size,
       coveredPct: (covered / cells.length) * 100,
       overlapPct: covered === 0 ? 0 : (overlapped / covered) * 100,
       disagreementPct: measureDisagreement(features, dates, tileBbox, cells),
@@ -149,12 +153,12 @@ if (report) {
     { source: 0, index: 0 },
   );
   console.log(
-    "\n| tile | source GeoJSON | polygons | coordinate pairs | distinct dates | index | reduction | cells covered | overlapping | disagreement |",
+    "\n| tile | source GeoJSON | polygons | coordinate pairs | distinct dates | resolvable | index | reduction | cells covered | overlapping | disagreement |",
   );
-  console.log("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  console.log("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const r of reportRows) {
     console.log(
-      `| ${r.city} | ${(r.sourceBytes / 1e6).toFixed(2)} MB | ${r.features} | ${r.coordinatePairs.toLocaleString()} | ${r.dates} | ${r.indexBytes.toLocaleString()} B | **${Math.round(r.sourceBytes / r.indexBytes)}x** | ${r.coveredPct.toFixed(1)}% | ${r.overlapPct.toFixed(1)}% | ${r.disagreementPct.toFixed(2)}% |`,
+      `| ${r.city} | ${(r.sourceBytes / 1e6).toFixed(2)} MB | ${r.features} | ${r.coordinatePairs.toLocaleString()} | ${r.dates} | ${r.datesResolvable} | ${r.indexBytes.toLocaleString()} B | **${Math.round(r.sourceBytes / r.indexBytes)}x** | ${r.coveredPct.toFixed(1)}% | ${r.overlapPct.toFixed(1)}% | ${r.disagreementPct.toFixed(2)}% |`,
     );
   }
   console.log(
