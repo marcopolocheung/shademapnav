@@ -79,6 +79,30 @@ function quadkeyForTileXY(x: number, y: number, zoom: number): string {
 }
 
 /**
+ * The XYZ tile indices a quadkey names — `quadkeyForTileXY` run backwards.
+ *
+ * `CanopyTileStore` needs this to place one published COG on the global pixel
+ * grid: a tile's world-pixel origin is `(x * levelWidth, y * levelWidth)`, and
+ * that is what lets an area of interest spanning several COGs stitch into a
+ * single raster instead of a mosaic with seams at the tile boundaries.
+ */
+export function tileXYForQuadkey(quadkey: string): [number, number] {
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < quadkey.length; i++) {
+    const level = quadkey.length - i;
+    const mask = 1 << (level - 1);
+    const digit = quadkey.charCodeAt(i) - 48;
+    if (digit < 0 || digit > 3) {
+      throw new Error(`not a quadkey: ${quadkey}`);
+    }
+    if ((digit & 1) !== 0) x |= mask;
+    if ((digit & 2) !== 0) y |= mask;
+  }
+  return [x, y];
+}
+
+/**
  * Every distinct quadkey an area of interest touches, interior tiles included.
  *
  * A8a reads one tile. This exists so the reader can *say* when a bbox straddles

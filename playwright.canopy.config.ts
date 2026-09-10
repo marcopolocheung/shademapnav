@@ -26,7 +26,7 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 export default defineConfig({
   ...baseConfig,
   testDir: "e2e/bench",
-  testMatch: "**/canopyCog.bench.spec.ts",
+  testMatch: "**/canopy*.bench.spec.ts",
   testIgnore: undefined,
   globalSetup: undefined,
   // No retries: a retried network measurement reports the luckier of two runs.

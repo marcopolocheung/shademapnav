@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>A8b canopy tile store harness</title>
+<!--
+  A8b's measurement page, alongside A8a's for the same reason: the figure being
+  collected is transferred bytes across a sequence of overlapping reads, and
+  loading MapLibre, the shadow renderer and React around it would put a much
+  larger, noisier request history underneath every number.
+
+  Served by the Vite dev server (see playwright.canopy.config.ts) so the module
+  under test is the TypeScript in app/lib/canopyRaster/, not a build artefact.
+-->
+<body>
+  <script type="module">
+    import { createCanopyTileStore } from "/app/lib/canopyRaster/canopyTileStore.ts";
+    window.__umbraCanopyStore = { createCanopyTileStore, ready: true };
+  </script>
+</body>

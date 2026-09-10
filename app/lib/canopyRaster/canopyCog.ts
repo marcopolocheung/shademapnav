@@ -19,10 +19,11 @@
  * Full measurements and method: `docs/notes/canopy-raster-feasibility-2026-09-09.md`.
  */
 
-import { type GeoTIFFImage, fromUrl } from "geotiff";
+import { type GeoTIFF, type GeoTIFFImage, fromUrl } from "geotiff";
 import {
   type LonLatBbox,
   type MercatorBbox,
+  type OverviewCandidate,
   type PixelWindow,
   pixelWindowFor,
   quadkeysForBbox,
@@ -147,18 +148,8 @@ export async function readCanopyHeights(
   // Image 0 is the only IFD carrying a geotransform; the overviews are plain
   // reduced-resolution subfiles covering the same extent, so every level's
   // resolution is derived from this bbox and its own width.
-  const fullImage = await tiff.getImage(0);
-  const tileBbox = fullImage.getBoundingBox() as MercatorBbox;
+  const { tileBbox, heights: candidates } = await listCanopyLevels(tiff);
   const tileMercatorSpan = tileBbox[2] - tileBbox[0];
-
-  const imageCount = await tiff.getImageCount();
-  const candidates = [];
-  for (let index = 0; index < imageCount; index++) {
-    const image = await tiff.getImage(index);
-    const subfileType = (image.fileDirectory.getValue("NewSubfileType") as number | undefined) ?? 0;
-    if ((subfileType & SUBFILE_TYPE_MASK_BIT) !== 0) continue;
-    candidates.push({ index, width: image.getWidth() });
-  }
   const openMs = now() - startedAt;
 
   const overview = selectOverview(candidates, tileMercatorSpan, centreLat, targetGroundRes);
@@ -197,6 +188,47 @@ export async function readCanopyHeights(
       totalMs: now() - startedAt,
     },
   };
+}
+
+/** The two IFD chains a canopy COG publishes, and the extent they cover. */
+export interface CanopyCogLevels {
+  /** The geotransform, which only image 0 carries. Every level covers the same extent. */
+  tileBbox: MercatorBbox;
+  /** Height levels, finest first. */
+  heights: OverviewCandidate[];
+  /** Validity-mask levels, finest first. Paired to a height level by width, never by index. */
+  masks: OverviewCandidate[];
+}
+
+/**
+ * Walk a canopy COG's IFD chain and separate the heights from the validity masks.
+ *
+ * The published layout is GDAL's: image 0, then image 0's mask, then the height
+ * overviews, then *their* masks — so the mask of a level is neither the IFD after
+ * it nor at any fixed offset from it, and the only stable pairing is by width. The
+ * Madrid tile reads heights at 0, 2-7 and masks at 1, 8-13.
+ *
+ * `NewSubfileType` bit 2 is the whole basis for the split, and it is the reason
+ * overview selection is not delegated to `geotiff`'s own `readRasters({ resX })` —
+ * see `selectOverview`.
+ */
+export async function listCanopyLevels(tiff: GeoTIFF): Promise<CanopyCogLevels> {
+  const imageCount = await tiff.getImageCount();
+  const heights: OverviewCandidate[] = [];
+  const masks: OverviewCandidate[] = [];
+  let tileBbox: MercatorBbox | null = null;
+
+  for (let index = 0; index < imageCount; index++) {
+    const image = await tiff.getImage(index);
+    if (index === 0) tileBbox = image.getBoundingBox() as MercatorBbox;
+    const subfileType = (image.fileDirectory.getValue("NewSubfileType") as number | undefined) ?? 0;
+    const level = { index, width: image.getWidth() };
+    if ((subfileType & SUBFILE_TYPE_MASK_BIT) !== 0) masks.push(level);
+    else heights.push(level);
+  }
+
+  if (!tileBbox) throw new Error("canopy COG has no images");
+  return { tileBbox, heights, masks };
 }
 
 /**

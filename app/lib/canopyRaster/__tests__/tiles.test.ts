@@ -8,6 +8,7 @@ import {
   quadkeyFor,
   quadkeysForBbox,
   selectOverview,
+  tileXYForQuadkey,
   windowBbox,
 } from "../tiles";
 
@@ -62,6 +63,35 @@ describe("quadkeyFor", () => {
     expect(quadkeyFor(90, 45, 1)).toBe("1");
     expect(quadkeyFor(-90, -45, 1)).toBe("2");
     expect(quadkeyFor(90, -45, 1)).toBe("3");
+  });
+});
+
+describe("tileXYForQuadkey", () => {
+  it("round-trips every corpus city's tile", () => {
+    for (const [lon, lat] of [MADRID, SINGAPORE, KENT_WA]) {
+      const quadkey = quadkeyFor(lon, lat);
+      const [x, y] = tileXYForQuadkey(quadkey);
+      // The forward direction is not exported, so the round trip is checked
+      // against the neighbours: the tile east of this one is the tile whose
+      // quadkey the next longitude lands in.
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThan(2 ** CANOPY_TILE_ZOOM);
+      expect(y).toBeLessThan(2 ** CANOPY_TILE_ZOOM);
+      const [eastX, eastY] = tileXYForQuadkey(quadkeyFor(lon + 360 / 2 ** CANOPY_TILE_ZOOM, lat));
+      expect([eastX, eastY]).toEqual([x + 1, y]);
+    }
+  });
+
+  it("places the four zoom 1 quadrants on the right axes", () => {
+    expect(tileXYForQuadkey("0")).toEqual([0, 0]);
+    expect(tileXYForQuadkey("1")).toEqual([1, 0]);
+    expect(tileXYForQuadkey("2")).toEqual([0, 1]);
+    expect(tileXYForQuadkey("3")).toEqual([1, 1]);
+  });
+
+  it("rejects a string that is not a quadkey", () => {
+    expect(() => tileXYForQuadkey("0331x")).toThrow(/not a quadkey/);
   });
 });
 
