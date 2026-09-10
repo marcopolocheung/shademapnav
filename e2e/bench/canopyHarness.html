@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>A8a canopy COG harness</title>
+<!--
+  A8a's measurement page. Deliberately not the app: the numbers being collected are
+  transferred bytes, decode time and peak heap for one COG read, and loading
+  MapLibre, the shadow renderer and React around them would put a much larger,
+  noisier allocation history underneath every figure.
+
+  Served by the Vite dev server (see playwright.canopy.config.ts) so the module
+  under test is the TypeScript in app/lib/canopyRaster/, not a build artefact.
+-->
+<body>
+  <script type="module">
+    import { readCanopyHeights } from "/app/lib/canopyRaster/canopyCog.ts";
+    window.__umbraCanopy = { readCanopyHeights, ready: true };
+  </script>
+</body>
