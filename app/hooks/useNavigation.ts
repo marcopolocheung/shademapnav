@@ -24,6 +24,7 @@ import type { EdgeRef, ShadowField, ShadowSource } from "../lib/shadowField/Shad
 import {
   createOverpassCanopyProvider,
   createOverpassPrismProvider,
+  createRasterCanopyProvider,
   createTilePrismProvider,
 } from "../lib/shadowField/providers";
 import { summarizeShadowSource } from "../lib/shadowProvenance";
@@ -139,21 +140,25 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
   /**
    * Shadow from building geometry, tiles first and Overpass behind for reach, with
-   * tagged tree canopy blended on top (A7).
+   * canopy blended on top — OSM's tagged crowns (A7) and the Meta/WRI height raster
+   * (A8d), whichever is darker at a point.
    *
    * Lazily built rather than `useRef(createGeometryShadowField(...))`, whose argument
    * would be re-evaluated on every render and thrown away. `maplibregl.Map` satisfies
    * `TileMapLike` structurally, so the provider reads the live map through a getter
    * without any of it being plumbed through props.
    *
-   * The canopy list is second, not third in the first: buildings resolve
-   * first-one-wins and canopy is additive on top of whichever of them answered.
+   * The canopy lists are separate, not more entries in the first: buildings resolve
+   * first-one-wins and canopy is additive on top of whichever of them answered. The
+   * raster gets a third list of its own because it answers a height field rather than
+   * prisms — see `canopyRasterField.ts` for why a raster is marched, not tessellated.
    */
   const shadowFieldRef = useRef<ShadowField | null>(null);
   if (!shadowFieldRef.current) {
     shadowFieldRef.current = createGeometryShadowField(
       [createTilePrismProvider(() => mapRef.current), createOverpassPrismProvider()],
-      [createOverpassCanopyProvider()]
+      [createOverpassCanopyProvider()],
+      [createRasterCanopyProvider()]
     );
   }
 
