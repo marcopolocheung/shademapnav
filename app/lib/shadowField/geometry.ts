@@ -15,18 +15,44 @@
 import earcut from "earcut";
 
 /**
- * A building reduced to what casting a shadow needs: one ring at ground level
- * plus a height. Rings hold `[lng, lat]` pairs in degrees, exactly as the source
- * supplied them — GeoJSON and Overpass both close their rings, so consumers
- * normalize with `openRing` rather than this module rewriting the coordinates.
+ * A shadow caster reduced to what casting a shadow needs: one ring, a height, and
+ * — since A7 — how far off the ground it starts and how much light it stops. Rings
+ * hold `[lng, lat]` pairs in degrees, exactly as the source supplied them — GeoJSON
+ * and Overpass both close their rings, so consumers normalize with `openRing` rather
+ * than this module rewriting the coordinates.
  *
  * Inner rings (courtyards) become their own prisms. Both existing shadow
  * implementations already treat every ring as a separate solid, and the
  * shadow of a courtyard wall is not visibly wrong at building scale.
+ *
+ * The name still says "building" because buildings are what every caller but
+ * `canopy.ts` puts in it, and renaming it would touch the renderer, the offscreen
+ * probe and four test files for no behavioural gain.
  */
 export interface BuildingPrism {
   ring: [number, number][];
   heightM: number;
+  /**
+   * Height of the prism's *underside* above ground, in metres. Absent means 0.
+   *
+   * A building starts at the ground, so its shadow starts at its own footprint. A
+   * tree crown does not: it starts at the top of the trunk, and its shadow is the
+   * footprint swept between `baseM / tan(altitude)` and `heightM / tan(altitude)` —
+   * displaced away from the trunk, and further as the sun drops. Modelling a crown
+   * as a ground-to-crown solid instead would report shadow across that whole
+   * displacement, which is the overstating direction A7 exists to avoid.
+   *
+   * It is also what decides footprint exclusion: see `shadowIndex.isShadowed`. Issue #276.
+   */
+  baseM?: number;
+  /**
+   * Share of the direct beam this prism stops, 0–1. Absent means 1 — fully opaque.
+   *
+   * Buildings are opaque. A canopy is not: `canopy.ts` derives this from published
+   * transmittance figures and the tree's own leaf tags, which is what keeps a tree
+   * from being priced as a wall.
+   */
+  opacity?: number;
 }
 
 /**

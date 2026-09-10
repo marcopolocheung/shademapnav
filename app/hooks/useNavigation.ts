@@ -21,7 +21,11 @@ import {
   LOW_CONFIDENCE, QUERY_PAD_M, bboxAroundEdges, createGeometryShadowField, edgeSampleCount,
 } from "../lib/shadowField/ShadowField";
 import type { EdgeRef, ShadowField, ShadowSource } from "../lib/shadowField/ShadowField";
-import { createOverpassPrismProvider, createTilePrismProvider } from "../lib/shadowField/providers";
+import {
+  createOverpassCanopyProvider,
+  createOverpassPrismProvider,
+  createTilePrismProvider,
+} from "../lib/shadowField/providers";
 import { summarizeShadowSource } from "../lib/shadowProvenance";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
@@ -134,19 +138,23 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const pitchRestoreRef = useRef<number | null>(null);
 
   /**
-   * Shadow from building geometry, tiles first and Overpass behind for reach.
+   * Shadow from building geometry, tiles first and Overpass behind for reach, with
+   * tagged tree canopy blended on top (A7).
    *
    * Lazily built rather than `useRef(createGeometryShadowField(...))`, whose argument
    * would be re-evaluated on every render and thrown away. `maplibregl.Map` satisfies
    * `TileMapLike` structurally, so the provider reads the live map through a getter
    * without any of it being plumbed through props.
+   *
+   * The canopy list is second, not third in the first: buildings resolve
+   * first-one-wins and canopy is additive on top of whichever of them answered.
    */
   const shadowFieldRef = useRef<ShadowField | null>(null);
   if (!shadowFieldRef.current) {
-    shadowFieldRef.current = createGeometryShadowField([
-      createTilePrismProvider(() => mapRef.current),
-      createOverpassPrismProvider(),
-    ]);
+    shadowFieldRef.current = createGeometryShadowField(
+      [createTilePrismProvider(() => mapRef.current), createOverpassPrismProvider()],
+      [createOverpassCanopyProvider()]
+    );
   }
 
   waypointARef.current = waypointA;

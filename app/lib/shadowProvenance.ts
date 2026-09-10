@@ -159,6 +159,15 @@ function baseLabel(p: ShadowProvenance): string {
     case "tiles":
     case "overpass":
       return "from building geometry";
+    // Named rather than left to fall through to "source unknown", which is what A7
+    // emitting these two would otherwise have made every tree-lined route say. The
+    // map does not paint canopy yet, so a route can read "and tree canopy" over a
+    // street the renderer draws in full sun — issue #275 is that contradiction, and
+    // it is decided against A7's measured coverage, not hidden behind a vague label.
+    case "mixed":
+      return "from building geometry and tree canopy";
+    case "canopy":
+      return "from tree canopy";
     case "canvas":
       return "from the map view";
     default:

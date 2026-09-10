@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fetchBuildingFootprintsAround, fetchRoutingGraph, fetchStationEntrances } from "../overpass";
+import {
+  fetchBuildingFootprintsAround,
+  fetchCanopyAround,
+  fetchRoutingGraph,
+  fetchStationEntrances,
+} from "../overpass";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -446,5 +451,149 @@ describe("fetchStationEntrances — kind tagging", () => {
       { id: 11, lat: 10, lon: 20, name: "Entrance B", kind: "entrance" },
       { id: 12, lat: 11, lon: 21, name: "Station Y", kind: "station" },
     ]);
+  });
+});
+
+// ── Canopy (A7) ───────────────────────────────────────────────────────────────
+
+describe("fetchCanopyAround", () => {
+  function canopyResponse(elements: unknown[]) {
+    return vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ elements }),
+    });
+  }
+
+  it("asks for the four canopy tag families and nothing else", () => {
+    const fetchMock = canopyResponse([]);
+    vi.stubGlobal("fetch", fetchMock);
+    const [south, west] = nextBbox();
+
+    return fetchCanopyAround(west, south, 120).then(() => {
+      const body = decodeURIComponent(String(fetchMock.mock.calls[0][1]?.body));
+      expect(body).toContain('node["natural"="tree"]');
+      expect(body).toContain('way["natural"="tree_row"]');
+      expect(body).toContain('way["natural"="wood"]');
+      expect(body).toContain('way["landuse"="forest"]');
+      // Buildings come from their own call; duplicating them here would double the
+      // payload of every canopy fetch against a shared public service.
+      expect(body).not.toContain('["building"]');
+    });
+  });
+
+  it("keeps tree tags as raw strings for the crown model to interpret", async () => {
+    vi.stubGlobal(
+      "fetch",
+      canopyResponse([
+        {
+          type: "node",
+          id: 7001,
+          lat: 40.0,
+          lon: -74.0,
+          tags: { natural: "tree", height: "12 m", leaf_type: "broadleaved", species: "Tilia" },
+        },
+      ])
+    );
+    const [south, west] = nextBbox();
+    const canopy = await fetchCanopyAround(west, south, 120);
+
+    expect(canopy).toEqual([
+      {
+        id: 7001,
+        kind: "tree",
+        points: [[-74.0, 40.0]],
+        // `species` is dropped: the model has no use for it, and carrying it would
+        // imply the crown radius is derived per-species when it is not.
+        tags: {
+          height: "12 m",
+          diameter_crown: undefined,
+          leaf_type: "broadleaved",
+          leaf_cycle: undefined,
+        },
+      },
+    ]);
+  });
+
+  it("keeps a tree row as its centreline", async () => {
+    vi.stubGlobal(
+      "fetch",
+      canopyResponse([
+        {
+          type: "way",
+          id: 7002,
+          tags: { natural: "tree_row" },
+          geometry: [
+            { lat: 40.0, lon: -74.0 },
+            { lat: 40.0, lon: -73.999 },
+          ],
+        },
+      ])
+    );
+    const [south, west] = nextBbox();
+    const [row] = await fetchCanopyAround(west, south, 120);
+
+    expect(row.kind).toBe("tree_row");
+    expect(row.points).toHaveLength(2);
+  });
+
+  it("closes a woodland way and drops one that cannot be closed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      canopyResponse([
+        {
+          type: "way",
+          id: 7003,
+          tags: { natural: "wood" },
+          geometry: [
+            { lat: 40.0, lon: -74.0 },
+            { lat: 40.0, lon: -73.999 },
+            { lat: 40.001, lon: -73.999 },
+          ],
+        },
+        // Two points cannot bound an area; closing it would emit a degenerate ring.
+        {
+          type: "way",
+          id: 7004,
+          tags: { landuse: "forest" },
+          geometry: [
+            { lat: 41.0, lon: -74.0 },
+            { lat: 41.0, lon: -73.999 },
+          ],
+        },
+      ])
+    );
+    const [south, west] = nextBbox();
+    const canopy = await fetchCanopyAround(west, south, 120);
+
+    expect(canopy).toHaveLength(1);
+    expect(canopy[0].id).toBe(7003);
+    expect(canopy[0].points[0]).toEqual(canopy[0].points[canopy[0].points.length - 1]);
+  });
+
+  it("serves a contained bbox from cache rather than re-fetching", async () => {
+    const fetchMock = canopyResponse([]);
+    vi.stubGlobal("fetch", fetchMock);
+    const [south, west] = nextBbox();
+
+    await fetchCanopyAround(west, south, 240);
+    await fetchCanopyAround(west, south, 60);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands back a copy, so a caller cannot poison the cache", async () => {
+    vi.stubGlobal(
+      "fetch",
+      canopyResponse([
+        { type: "node", id: 7005, lat: 40.0, lon: -74.0, tags: { natural: "tree" } },
+      ])
+    );
+    const [south, west] = nextBbox();
+
+    const first = await fetchCanopyAround(west, south, 120);
+    first[0].points[0][0] = 999;
+    const second = await fetchCanopyAround(west, south, 120);
+    expect(second[0].points[0][0]).toBe(-74.0);
   });
 });

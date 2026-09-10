@@ -14,9 +14,15 @@
  * promising shadow that isn't there.
  */
 
-import { type BuildingFootprint, fetchBuildingFootprintsAround } from "../overpass";
-import type { BBox, PrismProvider } from "./ShadowField";
+import {
+  type BuildingFootprint,
+  type CanopyFeature,
+  fetchBuildingFootprintsAround,
+  fetchCanopyAround,
+} from "../overpass";
+import type { BBox, CanopyProvider, PrismProvider } from "./ShadowField";
 import { bboxContains } from "./ShadowField";
+import { prismsFromCanopy } from "./canopy";
 import {
   type BuildingFeatureLike,
   type PrismSet,
@@ -251,6 +257,121 @@ export function createOverpassPrismProvider(opts?: {
           // null and the field reports confidence 0 — which is the honest answer
           // and the signal for the caller to fall back. Never cache the failure as
           // "no buildings here".
+        } finally {
+          inFlight.delete(key);
+        }
+      })();
+
+      inFlight.set(key, pending);
+      return pending;
+    },
+  };
+}
+
+// ─── Canopy ───────────────────────────────────────────────────────────────────
+
+/** Distinct months to keep prisms for per fetched area. Two straddle the leaf window. */
+const MONTHS_CACHED = 4;
+
+/**
+ * Prisms for tagged tree canopy (A7).
+ *
+ * Shaped like the Overpass building provider and for the same reasons — a network
+ * call against a shared, rate-limited public service, so `prismsFor` never triggers
+ * one and `load()` is the only path to the wire. It is a *second* such call per
+ * fetched area, which is why it reuses the same radius cap and the same
+ * fetch-once-per-area cache rather than getting its own policy.
+ *
+ * The one shape difference is the date. A crown's geometry does not change with the
+ * season but its opacity does, so `prismsFor` takes the moment and the built prisms are
+ * memoized per month — all `crownOpacity` reads out of a date. That memo is load-bearing
+ * beyond saving work: `ShadowField` keys its prepared casters on the prism array's
+ * identity, so handing back a fresh array per query would miss that cache every time.
+ */
+export function createOverpassCanopyProvider(opts?: {
+  fetchCanopy?: (
+    lng: number,
+    lat: number,
+    radiusM: number,
+    signal?: AbortSignal
+  ) => Promise<CanopyFeature[]>;
+  maxFetchRadiusM?: number;
+}): CanopyProvider {
+  const fetchCanopy = opts?.fetchCanopy ?? fetchCanopyAround;
+  const maxRadiusM = opts?.maxFetchRadiusM ?? MAX_FETCH_RADIUS_M;
+
+  interface CanopyEntry {
+    coverage: BBox;
+    features: CanopyFeature[];
+    /** Prisms per leaf state — at most two, and only the ones actually asked for. */
+    sets: Map<string, PrismSet>;
+  }
+
+  const cache: CanopyEntry[] = [];
+  const inFlight = new Map<string, Promise<void>>();
+
+  function lookup(bbox: BBox): CanopyEntry | null {
+    for (let i = 0; i < cache.length; i++) {
+      if (bboxContains(cache[i].coverage, bbox)) {
+        const [entry] = cache.splice(i, 1);
+        cache.unshift(entry);
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  return {
+    source: "canopy",
+
+    prismsFor(bbox, when) {
+      const entry = lookup(bbox);
+      if (!entry) return null;
+
+      // Keyed by month, because that is all `crownOpacity` reads out of the date. A
+      // whole day's sweep hits one key, and so does every other day that month.
+      const key = `${when.getUTCFullYear()}-${when.getUTCMonth()}`;
+      const hit = entry.sets.get(key);
+      if (hit) return hit;
+
+      const set = prismsFromCanopy(entry.features, when);
+      // Bounded like the entry cache above: a caller sweeping across seasons is not a
+      // shipped path, and an unbounded map here would hold a prism array per month.
+      if (entry.sets.size >= MONTHS_CACHED) {
+        entry.sets.delete(entry.sets.keys().next().value as string);
+      }
+      entry.sets.set(key, set);
+      return set;
+    },
+
+    async load(bbox) {
+      if (lookup(bbox)) return;
+
+      // Padded exactly as the building provider pads: a crown outside the bbox still
+      // casts into it, and a fetch that stops at the edge reports a sunlit pavement
+      // under an unseen row of planes.
+      const radiusM = bboxRadiusM(bbox) * 1.25;
+      if (radiusM > maxRadiusM) return;
+
+      const [lng, lat] = centreOf(bbox);
+      const key = `${lng.toFixed(5)},${lat.toFixed(5)},${Math.round(radiusM)}`;
+
+      const existing = inFlight.get(key);
+      if (existing) return existing;
+
+      const pending = (async () => {
+        try {
+          const features = await fetchCanopy(lng, lat, radiusM);
+          cache.unshift({
+            coverage: coverageFor(lng, lat, radiusM),
+            features,
+            sets: new Map(),
+          });
+          if (cache.length > CACHE_ENTRIES) cache.length = CACHE_ENTRIES;
+        } catch {
+          // Same rule as the building provider: never cache a failure as "no trees
+          // here". `prismsFor` keeps returning null, the field reports the building
+          // answer alone, and nothing claims canopy was considered.
         } finally {
           inFlight.delete(key);
         }

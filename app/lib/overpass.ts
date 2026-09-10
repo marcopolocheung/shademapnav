@@ -467,6 +467,159 @@ out body geom;
   return cloneBuildingFootprints(buildings);
 }
 
+// ---------------------------------------------------------------------------
+// Canopy (Track A, checkpoint A7)
+// ---------------------------------------------------------------------------
+
+/**
+ * The OSM tags the crown model reads, exactly as OSM spells them.
+ *
+ * Left as raw strings on purpose: this module fetches, `shadowField/canopy.ts`
+ * models. Height for a *building* is resolved here because both shadow paths have
+ * always consumed `BuildingFootprint.heightM`, but a crown needs a radius, a trunk
+ * height and a leaf cycle as well, and the defaults that fill in for the ones OSM
+ * almost never carries are a modelling decision that belongs next to its citation.
+ */
+export interface CanopyTags {
+  height?: string;
+  /** Crown *diameter* in metres — OSM's spelling. Tagged on well under 1% of trees. */
+  diameter_crown?: string;
+  leaf_type?: string;
+  leaf_cycle?: string;
+}
+
+export interface CanopyFeature {
+  id: number;
+  /** A single tree, a line of them, or a block of woodland. */
+  kind: "tree" | "tree_row" | "wood";
+  /** `tree`: one point. `tree_row`: the centreline. `wood`: one closed ring. */
+  points: [number, number][];
+  tags: CanopyTags;
+}
+
+interface CanopyCacheEntry extends BboxBounds {
+  canopy: CanopyFeature[];
+}
+
+const CANOPY_CACHE_MAX = 8;
+const canopyCache: CanopyCacheEntry[] = [];
+
+function cloneCanopy(features: CanopyFeature[]): CanopyFeature[] {
+  return features.map((feature) => ({
+    ...feature,
+    points: feature.points.map(([lng, lat]) => [lng, lat] as [number, number]),
+    tags: { ...feature.tags },
+  }));
+}
+
+function canopyTags(tags: Record<string, unknown> | null | undefined): CanopyTags {
+  const read = (key: string): string | undefined => {
+    const value = tags?.[key];
+    return typeof value === "string" ? value : undefined;
+  };
+  return {
+    height: read("height"),
+    diameter_crown: read("diameter_crown"),
+    leaf_type: read("leaf_type"),
+    leaf_cycle: read("leaf_cycle"),
+  };
+}
+
+/**
+ * Fetch tagged canopy near a point — individual trees, tree rows and woodland.
+ *
+ * A second Overpass call beside `fetchBuildingFootprintsAround`, against the same
+ * shared public service, so it is only ever issued from a provider's `load()` over a
+ * bbox the routing graph already needed. Woodland arrives as ways only: a forest
+ * mapped as a multipolygon relation is skipped rather than half-assembled, and
+ * `assembleClosedRings` is not reused here because a partly-assembled canopy ring
+ * reports shadow in the wrong place with no way for a caller to tell.
+ */
+export async function fetchCanopyAround(
+  lng: number,
+  lat: number,
+  radiusM = 180,
+  signal?: AbortSignal
+): Promise<CanopyFeature[]> {
+  const { south, west, north, east } = bboxAround(lng, lat, radiusM);
+
+  for (const entry of canopyCache) {
+    if (cacheContains(entry, south, west, north, east)) {
+      return cloneCanopy(entry.canopy);
+    }
+  }
+
+  const query = `
+[out:json][timeout:15];
+(
+  node["natural"="tree"](${south},${west},${north},${east});
+  way["natural"="tree_row"](${south},${west},${north},${east});
+  way["natural"="wood"](${south},${west},${north},${east});
+  way["landuse"="forest"](${south},${west},${north},${east});
+);
+out body geom;
+`.trim();
+
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 18_000);
+  const combinedSignal = signal
+    ? AbortSignal.any([controller.signal, signal])
+    : controller.signal;
+
+  let res: Response;
+  try {
+    res = await postOverpass(`data=${encodeURIComponent(query)}`, combinedSignal);
+  } finally {
+    clearTimeout(tid);
+  }
+
+  if (!res.ok) {
+    throw new Error(`Overpass canopy API error: ${res.status} ${res.statusText}`);
+  }
+
+  const text = await res.text();
+  if (text.trimStart().startsWith("<")) {
+    throw new Error("The map server returned an error while fetching tree canopy.");
+  }
+
+  const json = JSON.parse(text) as { elements?: any[] };
+  const elements: any[] = json.elements ?? [];
+
+  const canopy: CanopyFeature[] = [];
+  for (const el of elements) {
+    if (el.type === "node" && el.lat != null && el.lon != null) {
+      canopy.push({
+        id: el.id,
+        kind: "tree",
+        points: [[el.lon, el.lat]],
+        tags: canopyTags(el.tags),
+      });
+      continue;
+    }
+    if (el.type !== "way" || !Array.isArray(el.geometry)) continue;
+
+    const points = coordsFromGeometry(el.geometry).filter(
+      (p) => Number.isFinite(p[0]) && Number.isFinite(p[1])
+    );
+    if (el.tags?.natural === "tree_row") {
+      if (points.length >= 2) {
+        canopy.push({ id: el.id, kind: "tree_row", points, tags: canopyTags(el.tags) });
+      }
+      continue;
+    }
+    // Woodland: a closed way only. An open one is a mapping error or half a relation.
+    const ring = closeRing(points);
+    if (isClosedRing(ring)) {
+      canopy.push({ id: el.id, kind: "wood", points: ring, tags: canopyTags(el.tags) });
+    }
+  }
+
+  canopyCache.unshift({ south, west, north, east, canopy });
+  if (canopyCache.length > CANOPY_CACHE_MAX) canopyCache.pop();
+
+  return cloneCanopy(canopy);
+}
+
 /**
  * Fetches subway station entrance and station nodes from Overpass.
  * Non-critical — returns empty array on failure instead of throwing.

@@ -37,8 +37,10 @@ import {
  * `"none"` means no geometry backed the answer, and `confidence` says which kind:
  * 1 for a sun below the horizon (astronomically certain, no geometry needed) and
  * 0 for "no source covered this point", which is a request to fall back rather
- * than a claim of full sun. `"mixed"` and `"canopy"` are reserved for A7, `"canvas"`
- * for the pixel sampler when A4 wires it in as the fallback.
+ * than a claim of full sun. `"canvas"` is the pixel sampler, wired in by A4 as the
+ * fallback. A7 filled in the last two: `"canopy"` means tagged tree canopy answered
+ * and no building source could, `"mixed"` that a building source answered *and*
+ * canopy geometry was present in the area to be blended with it.
  */
 export type ShadowSource = "tiles" | "overpass" | "canopy" | "mixed" | "canvas" | "none";
 
@@ -125,6 +127,28 @@ export interface PrismProvider {
   completeness?(): number;
 }
 
+/**
+ * A source of canopy prisms — tagged tree crowns, rows and woodland (A7).
+ *
+ * Separate from `PrismProvider` rather than another entry in the same list, because
+ * canopy is **additive**: buildings resolve first-one-wins, and a canopy source does
+ * not compete with them, it is blended on top. Folding the two into one list would
+ * mean either a canopy source shadowing a building source or the field guessing at
+ * which of them it was holding.
+ *
+ * The date is the other difference. A crown's geometry is fixed but its opacity is
+ * seasonal, so `prismsFor` needs the moment. It must still return the *same array*
+ * for the same area and leaf state — `ShadowField` keys its prepared casters on that
+ * array's identity — and `null`, never an empty set, when it cannot speak for an
+ * area. "No trees here" and "I have not fetched this" are the difference between
+ * reporting a bare street honestly and reporting one that is lined with planes.
+ */
+export interface CanopyProvider {
+  source: "canopy";
+  prismsFor(bbox: BBox, when: Date): PrismSet | null;
+  load?(bbox: BBox): Promise<void>;
+}
+
 // ─── Tunables, all of them documented ─────────────────────────────────────────
 
 /** Below this, `shadowAt`'s answer is a hint; callers should consult another source. */
@@ -205,13 +229,40 @@ const LOW_SUN_ALTITUDE_RAD = (10 * Math.PI) / 180;
  * flat default (see issue #120). Neither is measured ground truth — these are
  * priors, and A3's agreement harness is what turns them into calibrated numbers.
  */
-const SOURCE_BASE_CONFIDENCE: Record<PrismProvider["source"], number> = {
+const SOURCE_BASE_CONFIDENCE: Record<PrismProvider["source"] | "canopy", number> = {
   tiles: 0.8,
   overpass: 0.7,
+  /**
+   * Canopy alone, with no building source behind it, is deliberately below
+   * `LOW_CONFIDENCE`: a tree layer cannot tell you anything about the tower across
+   * the street, so an answer resting on it alone is a request to fall back, not a
+   * routing input. It only ever surfaces where no building source could speak.
+   */
+  canopy: 0.35,
 };
 
 /** Applied when the covering source holds no buildings at all for the area. */
 const NO_GEOMETRY_FACTOR = 0.4;
+
+/**
+ * What blending canopy into a building answer does to its confidence.
+ *
+ * It goes **down**, which reads backwards until you separate bias from uncertainty.
+ * Adding canopy removes a known bias — buildings-only shadow under-reports tree-lined
+ * streets, which is the whole point of A7. It also makes the number rest on a crown
+ * model that is crude and on tags that are sparse in a way nothing here can measure
+ * per-area: the 2026-09-09 census found OSM holding on the order of one in four of
+ * Madrid's inventoried street trees and one in a hundred of Singapore's
+ * (`docs/notes/canopy-coverage-2026-09-09.md`). Less bias, more uncertainty.
+ *
+ * Like `SOURCE_BASE_CONFIDENCE` and `DECIMATED_COMPLETENESS`, the size of the dock is
+ * a policy prior, not a measurement — chosen to keep a tile-backed answer above
+ * `LOW_CONFIDENCE` (0.8 × 0.9 = 0.72) while saying out loud that the answer is now
+ * partly a model. A3's harness cannot calibrate it: it compares the field and the
+ * pixel sampler over *identical* prisms, and the pixel sampler cannot see a tree at
+ * all. That needs ground truth this repo does not have.
+ */
+const CANOPY_MIX_FACTOR = 0.9;
 
 // ─── Confidence ───────────────────────────────────────────────────────────────
 
@@ -234,12 +285,16 @@ const NO_GEOMETRY_FACTOR = 0.4;
  *    see `PrismProvider.completeness`. A tile source zoomed out far enough to be
  *    served a decimated building layer is not the same source it is at street zoom.
  *
+ * 5. **Whether canopy was blended in.** Applied by the caller rather than here, via
+ *    `CANOPY_MIX_FACTOR` — see that constant for why more information can mean less
+ *    confidence.
+ *
  * Note what this deliberately does *not* dock: a point that simply sits outside every
  * shadow. Once buildings are loaded, "the sun reaches here" is a confident answer, and
  * treating it as a doubt would send almost every sunlit sample to the fallback path.
  */
 export function confidenceFor(
-  source: PrismProvider["source"],
+  source: PrismProvider["source"] | "canopy",
   sunAltitudeRad: number,
   prismsAvailable: number,
   completeness = 1
@@ -310,6 +365,16 @@ interface SunCell {
   sun: { azimuth: number; altitude: number };
   /** `null` when no geometry resolved, or the sun is down for this cell. */
   index: ShadowIndex | null;
+  /**
+   * Canopy shadow for the same cell, indexed separately (A7).
+   *
+   * Two indexes rather than one over the concatenation, for two reasons. The building
+   * path stays provably the geometry it always was — same casters, same grid, same
+   * order — which is what lets A3's agreement numbers and A6's sweep parity keep
+   * meaning what they meant. And the prepared-caster cache is keyed on a prism
+   * array's identity, so a concatenation built per call would miss it every time.
+   */
+  canopyIndex: ShadowIndex | null;
 }
 
 /**
@@ -444,18 +509,21 @@ function sunCellsAt(
   plan: BatchPlan,
   edgeCount: number,
   when: Date,
-  casters: ShadowCasters | null
+  casters: ShadowCasters | null,
+  canopyCasters: ShadowCasters | null
 ): SunCell[] {
   const out = new Array<SunCell>(edgeCount);
   for (const cell of plan.cells) {
     const sun = SunCalc.getPosition(when, cell.lat, cell.lng);
-    const index =
-      casters && sun.altitude > 0
+    const build = (from: ShadowCasters | null) =>
+      from && sun.altitude > 0
         ? buildShadowIndexFor(
-            casters, sun.azimuth, sun.altitude, cell.mPerLat, cell.mPerLng, cell.region
+            from, sun.azimuth, sun.altitude, cell.mPerLat, cell.mPerLng, cell.region
           )
         : null;
-    for (const i of cell.members) out[i] = { sun, index };
+    const index = build(casters);
+    const canopyIndex = build(canopyCasters);
+    for (const i of cell.members) out[i] = { sun, index, canopyIndex };
   }
   return out;
 }
@@ -490,13 +558,25 @@ function preparedCastersFor(prisms: BuildingPrism[]): ShadowCasters {
  * answers, so a caller can put the fast synchronous tile provider ahead of the
  * Overpass one and get the network path only where the renderer has nothing loaded.
  */
-export function createGeometryShadowField(providers: PrismProvider[]): ShadowField {
+export function createGeometryShadowField(
+  providers: PrismProvider[],
+  canopyProviders: CanopyProvider[] = []
+): ShadowField {
   function resolve(bbox: BBox): Resolved | null {
     for (const provider of providers) {
       const set = provider.prismsFor(bbox);
       if (set) {
         return { set, source: provider.source, completeness: provider.completeness?.() ?? 1 };
       }
+    }
+    return null;
+  }
+
+  /** Canopy for an area at a moment, or `null` if no canopy source can speak for it. */
+  function resolveCanopy(bbox: BBox, when: Date): PrismSet | null {
+    for (const provider of canopyProviders) {
+      const set = provider.prismsFor(bbox, when);
+      if (set) return set;
     }
     return null;
   }
@@ -508,19 +588,57 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
    * point matters: `sampleEdges` has already displaced its samples ±4 m onto the
    * sidewalks, so averaging a further ±4 m neighbourhood around each one would
    * smear a sidewalk across the street it belongs to.
+   *
+   * A building wins outright: it is opaque, so nothing a crown adds can make the
+   * point darker than 1, and the canopy index is only consulted where the buildings
+   * answered sun. That ordering is what keeps A7 off the hot path in the cities where
+   * it has nothing to say.
    */
-  function pointShadow(index: ShadowIndex, lng: number, lat: number): number {
-    return index.isShadowed(lng, lat) ? 1 : 0;
+  function pointShadow(
+    index: ShadowIndex | null,
+    canopyIndex: ShadowIndex | null,
+    lng: number,
+    lat: number
+  ): number {
+    if (index?.isShadowed(lng, lat)) return 1;
+    return canopyIndex ? canopyIndex.opacityAt(lng, lat) : 0;
   }
 
-  function sampleFor(resolved: Resolved, shadow: number, sunAltitude: number): ShadowSample {
-    return {
-      shadow,
-      source: resolved.source,
-      confidence: confidenceFor(
-        resolved.source, sunAltitude, resolved.set.prisms.length, resolved.completeness,
-      ),
-    };
+  /**
+   * Where an answer over these two sources came from, and what it is worth.
+   *
+   * "Canopy contributed" means the canopy source *had geometry for this area*, not
+   * that a particular sample landed under a crown. That is deliberate: it makes the
+   * label describe the evidence the number was computed from rather than the answer
+   * it happened to give, and it lets `coverage()` report the same thing without
+   * building any geometry — which is the one guarantee `coverage()` makes.
+   */
+  function scoreFor(
+    resolved: Resolved | null,
+    canopy: PrismSet | null,
+    sunAltitude: number
+  ): { source: ShadowSource; confidence: number } {
+    const canopyPrisms = canopy?.prisms.length ?? 0;
+
+    if (!resolved) {
+      if (canopyPrisms === 0) return { source: "none", confidence: 0 };
+      return { source: "canopy", confidence: confidenceFor("canopy", sunAltitude, canopyPrisms) };
+    }
+
+    const base = confidenceFor(
+      resolved.source, sunAltitude, resolved.set.prisms.length, resolved.completeness,
+    );
+    if (canopyPrisms === 0) return { source: resolved.source, confidence: base };
+    return { source: "mixed", confidence: base * CANOPY_MIX_FACTOR };
+  }
+
+  function sampleFor(
+    resolved: Resolved | null,
+    canopy: PrismSet | null,
+    shadow: number,
+    sunAltitude: number
+  ): ShadowSample {
+    return { shadow, ...scoreFor(resolved, canopy, sunAltitude) };
   }
 
   /**
@@ -534,41 +652,46 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
    */
   function probe(
     resolved: Resolved | null,
+    canopy: PrismSet | null,
     lng: number,
     lat: number,
     sunAzimuth: number,
     sunAltitude: number
   ): ShadowSample {
-    if (!resolved) return { shadow: 0, source: "none", confidence: 0 };
+    if (!resolved && !canopy) return { shadow: 0, source: "none", confidence: 0 };
 
     const { mPerLat, mPerLng } = metersPerDegree(lat);
     const offsets = POINT_OFFSETS_M.map(
       ([dxM, dyM]) => [lng + dxM / mPerLng, lat + dyM / mPerLat] as [number, number]
     );
-    const index = buildShadowIndexFor(
-      preparedCastersFor(resolved.set.prisms),
-      sunAzimuth, sunAltitude, mPerLat, mPerLng, regionOver(offsets)
-    );
+    const region = regionOver(offsets);
+    const build = (prisms: BuildingPrism[]) =>
+      buildShadowIndexFor(
+        preparedCastersFor(prisms), sunAzimuth, sunAltitude, mPerLat, mPerLng, region
+      );
+    const index = resolved ? build(resolved.set.prisms) : null;
+    const canopyIndex = canopy ? build(canopy.prisms) : null;
 
     let shadowed = 0;
     for (const [sampleLng, sampleLat] of offsets) {
-      shadowed += pointShadow(index, sampleLng, sampleLat);
+      shadowed += pointShadow(index, canopyIndex, sampleLng, sampleLat);
     }
 
-    return sampleFor(resolved, shadowed / POINT_OFFSETS_M.length, sunAltitude);
+    return sampleFor(resolved, canopy, shadowed / POINT_OFFSETS_M.length, sunAltitude);
   }
 
   function shadowAt(lng: number, lat: number, when: Date): ShadowSample {
     const sun = SunCalc.getPosition(when, lat, lng);
     if (sun.altitude <= 0) return nightSample();
 
-    const resolved = resolve(bboxAroundPoint(lng, lat, QUERY_PAD_M));
-    return probe(resolved, lng, lat, sun.azimuth, sun.altitude);
+    const bbox = bboxAroundPoint(lng, lat, QUERY_PAD_M);
+    return probe(resolve(bbox), resolveCanopy(bbox, when), lng, lat, sun.azimuth, sun.altitude);
   }
 
   function sampleEdgesWithSun(
     edges: EdgeRef[],
     resolved: Resolved | null,
+    canopy: PrismSet | null,
     plan: BatchPlan,
     cells: SunCell[]
   ): EdgeShadow[] {
@@ -581,39 +704,37 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
         return { left: 1, right: 1, source: night.source, confidence: night.confidence };
       }
 
+      // Both sidewalks resolve the same providers over the same bbox, so the source
+      // and the confidence are properties of the edge, not of a side of it.
+      const score = scoreFor(resolved, canopy, sun.altitude);
+      if (score.source === "none") {
+        return { left: 0, right: 0, source: score.source, confidence: score.confidence };
+      }
+
       const leftOffset = plan.left[edgeIndex];
       const rightOffset = plan.right[edgeIndex];
       const steps = plan.steps[edgeIndex];
 
       // One point per sample, exactly where `sampleBothSidewalks` reads its pixel.
       const walk = (offset: [number, number]) => {
-        if (!resolved || !cell.index) {
-          return { shadow: 0, confidence: 0, source: "none" as ShadowSource };
-        }
-
         let sum = 0;
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
           sum += pointShadow(
             cell.index,
+            cell.canopyIndex,
             edge.from[0] + t * (edge.to[0] - edge.from[0]) + offset[0],
             edge.from[1] + t * (edge.to[1] - edge.from[1]) + offset[1]
           );
         }
-
-        const sample = sampleFor(resolved, sum / (steps + 1), sun.altitude);
-        return { shadow: sample.shadow, confidence: sample.confidence, source: sample.source };
+        return sum / (steps + 1);
       };
 
-      const left = walk(leftOffset);
-      const right = walk(rightOffset);
-
       return {
-        left: left.shadow,
-        right: right.shadow,
-        source: left.source,
-        // The whole edge is only as trustworthy as its least-covered sidewalk.
-        confidence: Math.min(left.confidence, right.confidence),
+        left: walk(leftOffset),
+        right: walk(rightOffset),
+        source: score.source,
+        confidence: score.confidence,
       };
     });
   }
@@ -621,9 +742,14 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
   function sampleEdges(edges: EdgeRef[], when: Date): EdgeShadow[] {
     const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
     const resolved = bbox ? resolve(bbox) : null;
+    const canopy = bbox ? resolveCanopy(bbox, when) : null;
     const plan = planBatch(edges);
     const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
-    return sampleEdgesWithSun(edges, resolved, plan, sunCellsAt(plan, edges.length, when, casters));
+    const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
+    return sampleEdgesWithSun(
+      edges, resolved, canopy, plan,
+      sunCellsAt(plan, edges.length, when, casters, canopyCasters)
+    );
   }
 
   return {
@@ -644,15 +770,7 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
         return { source: night.source, confidence: night.confidence };
       }
 
-      const resolved = resolve(bbox);
-      if (!resolved) return { source: "none", confidence: 0 };
-
-      return {
-        source: resolved.source,
-        confidence: confidenceFor(
-          resolved.source, sun.altitude, resolved.set.prisms.length, resolved.completeness,
-        ),
-      };
+      return scoreFor(resolve(bbox), resolveCanopy(bbox, when), sun.altitude);
     },
 
     sweep(edges, times) {
@@ -666,13 +784,28 @@ export function createGeometryShadowField(providers: PrismProvider[]): ShadowFie
       const resolved = bbox ? resolve(bbox) : null;
       const plan = planBatch(edges);
       const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
-      return times.map((when) =>
-        sampleEdgesWithSun(edges, resolved, plan, sunCellsAt(plan, edges.length, when, casters))
-      );
+      return times.map((when) => {
+        // Canopy is resolved per time because its opacity is seasonal, and prepared
+        // per resolution — but the provider hands back the same array for every time
+        // in one leaf state, so both caches hit and a day's sweep prepares once.
+        const canopy = bbox ? resolveCanopy(bbox, when) : null;
+        const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
+        return sampleEdgesWithSun(
+          edges, resolved, canopy, plan,
+          sunCellsAt(plan, edges.length, when, casters, canopyCasters)
+        );
+      });
     },
 
     async ready(bbox) {
+      // Buildings first, canopy after — not one `Promise.all` over both. Every load
+      // here is a request to the same volunteer-run Overpass instance, and the caller
+      // is already fetching the routing graph from it in parallel; firing canopy
+      // alongside would take a route calculation from two concurrent requests to
+      // three. Serialising costs nothing in the common case, where the building
+      // provider declines the area on its radius cap and canopy starts immediately.
       await Promise.all(providers.map((provider) => provider.load?.(bbox)));
+      await Promise.all(canopyProviders.map((provider) => provider.load?.(bbox)));
     },
   };
 }
@@ -726,6 +859,22 @@ export function staticPrismProvider(
 ): PrismProvider {
   return {
     source,
+    prismsFor(bbox) {
+      return bboxContains(coverage, bbox) ? set : null;
+    },
+  };
+}
+
+/**
+ * A canopy provider over a fixed prism set covering a fixed area.
+ *
+ * The canopy twin of `staticPrismProvider`, and it ignores the date: a caller that
+ * already holds crowns has already decided what season they are in. The live provider
+ * — `createOverpassCanopyProvider` — is the one that has to care.
+ */
+export function staticCanopyProvider(set: PrismSet, coverage: BBox): CanopyProvider {
+  return {
+    source: "canopy",
     prismsFor(bbox) {
       return bboxContains(coverage, bbox) ? set : null;
     },
