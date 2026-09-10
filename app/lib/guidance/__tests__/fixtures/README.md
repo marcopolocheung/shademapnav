@@ -4,7 +4,7 @@
 `fetchRoutingGraph → snapToGraph → dijkstra` pipeline on 2026-09-05. The inputs,
 Overpass query, source timestamp, OSM node/way IDs and attribution are in the JSON.
 The graph was loaded through Vite SSR; its relative fetch was remapped to an Overpass
-response requested with a ShadeMapNav User-Agent. Shade preference was zero. No nodes
+response requested with a Umbra User-Agent. Shadow preference was zero. No nodes
 were simplified, repositioned or synthesized, and endpoint connectors were not added.
 This is a calculated OSM route, not a GPS recording or a claim of surveyed walkability.
 Tests read the saved nodes and never fetch anything.

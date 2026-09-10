@@ -1,4 +1,4 @@
-const CACHE_NAME = "shademapnav-shell-v1";
+const CACHE_NAME = "umbra-shell-v1";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.ico", "/pwa-icon.svg"];
 
 self.addEventListener("install", (event) => {

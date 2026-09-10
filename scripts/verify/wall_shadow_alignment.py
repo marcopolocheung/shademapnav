@@ -16,7 +16,7 @@ loudly instead of silently invalidating the measurement.
 
 The diagnostic framebuffer encodes each Pass E fragment as:
 
-    R = shaded decision (255 = shaded)
+    R = shadowed decision (255 = shadowed)
     G = roof versus wall (255 = roof)
     B = sun-facing status (255 = facing the sun)
     A = 0 for every Pass E fragment
@@ -70,8 +70,8 @@ CHROME_FLAGS = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
 MIN_PASS_E_PIXELS = 10_000
 MIN_WALL_PIXELS = 1_000
 MIN_WALL_BASE_SAMPLES = 1_000
-MIN_SHADED_TO_LIT_FRACTION = 0.003
-MAX_SHADED_TO_LIT_FRACTION = 0.02
+MIN_SHADOWED_TO_LIT_FRACTION = 0.003
+MAX_SHADOWED_TO_LIT_FRACTION = 0.02
 MIN_WALL_BASE_IMPROVEMENT = 0.002
 
 # The two in-flight rewrites: (URL glob, needle, replacement).
@@ -82,8 +82,8 @@ MAP_HANDLE_PATCH = (
 )
 DEBUG_SHADER_PATCH = (
     "**/app/lib/shadow/LocalShadowAdapter.ts*",
-    "gl_FragColor = vec4(mix(lit, dark, shaded), 1.0);",
-    "gl_FragColor = vec4(shaded, step(0.5, v_normal.z), "
+    "gl_FragColor = vec4(mix(lit, dark, shadowed), 1.0);",
+    "gl_FragColor = vec4(shadowed, step(0.5, v_normal.z), "
     "step(0.0, v_facing), 0.0);",
 )
 
@@ -192,30 +192,30 @@ def capture(page, url: str, out: Path, tag: str) -> tuple[bytes, dict]:
 
 def analyse(px: bytes) -> dict:
     """Classify every fully covered Pass E fragment of one readback."""
-    walls = shaded_walls = roofs = shaded_roofs = 0
-    sun_walls = shaded_sun_walls = 0
+    walls = shadowed_walls = roofs = shadowed_roofs = 0
+    sun_walls = shadowed_sun_walls = 0
     for i in range(0, len(px), 4):
         if not _is_pass_e(px, i):
             continue
         if px[i + 1] == 255:
             roofs += 1
-            shaded_roofs += px[i] == 255
+            shadowed_roofs += px[i] == 255
         else:
             walls += 1
-            shaded_walls += px[i] == 255
+            shadowed_walls += px[i] == 255
             if px[i + 2] == 255:
                 sun_walls += 1
-                shaded_sun_walls += px[i] == 255
+                shadowed_sun_walls += px[i] == 255
     return {
         "passEPixels": walls + roofs,
         "wallPixels": walls,
         "sunFacingWallPixels": sun_walls,
         "roofPixels": roofs,
-        "shadedWallFraction": shaded_walls / walls if walls else 0.0,
-        "shadedSunFacingWallFraction": (
-            shaded_sun_walls / sun_walls if sun_walls else 0.0
+        "shadowedWallFraction": shadowed_walls / walls if walls else 0.0,
+        "shadowedSunFacingWallFraction": (
+            shadowed_sun_walls / sun_walls if sun_walls else 0.0
         ),
-        "shadedRoofFraction": shaded_roofs / roofs if roofs else 0.0,
+        "shadowedRoofFraction": shadowed_roofs / roofs if roofs else 0.0,
     }
 
 
@@ -248,8 +248,8 @@ def wall_base_disagreement(px: bytes, width: int, height: int) -> dict:
                 if all(px[j + 3] == 255 for j in gaps):
                     strict_samples += 1
                 red, green, blue = px[ground_i], px[ground_i + 1], px[ground_i + 2]
-                ground_shaded = blue - (red + green) / 2 > GROUND_BLUE_DOMINANCE
-                if (px[i] == 255) == ground_shaded:
+                ground_shadowed = blue - (red + green) / 2 > GROUND_BLUE_DOMINANCE
+                if (px[i] == 255) == ground_shadowed:
                     agree += 1
                 else:
                     disagree += 1
@@ -289,7 +289,7 @@ def _is_stable_face(
 
 def compare(before: bytes, after: bytes, width: int, height: int) -> dict:
     """Measure decision flips between aligned readbacks of the same scene."""
-    lit_to_shaded = shaded_to_lit = roof_diffs = compared = 0
+    lit_to_shadowed = shadowed_to_lit = roof_diffs = compared = 0
     frame_bytes = width * height * 4
     for frame_start in range(0, len(before), frame_bytes):
         for y in range(1, height - 1):
@@ -310,17 +310,17 @@ def compare(before: bytes, after: bytes, width: int, height: int) -> dict:
                     if before[i] != after[i]:
                         roof_diffs += 1
                     continue
-                was_shaded, now_shaded = before[i] == 255, after[i] == 255
-                if was_shaded and not now_shaded:
-                    shaded_to_lit += 1
-                elif now_shaded and not was_shaded:
-                    lit_to_shaded += 1
+                was_shadowed, now_shadowed = before[i] == 255, after[i] == 255
+                if was_shadowed and not now_shadowed:
+                    shadowed_to_lit += 1
+                elif now_shadowed and not was_shadowed:
+                    lit_to_shadowed += 1
     return {
         "comparedPassEPixels": compared,
-        "litToShaded": lit_to_shaded,
-        "shadedToLit": shaded_to_lit,
+        "litToShadowed": lit_to_shadowed,
+        "shadowedToLit": shadowed_to_lit,
         "roofPixelDiffs": roof_diffs,
-        "shadedToLitFraction": shaded_to_lit / compared if compared else 0.0,
+        "shadowedToLitFraction": shadowed_to_lit / compared if compared else 0.0,
     }
 
 
@@ -398,18 +398,18 @@ def main() -> int:
             report["baselineWallBaseDisagreementRate"] = baseline_rate
             report["wallBaseDisagreementImprovement"] = improvement
 
-            if delta["litToShaded"] != 0:
+            if delta["litToShadowed"] != 0:
                 failures.append(
-                    f"{delta['litToShaded']} pixels flipped lit->shaded; expected zero"
+                    f"{delta['litToShadowed']} pixels flipped lit->shadowed; expected zero"
                 )
             if delta["roofPixelDiffs"] != 0:
                 failures.append(
                     f"{delta['roofPixelDiffs']} roof pixels changed; expected zero"
                 )
-            flip_fraction = delta["shadedToLitFraction"]
-            if not MIN_SHADED_TO_LIT_FRACTION <= flip_fraction <= MAX_SHADED_TO_LIT_FRACTION:
+            flip_fraction = delta["shadowedToLitFraction"]
+            if not MIN_SHADOWED_TO_LIT_FRACTION <= flip_fraction <= MAX_SHADOWED_TO_LIT_FRACTION:
                 failures.append(
-                    "shaded->lit Pass E fraction outside 0.3%-2.0%: "
+                    "shadowed->lit Pass E fraction outside 0.3%-2.0%: "
                     f"{flip_fraction:.3%}"
                 )
             if improvement < MIN_WALL_BASE_IMPROVEMENT:

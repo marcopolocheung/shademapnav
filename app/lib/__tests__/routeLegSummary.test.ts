@@ -9,17 +9,17 @@ const line: GeoJSON.Feature<GeoJSON.LineString> = {
 };
 
 describe("routeLegSummary", () => {
-  it("summarizes walking legs with distance and shade", () => {
+  it("summarizes walking legs with distance and shadow", () => {
     const leg: RouteLeg = {
       type: "walk",
       geojson: line,
       distanceM: 845,
-      shadeCoverage: 0.42,
+      shadowCoverage: 0.42,
     };
 
     expect(routeLegSummary(leg, 0)).toEqual({
       title: "Leg 1: Walk",
-      detail: "845 m - 42% shade",
+      detail: "845 m - 42% shadow",
     });
   });
 

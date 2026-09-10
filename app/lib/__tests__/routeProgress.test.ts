@@ -8,14 +8,14 @@ describe("route progress formatting", () => {
   });
 
   it("formats bounded progress for visible and aria progress bars", () => {
-    const progress = { message: "Sampling street shade", current: 25, total: 100 };
+    const progress = { message: "Sampling street shadow", current: 25, total: 100 };
 
     expect(routeProgressPercent(progress)).toBe(25);
     expect(routeProgressCount(progress)).toBe("25/100");
   });
 
   it("clamps progress to the known range", () => {
-    const progress = { message: "Sampling street shade", current: 120, total: 100 };
+    const progress = { message: "Sampling street shadow", current: 120, total: 100 };
 
     expect(routeProgressPercent(progress)).toBe(100);
     expect(routeProgressCount(progress)).toBe("100/100");

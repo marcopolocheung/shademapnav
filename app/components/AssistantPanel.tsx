@@ -11,7 +11,7 @@ interface AssistantPanelProps {
 }
 
 const SUGGESTIONS = [
-  "Plan a shaded afternoon walk near here",
+  "Plan a shadowed afternoon walk near here",
   "Where's a shady spot to sit at 2pm?",
   "Plan a 3-stop day trip that stays out of the sun",
 ];
@@ -65,10 +65,10 @@ export default function AssistantPanel({
         </span>
         <div className="flex-1">
           <div className="text-sm font-bold" style={{ color: "var(--md-on-surface)" }}>
-            Shade Assistant
+            Umbra Assistant
           </div>
           <div className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
-            Plans shade-aware outings
+            Plans shadow-aware outings
           </div>
         </div>
         <button type="button"
@@ -95,7 +95,7 @@ export default function AssistantPanel({
           <div className="flex flex-col gap-2 mt-2">
             <p className="text-xs px-1" style={{ color: "var(--md-on-surface-variant)" }}>
               Ask me to plan around the sun. I can read the live shadows, check whether
-              a spot is shaded at a given hour, and draw shade-aware routes.
+              a spot is shadowed at a given hour, and draw shadow-aware routes.
             </p>
             {SUGGESTIONS.map((s) => (
               <button type="button"
@@ -163,7 +163,7 @@ export default function AssistantPanel({
               }
             }}
             rows={1}
-            placeholder="Ask about shade, routes, or a day trip…"
+            placeholder="Ask about shadow, routes, or a day trip…"
             className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none"
             style={{
               borderColor: "var(--md-outline-variant)",

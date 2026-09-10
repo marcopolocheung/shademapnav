@@ -14,11 +14,11 @@ describe("buildHourlyExposureSeries", () => {
 
     expect(samples.map((sample) => sample.hour)).toEqual([7, 8, 9]);
     expect(samples.map((sample) => sample.label)).toEqual(["7 AM", "8 AM", "9 AM"]);
-    expect(samples[1].shadeCoverage).toBe(0.75);
+    expect(samples[1].shadowCoverage).toBe(0.75);
     expect(samples[1].sunExposure).toBe(0.25);
   });
 
-  it("clamps shade coverage and chooses the lowest exposure sample", () => {
+  it("clamps shadow coverage and chooses the lowest exposure sample", () => {
     const baseDate = new Date("2026-07-05T12:00:00.000Z");
     const samples = buildHourlyExposureSeries(
       baseDate,
@@ -32,7 +32,7 @@ describe("buildHourlyExposureSeries", () => {
       { startHour: 9, endHour: 11 }
     );
 
-    expect(samples.map((sample) => sample.shadeCoverage)).toEqual([0.4, 1, 0]);
+    expect(samples.map((sample) => sample.shadowCoverage)).toEqual([0.4, 1, 0]);
     expect(bestExposureSample(samples)?.label).toBe("10 AM");
   });
 

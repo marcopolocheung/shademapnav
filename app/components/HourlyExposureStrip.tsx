@@ -8,9 +8,9 @@ interface HourlyExposureStripProps {
 }
 
 /**
- * Shade on this route, hour by hour — the "when should I go?" answer.
+ * Shadow on this route, hour by hour — the "when should I go?" answer.
  *
- * Bars are drawn as *sun*, not shade: the thing being avoided is the thing worth
+ * Bars are drawn as *sun*, not shadow: the thing being avoided is the thing worth
  * seeing, and a short bar reading as a good hour matches how the rest of the app
  * talks about exposure. Hours still being sampled stay blank rather than showing
  * a zero the field never measured.
@@ -39,7 +39,7 @@ export default function HourlyExposureStrip({
           {readyCount < samples.length
             ? "checking…"
             : best
-              ? `Shadiest around ${best.label}`
+              ? `most shadowed around ${best.label}`
               : null}
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function HourlyExposureStrip({
               <span
                 className="w-full rounded-sm transition-[height] duration-200 motion-reduce:transition-none"
                 style={{
-                  // A fully shaded hour still gets a sliver, so the bar reads as a
+                  // A fully shadowed hour still gets a sliver, so the bar reads as a
                   // measurement rather than a gap in the data.
                   height: ready ? `${Math.max(6, sample.sunExposure * 100)}%` : "6%",
                   background: ready

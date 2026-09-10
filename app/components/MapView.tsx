@@ -106,8 +106,8 @@ function findPlaceLabelSlots(map: maplibregl.Map): PlaceLabelSlot[] {
  * Only while the camera is tilted. Everything above the first 3D layer is drawn
  * by MapLibre with depth testing off, so a layer lifted up here is unconditionally
  * visible over the extrusions — but flat-on there are no extrusions to hide behind,
- * and the flat view is the one the shade sampler reads back off the canvas
- * (invariant #5), where an untinted label over a shaded sidewalk would score as
+ * and the flat view is the one the shadow sampler reads back off the canvas
+ * (invariant #5), where an untinted label over a shadowed sidewalk would score as
  * open sun. Restoring walks the slots backwards so each layer's recorded successor
  * is already home by the time it is used.
  */
@@ -394,10 +394,10 @@ export default function MapView({
 }: MapViewProps) {
   const containerRef    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<maplibregl.Map | null>(null);
-  const shadeRef        = useRef<IShadowLayer | null>(null);
+  const shadowRef        = useRef<IShadowLayer | null>(null);
   const initRef         = useRef(false);
   const dateRef         = useRef(date);
-  const shadeUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shadowUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMapClickRef      = useRef(onMapClick);
   const onMarkerDragEndRef = useRef(onMarkerDragEnd);
   const markerARef         = useRef<maplibregl.Marker | null>(null);
@@ -723,7 +723,7 @@ export default function MapView({
       // There is deliberately no terrain here. Terrain replaces the ground with a
       // displaced mesh while the shadow layer's triangles stay at z = 0, so shadows
       // float over valleys and sink into rises. Fixing that means sampling the DEM in
-      // the shadow vertex shader; elevation adds nothing to urban pedestrian shade, so
+      // the shadow vertex shader; elevation adds nothing to urban pedestrian shadow, so
       // the feature is gone rather than broken.
 
       // Create local shadow layer
@@ -731,7 +731,7 @@ export default function MapView({
         date: dateRef.current,
       });
 
-      shadeRef.current = shadowLayer;
+      shadowRef.current = shadowLayer;
       onShadowLayerReady?.(shadowLayer);
 
       // If local renderer (CustomLayer), register it as a map layer
@@ -765,7 +765,7 @@ export default function MapView({
       }
 
       shadowLayer.on('idle', () => bringNavOverlaysToFront(map));
-      const resizeHandler = () => { shadeRef.current?.setDate(dateRef.current); };
+      const resizeHandler = () => { shadowRef.current?.setDate(dateRef.current); };
       map.on("resize", resizeHandler);
 
       bringNavOverlaysToFront(map);
@@ -783,11 +783,11 @@ export default function MapView({
     });
 
     return () => {
-      if (shadeUpdateTimerRef.current) clearTimeout(shadeUpdateTimerRef.current);
+      if (shadowUpdateTimerRef.current) clearTimeout(shadowUpdateTimerRef.current);
       placePopupRef.current?.remove();
       placePopupRef.current = null;
-      shadeRef.current?.remove();
-      shadeRef.current = null;
+      shadowRef.current?.remove();
+      shadowRef.current = null;
       onShadowLayerReady?.(null);
       markerARef.current?.remove();      markerARef.current = null;
       markerBRef.current?.remove();     markerBRef.current = null;
@@ -808,8 +808,8 @@ export default function MapView({
   // -------------------------------------------------------------------------
   useEffect(() => {
     dateRef.current = date;
-    if (shadeUpdateTimerRef.current) clearTimeout(shadeUpdateTimerRef.current);
-    shadeUpdateTimerRef.current = setTimeout(() => { shadeRef.current?.setDate(date); }, 1);
+    if (shadowUpdateTimerRef.current) clearTimeout(shadowUpdateTimerRef.current);
+    shadowUpdateTimerRef.current = setTimeout(() => { shadowRef.current?.setDate(date); }, 1);
 
     const map = mapRef.current;
     if (map?.isStyleLoaded() && showSunLinesRef.current) {
@@ -848,15 +848,15 @@ export default function MapView({
   // Accumulation mode
   // -------------------------------------------------------------------------
   useEffect(() => {
-    if (!shadeRef.current) return;
+    if (!shadowRef.current) return;
     if (accumulation.enabled) {
-      shadeRef.current.setSunExposure(true, {
+      shadowRef.current.setSunExposure(true, {
         startDate: accumulation.startDate,
         endDate: accumulation.endDate,
         iterations: accumulation.iterations,
       });
     } else {
-      shadeRef.current.setSunExposure(false);
+      shadowRef.current.setSunExposure(false);
     }
   }, [accumulation]);
 

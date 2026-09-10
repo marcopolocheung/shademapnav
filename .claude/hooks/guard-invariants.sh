@@ -5,7 +5,7 @@
 # deny     = the invariant is mechanical and breaking it breaks the app (pins, WebGL flags,
 #            the lazy import, the User-Agent headers, the suncalc default import).
 # escalate = the change is legitimate sometimes but must be a human decision (the shadow
-#            colour <-> shade-predicate coupling), so it becomes a permission prompt.
+#            colour <-> shadow-predicate coupling), so it becomes a permission prompt.
 #
 # Exit 0 with no JSON = no opinion; the normal permission flow applies.
 set -uo pipefail
@@ -53,7 +53,7 @@ changes Texture.update so mapbox-gl-shadow-simulator's {width,height} call crash
   if adds '"suncalc"' && ! grep -qE '"suncalc"[[:space:]]*:[[:space:]]*"?[\^~]?1\.' <<<"$new"; then
     decide deny "CLAUDE.md invariant 2: suncalc stays on 1.x. 2.x is an ESM rewrite with
 named exports only, so 'import SunCalc from \"suncalc\"' in sunPosition.worker.ts,
-LocalShadowAdapter.ts and offscreenShade.ts fails the rollup build. It would also install a
+LocalShadowAdapter.ts and offscreenShadow.ts fails the rollup build. It would also install a
 second copy alongside mapbox-gl-shadow-simulator's suncalc ^1.9.0 and skew the solar math."
   fi
   for dep in earcut suncalc '@types/suncalc' '@types/earcut'; do
@@ -67,7 +67,7 @@ fi
 
 # ── Invariant 2 (cont.): the default import must survive ──────────────────────
 case "$base" in
-  LocalShadowAdapter.ts|sunPosition.worker.ts|offscreenShade.ts)
+  LocalShadowAdapter.ts|sunPosition.worker.ts|offscreenShadow.ts)
     if strips 'import SunCalc from "suncalc"'; then
       decide deny "CLAUDE.md invariant 2: '$base' must keep the default import
 'import SunCalc from \"suncalc\"'. suncalc is pinned to 1.x precisely so this form works;
@@ -78,7 +78,7 @@ esac
 # ── Invariant 3: the canvas must stay readable ────────────────────────────────
 if strips 'preserveDrawingBuffer'; then
   decide deny "CLAUDE.md invariant 3: the map must keep
-canvasContextAttributes: { preserveDrawingBuffer: true }. Shade sampling and GeoTIFF export
+canvasContextAttributes: { preserveDrawingBuffer: true }. Shadow sampling and GeoTIFF export
 read the canvas back; without it both silently return empty pixels."
 fi
 
@@ -113,22 +113,22 @@ setting it in client code looks like compliance and is not. Route the request th
     fi ;;
 esac
 
-# ── Invariant 5: shade detection is coupled to the shadow colour ──────────────
+# ── Invariant 5: shadow detection is coupled to the shadow colour ──────────────
 # Judgment call, not a mechanical error: surface it as a prompt rather than a block.
-if [[ "$base" == "shadeSampling.ts" ]] && [[ "$old$new" == *"isBlueDominantShadowPixel"* ]]; then
+if [[ "$base" == "shadowSampling.ts" ]] && [[ "$old$new" == *"isBlueDominantShadowPixel"* ]]; then
   if adds 'r + g + b <' || adds 'b - ((r + g)' || strips 'r + g + b <'; then
     decide escalate "CLAUDE.md invariant 5: this edits the isBlueDominantShadowPixel
 thresholds (r+g+b < 600, b - (r+g)/2 > 18, b > (r+g)/2 * 1.15). Routing and the assistant's
-spot checks both decide 'shaded' with this predicate, and it is coupled to the shadow colours
+spot checks both decide 'shadowed' with this predicate, and it is coupled to the shadow colours
 in LocalShadowAdapter.ts after compositing over the basemap. Changing it silently re-scores
 every route. Confirm this is intended."
   fi
 fi
 if [[ "$base" == "LocalShadowAdapter.ts" ]] && { adds 'shadowColor' || adds 'rgba('; }; then
   if strips 'shadowColor' || adds 'shadowColor'; then
-    decide escalate "CLAUDE.md invariant 5: shade detection couples to the shadow colour.
+    decide escalate "CLAUDE.md invariant 5: shadow detection couples to the shadow colour.
 Colours in LocalShadowAdapter.ts must stay blue-dominant enough to satisfy
-isBlueDominantShadowPixel (app/lib/shadeSampling.ts) after compositing over the basemap.
+isBlueDominantShadowPixel (app/lib/shadowSampling.ts) after compositing over the basemap.
 If you change them, re-check that predicate in the same PR."
   fi
 fi

@@ -15,10 +15,10 @@ function route(geojson: GeoJSON.Feature<GeoJSON.LineString>): RouteOption {
     label: "Shortest",
     geojson,
     distanceM: 100,
-    shadeCoverage: 0.5,
-    longestContinuousShadeM: 0,
+    shadowCoverage: 0.5,
+    longestContinuousShadowM: 0,
     longestContinuousSunM: 0,
-    shadeTransitions: 0,
+    shadowTransitions: 0,
     detourRatio: 1,
     turnCount: 0,
   };

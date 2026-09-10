@@ -44,13 +44,13 @@ targets. It is a tool you run by hand, before a PR that changes what the map dra
 
 ## The scripts
 
-- **`scripts/verify/shade_readback.py`** — proves route shade does not depend on camera
-  pitch (#154). Calculates the same route flat and tilted and compares the shade percentages
+- **`scripts/verify/shadow_readback.py`** — proves route shadow does not depend on camera
+  pitch (#154). Calculates the same route flat and tilted and compares the shadow percentages
   the route cards report; also checks the camera went flat for the readback and got its tilt
   back afterwards.
 - **`scripts/verify/wall_shadow_alignment.py`** — compares Pass E before and after a wall
   ceiling-threshold change in a fixed Tribeca scene. Its diagnostic framebuffer writes the
-  shaded decision to red, roof/wall to green, sun-facing status to blue, and zero alpha for
+  shadowed decision to red, roof/wall to green, sun-facing status to blue, and zero alpha for
   every Pass E fragment. A fully covered building pixel therefore has `A == 0`; a valid
   ground probe has `A == 255`, and no pixel between it and the wall may have `A == 0`.
   The disagreement metric skips the one- or two-pixel MSAA silhouette fringe rather than
@@ -62,7 +62,7 @@ Run them against a dev server:
 ```bash
 npm run dev &
 LD_LIBRARY_PATH=$HOME/miniconda3/lib \
-  ~/miniconda3/bin/python scripts/verify/shade_readback.py --out out/
+  ~/miniconda3/bin/python scripts/verify/shadow_readback.py --out out/
 ```
 
 Screenshots and a JSON report land in `--out` (gitignored). Put the numbers in the PR body;
@@ -103,7 +103,7 @@ done
 Every baseline and comparison requires at least 10,000 Pass E pixels, 1,000 wall pixels,
 and 1,000 strict wall-base samples whose entire probe path has `A == 255`. Every comparison
 additionally requires exactly zero
-lit→shaded flips, exactly zero roof differences, a shaded→lit fraction from 0.3% through
+lit→shadowed flips, exactly zero roof differences, a shadowed→lit fraction from 0.3% through
 2.0% of compared Pass E pixels, and a wall-base disagreement rate at least 0.2 percentage
 points below its paired baseline. The lower flip bound catches a no-op; the upper bound
 catches a lift mistakenly applied to whole faces.
@@ -131,7 +131,7 @@ LD_LIBRARY_PATH=$HOME/miniconda3/lib \
 ```
 
 It prints a wrong-pixel fraction per surface — ground, wall, roof — split by direction
-(`lit-where-shaded` versus `shaded-where-lit`), and writes three images: the traced truth,
+(`lit-where-shadowed` versus `shadowed-where-lit`), and writes three images: the traced truth,
 the renderer's decision, and a mismatch mask on black. The mask is the point: a defect that
 is invisible in a log shows up there as a shape. Cyan/magenta blobs hugging vertical building
 edges read differently from one filling a whole roof, and that difference is what tells the
@@ -151,7 +151,7 @@ own raster resolution live there.
 
 ## What still cannot be checked
 
-Nothing here measures whether the shade numbers are *right* against the real world — only
+Nothing here measures whether the shadow numbers are *right* against the real world — only
 whether they are self-consistent, or consistent with the geometry the renderer was handed.
 Real accuracy needs the pixel sampler's answer recorded over real cities against surveyed
 ground truth, which no fixture in this repo has.

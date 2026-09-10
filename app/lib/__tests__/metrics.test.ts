@@ -16,16 +16,16 @@ function run(totalMs: number, overrides: Partial<RoutingRunMetrics> = {}): Routi
     phases: {
       graphFetch: 0,
       canvasRead: 0,
-      shadeSample: totalMs / 4,
+      shadowSample: totalMs / 4,
       dijkstra: totalMs / 8,
       total: totalMs,
     },
     graphNodeCount: 0,
     graphDirectedEdges: 0,
-    shadeFallbackShare: 0,
+    shadowFallbackShare: 0,
     routes: [],
     routeComputeMs: totalMs,
-    shadeCoverageGainPp: null,
+    shadowCoverageGainPp: null,
     pathLengthDeltaPct: null,
     ...overrides,
   };
@@ -38,7 +38,7 @@ function windowMetrics(): {
   clearMetrics: () => void;
 } {
   // The global is deliberately untyped; noExplicitAny is off repo-wide.
-  return (window as any).__shadeMapMetrics;
+  return (window as any).__umbraMetrics;
 }
 
 beforeEach(() => {
@@ -94,13 +94,13 @@ describe("getMetricsSummary", () => {
   });
 
   it("averages the KPIs over only the runs that reported them", () => {
-    recordRoutingRun(run(10, { shadeCoverageGainPp: 20, pathLengthDeltaPct: 8 }));
-    recordRoutingRun(run(10, { shadeCoverageGainPp: 30, pathLengthDeltaPct: 12 }));
+    recordRoutingRun(run(10, { shadowCoverageGainPp: 20, pathLengthDeltaPct: 8 }));
+    recordRoutingRun(run(10, { shadowCoverageGainPp: 30, pathLengthDeltaPct: 12 }));
     recordRoutingRun(run(10)); // single-route run: both KPIs null
 
     const s = getMetricsSummary()!;
     expect(s.runs).toBe(3);
-    expect(s.avgShadeCoverageGainPp).toBe(25);
+    expect(s.avgShadowCoverageGainPp).toBe(25);
     expect(s.avgPathLengthDeltaPct).toBe(10);
   });
 
@@ -108,7 +108,7 @@ describe("getMetricsSummary", () => {
     recordRoutingRun(run(10));
 
     const s = getMetricsSummary()!;
-    expect(s.avgShadeCoverageGainPp).toBeNull();
+    expect(s.avgShadowCoverageGainPp).toBeNull();
     expect(s.avgPathLengthDeltaPct).toBeNull();
   });
 });
@@ -124,7 +124,7 @@ describe("history buffer", () => {
   });
 });
 
-describe("window.__shadeMapMetrics", () => {
+describe("window.__umbraMetrics", () => {
   it("exposes clearMetrics so a benchmark can reset between scenarios", () => {
     recordRoutingRun(run(10));
 
@@ -158,31 +158,31 @@ describe("window.__shadeMapMetrics", () => {
 describe("computeDerivedKpis", () => {
   it("returns nulls when there is nothing to compare against", () => {
     expect(computeDerivedKpis([])).toEqual({
-      shadeCoverageGainPp: null,
+      shadowCoverageGainPp: null,
       pathLengthDeltaPct: null,
     });
     expect(
-      computeDerivedKpis([{ label: "Shortest", distanceM: 1000, shadeCoverage: 0.2 }])
-    ).toEqual({ shadeCoverageGainPp: null, pathLengthDeltaPct: null });
+      computeDerivedKpis([{ label: "Shortest", distanceM: 1000, shadowCoverage: 0.2 }])
+    ).toEqual({ shadowCoverageGainPp: null, pathLengthDeltaPct: null });
   });
 
   it("measures the last route against the first", () => {
     const kpis = computeDerivedKpis([
-      { label: "Shortest", distanceM: 1000, shadeCoverage: 0.2 },
-      { label: "Balanced", distanceM: 1050, shadeCoverage: 0.4 },
-      { label: "Most Shaded", distanceM: 1200, shadeCoverage: 0.65 },
+      { label: "Shortest", distanceM: 1000, shadowCoverage: 0.2 },
+      { label: "Balanced", distanceM: 1050, shadowCoverage: 0.4 },
+      { label: "Most Shadowed", distanceM: 1200, shadowCoverage: 0.65 },
     ]);
 
-    expect(kpis.shadeCoverageGainPp).toBeCloseTo(45, 10);
+    expect(kpis.shadowCoverageGainPp).toBeCloseTo(45, 10);
     expect(kpis.pathLengthDeltaPct).toBeCloseTo(20, 10);
   });
 
   it("returns nulls rather than dividing by a zero-length shortest route", () => {
     expect(
       computeDerivedKpis([
-        { label: "Shortest", distanceM: 0, shadeCoverage: 0 },
-        { label: "Most Shaded", distanceM: 500, shadeCoverage: 0.5 },
+        { label: "Shortest", distanceM: 0, shadowCoverage: 0 },
+        { label: "Most Shadowed", distanceM: 500, shadowCoverage: 0.5 },
       ])
-    ).toEqual({ shadeCoverageGainPp: null, pathLengthDeltaPct: null });
+    ).toEqual({ shadowCoverageGainPp: null, pathLengthDeltaPct: null });
   });
 });

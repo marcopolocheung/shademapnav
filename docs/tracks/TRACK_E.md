@@ -44,11 +44,11 @@ want the same missing object: a `Trip`.
 
 ## What already exists
 
-- `routing.ts:333 dijkstra()` — cost is `distanceM * (1 - shadeStrength * shadeFactor *
-  MAX_SHADE_SAVING * solarIntensity) + crossingPenaltyM` (`:329-330`, `MAX_SHADE_SAVING = 0.7`
+- `routing.ts:333 dijkstra()` — cost is `distanceM * (1 - shadowStrength * shadowFactor *
+  MAX_SHADOW_SAVING * solarIntensity) + crossingPenaltyM` (`:329-330`, `MAX_SHADOW_SAVING = 0.7`
   at `:325`). **This one line is where every mode policy lands.**
 - `routing.ts:472 paretoRoutes()` — the detour-budget Pareto search producing shortest /
-  balanced / most-shaded. Mode changes must not break its optimistic-bound pruning.
+  balanced / most-shadowed. Mode changes must not break its optimistic-bound pruning.
 - `RouteLeg` / `RouteOption` (`routing.ts:48-76`) — legs, transit legs, `totalTimeSec`,
   `partial`. Multi-stop already produces real leg data.
 - `trainGraph.ts` (679 lines) — transit routing with `sunExposure` per leg (0 underground,
@@ -89,7 +89,7 @@ export interface Trip {
   stops: Stop[];
   legs: TripLeg[];
   defaultMode: TravelModeId;
-  totals: { distanceM: number; timeSec: number; shadeCoverage: number };
+  totals: { distanceM: number; timeSec: number; shadowCoverage: number };
 }
 ```
 
@@ -114,11 +114,11 @@ return three distinct routes; mode survives a share-link round trip.
 
 ### E2 — Mode-aware output
 **Goal.** Everything downstream speaks the selected mode.
-**Approach.** ETA, the tradeoff sentence, and the shade weighting adapt: a cyclist at 4.5 m/s
-accumulates roughly a third of the dose per metre, so `shadeStrength` should scale with
+**Approach.** ETA, the tradeoff sentence, and the shadow weighting adapt: a cyclist at 4.5 m/s
+accumulates roughly a third of the dose per metre, so `shadowStrength` should scale with
 exposure *time*, not distance. Coordinate the exposure half with **Track D** (D4's score
 consumes the same reasoning).
-**Acceptance.** Documented relationship between mode speed and shade weight; the same origin/
+**Acceptance.** Documented relationship between mode speed and shadow weight; the same origin/
 destination in walk vs bike produces sensibly different route choices, not just a different ETA.
 **Files.** `routing.ts`, `routeTradeoff.ts`, `useNavigation.ts` (⚠️). **Size.** Medium.
 
@@ -146,7 +146,7 @@ differently from walk mode. **Size.** Small–medium once E1's machinery exists.
 **Approach.** Introduce `app/lib/trip/**` and migrate `useNavigation`'s waypoint arrays behind
 it, keeping the current public hook API until consumers move. Add per-stop dwell time (needed
 for "coffee then dinner" — a 30-minute stop changes which hour the next leg is routed for,
-which is the whole point of a shade app).
+which is the whole point of a shadow app).
 **Acceptance.** `Trip` is the argument type for save, share, export, and the agent's planning
 tool; existing route tests unchanged; the share URL round-trips a 4-stop trip with dwell times.
 **Files.** `app/lib/trip/**` (new), `useNavigation.ts` (⚠️), `savedRoutes.ts`, `shareState.ts`.
@@ -159,8 +159,8 @@ reinventing a stop model. Track C's C4 also wants `Trip` as its planning-tool ar
 **Goal.** Walk + transit + bike legs in one `Trip`.
 **Approach.** `trainGraph.ts` already produces transit legs with `sunExposure`; generalize so
 each `TripLeg` carries its own mode and the totals sum across modes.
-**Acceptance.** A walk→transit→walk journey reports honest per-leg shade (underground legs are
-100% shaded and should say why); a bike leg that can't continue underground is handled explicitly.
+**Acceptance.** A walk→transit→walk journey reports honest per-leg shadow (underground legs are
+100% shadowed and should say why); a bike leg that can't continue underground is handled explicitly.
 **Files.** `app/lib/trip/**`, `trainGraph.ts`, `useNavigation.ts` (⚠️). **Size.** Large.
 
 ### E7 — Elevation *(unblocks E3)*
@@ -170,7 +170,7 @@ makes every ETA in the app better. Acceptance: grade available per edge with a d
 sampling method; ETA on a known hilly route improves against a measured reference.
 
 ### E8 — Saved journeys
-Home/Work + a commute `Trip` that reopens with today's shade. Part of **#64**; pairs with
+Home/Work + a commute `Trip` that reopens with today's shadow. Part of **#64**; pairs with
 Track D's D6/D7 to close the habit loop. Extends `savedRoutes.ts` from routes to trips
 (with a migration for existing saved data — don't strand it).
 
@@ -202,6 +202,6 @@ Track D's D6/D7 to close the habit loop. Extends `savedRoutes.ts` from routes to
 
 ## Out of scope / hand-offs
 
-- Shade math → **Track A**. Heat weighting → **Track D** (E applies, D defines).
+- Shadow math → **Track A**. Heat weighting → **Track D** (E applies, D defines).
 - Live guidance and leg *browsing UI* → **Track B** (B8 consumes `Trip`).
 - Splitting `useNavigation.ts` → **Track G** (G6). Don't do it opportunistically mid-checkpoint.

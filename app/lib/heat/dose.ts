@@ -29,23 +29,23 @@ export const MED_SED: Record<SkinType, Range> = {
 };
 
 /**
- * Share of ambient erythemal UV still reaching someone in building shade.
+ * Share of ambient erythemal UV still reaching someone in building shadow.
  *
- * **Shade is not a UV shield.** Under clear skies the diffuse component is about
+ * **Shadow is not a UV shield.** Under clear skies the diffuse component is about
  * 50–62% of global erythemal UV, so a building shadow removes the direct beam and
  * leaves most of the rest. What remains is that diffuse share multiplied by how much
- * sky the spot can still see, which for a street shaded by one building is high.
+ * sky the spot can still see, which for a street shadowed by one building is high.
  *
  * The band below is that product for a plausible range of street geometries. It is a
  * derivation, not a measurement, and it is the least defensible number in this file —
  * Track A's sky view factor (A9) is what would replace it with something computed.
  */
-export const SHADE_UV_TRANSMISSION: Range = { low: 0.2, high: 0.6 };
+export const SHADOW_UV_TRANSMISSION: Range = { low: 0.2, high: 0.6 };
 
 export interface TripExposure {
   sunMinutes: number;
-  /** Minutes in shade. Not zero-dose — see `SHADE_UV_TRANSMISSION`. */
-  shadeMinutes: number;
+  /** Minutes in shadow. Not zero-dose — see `SHADOW_UV_TRANSMISSION`. */
+  shadowMinutes: number;
 }
 
 function widthRatio(range: Range): number {
@@ -59,8 +59,8 @@ function widthRatio(range: Range): number {
  * would render as a safe trip. A UV index of exactly 0 — night, or deep winter dusk —
  * is a real measurement and yields a real zero dose.
  *
- * Deliberately takes shaded minutes as well as sunlit ones. A function that counted
- * only direct sun would report a fully shaded route as zero dose, which is precisely
+ * Deliberately takes shadowed minutes as well as sunlit ones. A function that counted
+ * only direct sun would report a fully shadowed route as zero dose, which is precisely
  * the claim this model must not make.
  *
  * `profile` has **no default, and null is a legitimate argument**. Without one the
@@ -77,12 +77,12 @@ export function dose(
   if (uvIndex === null || !Number.isFinite(uvIndex) || uvIndex < 0) return null;
 
   const sunMinutes = Math.max(0, exposure.sunMinutes);
-  const shadeMinutes = Math.max(0, exposure.shadeMinutes);
+  const shadowMinutes = Math.max(0, exposure.shadowMinutes);
   const perMinute = uvIndex * SED_PER_MINUTE_PER_UVI;
 
   const sed: Range = {
-    low: perMinute * (sunMinutes + shadeMinutes * SHADE_UV_TRANSMISSION.low),
-    high: perMinute * (sunMinutes + shadeMinutes * SHADE_UV_TRANSMISSION.high),
+    low: perMinute * (sunMinutes + shadowMinutes * SHADOW_UV_TRANSMISSION.low),
+    high: perMinute * (sunMinutes + shadowMinutes * SHADOW_UV_TRANSMISSION.high),
   };
 
   // The trip restated as unbroken full sun at the same UV — no person in it.

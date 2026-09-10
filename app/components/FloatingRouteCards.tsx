@@ -20,8 +20,8 @@ interface FloatingRouteCardsProps {
 }
 
 function routeKey(route: RouteOption): string {
-  const shade = Math.round(route.shadeCoverage * 1000);
-  return `${route.label}-${Math.round(route.distanceM)}-${shade}`;
+  const shadow = Math.round(route.shadowCoverage * 1000);
+  return `${route.label}-${Math.round(route.distanceM)}-${shadow}`;
 }
 
 export default function FloatingRouteCards({
@@ -66,7 +66,7 @@ export default function FloatingRouteCards({
               color: solarIntensity > 0.6 ? "var(--md-on-primary-container)" : "#92400e",
             }}
           >
-            {solarIntensity > 0.6 ? "High solar load — shade matters" : "Moderate solar load"}
+            {solarIntensity > 0.6 ? "High solar load — shadow matters" : "Moderate solar load"}
           </div>
         )}
 

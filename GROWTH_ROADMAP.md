@@ -1,17 +1,17 @@
-# ShadeMapNav Growth Roadmap — Getting and Keeping Users
+# Umbra Growth Roadmap — Getting and Keeping Users
 
 > **This is the product thesis, not a task list.** It explains who the users are and
 > why these bets matter. Anything actionable in it is tracked in GitHub Issues
 > (`gh issue list`) — several items below have already shipped and are not marked as such.
 
 *Product-focused companion to `docs/notes/archive/PROJECT_REVIEW-2026-07-05.md` (engineering health, as of that date). This
-document answers one question: what would make people **find** ShadeMapNav, **succeed
+document answers one question: what would make people **find** Umbra, **succeed
 with it in the first two minutes**, and **come back**? Written 2026-07-05.*
 
-ShadeMapNav is a personal open-source shaded-route navigation project. It is an independent
-personal project and is not affiliated with ShadeMap.app.
+Umbra is a personal open-source shadowed-route navigation project. It is an independent
+personal project and is not affiliated with Umbra.app.
 
-The core insight driving everything below: this app's value proposition — "walk in the shade
+The core insight driving everything below: this app's value proposition — "walk in the shadow
 on a hot day" — is **seasonal, local, and urgent**. People search for it mid-heatwave, on
 their phone, standing outside. Every feature should be judged against that user.
 
@@ -22,12 +22,12 @@ their phone, standing outside. Every feature should be judged against that user.
 Ranked by likely volume and retention potential:
 
 1. **Hot-city pedestrians & commuters** (Phoenix, Madrid, Seville, Athens, Singapore, Tokyo,
-   Tel Aviv) — the daily-use case. They want one thing: "shadiest way to the station at 5pm."
+   Tel Aviv) — the daily-use case. They want one thing: "most shadowed way to the station at 5pm."
 2. **Runners / dog walkers / stroller parents** — recurring, time-flexible ("when should I
    go?" as much as "which way?"). The timeline slider is *made* for them; they don't know it.
 3. **Sun-sensitive people** (photosensitizing medications, lupus, melanoma survivors) — small
    segment, extremely high retention, and they evangelize in communities/forums.
-4. **Photographers & picnickers** — "where is golden-hour light / afternoon shade in this
+4. **Photographers & picnickers** — "where is golden-hour light / afternoon shadow in this
    park?" One-off but highly shareable use.
 5. **Urbanists, planners, café owners** — the sun-exposure accumulation + GeoTIFF export is a
    niche pro tool. Low volume, but they publish screenshots, which is free acquisition.
@@ -55,19 +55,19 @@ when the user explicitly asked for a long journey.
 
 ### 1.3 Multi-stop journeys
 `useNavigation` already supports `additionalWaypoints`; neither the directions UI nor the
-agent exposes it. "Errands loop in the shade" (pharmacy → grocery → home) is the everyday
+agent exposes it. "Errands loop in the shadow" (pharmacy → grocery → home) is the everyday
 power use-case. This is UI plumbing, not new capability.
 
 ### 1.4 Honesty about clouds — a trust feature, not a weather feature
 The app renders razor-sharp shadows on a day that may be fully overcast. One experience of
-"the app sent me the long way for shade that didn't exist" ends retention permanently. Pull
+"the app sent me the long way for shadow that didn't exist" ends retention permanently. Pull
 current + hourly cloud cover from a free API (e.g. Open-Meteo, no key needed) and:
-- badge the timeline: "☁️ 90% cloud at this hour — shade routing matters less"
+- badge the timeline: "☁️ 90% cloud at this hour — shadow routing matters less"
 - optionally soften/desaturate shadow rendering under heavy cloud
 This is cheap and it converts the app from "geometry demo" to "something I trust with my walk."
 
 ### 1.5 Trees
-Buildings-only shadows systematically miss the single biggest shade source on many streets.
+Buildings-only shadows systematically miss the single biggest shadow source on many streets.
 Full tree modeling is a research project, but a v1 is not: Overpass already serves
 `natural=tree` and `landuse=forest`/`leaf_type` polygons, and the routing cost model can take
 a flat "tree-lined street" bonus per edge without touching the WebGL renderer. Even a rough
@@ -83,17 +83,17 @@ unexplained map-tool UI.
 
 ### 2.1 One-tap first success
 On first visit: geolocate (with permission), drop the shadows at *now*, and surface a single
-prompt — **"Where are you walking?"** — that goes straight into shade routing. Everything
+prompt — **"Where are you walking?"** — that goes straight into shadow routing. Everything
 else (timeline, accumulation mode, sketch, assistant) stays discoverable but out of the
 critical path. Measure time-to-first-route; it should be under 30 seconds.
 
-### 2.2 Make the shade legible
+### 2.2 Make the shadow legible
 New users don't know that dark blue = shadow = the whole point. Add a dismissible one-line
-legend ("blue = shade at 3:42pm — drag the timeline") the first time shadows render. The
+legend ("blue = shadow at 3:42pm — drag the timeline") the first time shadows render. The
 timeline slider is the app's most magical interaction and currently has to be discovered.
 
 ### 2.3 Sell the route choice
-The Pareto options (shortest / balanced / most-shaded) are the product's genuinely novel
+The Pareto options (shortest / balanced / most-shadowed) are the product's genuinely novel
 output. Present them as a human tradeoff, prominently: **"+4 min, −62% sun exposure."**
 That one sentence is the entire pitch of the app, and it's currently buried in route cards.
 It's also the sentence users will screenshot.
@@ -127,7 +127,7 @@ icon on their phone — the cheapest retention mechanism that exists. Cache the 
 last-viewed tiles; routing can stay online-only.
 
 ### 3.4 SEO landing pages for the searches people actually make
-"shaded walking route <city>", "avoid sun walking <city>". A handful of static, pre-rendered
+"shadowed walking route <city>", "avoid sun walking <city>". A handful of static, pre-rendered
 city pages (Madrid, Phoenix, Seville, Singapore…) each with a screenshot, a canned deep link
 (§3.1), and two paragraphs. The SPA itself is invisible to these searches today.
 
@@ -143,13 +143,13 @@ survive the heatwave" article is worth months of trickle.
 ### 4.1 "Best time to go" — flip the question
 The engine answers "which route at time T?" but can just as cheaply answer **"which T for my
 route?"** — sweep the day at 30-min steps and show a mini exposure-by-hour chart: "your walk
-is 70% shaded before 10am, 25% at 2pm." Runners and dog walkers will check this *daily*. The
+is 70% shadowed before 10am, 25% at 2pm." Runners and dog walkers will check this *daily*. The
 accumulation renderer already does the underlying work; this is a UI over existing capability.
 
 ### 4.2 Saved places & routines that do something
 Saved routes exist; make them live. "Home" + "Work" + a commute route unlocks: a returning
 user lands on *their* answer instantly, and (post-PWA, with permission) a morning
-notification — "today: shadiest commute window 8:10–8:40, UV high after 11" — which is the
+notification — "today: most shadowed commute window 8:10–8:40, UV high after 11" — which is the
 strongest habit loop available to this product.
 
 ### 4.3 UV index + a sun-exposure number that means something
@@ -158,7 +158,7 @@ This is the feature the sun-sensitive segment (§ persona 3) needs, and it upgra
 tradeoff from geometry to health: "this route: ~12 min direct sun at UV 9."
 
 ### 4.4 Assistant, once fixed, as the retention closer
-When §1.1–1.3 land, the day-planner assistant ("plan me a shaded afternoon: coffee, park,
+When §1.1–1.3 land, the day-planner assistant ("plan me a shadowed afternoon: coffee, park,
 dinner") is the feature nothing else on the market has. It should also stop hijacking the
 camera during research (`PROJECT_REVIEW-2026-07-05.md` §2, archived) — a 10–15s teleporting map reads as broken to
 every user who triggers it.
@@ -183,5 +183,5 @@ every user who triggers it.
 metrics: time-to-first-route (activation), share-link opens (acquisition), saved-route
 re-use (retention).
 
-The one-sentence strategy: **fix what breaks the promise, make the shade tradeoff visible
+The one-sentence strategy: **fix what breaks the promise, make the shadow tradeoff visible
 and shareable, then give people a reason to check every morning.**

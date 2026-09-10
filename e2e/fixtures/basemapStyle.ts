@@ -4,7 +4,7 @@
  * PRs, which never receive secrets.
  *
  * The one thing the app actually needs from the basemap is building footprints:
- * the shadow renderer, the shade providers and the building snapper all call
+ * the shadow renderer, the shadow providers and the building snapper all call
  * `querySourceFeatures("maptiler_planet", { sourceLayer: "building" })`. In the
  * pinned maplibre-gl 5.9.0 a tile's layers resolve as
  * `vtLayers._geojsonTileLayer || vtLayers[sourceLayer]`, so a *geojson* source
@@ -17,9 +17,9 @@
  *    `Style.update` marks a source `used` only when some non-hidden layer in the
  *    layer order references it; an unreferenced source never tiles, and
  *    `querySourceFeatures` would return nothing at all.
- * 2. The colours must not be blue-dominant. Shade detection is
+ * 2. The colours must not be blue-dominant. Shadow detection is
  *    `isBlueDominantShadowPixel` (invariant #5), and the test's whole premise is
- *    that the unshaded frame scores 0. Both colours here are pure greys, whose
+ *    that the unshadowed frame scores 0. Both colours here are pure greys, whose
  *    `b - avg(r, g)` is exactly 0 however anti-aliasing blends them; composited
  *    under the 0.7-alpha shadow they clear the predicate at every sun altitude.
  *    Change either one and re-check both directions.
@@ -27,9 +27,9 @@
 
 import type { StyleSpecification } from "maplibre-gl";
 
-/** Ground. Pure grey: never reads as shade on its own. */
+/** Ground. Pure grey: never reads as shadow on its own. */
 const GROUND_COLOR = "#ebebeb";
-/** Building footprints, a shade darker so the fixture is legible in a trace. */
+/** Building footprints, a shadow darker so the fixture is legible in a trace. */
 const BUILDING_COLOR = "#b4b4b4";
 
 // The block grid shares its origin and pitch with the street grid in
@@ -54,7 +54,7 @@ const COL_MAX = 15;
 
 // At 09:00 on the June solstice the sun sits ~37 degrees up, so a shadow runs
 // ~1.33x the building's height: 24-96 m here, which reaches across the ~59 m
-// blocks without burying the whole viewport in shade. Staying under 100 m also
+// blocks without burying the whole viewport in shadow. Staying under 100 m also
 // keeps `prismsFromTileFeatures`'s tall-building filter out of the picture.
 const MIN_HEIGHT_M = 18;
 const MAX_HEIGHT_M = 72;
@@ -66,7 +66,7 @@ function blockHeightM(row: number, col: number): number {
 }
 
 /**
- * Whether a block is left empty. A quarter of them are: an unbroken grid shades
+ * Whether a block is left empty. A quarter of them are: an unbroken grid shadows
  * nearly the whole frame at both 09:00 and noon, which would leave the
  * "shadows moved" assertion comparing two almost identical masks.
  */
@@ -82,8 +82,8 @@ interface BuildingFeature {
 
 /**
  * The footprints the style carries, as bare features. The detour sweep in
- * `e2e/bench/` builds its prisms from these, so the shade it prices edges
- * against is the shade the browser benchmark's map is drawing.
+ * `e2e/bench/` builds its prisms from these, so the shadow it prices edges
+ * against is the shadow the browser benchmark's map is drawing.
  */
 export function fixtureBuildingFeatures(): BuildingFeature[] {
   return buildFootprints();

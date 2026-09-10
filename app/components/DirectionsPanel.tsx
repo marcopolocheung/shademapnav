@@ -18,7 +18,7 @@ const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) 
         className="text-xs px-2.5 py-1 rounded-full self-start"
         style={{ background: "rgba(100,116,139,0.1)", color: "var(--md-on-surface-variant)" }}
       >
-        Low sun — shade routing minimal
+        Low sun — shadow routing minimal
       </div>
     );
   }
@@ -37,7 +37,7 @@ const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) 
       className="text-xs px-2.5 py-1 rounded-full self-start"
       style={{ background: "var(--md-primary-container)", color: "var(--md-on-primary-container)" }}
     >
-      High solar load — shade matters
+      High solar load — shadow matters
     </div>
   );
 });
@@ -87,8 +87,8 @@ export interface DirectionsPanelProps {
   routeMode?: 'walk' | 'transit';
   onRouteModeChange?: (mode: 'walk' | 'transit') => void;
   canTransit?: boolean;
-  shadePreference?: number;
-  onShadePreferenceChange?: (v: number) => void;
+  shadowPreference?: number;
+  onShadowPreferenceChange?: (v: number) => void;
   /** The forecast hour at the map's location, for the heat score. */
   weather?: WeatherHour | null;
 }
@@ -118,10 +118,10 @@ export default function DirectionsPanel({
   exposureSlot,
   routeMode = 'walk', onRouteModeChange,
   canTransit = true,
-  shadePreference = 0.5, onShadePreferenceChange,
+  shadowPreference = 0.5, onShadowPreferenceChange,
   weather = null,
 }: DirectionsPanelProps) {
-  const shadeLabel = shadePreference < 0.33 ? "Fastest" : shadePreference > 0.66 ? "Most shaded" : "Balanced";
+  const shadowLabel = shadowPreference < 0.33 ? "Fastest" : shadowPreference > 0.66 ? "Most shadowed" : "Balanced";
   const baselineRoute = shortestRoute(routes);
   const completeBaselineRoute = shortestRoute(routes.filter((route) => !route.partial)) ?? baselineRoute;
   const selectedRoute = routes[selectedRouteIndex];
@@ -356,25 +356,25 @@ export default function DirectionsPanel({
         )}
       </div>
 
-      {/* Shade preference slider */}
+      {/* Shadow preference slider */}
       <div className="border-t pt-2" style={{ borderColor: "var(--md-outline-variant)" }}>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Shade preference</span>
-          <span className="text-[11px] font-medium" style={{ color: "var(--md-on-surface)" }}>{shadeLabel}</span>
+          <span className="text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>Shadow preference</span>
+          <span className="text-[11px] font-medium" style={{ color: "var(--md-on-surface)" }}>{shadowLabel}</span>
         </div>
         <input
           type="range"
           min="0"
           max="1"
           step="0.01"
-          value={shadePreference}
-          onChange={(e) => onShadePreferenceChange?.(parseFloat(e.target.value))}
+          value={shadowPreference}
+          onChange={(e) => onShadowPreferenceChange?.(parseFloat(e.target.value))}
           className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-700"
           style={{ background: "var(--md-surface-container-low)" }}
         />
         <div className="flex justify-between mt-1">
           <span className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>Fastest</span>
-          <span className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>Most shaded</span>
+          <span className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>Most shadowed</span>
         </div>
       </div>
 
@@ -392,7 +392,7 @@ export default function DirectionsPanel({
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
           )}
-          {isCalculating ? 'Calculating...' : 'Find Shaded Route'}
+          {isCalculating ? 'Calculating...' : 'Find Shadowed Route'}
         </button>
       </div>
       {isCalculating && routeProgress && (

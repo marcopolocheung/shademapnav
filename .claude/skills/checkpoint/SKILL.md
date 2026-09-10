@@ -1,6 +1,6 @@
 ---
 name: checkpoint
-description: Close out a ShadeMapNav checkpoint — verify the definition of done, get a cold adversarial review, open the PR, update the brief's Current state block, and file what you found. Invoke when a checkpoint's implementation is finished.
+description: Close out a Umbra checkpoint — verify the definition of done, get a cold adversarial review, open the PR, update the brief's Current state block, and file what you found. Invoke when a checkpoint's implementation is finished.
 argument-hint: "[checkpoint id, e.g. B3]"
 arguments: [checkpoint]
 disable-model-invocation: true
@@ -18,7 +18,7 @@ met in shape but never reached is not met.
 ## 2. Tests
 
 Logic under `app/lib/**`, `app/services/**`, `app/hooks/**` needs them. Behavior changes to
-`routing.ts`, `trainGraph.ts`, `shadeSampling.ts`, `app/lib/shade/**`, `app/lib/guidance/**`
+`routing.ts`, `trainGraph.ts`, `shadowSampling.ts`, `app/lib/shadowField/**`, `app/lib/guidance/**`
 or `app/lib/agent/**` require coverage. They must test behavior, not restate the
 implementation.
 

@@ -7,23 +7,23 @@ function travelSeconds(route: RouteOption): number {
 }
 
 function directSunMeters(route: RouteOption): number {
-  return Math.max(0, route.distanceM * (1 - route.shadeCoverage));
+  return Math.max(0, route.distanceM * (1 - route.shadowCoverage));
 }
 
 /**
- * The trip split into sunlit and shaded minutes at walking pace.
+ * The trip split into sunlit and shadowed minutes at walking pace.
  *
- * Shaded minutes are not idle time for a UV model — see `app/lib/heat/dose.ts` —
+ * Shadowed minutes are not idle time for a UV model — see `app/lib/heat/dose.ts` —
  * so both halves are reported rather than only the exposed one.
  */
 export function routeExposureMinutes(route: RouteOption): {
   sunMinutes: number;
-  shadeMinutes: number;
+  shadowMinutes: number;
 } {
   const sunM = directSunMeters(route);
   return {
     sunMinutes: sunM / WALK_SPEED_MPS / 60,
-    shadeMinutes: Math.max(0, route.distanceM - sunM) / WALK_SPEED_MPS / 60,
+    shadowMinutes: Math.max(0, route.distanceM - sunM) / WALK_SPEED_MPS / 60,
   };
 }
 
@@ -35,7 +35,7 @@ function formatDeltaMinutes(seconds: number): string {
 
 export function routeTradeoffLine(route: RouteOption, baseline: RouteOption): string {
   if (route === baseline) {
-    return `Shortest baseline, ${Math.round(route.shadeCoverage * 100)}% shade`;
+    return `Shortest baseline, ${Math.round(route.shadowCoverage * 100)}% shadow`;
   }
 
   const timeDeltaSec = Math.max(0, travelSeconds(route) - travelSeconds(baseline));
@@ -71,13 +71,13 @@ function formatSunMinutes(meters: number): string {
 /**
  * Direct sun as a duration, plus the longest unbroken run of it.
  *
- * A percentage hides the comparison it is meant to serve: 70% shade over 30 minutes
+ * A percentage hides the comparison it is meant to serve: 70% shadow over 30 minutes
  * leaves 9 minutes in the sun, 60% over 20 minutes leaves 8. Minutes are the unit the
  * choice is actually made in, and the longest stretch is what a walker feels — one
  * unbroken crossing is worse than the same total split across six short gaps.
  *
  * Both figures are walking-speed conversions of sampled distance, so the stretch
- * clause is omitted for sketch and transit routes, whose shade was never sampled
+ * clause is omitted for sketch and transit routes, whose shadow was never sampled
  * per edge and whose `longestContinuousSunM` is a placeholder rather than a zero.
  */
 export function routeExposureLine(route: RouteOption): string {

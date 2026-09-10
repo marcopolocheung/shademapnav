@@ -1,5 +1,5 @@
 export interface ShadowPointQueryResult {
-  shadeFraction: number;
+  shadowFraction: number;
   source: "geometry-cache";
 }
 
@@ -15,9 +15,9 @@ export interface IShadowLayer {
   /** Register an event listener (e.g. 'idle' after render completes) */
   on(event: string, callback: () => void): void;
   /**
-   * Query shade from currently loaded shadow geometry without moving the map.
+   * Query shadow from currently loaded shadow geometry without moving the map.
    * Returns null when the layer cannot answer confidently and callers should
    * fall back to rendered-canvas sampling.
    */
-  queryPointShade?(lng: number, lat: number, opts?: { date?: Date }): ShadowPointQueryResult | null;
+  queryPointShadow?(lng: number, lat: number, opts?: { date?: Date }): ShadowPointQueryResult | null;
 }

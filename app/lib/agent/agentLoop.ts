@@ -16,7 +16,7 @@ import {
 } from "./llmClient";
 import { executeTool, toolDeclarations, type AgentContext, type AssistantPin } from "./tools";
 
-const SYSTEM_PROMPT = `You are the Shade Assistant in a sun/shadow mapping app. You ONLY plan a day or outing around shade and sun comfort: shaded walks, where to sit or eat out of the sun at a given hour, and shade-aware routes. If asked anything else, reply in one sentence that you only help plan around shade, and stop. Do not answer off-topic questions.
+const SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. You ONLY plan a day or outing around shadow and sun comfort: shadowed walks, where to sit or eat out of the sun at a given hour, and shadow-aware routes. If asked anything else, reply in one sentence that you only help plan around shadow, and stop. Do not answer off-topic questions.
 
 The current map context (center, local time, whether the user's location is known) is given to you below — use it directly; do NOT ask for it.
 
@@ -24,16 +24,16 @@ Procedure (follow in order):
 1. If locationKnown is false: if the user said "here"/"near me", call locate_user; otherwise ask which area they mean. Never invent a location.
 2. If the user gave a time of day (e.g. "afternoon"), call set_time to that hour. Shadows depend on time.
 3. Find stops with search_places (anchor to lat/lng or a 'near' name) or geocode_place for named places.
-4. Confirm shade at the key stops with check_shade(lat,lng,time) — it returns real building-shade 0..1.
+4. Confirm shadow at the key stops with check_shadow(lat,lng,time) — it returns real building-shadow 0..1.
 5. Call plot_points with the FULL ordered list of stops (numbered pins, map auto-framed).
-6. Optionally plan_shaded_route through the ordered stops; pass intermediate stops in via.
+6. Optionally plan_shadowed_route through the ordered stops; pass intermediate stops in via.
 
-Rules: stay in the user's area; sequence stops by time of day (shade moves with the sun); keep answers short and concrete.`;
+Rules: stay in the user's area; sequence stops by time of day (shadow moves with the sun); keep answers short and concrete.`;
 
 // The happy path needs 6 tool-emitting turns (get_current_context, locate_user,
-// set_time, search_places, check_shade×N, plot_points). A lower cap strands the
+// set_time, search_places, check_shadow×N, plot_points). A lower cap strands the
 // loop before plot_points runs — so no pins ever reach the map. Keep headroom
-// for an extra check_shade per candidate.
+// for an extra check_shadow per candidate.
 const MAX_STEPS = 8;
 
 // System prompt for the final write call. The write call has NO tools, so it
@@ -41,7 +41,7 @@ const MAX_STEPS = 8;
 // a reasoning model handed those instructions with no tools available narrates
 // the calls it can't make (raw `{"name":...}` JSON) into the answer. This prompt
 // keeps the topic guardrail but tells it to synthesize only, never tool-call.
-const WRITE_SYSTEM_PROMPT = `You are the Shade Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shade-aware itinerary with specific local times and place names. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shade advice you can from what is available. Stay on shade/sun comfort only.`;
+const WRITE_SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shadow-aware itinerary with specific local times and place names. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shadow advice you can from what is available. Stay on shadow/sun comfort only.`;
 
 export interface ToolEvent {
   name: string;
@@ -98,12 +98,12 @@ function collectPointCandidates(
     candidates.push({ lat: nLat, lng: nLng, label: str(label) });
   };
 
-  if (toolName === "check_shade") {
+  if (toolName === "check_shadow") {
     add(args.lat, args.lng);
     return;
   }
 
-  if (toolName === "plan_shaded_route") {
+  if (toolName === "plan_shadowed_route") {
     add(args.fromLat, args.fromLng, args.fromLabel);
     add(args.toLat, args.toLng, args.toLabel);
     return;

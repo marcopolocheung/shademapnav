@@ -9,8 +9,8 @@ import {
   bboxAroundEdges,
   QUERY_PAD_M,
   type EdgeRef,
-  type ShadeField,
-} from "../lib/shade/ShadeField";
+  type ShadowField,
+} from "../lib/shadowField/ShadowField";
 import { toMapLocal } from "../lib/timezone";
 
 export interface HourlyExposure {
@@ -18,7 +18,7 @@ export interface HourlyExposure {
   samples: HourlyExposureSample[];
   /** How many leading hours carry a real measurement. */
   readyCount: number;
-  /** The shadiest sampled hour, or null before the first one lands. */
+  /** The most shadowed sampled hour, or null before the first one lands. */
   best: HourlyExposureSample | null;
 }
 
@@ -38,7 +38,7 @@ function edgesFromRoute(route: RouteOption | null): EdgeRef[] {
 }
 
 /**
- * Shade over a whole day for one route — the "when should I go?" series.
+ * Shadow over a whole day for one route — the "when should I go?" series.
  *
  * Sampled from building geometry rather than the map canvas, so the camera never
  * moves and the answer does not depend on what is currently on screen. Until A6
@@ -53,7 +53,7 @@ function edgesFromRoute(route: RouteOption | null): EdgeRef[] {
  */
 export function useHourlyExposure(
   route: RouteOption | null,
-  field: ShadeField | null,
+  field: ShadowField | null,
   date: Date,
   utcOffsetMin: number,
 ): HourlyExposure {
@@ -90,18 +90,18 @@ export function useHourlyExposure(
 
     const sampleHour = (when: Date): number => {
       if (totalM <= 0) return 0;
-      const shades = field.sweep(edges, [when])[0];
-      let shadedM = 0;
+      const shadows = field.sweep(edges, [when])[0];
+      let shadowedM = 0;
       for (let i = 0; i < edges.length; i++) {
-        const edge = shades[i];
+        const edge = shadows[i];
         // Credit the sidewalk the route actually uses; average only when the
         // search never chose a side (sketch and transit legs).
         const side = route?.sides?.[i];
-        const shade =
+        const shadow =
           side === "left" ? edge.left : side === "right" ? edge.right : (edge.left + edge.right) / 2;
-        shadedM += haversineMeters(edges[i].from, edges[i].to) * shade;
+        shadowedM += haversineMeters(edges[i].from, edges[i].to) * shadow;
       }
-      return shadedM / totalM;
+      return shadowedM / totalM;
     };
 
     const publish = (readyCount: number) => {

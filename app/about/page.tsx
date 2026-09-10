@@ -11,14 +11,10 @@ export default function About() {
           ← Map
         </Link>
 
-        <h1 className="text-3xl font-semibold mb-2">ShadeMapNav</h1>
+        <h1 className="text-3xl font-semibold mb-2">Umbra</h1>
         <p className="text-white/70 mb-4">
-          A personal open-source shaded-route navigation project.
+          A personal open-source shadowed-route navigation project.
         </p>
-        <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100 mb-10">
-          ShadeMapNav is an independent personal project and is not affiliated with
-          ShadeMap.app.
-        </div>
 
         <section className="mb-10">
           <h2 className="text-xs font-semibold mb-4 text-white/80 uppercase tracking-wider">
@@ -26,10 +22,10 @@ export default function About() {
           </h2>
           <ul className="space-y-2 text-sm text-white/60">
             <li>Simulates building shadows on a MapLibre map.</li>
-            <li>Finds walking routes with shortest, balanced, and most-shaded options.</li>
+            <li>Finds walking routes with shortest, balanced, and most-shadowed options.</li>
             <li>Shows route tradeoffs such as added time and reduced sun exposure.</li>
             <li>Supports saved routes, shareable map links, and multi-stop route planning.</li>
-            <li>Provides cloud-cover context so shaded routing is easier to trust.</li>
+            <li>Provides cloud-cover context so shadowed routing is easier to trust.</li>
           </ul>
         </section>
 
@@ -66,7 +62,7 @@ export default function About() {
             Project Scope
           </h2>
           <p className="text-sm text-white/60">
-            ShadeMapNav is experimental navigation software. Shadow, route, weather,
+            Umbra is experimental navigation software. Shadow, route, weather,
             and place data can be incomplete or delayed; use normal judgment outdoors.
           </p>
         </section>

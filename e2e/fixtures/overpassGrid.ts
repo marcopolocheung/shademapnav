@@ -76,7 +76,7 @@ export const overpassGridResponse = JSON.stringify({ elements: buildGrid() });
  * outside a Vite build throws — a Playwright spec runs in plain Node. This
  * builds what that parser produces for this fixture: every node is shared by a
  * row way and a column way, so all of them are intersections; edges are
- * bidirectional; `shadeFactor` starts at 0 for the caller to fill in, exactly as
+ * bidirectional; `shadowFactor` starts at 0 for the caller to fill in, exactly as
  * `fetchRoutingGraph` documents.
  *
  * The browser benchmark reports `graphNodeCount` and `graphDirectedEdges` from
@@ -100,8 +100,8 @@ export function overpassGridGraph(): RoutingGraph {
     const na = nodes.get(a)!;
     const nb = nodes.get(b)!;
     const distanceM = haversineMeters([na.lon, na.lat], [nb.lon, nb.lat]);
-    adj.get(a)!.push({ toId: b, distanceM, shadeFactor: 0, highway });
-    adj.get(b)!.push({ toId: a, distanceM, shadeFactor: 0, highway });
+    adj.get(a)!.push({ toId: b, distanceM, shadowFactor: 0, highway });
+    adj.get(b)!.push({ toId: a, distanceM, shadowFactor: 0, highway });
   };
 
   // Row ways are `residential`, column ways `footway` — the tags buildGrid emits.

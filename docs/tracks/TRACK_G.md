@@ -55,7 +55,7 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 - **Done — two of the three deps #215 unblocked.** `jsdom` **30.0.1** (#141) and `@types/node`
   **24.13.3** (#142, taken at 24 not the 26 offered — G8's rule is that types track the runtime,
   and nothing runs 26). **`vitest` 5 was declined and filed as #254:** it removes the `bench`
-  export outright, so `shadeField.bench.ts` fails `tsc` and `npm run bench` dies with
+  export outright, so `shadowField.bench.ts` fails `tsc` and `npm run bench` dies with
   `TypeError: bench is not a function`. All 550 tests pass on vitest 5 — the benchmark file is
   outside the test glob by design, which is exactly why nothing in CI would have caught it.
   Porting the benchmark is a change to how this repo measures things, not a dependency bump,
@@ -71,7 +71,7 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   only, and `escapeHtml` also escapes quotes so a value cannot end the attribute it sits in. The
   popup body moved to `app/components/placePopup.ts`, which is what makes the emitted HTML
   testable.
-- **Done:** **G4, delivered by Track A** — `app/lib/shade/__tests__/agreement/` meets G4's
+- **Done:** **G4, delivered by Track A** — `app/lib/shadowField/__tests__/agreement/` meets G4's
   acceptance in full (prints the metric every run, enforces committed ceilings, adding a city is
   a data change). G owns how it runs; A owns what is in it.
 - **Done:** G1 — `npm run e2e`, one Playwright smoke test over the built app, running in CI on
@@ -90,8 +90,8 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   footprints — maplibre 5.9.0 resolves a tile's layers as `_geojsonTileLayer || [sourceLayer]`,
   so every `querySourceFeatures("maptiler_planet", { sourceLayer: "building" })` caller works
   unchanged and no production code moved. That project needs no key, so it runs on forks. Its
-  fixture palette is pure greys, because a blue-dominant basemap would make the unshaded baseline
-  score as shade and the whole assertion vacuous. `smoke-live` repeats the same assertions
+  fixture palette is pure greys, because a blue-dominant basemap would make the unshadowed baseline
+  score as shadow and the whole assertion vacuous. `smoke-live` repeats the same assertions
   against real tiles wherever the secret exists — the only check on MapTiler's real `building`
   schema. CI uploads no Playwright artifacts (`smoke-live` traces record tile URLs, which carry
   the key).
@@ -101,12 +101,12 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   keyless (real tiles put network variance inside a baseline); the canonical environment is a
   named developer machine, not a GitHub runner (~3x slower there, so before/after must happen on
   one machine); it **gates nothing** and lives in its own Playwright config so `npm run e2e` —
-  and therefore CI — cannot pick it up; `npm run bench` stays the vitest shade benchmark and the
+  and therefore CI — cannot pick it up; `npm run bench` stays the vitest shadow benchmark and the
   route one is **`npm run bench:route`**; and the detour sweep runs in Node against
   `paretoRoutes` rather than the browser, because `maxDetourFactor` is a `DijkstraOptions` field
   `useNavigation` never passes and exposing it would have been a production change.
 - **Done — the G2 instrument, ahead of the benchmark itself (#182, #183).** G2 reads
-  `window.__shadeMapMetrics.summary`, and that object could not state variance: `p95TotalMs` was
+  `window.__umbraMetrics.summary`, and that object could not state variance: `p95TotalMs` was
   an unconditionally mislabeled **maximum** — `MAX_HISTORY = 20` is the buffer's ceiling and
   `Math.min(Math.floor(N * 0.95), N - 1)` lands on the last element for every N from 1 to 20, so
   there was no reachable sample count at which it was a 95th percentile. It is now an
@@ -119,7 +119,7 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
   unused are read by the `console.groupCollapsed`/`console.table` immediately below.
 - **Done — G2.** `npm run bench:route` (`e2e/bench/**`, its own Playwright config) drives the
   G1 browser through 2-point and 5-point calculations, cache-cold and cache-warm, and reads the
-  app's own `window.__shadeMapMetrics`. The baseline is committed in
+  app's own `window.__umbraMetrics`. The baseline is committed in
   `docs/notes/performance-baseline.md` with the machine named, the variance stated and a zero
   retry budget. It is **on demand, never in CI** — `npm run e2e` ignores `e2e/bench/**`, so the
   separation from G3's gate is mechanical rather than a convention. Keyless only: real tiles
@@ -133,7 +133,7 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
     canvas read. The per-run series is published so the level shift is visibly not a climb;
     *why* it shifts is an untested hypothesis and the note says so.
   - **Filed, not fixed: #259.** `canvasRead` was non-zero on **all 90 runs** across three
-    sessions while `shadeFallbackShare` printed **0.0% on all 90** — `coverage()` sent every
+    sessions while `shadowFallbackShare` printed **0.0% on all 90** — `coverage()` sent every
     calculation down the `needsCanvas` path and the pixel sampler then answered no edges. Both
     halves are per-run output, not a median. Unverified against real MapTiler tiles, which is
     why it is a filing and not a fix.
@@ -142,11 +142,11 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
     between ~2% and ~25% on every row, so **treat a before/after movement under ~25% as noise**
     on all four scenarios, or raise the repeat counts first. Do not quote a per-row figure.
   - **#243 folded in.** The `maxDetourFactor` sweep is published: 1.25 → 2.0 buys 5.8 pp of
-    shade for 61 pp of extra walking and triples search time. **The constant is unchanged** —
+    shadow for 61 pp of extra walking and triples search time. **The constant is unchanged** —
     #243 is `track-h` and H3 picks a value against the curve. The sweep runs in Node against
     `paretoRoutes` because `useNavigation` never passes the option, and varying it from the
     browser would have meant adding a production seam.
-  - **Name collision settled:** `npm run bench` stays the vitest shade-sampling benchmark;
+  - **Name collision settled:** `npm run bench` stays the vitest shadow-sampling benchmark;
     the route benchmark is `npm run bench:route`. **#254** should keep that split when it ports
     the vitest benchmark.
 - **Filed by G2, none fixed:** **#259** (`track-a`, the canvas read above), **#264**
@@ -184,7 +184,7 @@ A's fixtures), ⚠️ E (G6 rewrites E's biggest file). **G6 runs alone.**
 **Until G1, nothing had ever executed this app in a browser automatically.** The vitest suite
 runs in `environment: "node"`. G1's smoke test now covers shadow rendering, the timeline drag
 and one end-to-end route calculation. Still covered by no check: the streaming route preview,
-camera-free shade probes, GeoTIFF export, the PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
+camera-free shadow probes, GeoTIFF export, the PWA shell (#35). The performance baseline (`docs/notes/performance-baseline.md`) says outright
 that TTI and route-calc timings are missing because no browser binary was available.
 
 With one agent making one PR at a time, that was survivable. With six tracks in parallel it
@@ -206,12 +206,12 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
   nine a11y rules are now `error` and pass. 52 warnings remain, led by `useExhaustiveDependencies`
   (17), `noArrayIndexKey` (11), `useOptionalChain` (6). Biome's diagnostic cap truncates what is
   *printed*, not the exit code — verified: an error behind the warning backlog still exits 1.
-- **`window.__shadeMapMetrics`** (`app/lib/metrics.ts`) — phase timings (`graphFetch`,
-  `canvasRead`, `shadeSample`, `dijkstra`, `total`), p50/p95 aggregates over the last 20 runs,
-  three KPIs (route compute ms, shade-coverage gain pp, path-length delta %), and `clearMetrics`
+- **`window.__umbraMetrics`** (`app/lib/metrics.ts`) — phase timings (`graphFetch`,
+  `canvasRead`, `shadowSample`, `dijkstra`, `total`), p50/p95 aggregates over the last 20 runs,
+  three KPIs (route compute ms, shadow-coverage gain pp, path-length delta %), and `clearMetrics`
   to reset between scenarios. **The instrumentation for G2 already exists; only the harness that
   drives it is missing.**
-- **The A3 agreement suite** (`app/lib/shade/__tests__/agreement/`) — the template every other
+- **The A3 agreement suite** (`app/lib/shadowField/__tests__/agreement/`) — the template every other
   eval-shaped checkpoint here should copy: a fixture corpus, a *scored* metric rather than a
   boolean, committed ceilings that only ever come down, and the number printed on every run so it
   is visible while passing. 150 cases, ~235 ms, pure Node.
@@ -222,11 +222,11 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
   Playwright spec or any Node-side harness that imports it throws on load. The Overpass *parser*
   lives inside `fetchRoutingGraph` and has no pure seam, so a Node harness that needs a
   `RoutingGraph` has to construct one — `e2e/fixtures/overpassGrid.ts:overpassGridGraph()` is
-  the worked example. `routing.ts`, `shadeSampling.ts` and `app/lib/shade/**` are all env-free
+  the worked example. `routing.ts`, `shadowSampling.ts` and `app/lib/shadowField/**` are all env-free
   and import fine.
 - **A multi-waypoint route is a different algorithm, not a longer one.** With `via` waypoints
   `useNavigation.ts:1263` leaves `paretoRoutes` entirely and runs a plain `dijkstra` per leg at
-  several shade strengths, returning a single route with no shade-gain KPI. Any benchmark, eval
+  several shadow strengths, returning a single route with no shadow-gain KPI. Any benchmark, eval
   or claim that says "routing" needs to say which of the two it measured.
 - **A working browser, locally.** #121 says no Chromium runs here; that is stale for local work.
   The cached Playwright Chromium starts once `libnss3`, `libnspr4` and `libasound2` are
@@ -248,12 +248,12 @@ the cross-track compatibility matrix in `docs/tracks/README.md` is full of ⚠�
 ## Checkpoints
 
 ### G0 — Routing quality eval  *(added by #165)*
-**Goal.** Nothing measures whether a shade-aware route is *worth taking*. `metrics.ts` states
-three KPI targets — route compute < 3 s, shade-coverage gain > 10 pp, path-length overhead
+**Goal.** Nothing measures whether a shadow-aware route is *worth taking*. `metrics.ts` states
+three KPI targets — route compute < 3 s, shadow-coverage gain > 10 pp, path-length overhead
 < ~40% — and all three live only in comments. Make the two that are about quality fail.
 **Approach.** The A3 agreement suite's shape, applied to routing, in pure Node. A fixture corpus
-of synthetic street grids × sun positions; feed each to `paretoRoutes` with shade from
-`ShadeField`, then score the result with the `computeDerivedKpis` the app already uses — so the
+of synthetic street grids × sun positions; feed each to `paretoRoutes` with shadow from
+`ShadowField`, then score the result with the `computeDerivedKpis` the app already uses — so the
 eval measures the same numbers the product reports, not a parallel definition of them. Print the
 aggregate every run the way `agreement.test.ts` does, and commit ceilings just above what the
 corpus reports today.
@@ -286,7 +286,7 @@ outstanding until #173 adds the secret, and nothing here can close that from ins
 ### G2 — Route benchmark ✅ **landed**
 **Goal.** Nobody may claim a perf win without a number. Unblocks **#37**, gates **A5**.
 **Approach.** A scripted 2-point and 5-point calculation in the G1 browser, reading
-`window.__shadeMapMetrics.summary`. Commit the baseline into
+`window.__umbraMetrics.summary`. Commit the baseline into
 `docs/notes/performance-baseline.md` (it explicitly asks for exactly this). Fixed viewport,
 fixed coordinates, fixed date/time, cache-warm and cache-cold variants.
 **Acceptance.** Reproducible numbers with variance stated; baseline committed; a documented
@@ -307,11 +307,11 @@ baseline; fail on regression beyond a stated tolerance.
 reason (4G, one-handed, outdoors).
 **Files.** `.github/workflows/ci.yml`, a small check script. **Size.** Small.
 
-### G4 — Shade accuracy harness ✅ **delivered by Track A**
-Track A built this while landing A3. `app/lib/shade/__tests__/agreement/` has the fixture format
+### G4 — Shadow accuracy harness ✅ **delivered by Track A**
+Track A built this while landing A3. `app/lib/shadowField/__tests__/agreement/` has the fixture format
 (`fixtures.ts`), the runner and metric (`harness.ts`) and the enforced ceilings
 (`agreement.test.ts`: mean 0.04, p90 0.05, severe share 0.04), it prints
-`shade-field agreement: …` on every run, and adding a city is a data change. That is G4's
+`shadow-field agreement: …` on every run, and adding a city is a data change. That is G4's
 acceptance, met.
 
 **Residual scope, if any:** tracking the number *over time* rather than per-run — CI has no memory,

@@ -1,6 +1,6 @@
 ---
 name: track
-description: Boot a ShadeMapNav track session — load the brief, confirm the baseline, pick the next checkpoint, and start work. One session owns one track for its whole life.
+description: Boot a Umbra track session — load the brief, confirm the baseline, pick the next checkpoint, and start work. One session owns one track for its whole life.
 argument-hint: <a|b|c|d|e|f|g|h|p> [checkpoint id, e.g. A3]
 arguments: [track, checkpoint]
 disable-model-invocation: true
@@ -11,7 +11,7 @@ allowed-tools:
   - Bash(gh issue list*)
 ---
 
-You are running a **track session** for ShadeMapNav. One session owns one track for its whole
+You are running a **track session** for Umbra. One session owns one track for its whole
 life. Do not work on another track's checkpoints, even if you notice something broken there —
 file an issue against that track instead.
 

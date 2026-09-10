@@ -7,7 +7,7 @@
 # the newest edited source file against the marker that /gates writes only when all four
 # actually pass, and blocks once per session if the marker is stale.
 #
-# Set SHADEMAP_GATES_STRICT=1 to block on every Stop instead of once per session.
+# Set UMBRA_GATES_STRICT=1 to block on every Stop instead of once per session.
 set -uo pipefail
 
 root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
@@ -34,7 +34,7 @@ done <<<"$changed"
 [[ -z "$newest" ]] && exit 0
 [[ -f "$marker" && "$marker" -nt "$newest" ]] && exit 0
 
-if [[ "${SHADEMAP_GATES_STRICT:-0}" != "1" ]]; then
+if [[ "${UMBRA_GATES_STRICT:-0}" != "1" ]]; then
   stamp="$state/nudged-$session"
   [[ -f "$stamp" ]] && exit 0
   : >"$stamp"

@@ -71,11 +71,11 @@ describe("generateManeuvers", () => {
     expect(generateManeuvers(nodes([[0, 0], [0, 0]]))).toEqual(arrival);
   });
 
-  it("preserves the supplied leg index without mutating nodes or inventing street/shade data", () => {
+  it("preserves the supplied leg index without mutating nodes or inventing street/shadow data", () => {
     const path = Object.freeze(nodes([[0, 0], [0, 0.001], [0.001, 0.001]]).map((node) => Object.freeze(node)));
     const result = generateManeuvers(path, 2);
     expect(result.every((m) => m.legIndex === 2)).toBe(true);
-    expect(result.every((m) => m.streetName === undefined && m.shadeSideHint === undefined)).toBe(true);
+    expect(result.every((m) => m.streetName === undefined && m.shadowSideHint === undefined)).toBe(true);
     expect(generateManeuvers(path, 2)).toEqual(result);
   });
 
@@ -137,8 +137,8 @@ describe("shared geographic bearings", () => {
     const graph: RoutingGraph = {
       nodes: new Map(path.map((node, id) => [id, { ...node, id }])),
       adj: new Map([
-        [0, [{ toId: 1, distanceM: 111, shadeFactor: 0 }]],
-        [1, [{ toId: 2, distanceM: 124, shadeFactor: 0 }]],
+        [0, [{ toId: 1, distanceM: 111, shadowFactor: 0 }]],
+        [1, [{ toId: 2, distanceM: 124, shadowFactor: 0 }]],
         [2, []],
       ]),
     };

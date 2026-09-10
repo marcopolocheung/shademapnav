@@ -1,3 +1,4 @@
+import "./storageMigration";
 // app/lib/savedRoutes.ts
 import type { RouteOption } from "./routing";
 
@@ -22,8 +23,8 @@ export interface SavedRoute {
   createdAt: number;
 }
 
-const FOLDERS_KEY = "shademapnav:folders";
-const ROUTES_KEY  = "shademapnav:routes";
+const FOLDERS_KEY = "umbra:folders";
+const ROUTES_KEY  = "umbra:routes";
 
 function readJSON<T>(key: string, fallback: T): T {
   try {

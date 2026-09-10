@@ -1,8 +1,8 @@
-# Track C — Shade Copilot
+# Track C — Shadow Copilot
 
 > **Charter:** an assistant that only ever says things the map can back up. Narrow, grounded,
 > and fast enough to be worth asking — the questions Gemini can't answer because it doesn't
-> model shade at 5:40pm on this block.
+> model shadow at 5:40pm on this block.
 
 **Class:** Flagship. **Runs alongside:** everything. This track owns `app/lib/agent/**` outright
 and reaches the rest of the app only through tool wrappers — it is the friendliest track to
@@ -24,7 +24,7 @@ run in parallel with any other.
   Assertions read a `Trace`, never the answer's wording; the only string check is *which
   scripted turn came back*. `groundingViolations` searches only the names a scenario declares
   (`grounded`/`decoys`), so it can't decay into prose matching.
-- **Blocked on:** nothing. C3 still needs Track A's `ShadeField` (A2/A6) — stub when you get
+- **Blocked on:** nothing. C3 still needs Track A's `ShadowField` (A2/A6) — stub when you get
   there.
 - **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59
   by observation in `npm run dev`.
@@ -48,18 +48,18 @@ The archived `PROJECT_REVIEW-2026-07-05.md` lists three agent failures. Two have
    which calls `plot_points` and injects a *"Map state guarantee: the app already plotted
    these itinerary pins before answering"* line into the write prompt. **It has never been
    confirmed in a browser** (issue **#59**). C1 + C2 are about *locking it down*, not building it.
-2. **"`check_shade` hijacks the camera for 10–15s"** — no longer true. `tools.ts:359-390`
-   tries `ctx.shadowLayerRef.current.queryPointShade()` (camera-free, geometry cache), falls
-   back to `queryOffscreenBuildingShade()` (Overpass, viewport-independent), and errors out
+2. **"`check_shadow` hijacks the camera for 10–15s"** — no longer true. `tools.ts:359-390`
+   tries `ctx.shadowLayerRef.current.queryPointShadow()` (camera-free, geometry cache), falls
+   back to `queryOffscreenBuildingShadow()` (Overpass, viewport-independent), and errors out
    rather than flying. The only remaining camera moves are `locate_user` (`:282`) and
    `plot_points` (`:422`, `:435`) — both legitimate.
-3. **"Two-point routes only"** — still true. `plan_shaded_route` (`tools.ts:195`) takes an
+3. **"Two-point routes only"** — still true. `plan_shadowed_route` (`tools.ts:195`) takes an
    origin and a destination while `useNavigation` supports `additionalWaypoints`. That's **C4**.
 
 Also already built and worth knowing before you touch anything:
 
 - **8 tools** (`tools.ts`): `locate_user` (115), `geocode_place` (120), `search_places` (131),
-  `check_shade` (146), `set_time` (160), `plot_points` (171), `plan_shaded_route` (195);
+  `check_shadow` (146), `set_time` (160), `plot_points` (171), `plan_shadowed_route` (195);
   `get_current_context` is *not* a tool — it's pre-injected into the system prompt each turn
   (`agentLoop.ts:141-150`) to save a guaranteed round-trip.
 - **Two-model roles**: research (`zai-glm-4.7`) then write (`gpt-oss-120b`, tool-free prompt at
@@ -83,7 +83,7 @@ Also already built and worth knowing before you touch anything:
 
 ## The contract this track publishes
 
-Tools, and only tools. **Every tool is a thin wrapper that delegates** — to `ShadeField`
+Tools, and only tools. **Every tool is a thin wrapper that delegates** — to `ShadowField`
 (Track A), the routing pipeline (Track E), `HeatModel` (Track D), or a service wrapper.
 If a tool contains domain logic, it's in the wrong file.
 
@@ -116,19 +116,19 @@ what the prompt asks for.
 observations confirmed in `npm run dev` and the issue closed with what was actually observed.
 **Files.** `agentLoop.ts`, `tools.ts`. **Size.** Medium.
 
-### C3 — Probes on the `ShadeField`
-**Goal.** One shade source for the whole app.
-**Approach.** `check_shade` calls Track A's `ShadeField.shadeAt` and reports `source` +
-`confidence` in the tool result, so the model can qualify its answer ("shaded, though tree
-cover here is estimated"). Keeps the Overpass path as fallback. Adds `check_shade_at_times`
-over `sweep` (A6) so "when is this terrace shaded?" costs one tool call, not five.
+### C3 — Probes on the `ShadowField`
+**Goal.** One shadow source for the whole app.
+**Approach.** `check_shadow` calls Track A's `ShadowField.shadowAt` and reports `source` +
+`confidence` in the tool result, so the model can qualify its answer ("shadowed, though tree
+cover here is estimated"). Keeps the Overpass path as fallback. Adds `check_shadow_at_times`
+over `sweep` (A6) so "when is this terrace shadowed?" costs one tool call, not five.
 **Acceptance.** No camera movement during research (already true — keep it that way, and add
 a C1 scenario that asserts it); confidence surfaces in the answer; a low-confidence probe never
 becomes a confident sentence.
 **Files.** `tools.ts`. **Size.** Small–medium. **Needs A2/A6; stub until then.**
 
 ### C4 — The plan job contract  *(re-scoped 2026-09-07)*
-**Multi-stop already shipped.** `plan_shaded_route` takes ordered `via` stops and drives
+**Multi-stop already shipped.** `plan_shadowed_route` takes ordered `via` stops and drives
 `setAdditionalWaypoints` (`tools.ts:207-219`, `:456-466`). The earlier framing of this
 checkpoint was stale. What is actually missing is the boundary underneath it.
 
@@ -141,7 +141,7 @@ That is the single clearest correctness gap in this track, and it undercuts the 
 stated value — *trustworthy*.
 **Approach.** Return a job handle and resolve it: a `requestId`, the input version, and a
 terminal status (`completed | partial | no_plan_found | cancelled | error`) carrying the route
-metrics and `shadeProvenance` on success. Feed resolution from the routing pipeline's existing
+metrics and `shadowProvenance` on success. Feed resolution from the routing pipeline's existing
 streaming completion rather than a longer `delay`. Bind mutations to an expected plan version
 and an idempotency key so a stale calculation cannot overwrite a newer one. Surface cancellation
 and provider failure as **states**, not a tool row that spins forever. Prefer Track E's `Trip`
@@ -161,7 +161,7 @@ having had the bug.
 ### C5 — Answers with receipts
 **Goal.** Every claim clickable.
 **Approach.** Structured output alongside the prose: each claim carries the tool result id that
-produced it. `AssistantPanel` renders chips ("Shade 62% at 16:00 — checked") that focus the
+produced it. `AssistantPanel` renders chips ("Shadow 62% at 16:00 — checked") that focus the
 matching map object.
 **Acceptance.** Every place named in an answer has a chip and a pin; clicking focuses it;
 answers with no backing produce no chip — and the UI makes that visible rather than hiding it.
@@ -187,7 +187,7 @@ the wait, not a spinner.
 
 ### C8 — Ask while walking *(stretch)*
 Questions answered against the *active route* and the user's live position (needs Track B):
-"is the next stretch shaded?", "where's water on the way?".
+"is the next stretch shadowed?", "where's water on the way?".
 
 ### C10 — Untrusted content and tool authority  *(added 2026-09-07)*
 **Goal.** Third-party text can never acquire tool authority. **Required before any tool returns
@@ -226,7 +226,7 @@ and **Track P's P3 demo recording ends on it** — no other checkpoint builds it
 
 **Approach.** Make the plan a **data object, not a paragraph**: origin, mode, start instant with
 its IANA zone (needs **D0**), ordered stops with arrival/departure windows and dwell, selected
-legs, predicted exposure, data provenance (`shadeProvenance.ts` already produces it),
+legs, predicted exposure, data provenance (`shadowProvenance.ts` already produces it),
 uncertainties, expiration conditions, and a version id. Prefer Track E's `Trip` (E5) as the
 carrier rather than a second journey model. Then a **deterministic validator** — time ordering,
 budget, stop accessibility, map/plan agreement — that runs on every revision and is independent
@@ -240,7 +240,7 @@ revision minimality** — how much of the itinerary changed — alongside validi
 **Files.** `app/lib/agent/**`, `app/lib/trip/**` (E5's — consume it), scenarios.
 **Size.** Large. **Depends on C4, E5, D0.**
 **Do not call a repaired plan "verified" beyond what was checked:** verification here means
-consistency with explicit constraints and available evidence. Physical shade accuracy is Track
+consistency with explicit constraints and available evidence. Physical shadow accuracy is Track
 A's agreement harness, and it is a separate claim.
 
 ### C12 — Visual evidence and the budget-matched baseline  *(added 2026-09-08)*
@@ -335,11 +335,11 @@ is negative marketing.
 3. **Rate-limit-shaped design failures.** 5 req/min means an "obviously better" extra
    verification call can double turn latency. Every added call needs a C6 budget justification.
 4. **Scope creep toward a general chatbot.** The system prompt is deliberately narrow
-   (shade-day-planning only). Keep it that way — breadth is where Gemini wins and we can't.
+   (shadow-day-planning only). Keep it that way — breadth is where Gemini wins and we can't.
 
 ## Out of scope / hand-offs
 
-- Shade math → **Track A**. Routing → **Track E**'s pipeline. Heat/UV → **Track D**.
+- Shadow math → **Track A**. Routing → **Track E**'s pipeline. Heat/UV → **Track D**.
 - Live position → **Track B** (C8 consumes it).
 - Anything that costs money, needs an account, or adds a provider → not this project. **This
   includes a vision-capable LLM provider.** Both allowlisted Cerebras models are text-only

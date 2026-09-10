@@ -1,3 +1,4 @@
+import "../lib/storageMigration";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { geocodeForward, type NominatimResult } from "../lib/nominatim";
 
@@ -41,7 +42,7 @@ function formatDistance(m: number): string {
 
 function loadRecent(): RecentItem[] {
   try {
-    const raw = localStorage.getItem("shademapnav:recentSearches");
+    const raw = localStorage.getItem("umbra:recentSearches");
     const arr = raw ? (JSON.parse(raw) as any[]) : [];
     if (!Array.isArray(arr)) return [];
     return arr
@@ -61,7 +62,7 @@ function saveRecent(item: RecentItem) {
   try {
     const existing = loadRecent();
     const next = [item, ...existing.filter((x) => x.label !== item.label)].slice(0, 8);
-    localStorage.setItem("shademapnav:recentSearches", JSON.stringify(next));
+    localStorage.setItem("umbra:recentSearches", JSON.stringify(next));
   } catch {
     // ignore
   }
@@ -69,7 +70,7 @@ function saveRecent(item: RecentItem) {
 
 function loadSaved(): SavedItem[] {
   try {
-    const raw = localStorage.getItem("shademapnav:savedPlaces");
+    const raw = localStorage.getItem("umbra:savedPlaces");
     const arr = raw ? (JSON.parse(raw) as any[]) : [];
     if (!Array.isArray(arr)) return [];
     return arr

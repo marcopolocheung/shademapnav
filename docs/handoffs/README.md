@@ -13,13 +13,13 @@ blocks.
 |---|---|---|
 | [`WAVE_0.md`](WAVE_0.md) | clearing the things that are currently false | ~4 small PRs, cross-track |
 | [`PUBLICATION.md`](PUBLICATION.md) | making the existing work visible (P4 + P2) | 2 PRs, no new engineering |
-| [`THREAD_SHADE.md`](THREAD_SHADE.md) | building the differentiator (G→A→H) | long; one checkpoint per PR |
+| [`THREAD_SHADOW.md`](THREAD_SHADOW.md) | building the differentiator (G→A→H) | long; one checkpoint per PR |
 | [`THREAD_AGENT.md`](THREAD_AGENT.md) | building the multimodal agent (Track C) | long; one checkpoint per PR |
 
 **Order.** `WAVE_0` first — it unblocks both threads and its items are hours, not days. Then
 `PUBLICATION`, which is the cheapest signal on the board. The two threads are **independent and
 parallel**: Track C owns `app/lib/agent/**` outright and reaches the rest of the app only
-through tool wrappers, so a shade session and an agent session do not collide.
+through tool wrappers, so a shadow session and an agent session do not collide.
 
 **Every session, regardless:** `/gates` before any PR opens, `/checkpoint` before it is
 reviewed, and never merge — that is the owner's call.

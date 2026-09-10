@@ -38,7 +38,7 @@ export default function NavigationStatusPanel({
   onArrive,
   onExit,
 }: NavigationStatusPanelProps) {
-  const shadePct = route ? Math.round(route.shadeCoverage * 100) : null;
+  const shadowPct = route ? Math.round(route.shadowCoverage * 100) : null;
   const duration = route?.totalTimeSec ? formatDuration(route.totalTimeSec) : null;
   const destination = waypointBLabel ?? coordLabel(waypointB);
 
@@ -104,8 +104,8 @@ export default function NavigationStatusPanel({
             <div className="mt-1 text-sm font-semibold" style={{ color: "var(--md-on-surface)" }}>{formatDistance(route.distanceM)}</div>
           </div>
           <div className="rounded-lg p-3" style={{ background: "var(--md-surface-container-low)" }}>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shade</div>
-            <div className="mt-1 text-sm font-semibold" style={{ color: "var(--md-on-surface)" }}>{shadePct}%</div>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shadow</div>
+            <div className="mt-1 text-sm font-semibold" style={{ color: "var(--md-on-surface)" }}>{shadowPct}%</div>
           </div>
           <div className="rounded-lg p-3" style={{ background: "var(--md-surface-container-low)" }}>
             <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Turns</div>
@@ -113,10 +113,10 @@ export default function NavigationStatusPanel({
           </div>
           <div className="rounded-lg p-3" style={{ background: "var(--md-surface-container-low)" }}>
             <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>
-              {duration ? "Time" : "Shade breaks"}
+              {duration ? "Time" : "Shadow breaks"}
             </div>
             <div className="mt-1 text-sm font-semibold" style={{ color: "var(--md-on-surface)" }}>
-              {duration ?? route.shadeTransitions}
+              {duration ?? route.shadowTransitions}
             </div>
           </div>
         </div>

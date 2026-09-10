@@ -6,7 +6,7 @@ paths:
   - "api/agent.js"
 ---
 
-# The Shade Assistant
+# The Umbra Assistant
 
 An assistant that only ever says things the map can back up. Narrow and grounded is the
 product; a fluent assistant that occasionally invents a street is worth less than nothing here.
@@ -56,14 +56,14 @@ Anything concrete in an answer — a street, a time, a percentage, a place name 
 a tool result. When a tool fails or returns nothing, the answer says so; silent degradation is
 an ungrounded claim.
 
-Shade queries must not move the camera. `check_shade` tries `queryPointShade()` (camera-free,
-geometry cache), falls back to `queryOffscreenBuildingShade()`, and errors rather than flying.
+Shadow queries must not move the camera. `check_shadow` tries `queryPointShadow()` (camera-free,
+geometry cache), falls back to `queryOffscreenBuildingShadow()`, and errors rather than flying.
 Only `locate_user` and `plot_points` legitimately move the map.
 
 ## Architecture
 
 The loop runs **client-side** — it orchestrates tools that need the live map canvas
-(geocoding, the solar model, on-canvas shade sampling, time and camera control, the routing
+(geocoding, the solar model, on-canvas shadow sampling, time and camera control, the routing
 pipeline). It speaks one neutral IR (`LlmContent`/`LlmPart`); `llmClient.ts` translates to and
 from the OpenAI chat-completions shape Cerebras expects. Keep provider specifics inside
 `llmClient.ts` — the loop should not know what Cerebras is.

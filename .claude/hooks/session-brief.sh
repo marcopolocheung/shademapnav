@@ -12,7 +12,7 @@ root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
 [[ -z "$root" || ! -d "$root/docs/tracks" ]] && exit 0
 cd "$root" || exit 0
 
-out="ShadeMapNav track board (from each brief's Current state block; the code wins if they disagree):"
+out="Umbra track board (from each brief's Current state block; the code wins if they disagree):"
 
 for f in docs/tracks/TRACK_*.md; do
   [[ -f "$f" ]] || continue

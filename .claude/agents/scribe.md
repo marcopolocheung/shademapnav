@@ -1,6 +1,6 @@
 ---
 name: scribe
-description: File GitHub issues for ShadeMapNav findings, batched at the end of a checkpoint, with the repo's priority/type/track label scheme. Use when a session has accumulated findings it deliberately did not fix. Files issues only — never opens PRs, never edits code.
+description: File GitHub issues for Umbra findings, batched at the end of a checkpoint, with the repo's priority/type/track label scheme. Use when a session has accumulated findings it deliberately did not fix. Files issues only — never opens PRs, never edits code.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Edit, Write
 model: haiku
@@ -21,7 +21,7 @@ whole point of filing is that the session decided *not* to fix it now.
 - **A type label**: one of `security`, `chore`, `docs`, `test`, `perf`, `a11y`, `feature`,
   `tooling`.
 - **A track label**: `track-a` … `track-g`. Route by ownership, not by which file it lives
-  in — the shade field is A, navigation is B, the assistant is C, heat and timing is D,
+  in — the shadow field is A, navigation is B, the assistant is C, heat and timing is D,
   modes and journeys is E, reach is F, and the test/CI/seam platform is G.
 
 Use `gh issue create`. Batch them; do not file one at a time across several turns.

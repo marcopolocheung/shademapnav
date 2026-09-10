@@ -39,7 +39,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
   }
 
   function renderRoute(r: SavedRoute) {
-    const shadePct = Math.round(r.routeOption.shadeCoverage * 100);
+    const shadowPct = Math.round(r.routeOption.shadowCoverage * 100);
     const distKm = r.routeOption.distanceM >= 1000
       ? `${(r.routeOption.distanceM / 1000).toFixed(1)} km`
       : `${Math.round(r.routeOption.distanceM)} m`;
@@ -68,7 +68,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
             className="flex-1 text-left px-1.5 py-1 rounded hover:bg-amber-50 transition-colors min-w-0"
           >
             <div className="text-[11px] truncate" style={{ color: "var(--md-on-surface)" }}>{r.name}</div>
-            <div className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>{distKm} · {shadePct}% shade</div>
+            <div className="text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>{distKm} · {shadowPct}% shadow</div>
           </button>
         )}
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">

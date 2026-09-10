@@ -6,11 +6,11 @@ import * as planning from "./planning";
 
 /** Every scenario the C1 harness replays, in reading order. */
 export const scenarios: Scenario[] = [
-  planning.happyPathShadedAfternoon,
+  planning.happyPathShadowedAfternoon,
   planning.fallbackPlotWhenModelForgets,
   planning.modelPlotsItselfNoDuplicate,
   planning.locateUserThenPlan,
-  planning.setTimePrecedesShadeCheck,
+  planning.setTimePrecedesShadowCheck,
   planning.routePlanningPlotsEndpoints,
   grounding.toolErrorStaysHonest,
   grounding.emptySearchInventsNothing,

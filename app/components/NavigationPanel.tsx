@@ -51,8 +51,8 @@ function formatDist(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
 }
 
-function formatShadeStreak(m: number): string | null {
-  return m >= 10 ? `${Math.round(m)}m shade` : null;
+function formatShadowStreak(m: number): string | null {
+  return m >= 10 ? `${Math.round(m)}m shadow` : null;
 }
 
 function formatTransitions(n: number): string {
@@ -67,7 +67,7 @@ const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) 
   if (intensity < 0.15) {
     return (
       <div className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 self-start">
-        Low sun — shade routing minimal
+        Low sun — shadow routing minimal
       </div>
     );
   }
@@ -80,7 +80,7 @@ const SolarPill = memo(function SolarPill({ intensity }: { intensity: number }) 
   }
   return (
     <div className="text-xs px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-300 self-start">
-      High solar load — shade matters
+      High solar load — shadow matters
     </div>
   );
 });
@@ -295,7 +295,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
   }
 
   function renderRoute(r: import("../lib/savedRoutes").SavedRoute) {
-    const shadePct = Math.round(r.routeOption.shadeCoverage * 100);
+    const shadowPct = Math.round(r.routeOption.shadowCoverage * 100);
     const distKm = r.routeOption.distanceM >= 1000
       ? `${(r.routeOption.distanceM / 1000).toFixed(1)} km`
       : `${Math.round(r.routeOption.distanceM)} m`;
@@ -319,7 +319,7 @@ const SavedRoutesSection = memo(function SavedRoutesSection({
             className="flex-1 text-left px-1.5 py-1 rounded hover:bg-white/5 transition-colors min-w-0"
           >
             <div className="text-[11px] text-white/70 truncate">{r.name}</div>
-            <div className="text-[10px] text-white/30">{distKm} · {shadePct}% shade</div>
+            <div className="text-[10px] text-white/30">{distKm} · {shadowPct}% shadow</div>
           </button>
         )}
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
@@ -656,7 +656,7 @@ export default function NavigationPanel({
               {drawMode && (
                 <div className="mt-2 flex flex-col gap-1">
                   <p className="text-[11px] text-white/40">
-                    Click to add points &middot; then click Find Shaded Route
+                    Click to add points &middot; then click Find Shadowed Route
                   </p>
                   {sketchPointCount > 0 && (
                     <p className="text-[11px] text-yellow-400/70 tabular-nums">
@@ -681,7 +681,7 @@ export default function NavigationPanel({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
                 )}
-                {isCalculating ? 'Calculating…' : 'Find Shaded Route'}
+                {isCalculating ? 'Calculating…' : 'Find Shadowed Route'}
               </button>
               <button type="button"
                 onClick={onClear}
@@ -696,11 +696,11 @@ export default function NavigationPanel({
               <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
                 {solarIntensity != null && <SolarPill intensity={solarIntensity} />}
                 {routes.map((r, i) => {
-                  const streak = formatShadeStreak(r.longestContinuousShadeM);
-                  const transitions = formatTransitions(r.shadeTransitions);
+                  const streak = formatShadowStreak(r.longestContinuousShadowM);
+                  const transitions = formatTransitions(r.shadowTransitions);
                   const detour = formatDetour(r.detourRatio);
                   const hasSecondLine =
-                    streak !== null || r.shadeTransitions > 0 || r.detourRatio > 1.05 || r.turnCount > 0;
+                    streak !== null || r.shadowTransitions > 0 || r.detourRatio > 1.05 || r.turnCount > 0;
                   return (
                     <div key={i} className="flex gap-1 items-start">
                       <button type="button"
@@ -723,11 +723,11 @@ export default function NavigationPanel({
                           <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
                             <div
                               className="h-full rounded-full bg-amber-400 transition-all duration-300"
-                              style={{ width: `${Math.round(r.shadeCoverage * 100)}%` }}
+                              style={{ width: `${Math.round(r.shadowCoverage * 100)}%` }}
                             />
                           </div>
                           <span className="text-white/40 text-[10px] tabular-nums w-7 text-right">
-                            {Math.round(r.shadeCoverage * 100)}%
+                            {Math.round(r.shadowCoverage * 100)}%
                           </span>
                         </div>
                         {hasSecondLine && (
@@ -748,7 +748,7 @@ export default function NavigationPanel({
                           const sunLabel = sunExposure < 0.05
                             ? "Underground — no sun"
                             : sunExposure < 0.2
-                            ? "Mostly shaded"
+                            ? "Mostly shadowed"
                             : "Some sun exposure";
                           const sunColorClass = sunExposure < 0.05
                             ? "text-cyan-400/70"

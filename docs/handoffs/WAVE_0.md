@@ -28,8 +28,8 @@ OSM way tags, and `parallelSidewalkEdges` (`routing.ts:400`) returns four — si
 
 ```ts
 return [
-  { toId, distanceM, shadeFactor: travellerLeft,  side: "left"  },
-  { toId, distanceM, shadeFactor: travellerRight, side: "right" },
+  { toId, distanceM, shadowFactor: travellerLeft,  side: "left"  },
+  { toId, distanceM, shadowFactor: travellerRight, side: "right" },
 ];
 ```
 
@@ -135,7 +135,7 @@ None carries an advisory — #213 cleared all five on Node 20 — so this was or
 deferred on purpose. It landed before G2 as planned, on **Node 24.21.0**, not the 22 the issue
 proposed: Vercel runs **24.x**, so 22 would have left CI testing a runtime production does not
 use. **#141 (jsdom 30) and #142 (`@types/node`, taken at 24 not 26) are done.** **#140
-(vitest 5) is declined and refiled as #254** — vitest 5 drops the `bench` export, so the shade
+(vitest 5) is declined and refiled as #254** — vitest 5 drops the `bench` export, so the shadow
 benchmark stops compiling and stops running while all 550 tests still pass. Porting it is
 measurement-harness work, not a bump, and it must not land right before G2.
 

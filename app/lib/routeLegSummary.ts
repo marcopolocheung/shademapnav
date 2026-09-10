@@ -11,7 +11,7 @@ function formatMinutes(sec: number): string {
 function transitSunLabel(sunExposure: number | undefined): string | null {
   if (sunExposure == null) return null;
   if (sunExposure < 0.05) return "underground";
-  if (sunExposure < 0.2) return "mostly shaded";
+  if (sunExposure < 0.2) return "mostly shadowed";
   return "some sun";
 }
 
@@ -38,7 +38,7 @@ export function routeLegSummary(leg: RouteLeg, index: number): RouteLegSummary {
 
   const parts = [
     leg.distanceM != null ? formatDist(leg.distanceM) : null,
-    leg.shadeCoverage != null ? `${Math.round(leg.shadeCoverage * 100)}% shade` : null,
+    leg.shadowCoverage != null ? `${Math.round(leg.shadowCoverage * 100)}% shadow` : null,
   ].filter(Boolean);
 
   return {

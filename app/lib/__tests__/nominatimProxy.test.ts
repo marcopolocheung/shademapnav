@@ -79,7 +79,7 @@ describe("api/nominatim proxy", () => {
     await handler(makeReq({ endpoint: "search", q: "brooklyn bridge" }), makeRes());
 
     const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^ShadeMapNav\//);
+    expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^Umbra\//);
   });
 
   it("forwards only allowlisted params and forces JSON", async () => {

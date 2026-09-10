@@ -22,7 +22,7 @@
   #206/#207/#211 corrections; linked from the README.
   **P2** (pending merge) — the README rewritten as a human entry point: the promise, a live
   deep link that is the same URL the browser smoke test loads, the evidence page, what the
-  project does *not* do, and the shade-field correction. No badges.
+  project does *not* do, and the shadow-field correction. No badges.
 - **Open PRs:** #238 (P4, `docs/p4-evidence-page`) and P2 (`docs/p2-readme`, stacked on it).
 - **Decisions made:**
   - **Action, not a documented step.** The manual `git push public main` had failed three
@@ -59,7 +59,7 @@ owned by other tracks. The fourth — *"this person is honest about what they me
 - The A3 agreement harness publishes `150 cases · mean 2.6pp · p90 0.0pp · worst 62.5pp ·
   severe 3.3%` against committed regression ceilings. Nobody outside the repo can see it.
 - The shadow index was measured at ~1,000–2,200× on `sampleEdges` (#166). Unpublished.
-- `ShadeField.ts:199` labels its own confidence values *"priors, not measured ground truth"* in
+- `ShadowField.ts:199` labels its own confidence values *"priors, not measured ground truth"* in
   a source comment. That is the rarest sentence in a portfolio project, and it is buried.
 
 Meanwhile the public surface is actively wrong. `origin` is private; `public`
@@ -133,7 +133,7 @@ modes, and merging them is how a portfolio number becomes a lie:**
 
 | Layer | Oracle | Measure | The failure to avoid |
 |---|---|---|---|
-| Geometry | synthetic analytic fixtures; independent observation | intersection error, false shade, uncertainty by source | testing a renderer against the same geometry and calling the agreement *physical accuracy* |
+| Geometry | synthetic analytic fixtures; independent observation | intersection error, false shadow, uncertainty by source | testing a renderer against the same geometry and calling the agreement *physical accuracy* |
 | Routing | tiny exact fixtures; independently checked constraints | exposure/time tradeoff, violations, approximation gap | calling a bounded heuristic globally optimal |
 | Agent | final app state + task graders | valid completed plans, groundedness, recovery, revision minimality | counting tool invocation or fluent prose as success |
 | Systems | documented hardware, fixed snapshots | p50/p95 latency, memory, throughput, recovery | publishing a warm-cache best case as typical |
@@ -149,9 +149,9 @@ transcription and framing, not engineering, and it moves two resume lines from �
 **Goal.** Show ownership through decisions, including a wrong one corrected.
 **Approach.** One note each, in `docs/notes/`, each naming the alternative that was rejected and
 why:
-1. **The objective-function correction** (H2) — why maximizing shaded distance was measuring the
+1. **The objective-function correction** (H2) — why maximizing shadowed distance was measuring the
    wrong quantity, the Route-A/Route-B fixture that proved it, and what changed.
-2. **Why the shade field replaced the pixel sampler** — what coupling to the canvas cost, what
+2. **Why the shadow field replaced the pixel sampler** — what coupling to the canvas cost, what
    the agreement harness proved, and what it explicitly does *not* prove (model-vs-model
    agreement is not physical accuracy).
 3. **The agent's tool boundary** (C4) — why "started" is not success, and what a job/result

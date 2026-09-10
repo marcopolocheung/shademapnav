@@ -88,7 +88,7 @@ describe("normalizedShadowHeightBias", () => {
  * its own footprint, where the field saturates at the caster's own roofline. Moving
  * toward the sun means closer to every caster, so the sampled ceiling rises — and
  * the threshold it is compared against has to rise by the same amount or the wall
- * shades higher than the ground shadow at its base says it should.
+ * shadows higher than the ground shadow at its base says it should.
  */
 describe("normalizedCeilingLift", () => {
   /**
@@ -107,12 +107,12 @@ describe("normalizedCeilingLift", () => {
   const FRACTIONS = [0.2, 0.5, 0.8];
 
   /** How Pass E decides, having sampled the field `d` metres sunward of `x0`. */
-  function shadedAfterNudge(x0: number, d: number, h: number, alt: number, lift: number) {
+  function shadowedAfterNudge(x0: number, d: number, h: number, alt: number, lift: number) {
     return h / MAX_H_M + lift <= ceilingAt(x0 - d, alt) / MAX_H_M;
   }
 
   /** How the un-nudged ground pass decides at that same spot. */
-  function shadedAtSurface(x0: number, h: number, alt: number) {
+  function shadowedAtSurface(x0: number, h: number, alt: number) {
     return h <= ceilingAt(x0, alt);
   }
 
@@ -130,24 +130,24 @@ describe("normalizedCeilingLift", () => {
           if (x0 < d) continue; // the near cap, covered by its own test below
           const ceiling = ceilingAt(x0, alt);
           for (const h of probeHeights(ceiling, d * Math.tan(alt))) {
-            expect(shadedAfterNudge(x0, d, h, alt, lift)).toBe(shadedAtSurface(x0, h, alt));
+            expect(shadowedAfterNudge(x0, d, h, alt, lift)).toBe(shadowedAtSurface(x0, h, alt));
           }
         }
       }
     }
   });
 
-  it("over-shades the wall without the lift, by the sunward step's worth of height", () => {
+  it("over-shadows the wall without the lift, by the sunward step's worth of height", () => {
     const alt = (33 * Math.PI) / 180;
     const d = 1.5;
     const x0 = (0.5 * H) / Math.tan(alt);
-    // A surface half a step above the true terminator: lit on the ground, shaded on
+    // A surface half a step above the true terminator: lit on the ground, shadowed on
     // the wall. This is the step a shadow crossing from street to wall shows today.
     const h = ceilingAt(x0, alt) + 0.5 * d * Math.tan(alt);
 
-    expect(shadedAtSurface(x0, h, alt)).toBe(false);
-    expect(shadedAfterNudge(x0, d, h, alt, 0)).toBe(true);
-    expect(shadedAfterNudge(x0, d, h, alt, normalizedCeilingLift(d, alt, MAX_H_M))).toBe(false);
+    expect(shadowedAtSurface(x0, h, alt)).toBe(false);
+    expect(shadowedAfterNudge(x0, d, h, alt, 0)).toBe(true);
+    expect(shadowedAfterNudge(x0, d, h, alt, normalizedCeilingLift(d, alt, MAX_H_M))).toBe(false);
   });
 
   it("bounds the residual to the step's height where the nudge stays inside the footprint", () => {
@@ -157,10 +157,10 @@ describe("normalizedCeilingLift", () => {
         for (const x0 of [0, 0.25 * d, 0.75 * d]) {
           const ceiling = ceilingAt(x0, alt);
           for (const h of probeHeights(ceiling, d * Math.tan(alt))) {
-            const nudged = shadedAfterNudge(x0, d, h, alt, lift);
-            const truth = shadedAtSurface(x0, h, alt);
+            const nudged = shadowedAfterNudge(x0, d, h, alt, lift);
+            const truth = shadowedAtSurface(x0, h, alt);
             if (nudged === truth) continue;
-            // Under-shading only — never the lit-to-shaded direction — and confined
+            // Under-shading only — never the lit-to-shadowed direction — and confined
             // to a band one sunward step tall under the true terminator.
             expect([nudged, truth]).toEqual([false, true]);
             expect(ceiling - h).toBeLessThanOrEqual(d * Math.tan(alt));

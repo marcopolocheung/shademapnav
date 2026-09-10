@@ -7,15 +7,15 @@ import type { RouteOption } from "../../lib/routing";
 
 afterEach(cleanup);
 
-function route(distanceM: number, shadeCoverage: number): RouteOption {
+function route(distanceM: number, shadowCoverage: number): RouteOption {
   return {
-    label: "Most shaded",
+    label: "Most shadowed",
     distanceM,
-    shadeCoverage,
+    shadowCoverage,
     geojson: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
-    longestContinuousShadeM: 0,
+    longestContinuousShadowM: 0,
     longestContinuousSunM: 0,
-    shadeTransitions: 0,
+    shadowTransitions: 0,
     detourRatio: 1,
     turnCount: 0,
   };
@@ -76,7 +76,7 @@ describe("RouteConditionsLine", () => {
 
 describe("formatMinuteRange", () => {
   it("reads a sub-minute low bound as an upper bound, not as a range to itself", () => {
-    // A short fully shaded walk: low 0.44, high 1.32 both round toward 1, and the
+    // A short fully shadowed walk: low 0.44, high 1.32 both round toward 1, and the
     // old formatter rendered the nonsense "under 1–1 min".
     expect(formatMinuteRange(0.44, 1.32)).toBe("up to 1 min");
   });

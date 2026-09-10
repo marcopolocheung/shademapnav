@@ -50,7 +50,7 @@ That layer exists; it just isn't named `CLAUDE.md`.
 | `SessionStart` | `session-brief.sh` | Injects the track board — each brief's active checkpoint, branch, tree state. ~10 lines, offline, so no brief has to be read to orient. |
 | `PreToolUse(Edit\|Write)` | `guard-invariants.sh` | **Denies** edits that break the mechanical invariants: the maplibre `5.9.0` and suncalc `1.x` pins, the direct `suncalc`/`earcut` deps, the suncalc default import, `preserveDrawingBuffer`, the `React.lazy` MapView import, `User-Agent` on Nominatim/Overpass, and any path under `.worktrees/` or `oldbuild/`. **Escalates** to a prompt for the shadow-colour ↔ `isBlueDominantShadowPixel` coupling, which is a judgment call rather than an error. |
 | `PostToolUse(Edit\|Write)` | `lint-changed.sh` | Biome on just the file that changed. `npm run lint` reports the whole repo and its ~180-item warn backlog buries a new error; scoping to one file makes it unmissable. Never blocks. |
-| `Stop` | `check-gates.sh` | If source under `app/`/`api/` changed and `/gates` hasn't recorded all four green since, blocks once per session. Never runs the gates itself — `npm run build` is far too slow for a Stop hook — it compares timestamps. `SHADEMAP_GATES_STRICT=1` makes it block every time. |
+| `Stop` | `check-gates.sh` | If source under `app/`/`api/` changed and `/gates` hasn't recorded all four green since, blocks once per session. Never runs the gates itself — `npm run build` is far too slow for a Stop hook — it compares timestamps. `UMBRA_GATES_STRICT=1` makes it block every time. |
 
 Verify any of them by hand:
 
@@ -100,7 +100,7 @@ per-directory guides root `CLAUDE.md`'s repo map has always pointed to — they 
 written (issue #50), and `paths:` frontmatter is a better answer than nested `CLAUDE.md`
 files, which load per-directory whether or not they're relevant.
 
-`shadow-renderer` · `routing-and-shade` · `components-and-map` · `hooks-and-state` ·
+`shadow-renderer` · `routing-and-shadow` · `components-and-map` · `hooks-and-state` ·
 `agent-loop` · `external-apis` · `tests` — plus `change-discipline`, the only unscoped one,
 which is short on purpose.
 

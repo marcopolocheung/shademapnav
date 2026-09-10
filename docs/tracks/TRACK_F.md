@@ -31,7 +31,7 @@ choice (E1). Shipping share cards first would spread a screenshot of a feature s
 2026 landscape is about to commoditize.
 
 **Unpark when:** B7 and D1 have landed — i.e. when there is a sentence ("you walked 78% in
-shade") and a picture (the hour strip) that no other app produces. **Timing matters**: ship
+shadow") and a picture (the hour strip) that no other app produces. **Timing matters**: ship
 before a northern-hemisphere summer, not during the autumn after one.
 
 ## Checkpoints (kept warm, not started)
@@ -41,17 +41,17 @@ before a northern-hemisphere summer, not during the autumn after one.
 - **F2 — OG images + meta.** A serverless OG endpoint so a shared state URL unfurls with a
   shadow-map preview. Must stay inside the Vercel free tier.
 - **F3 — Share target + deep links.** PWA `share_target` registration plus a documented URL
-  scheme, so an address shared from another app opens as a shade route. Closes **#68**.
+  scheme, so an address shared from another app opens as a shadow route. Closes **#68**.
   Builds directly on `shareState.ts`.
 - **F4 — Offline that means something.** Cache the last route, its graph slice, and surrounding
   tiles; the app opens and still shows your commute with no network. Today's service worker
-  caches the app shell only (`CACHE_NAME = "shademapnav-shell-v1"`). **Track D's D7 depends on
+  caches the app shell only (`CACHE_NAME = "umbra-shell-v1"`). **Track D's D7 depends on
   this.**
 - **F5 — City landing pages.** Pre-rendered pages for the searches people actually make
-  ("shaded walking routes in Madrid"), each with a screenshot, a canned deep link, and two
+  ("shadowed walking routes in Madrid"), each with a screenshot, a canned deep link, and two
   honest paragraphs. Closes **#62**.
-- **F6 — Public shade API / embeddable widget** *(stretch)*. Once Track A is a real engine, a
-  read-only shade-at-point endpoint is the thing urbanists screenshot and link.
+- **F6 — Public shadow API / embeddable widget** *(stretch)*. Once Track A is a real engine, a
+  read-only shadow-at-point endpoint is the thing urbanists screenshot and link.
 
 ## Notes for whoever unparks this
 

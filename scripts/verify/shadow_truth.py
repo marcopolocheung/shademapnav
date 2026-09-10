@@ -7,7 +7,7 @@ and a picture you can point at.
 
 It drives the real app, reads back the frame, and asks the page for the very
 prisms the renderer just used. Then it ray-traces those prisms itself — camera
-rays for "what surface is this pixel", a sun ray for "is that point shaded" — and
+rays for "what surface is this pixel", a sun ray for "is that point shadowed" — and
 diffs the two answers per pixel. Disagreements come out as a mask image, so a bug
 that reads as "the shadow doesn't line up" becomes a shape on a black background
 with a percentage next to it.
@@ -33,10 +33,10 @@ component edit fails loudly instead of silently invalidating the measurement:
 * `MapView.tsx` publishes the map and the shadow layer on `window`.
 * Pass E's fragment shader keeps its colour but writes its decision into alpha:
 
-      10 + 20*shaded + 40*roof + 80*sun-facing
+      10 + 20*shadowed + 40*roof + 80*sun-facing
 
-  giving 90 lit wall / 110 shaded sun-facing wall / 30 wall turned away /
-  130 lit roof / 150 shaded roof. Ground keeps alpha 255. An MSAA-blended
+  giving 90 lit wall / 110 shadowed sun-facing wall / 30 wall turned away /
+  130 lit roof / 150 shadowed roof. Ground keeps alpha 255. An MSAA-blended
   silhouette pixel lands on none of those and is dropped.
 
 Usage
@@ -82,7 +82,7 @@ CHROME_FLAGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-sw
 
 EARTH_CIRCUMFERENCE_M = 2 * math.pi * 6371008.8
 
-# Pass E alpha codes, and whether each one means "shaded".
+# Pass E alpha codes, and whether each one means "shadowed".
 PASS_E_CODES = {90: (2, False), 110: (2, True), 30: (2, True), 130: (3, False), 150: (3, True)}
 GROUND, WALL, ROOF = 1, 2, 3
 SURFACE_NAMES = {GROUND: "ground", WALL: "wall", ROOF: "roof"}
@@ -91,11 +91,11 @@ PATCHES = [
     ("**/app/components/MapView.tsx*", [
         ("onMapReady?.(map)", "(window.__map = map, onMapReady?.(map))"),
         ("onShadowLayerReady?.(shadowLayer)",
-         "(window.__shade = shadowLayer, onShadowLayerReady?.(shadowLayer))"),
+         "(window.__shadow = shadowLayer, onShadowLayerReady?.(shadowLayer))"),
     ]),
     ("**/app/lib/shadow/LocalShadowAdapter.ts*", [
-        ("gl_FragColor = vec4(mix(lit, dark, shaded), 1.0);",
-         "gl_FragColor = vec4(mix(lit, dark, shaded), (10.0 + 20.0*shaded"
+        ("gl_FragColor = vec4(mix(lit, dark, shadowed), 1.0);",
+         "gl_FragColor = vec4(mix(lit, dark, shadowed), (10.0 + 20.0*shadowed"
          " + 40.0*step(0.5, v_normal.z) + 80.0*step(0.0, v_facing))/255.0);"),
         ("const matrix = new Float32Array(m);",
          "const matrix = new Float32Array(m); (window).__frameMatrix = Array.from(m);"),
@@ -117,7 +117,7 @@ READ_PIXELS_JS = """() => {
 }"""
 
 SCENE_JS = """() => {
-  const s = window.__shade, m = window.__map, c = s.buildingCache;
+  const s = window.__shadow, m = window.__map, c = s.buildingCache;
   return {
     center: m.getCenter().toArray(), zoom: m.getZoom(),
     pitch: m.getPitch(), bearing: m.getBearing(),
@@ -197,7 +197,7 @@ def inside_ring(ring: np.ndarray, pts: np.ndarray) -> np.ndarray:
 
 
 def raytrace(meta: dict, step: int) -> tuple[np.ndarray, np.ndarray]:
-    """Trace the renderer's own prisms. Returns (surface, shaded) rasters.
+    """Trace the renderer's own prisms. Returns (surface, shadowed) rasters.
 
     Mercator is conformal, so one metre is the same number of units on all three
     axes at the centre latitude — the same scale MapLibre gives a custom layer's z.
@@ -300,7 +300,7 @@ def raytrace(meta: dict, step: int) -> tuple[np.ndarray, np.ndarray]:
     hit = origin + direction * np.where(depth < far, depth, 0)[:, None]
     # Leave the surface we are standing on before looking for the sun.
     start = hit + sun * (0.02 * metres)
-    shaded = np.zeros(ndc_x.shape, bool)
+    shadowed = np.zeros(ndc_x.shape, bool)
     lit = surface > 0
 
     # Sun rays all share one direction, so each prism reduces to "does the 2D ray
@@ -309,7 +309,7 @@ def raytrace(meta: dict, step: int) -> tuple[np.ndarray, np.ndarray]:
         tip = ring - sun[None, :2] * (top_z / sun[2])   # the shadow falls away
         span = np.concatenate([ring, tip])
         lo, hi = span.min(0), span.max(0)
-        cand = (lit & ~shaded & (start[:, 2] < top_z)
+        cand = (lit & ~shadowed & (start[:, 2] < top_z)
                 & (start[:, 0] >= lo[0]) & (start[:, 0] <= hi[0])
                 & (start[:, 1] >= lo[1]) & (start[:, 1] <= hi[1]))
         if not cand.any():
@@ -327,9 +327,9 @@ def raytrace(meta: dict, step: int) -> tuple[np.ndarray, np.ndarray]:
             t = (rx * (-edge[1]) - ry * (-edge[0])) / det
             s = (sun[0] * ry - sun[1] * rx) / det
             entry = np.where((t > 0) & (s >= 0) & (s <= 1) & (t < entry), t, entry)
-        shaded[idx[entry < (top_z - q[:, 2]) / sun[2]]] = True
+        shadowed[idx[entry < (top_z - q[:, 2]) / sun[2]]] = True
 
-    return surface.reshape(h, w), shaded.reshape(h, w)
+    return surface.reshape(h, w), shadowed.reshape(h, w)
 
 
 # ─── Comparison ────────────────────────────────────────────────────────────────
@@ -344,24 +344,24 @@ def classify_render(frame: np.ndarray, step: int) -> tuple[np.ndarray, np.ndarra
     blue = (r + g + b < 600) & (b - (r + g) / 2 > 18) & (b > (r + g) / 2 * 1.15)
 
     surface = np.zeros(alpha.shape, np.uint8)
-    shaded = np.zeros(alpha.shape, bool)
+    shadowed = np.zeros(alpha.shape, bool)
     ground = alpha == 255
     surface[ground] = GROUND
-    shaded[ground] = blue[ground]
-    for code, (kind, is_shaded) in PASS_E_CODES.items():
+    shadowed[ground] = blue[ground]
+    for code, (kind, is_shadowed) in PASS_E_CODES.items():
         hit = alpha == code
         surface[hit] = kind
-        shaded[hit] = is_shaded
-    return surface, shaded
+        shadowed[hit] = is_shadowed
+    return surface, shadowed
 
 
 def report(render, truth, out: Path, tag: str) -> dict:
     """Count the disagreements and draw them."""
-    r_surface, r_shaded = render
-    t_surface, t_shaded = truth
+    r_surface, r_shadowed = render
+    t_surface, t_shadowed = truth
     known = (r_surface > 0) & (t_surface > 0)
     agreed = known & (r_surface == t_surface)
-    wrong = agreed & (r_shaded != t_shaded)
+    wrong = agreed & (r_shadowed != t_shadowed)
 
     result = {"surfaceMismatch": int((known & ~agreed).sum()), "comparable": int(agreed.sum())}
     for kind, name in SURFACE_NAMES.items():
@@ -371,8 +371,8 @@ def report(render, truth, out: Path, tag: str) -> dict:
             "compared": int(compared.sum()),
             "wrong": int(missed.sum()),
             "wrongFraction": float(missed.sum() / compared.sum()) if compared.any() else 0.0,
-            "litWhereShaded": int((missed & ~r_shaded).sum()),
-            "shadedWhereLit": int((missed & r_shaded).sum()),
+            "litWhereShadowed": int((missed & ~r_shadowed).sum()),
+            "shadowedWhereLit": int((missed & r_shadowed).sum()),
         }
 
     h, w = r_surface.shape
@@ -381,17 +381,17 @@ def report(render, truth, out: Path, tag: str) -> dict:
     image[agreed & (t_surface == WALL)] = (44, 44, 44)
     image[agreed & (t_surface == ROOF)] = (68, 68, 68)
     image[known & ~agreed] = (0, 60, 0)              # geometry differs; not judged
-    image[wrong & ~r_shaded] = (255, 0, 255)         # drawn lit, truth says shaded
-    image[wrong & r_shaded] = (255, 220, 0)          # drawn shaded, truth says lit
+    image[wrong & ~r_shadowed] = (255, 0, 255)         # drawn lit, truth says shadowed
+    image[wrong & r_shadowed] = (255, 220, 0)          # drawn shadowed, truth says lit
     Image.fromarray(image).save(out / f"{tag}-mismatch.png")
 
     palette = {(GROUND, False): (245, 245, 245), (GROUND, True): (70, 110, 230),
                (WALL, False): (255, 225, 150), (WALL, True): (160, 40, 0),
                (ROOF, False): (190, 255, 150), (ROOF, True): (0, 110, 60)}
-    for name, (surface, shaded) in (("truth", truth), ("render", render)):
+    for name, (surface, shadowed) in (("truth", truth), ("render", render)):
         picture = np.zeros((h, w, 3), np.uint8)
-        for (kind, is_shaded), colour in palette.items():
-            picture[(surface == kind) & (shaded == is_shaded)] = colour
+        for (kind, is_shadowed), colour in palette.items():
+            picture[(surface == kind) & (shadowed == is_shadowed)] = colour
         Image.fromarray(picture).save(out / f"{tag}-{name}.png")
     return result
 
@@ -436,8 +436,8 @@ def main() -> int:
         row = result[name]
         print(f"  {name:7s} compared {row['compared']:8d}  wrong {row['wrong']:7d}"
               f"  ({100 * row['wrongFraction']:.3f}%)"
-              f"  lit-where-shaded {row['litWhereShaded']:6d}"
-              f"  shaded-where-lit {row['shadedWhereLit']:6d}")
+              f"  lit-where-shadowed {row['litWhereShadowed']:6d}"
+              f"  shadowed-where-lit {row['shadowedWhereLit']:6d}")
 
     if args.baseline:
         before = json.loads(args.baseline.read_text())

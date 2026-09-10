@@ -76,7 +76,7 @@ function cloneRoutingGraph(graph: RoutingGraph): RoutingGraph {
 
 /**
  * Fetches OSM walkable road graph for the given bounding box via Overpass API.
- * All edge shadeFactor values are initialized to 0 — caller fills them in.
+ * All edge shadowFactor values are initialized to 0 — caller fills them in.
  * Results are cached by bbox; a cached graph is returned if it fully covers
  * the new request without re-fetching.
  */
@@ -225,8 +225,8 @@ out body geom;
         foot: way.tags?.foot,
       };
 
-      adj.get(fromId)!.push({ toId, distanceM, shadeFactor: 0, ...edgeTags });
-      adj.get(toId)!.push({ toId: fromId, distanceM, shadeFactor: 0, ...edgeTags });
+      adj.get(fromId)!.push({ toId, distanceM, shadowFactor: 0, ...edgeTags });
+      adj.get(toId)!.push({ toId: fromId, distanceM, shadowFactor: 0, ...edgeTags });
     }
   }
 
@@ -377,7 +377,7 @@ function assembleClosedRings(lines: LngLat[][]): LngLat[][] {
 }
 
 /**
- * Fetch building footprints near a point for offscreen shade checks.
+ * Fetch building footprints near a point for offscreen shadow checks.
  */
 export async function fetchBuildingFootprintsAround(
   lng: number,
@@ -422,7 +422,7 @@ out body geom;
 
   const text = await res.text();
   if (text.trimStart().startsWith("<")) {
-    throw new Error("The map server returned an error while checking building shade.");
+    throw new Error("The map server returned an error while checking building shadow.");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

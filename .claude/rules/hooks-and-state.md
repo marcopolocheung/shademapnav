@@ -45,7 +45,7 @@ hook that drives the map produces a stale closure holding a dead map instance.
 
 ## Async and lifecycle
 
-Route calculation, geocoding and shade sampling are all async and all cancellable in practice
+Route calculation, geocoding and shadow sampling are all async and all cancellable in practice
 — the user moves the map, changes the time, or picks a different destination mid-flight. Make
 sure an in-flight result that arrives late cannot overwrite newer state. Geolocation is
 one-shot `getCurrentPosition` today; `watchPosition` appears nowhere in `app/` yet.

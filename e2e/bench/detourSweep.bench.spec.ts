@@ -3,10 +3,10 @@ import {
   type EdgeRef,
   type PrismProvider,
   bboxAroundEdges,
-  createGeometryShadeField,
+  createGeometryShadowField,
   staticPrismProvider,
-} from "../../app/lib/shade/ShadeField";
-import { prismsFromTileFeatures } from "../../app/lib/shade/geometry";
+} from "../../app/lib/shadowField/ShadowField";
+import { prismsFromTileFeatures } from "../../app/lib/shadowField/geometry";
 import {
   type GraphEdge,
   type RoutingGraph,
@@ -14,7 +14,7 @@ import {
   parallelSidewalkEdges,
   paretoRoutes,
 } from "../../app/lib/routing";
-import { computeSolarIntensity } from "../../app/lib/shadeSampling";
+import { computeSolarIntensity } from "../../app/lib/shadowSampling";
 import { fixtureBuildingFeatures } from "../fixtures/basemapStyle";
 import { GRID_COLS, GRID_ROWS, nodeId, overpassGridGraph } from "../fixtures/overpassGrid";
 import { markdownTable, ms, pct, stats } from "./stats";
@@ -26,8 +26,8 @@ import { markdownTable, ms, pct, stats } from "./stats";
  * `paretoRoutes` prunes any label whose optimistic length exceeds
  * `shortestDist × maxDetourFactor + 250 m`. `maxDetourFactor` defaults to
  * **2.0**, which admits a route twice as long as the direct one. Three
- * independent studies in `docs/research/shade-thermal-comfort-literature-2026-09-09.md`
- * find useful shade detours around +1.3%, under 3%, and plateauing near 110% —
+ * independent studies in `docs/research/shadow-thermal-comfort-literature-2026-09-09.md`
+ * find useful shadow detours around +1.3%, under 3%, and plateauing near 110% —
  * roughly a tenth of what the budget allows.
  *
  * **This publishes the curve. It does not change the constant.** #243 is
@@ -41,11 +41,11 @@ import { markdownTable, ms, pct, stats } from "./stats";
  * pass it — the app always gets the 2.0 default. Sweeping it in the browser would
  * mean adding a way to set it from outside, which is a production change G2 has
  * no business making. So the sweep drives `paretoRoutes` directly, on the same
- * fixture grid, with shade from the same fixture buildings at the same instant
+ * fixture grid, with shadow from the same fixture buildings at the same instant
  * the browser benchmark uses.
  *
  * What that costs in fidelity, stated plainly: this is the **search** alone. It
- * excludes the Overpass fetch, the canvas read and the shade sampling that the
+ * excludes the Overpass fetch, the canvas read and the shadow sampling that the
  * browser numbers carry, and its graph is the whole 11x11 grid rather than the
  * bbox the app fetches around its waypoints. The compute column is therefore not
  * comparable to the browser totals — it is comparable **across rows**, which is
@@ -85,11 +85,11 @@ const PAIRS: [[number, number], [number, number]][] = [
 const edgeKey = (a: number, b: number) => `${Math.min(a, b)},${Math.max(a, b)}`;
 
 /**
- * The grid with real shade on every edge, built the way `useNavigation` builds
+ * The grid with real shadow on every edge, built the way `useNavigation` builds
  * it: sample the canonical direction once, then split each directed edge into
  * its two sidewalks with `parallelSidewalkEdges`.
  */
-function shadedGrid(): { graph: RoutingGraph; shadedShare: number } {
+function shadowedGrid(): { graph: RoutingGraph; shadowedShare: number } {
   const base = overpassGridGraph();
 
   const seen = new Set<string>();
@@ -110,18 +110,18 @@ function shadedGrid(): { graph: RoutingGraph; shadedShare: number } {
   const prisms = prismsFromTileFeatures(fixtureBuildingFeatures());
   const bbox = bboxAroundEdges(refs, 2000)!;
   const provider: PrismProvider = staticPrismProvider(prisms, bbox, "tiles");
-  const samples = createGeometryShadeField([provider]).sampleEdges(refs, WHEN);
+  const samples = createGeometryShadowField([provider]).sampleEdges(refs, WHEN);
 
-  const shade = new Map<string, { left: number; right: number }>();
+  const shadow = new Map<string, { left: number; right: number }>();
   samples.forEach((s, i) => {
-    shade.set(keys[i], { left: s.left, right: s.right });
+    shadow.set(keys[i], { left: s.left, right: s.right });
   });
 
   const adj = new Map<number, GraphEdge[]>();
   for (const [fromId, edges] of base.adj) {
     const out: GraphEdge[] = [];
     for (const edge of edges) {
-      const { left, right } = shade.get(edgeKey(fromId, edge.toId))!;
+      const { left, right } = shadow.get(edgeKey(fromId, edge.toId))!;
       out.push(...parallelSidewalkEdges(fromId, edge, left, right));
     }
     adj.set(fromId, out);
@@ -130,17 +130,17 @@ function shadedGrid(): { graph: RoutingGraph; shadedShare: number } {
   const all = samples.flatMap((s) => [s.left, s.right]);
   return {
     graph: { nodes: base.nodes, adj },
-    shadedShare: all.reduce((a, b) => a + b, 0) / all.length,
+    shadowedShare: all.reduce((a, b) => a + b, 0) / all.length,
   };
 }
 
 test("detour budget sweep", () => {
-  const { graph, shadedShare } = shadedGrid();
+  const { graph, shadowedShare } = shadowedGrid();
 
-  // A sweep over a field that is all sun or all shade measures nothing: every
+  // A sweep over a field that is all sun or all shadow measures nothing: every
   // budget would buy the same zero. Fail loudly rather than publish a flat curve.
-  expect(shadedShare, "fixture shade is degenerate — every budget would tie").toBeGreaterThan(0.05);
-  expect(shadedShare, "fixture shade is degenerate — every budget would tie").toBeLessThan(0.95);
+  expect(shadowedShare, "fixture shadow is degenerate — every budget would tie").toBeGreaterThan(0.05);
+  expect(shadowedShare, "fixture shadow is degenerate — every budget would tie").toBeLessThan(0.95);
 
   // Warm the JIT over the whole pair set before anything is timed. Without it the
   // first factor in the list absorbs the compile cost and reads as the slowest
@@ -182,10 +182,10 @@ test("detour budget sweep", () => {
         .toBeGreaterThan(0);
 
       const shortest = routes[0];
-      const shadiest = routes[routes.length - 1];
+      const mostShadowed = routes[routes.length - 1];
       if (routes.length > 1) pairsWithAlternative++;
-      gains.push((shadiest.shadeCoverage - shortest.shadeCoverage) * 100);
-      overheads.push(((shadiest.distanceM - shortest.distanceM) / shortest.distanceM) * 100);
+      gains.push((mostShadowed.shadowCoverage - shortest.shadowCoverage) * 100);
+      overheads.push(((mostShadowed.distanceM - shortest.distanceM) / shortest.distanceM) * 100);
     }
 
     const t = stats(timings);
@@ -203,13 +203,13 @@ test("detour budget sweep", () => {
   console.log(
     `\n### Detour budget sweep (#243) — ${new Date().toISOString().slice(0, 10)}\n\n` +
       `${GRID_ROWS}x${GRID_COLS} fixture grid, ${PAIRS.length} O-D pairs, ${REPEATS} repeats each, ` +
-      `${(shadedShare * 100).toFixed(1)}% mean sidewalk shade at 09:00 EDT on 2026-06-21.\n\n` +
+      `${(shadowedShare * 100).toFixed(1)}% mean sidewalk shadow at 09:00 EDT on 2026-06-21.\n\n` +
       markdownTable(
         [
           "maxDetourFactor",
           "p50 search (ms)",
           "p95 search (ms)",
-          "mean shade gain (pp)",
+          "mean shadow gain (pp)",
           "mean length overhead (%)",
           "pairs with an alternative",
         ],

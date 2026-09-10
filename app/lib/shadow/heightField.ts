@@ -29,7 +29,7 @@ export function normalizedShadowHeightBias(maxHeightM: number): number {
  *
  * No clamp on `tan(alt)` is needed at either end: as the sun reaches the horizon
  * the lift goes to zero with it, and as it reaches the zenith every wall faces
- * away from it and is shaded by facing alone, whatever the lift says.
+ * away from it and is shadowed by facing alone, whatever the lift says.
  */
 export function normalizedCeilingLift(
   sunwardOffsetM: number,

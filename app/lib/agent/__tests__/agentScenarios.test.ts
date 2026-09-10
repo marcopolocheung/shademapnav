@@ -24,7 +24,7 @@ import {
 } from "./harness";
 import { scenarios } from "./scenarios";
 import { emptySearchInventsNothing, toolErrorStaysHonest } from "./scenarios/grounding";
-import { fallbackPlotWhenModelForgets, happyPathShadedAfternoon } from "./scenarios/planning";
+import { fallbackPlotWhenModelForgets, happyPathShadowedAfternoon } from "./scenarios/planning";
 
 vi.mock("../llmClient", () => ({
   callModel: vi.fn(),
@@ -144,7 +144,7 @@ describe("plot-before-answer guarantee", () => {
   });
 
   it("adds no guarantee line when the model plotted for itself", async () => {
-    const trace = await run(happyPathShadedAfternoon);
+    const trace = await run(happyPathShadowedAfternoon);
     expect(writePrompt(trace)).not.toContain("Map state guarantee");
   });
 
@@ -161,8 +161,8 @@ describe("tool results reach the model", () => {
     const responses = trace.history
       .flatMap((c) => c.parts)
       .flatMap((p) => (p.functionResponse ? [p.functionResponse] : []));
-    const shade = responses.find((r) => r.name === "check_shade");
-    expect(shade?.response.error).toBe("No building geometry loaded for that area.");
+    const shadow = responses.find((r) => r.name === "check_shadow");
+    expect(shadow?.response.error).toBe("No building geometry loaded for that area.");
   });
 
   it("plots nothing when a search comes back empty", async () => {
@@ -197,8 +197,8 @@ describe("harness teeth", () => {
   });
 
   it("catches a plotted itinerary that the sabotage left unplotted mid-plan", async () => {
-    const trace = await run(happyPathShadedAfternoon, "plotting-fails");
-    expect(groundingViolations(trace, happyPathShadedAfternoon)).toContain(
+    const trace = await run(happyPathShadowedAfternoon, "plotting-fails");
+    expect(groundingViolations(trace, happyPathShadowedAfternoon)).toContain(
       "answered without plotting the itinerary first"
     );
   });

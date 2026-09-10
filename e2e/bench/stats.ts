@@ -3,7 +3,7 @@
  *
  * `percentile` is deliberately the same definition `app/lib/metrics.ts` uses —
  * R-7 linear interpolation — because the browser scenarios report both this
- * harness's numbers and the app's own `window.__shadeMapMetrics.summary`, and
+ * harness's numbers and the app's own `window.__umbraMetrics.summary`, and
  * two percentile definitions that quietly disagree would make the pair
  * meaningless. `routeCalc.bench.spec.ts` asserts they agree.
  */

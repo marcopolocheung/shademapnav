@@ -2,7 +2,7 @@
 
 > **Charter:** make the app navigate. Turn a calculated route into guidance a person can
 > follow while walking — with the one instruction no competitor can give:
-> *"cross to the shaded side."*
+> *"cross to the shadowed side."*
 
 **Class:** Flagship. **Runs alongside:** A, C, D, G freely; coordinate with E (`Trip`, `useNavigation`).
 
@@ -31,23 +31,23 @@
   - **Continue instructions are omitted**, including small successive bends; real adjacent
     turns are retained even when close together. Consecutive duplicate positions are skipped.
     Empty paths yield no maneuvers; stationary paths yield only arrival at 0 m.
-    `guidance/types.ts` publishes the full contract, with street names and shade hints left
+    `guidance/types.ts` publishes the full contract, with street names and shadow hints left
     unset until B2/B6. The Madrid fixture records actual OSM nodes, source timestamps,
     way IDs and capture inputs; its 281 m path yields five turns plus depart/arrive.
   - **No terrain, ever.** It displaces the ground while the shadow layer's triangles stay at
     `z = 0`. Draping them means sampling the DEM in the shadow vertex shader, and elevation
-    adds nothing to urban pedestrian shade. Deleted rather than fixed.
+    adds nothing to urban pedestrian shadow. Deleted rather than fixed.
   - **`buildings-3d` is gone; `LocalShadowAdapter` draws the extrusions.** A
-    `fill-extrusion` cannot be shaded, so painting shadows onto the buildings meant owning
-    the geometry. Pass E extrudes the very prisms that cast the shadows and shades each
+    `fill-extrusion` cannot be shadowed, so painting shadows onto the buildings meant owning
+    the geometry. Pass E extrudes the very prisms that cast the shadows and shadows each
     fragment against the height FBO, so a building and its shadow can no longer disagree —
     which also retires the `BUILDING_HEIGHT_EXPR` that had to mirror `buildingHeightM()`.
     The layer is topmost and `renderingMode: '3d'`, so MapLibre puts its opaque-pass cutoff
     there and the nav overlays above it keep testing no depth.
     `bringNavOverlaysToFront` deliberately does not list `local-shadow-layer`. Do not "fix"
     this with `moveLayer`.
-  - **Shaded building surfaces are lighter than the ground shadow, never equal to it.**
-    A shaded wall first came out at `#405880` against a `#516990` street — same hue, more
+  - **Shadowed building surfaces are lighter than the ground shadow, never equal to it.**
+    A shadowed wall first came out at `#405880` against a `#516990` street — same hue, more
     contrast the wrong way — so a tilted view looking away from the sun showed rooftops
     floating on blue with no walls under them, which reads as "transparent buildings".
     The ladder is now ground `#516990` < wall `#6f7f99` < roof `#8797b2` < lit wall `#c0c0c0`
@@ -58,7 +58,7 @@
     building's ground polygon merely overlaps it. Measured against `main` at pitch 0,
     z16.3, 1 pm Midtown: **12.2% of the map area changes**, essentially all of it
     rooftops going `#516990` → `#c0c0c0` (shadow-over-building-fill → bare fill). The
-    street network is untouched, so the sidewalk samples the shade routing reads are
+    street network is untouched, so the sidewalk samples the shadow routing reads are
     unaffected — but do not repeat the earlier claim that pitch 0 is pixel-identical.
     It is not, it is *more correct*, and any future pixel comparison has to be against
     `main` rather than against another build of the same branch.
@@ -67,7 +67,7 @@
     LEQUAL to the near-1 depths the opaque-pass basemap fills wrote. Taking the full
     `[0,1]` re-opens that and lets the ground reject a distant building.
   - **Place labels ride above the buildings only while tilted.** Lifting them at pitch 0
-    would put untinted label pixels over shaded sidewalks in the canvas the shade sampler
+    would put untinted label pixels over shadowed sidewalks in the canvas the shadow sampler
     reads back (invariant #5). The lift is captured as slots at the very top of the `load`
     handler, before any of our own layers exist — anchoring a slot to one of ours strands
     the style's whole trailing run of place labels above the buildings.
@@ -79,8 +79,8 @@
     wall-only threshold rises by each offset's sunward component times `tan(alt)`. Roofs take
     exactly zero lift. Near-cap residuals and purely transverse normal offsets remain explicit
     limitations; #176 owns making the nudge texel-adaptive.
-- **Blocked on:** nothing for B1. For B6, `ShadeField.sampleEdges` already returns per-side
-  shade and confidence (`app/lib/shade/ShadeField.ts`), and #168 uses it in navigation;
+- **Blocked on:** nothing for B1. For B6, `ShadowField.sampleEdges` already returns per-side
+  shadow and confidence (`app/lib/shadowField/ShadowField.ts`), and #168 uses it in navigation;
   no A2 stub is needed. `GraphEdge.side` and `RouteResult`/`RouteOption.sides` also exist
   after #150. Remaining integration work: switching sides costs nothing (#151), and
   endpoint connectors currently shift sidewalk labels against final GeoJSON (#180).
@@ -95,8 +95,8 @@
   merged main (`9ccde54`, picking up #177 and #178) to clear a docs-only conflict in this
   file; the gates have not been rerun on the merge commit.
   Prior shadow verification (2026-09-05, #178): three identical Tribeca z17 / pitch-55
-  browser pairs each compared 4,060,451 stable Pass E pixels — 22,169 shaded→lit (0.546%),
-  zero lit→shaded, zero roof differences, 1,166 strict wall-base paths, and wall-base
+  browser pairs each compared 4,060,451 stable Pass E pixels — 22,169 shadowed→lit (0.546%),
+  zero lit→shadowed, zero roof differences, 1,166 strict wall-base paths, and wall-base
   disagreement improved 15.015% → 14.524% across 11,009 whole wall/ground samples; ordinary
   z17–18 renders kept walls variably lit and the PR #171 rooftop case unchanged.
   Prior camera verification (2026-09-03): screenshots of Midtown Manhattan at pitch
@@ -116,19 +116,19 @@ The app is named for navigation and does not navigate. Verified 2026-08-24:
 - `watchPosition` appears **nowhere** in `app/`. The only geolocation calls are one-shot
   `getCurrentPosition` (`useNavigation.ts:292`, `agent/tools.ts:90`).
 - The `NAVIGATING` phase (`useAppState.ts`) renders `NavigationStatusPanel.tsx` — 161 lines
-  showing destination, distance, ETA, shade %, and a turn *count*. No maneuvers, no street
+  showing destination, distance, ETA, shadow %, and a turn *count*. No maneuvers, no street
   names, no progress, no off-route detection, no reroute, no arrival detection, no voice.
 - `ARRIVAL` is reached by the user tapping a button.
 
-Meanwhile Google is shipping shade *inside* real turn-by-turn with landmark-based voice cues.
+Meanwhile Google is shipping shadow *inside* real turn-by-turn with landmark-based voice cues.
 A route you have to hold in your head is a planning tool.
 
 ## The asset nobody else has
 
-`shadeSampling.ts:sampleBothSidewalks()` samples **±4 m perpendicular offsets** and returns
-`{left, right}` shade independently; `useNavigation.ts:984-991` assigns them to separate parallel
+`shadowSampling.ts:sampleBothSidewalks()` samples **±4 m perpendicular offsets** and returns
+`{left, right}` shadow independently; `useNavigation.ts:984-991` assigns them to separate parallel
 edges so Dijkstra picks a *side of the street*. That means the app already knows which
-sidewalk is shaded — it just never tells anyone. Every shade-routing competitor routes on
+sidewalk is shadowed — it just never tells anyone. Every shadow-routing competitor routes on
 street centrelines.
 
 **B6 is the point of this track.** B1–B5 are the machinery that makes B6 sayable.
@@ -167,7 +167,7 @@ export interface Maneuver {
   bearingDelta: number;          // degrees, signed
   distanceFromStartM: number;
   streetName?: string;
-  shadeSideHint?: "left" | "right" | null;   // B6
+  shadowSideHint?: "left" | "right" | null;   // B6
   legIndex: number;
 }
 
@@ -206,25 +206,25 @@ export interface GuidanceState {
 
 ### B4 — Guidance UI
 **Goal.** Replace the static card with something usable one-handed, outdoors, in sun.
-**Approach.** Next maneuver (large), distance to it, remaining distance/ETA, a shade strip for the next ~500 m, a recenter control, screen wake lock (`navigator.wakeLock`, with graceful absence). High contrast — the persona is in direct sunlight.
+**Approach.** Next maneuver (large), distance to it, remaining distance/ETA, a shadow strip for the next ~500 m, a recenter control, screen wake lock (`navigator.wakeLock`, with graceful absence). High contrast — the persona is in direct sunlight.
 **Acceptance.** Touch targets meet the audit in `docs/notes/touch-target-audit.md`; keyboard and screen-reader clean (`aria-live="polite"` on the maneuver, not assertive); respects `prefers-reduced-motion`; verified in `npm run dev` at a phone viewport.
 **Files.** replacement for `NavigationStatusPanel.tsx`, a guidance layer module in `MapView.tsx` (⚠️ contested), ~15 lines in `page.tsx` (⚠️ contested). **Size.** Large.
 
 ### B5 — Off-route + reroute
 **Goal.** Recover when the user leaves the line.
-**Approach.** Off-route after N consecutive samples beyond tolerance (start N=3) — never on one sample. Recompute from the snapped position to the remaining destination, **preserving the shade preference and the selected Pareto option**. Rate-limit reroutes (Overpass is a shared free resource).
+**Approach.** Off-route after N consecutive samples beyond tolerance (start N=3) — never on one sample. Recompute from the snapped position to the remaining destination, **preserving the shadow preference and the selected Pareto option**. Rate-limit reroutes (Overpass is a shared free resource).
 **Acceptance.** The B3 playback harness, with a deviation injected, flags off-route and recovers; no reroute storm when GPS is noisy; a reroute that fails degrades to "follow the map" rather than a dead end.
 **Files.** `app/hooks/useGuidance.ts`, `useNavigation.ts` (⚠️ contested — reuse `calculateRoute`, don't fork it). **Size.** Medium.
 
-### B6 — Shade-aware cues ← **the reason for this track**
-**Goal.** "Cross now — the north side is shaded for the next 300 m."
-**Approach.** Track A's `ShadeField.sampleEdges` gives `{left, right}` for edges ahead. Emit a `cross` maneuver only when: the side delta exceeds a threshold (start 0.25), the shaded run ahead exceeds a minimum length (start 150 m), a legal crossing exists nearby (`highway=crossing` in the graph), and solar intensity × (1 − cloud cover) is high enough to matter (`computeSolarIntensity` + `weather.ts`).
+### B6 — Shadow-aware cues ← **the reason for this track**
+**Goal.** "Cross now — the north side is shadowed for the next 300 m."
+**Approach.** Track A's `ShadowField.sampleEdges` gives `{left, right}` for edges ahead. Emit a `cross` maneuver only when: the side delta exceeds a threshold (start 0.25), the shadowed run ahead exceeds a minimum length (start 150 m), a legal crossing exists nearby (`highway=crossing` in the graph), and solar intensity × (1 − cloud cover) is high enough to matter (`computeSolarIntensity` + `weather.ts`).
 **Acceptance.** No cue chatter on a fixture route (≤1 cue per 400 m); zero cues at night or under heavy cloud; every cue traceable to the field sample that triggered it. **Never suggest crossing where no crossing is mapped** — this is a safety-shaped feature, and the honest failure is to stay quiet.
-**Files.** `app/lib/guidance/cues.ts` (new). **Size.** Medium. **A2 is available on main; use `ShadeField.sampleEdges`.**
+**Files.** `app/lib/guidance/cues.ts` (new). **Size.** Medium. **A2 is available on main; use `ShadowField.sampleEdges`.**
 
 ### B7 — Voice + arrival summary
 **Goal.** Eyes-up guidance, and the sentence Track F will share.
-**Approach.** Web Speech API (`speechSynthesis`) — announce at distance thresholds, never repeat, always have a mute. Arrival: "You walked 78% in shade — about 4 minutes of direct sun." Fires `ARRIVE` automatically within a geofence of the destination.
+**Approach.** Web Speech API (`speechSynthesis`) — announce at distance thresholds, never repeat, always have a mute. Arrival: "You walked 78% in shadow — about 4 minutes of direct sun." Fires `ARRIVE` automatically within a geofence of the destination.
 **Acceptance.** Speech degrades silently where unsupported; announcements don't fire twice; the summary's numbers come from the actual tracked path, not the planned route (if the user detoured, say what they actually did).
 **Files.** `app/lib/guidance/voice.ts` (new), arrival component. **Size.** Medium.
 **Two tracks are waiting on B7's arrival sentence:** it is Track F's documented unpark
@@ -260,6 +260,6 @@ moving, drop the sun-position worker cadence, measure with the Track G benchmark
 ## Out of scope / hand-offs
 
 - Route *calculation* → reuse `useNavigation`'s pipeline; never fork it.
-- Shade math → **Track A** (`ShadeField`).
+- Shadow math → **Track A** (`ShadowField`).
 - What a "trip" is (stops, modes, dwell) → **Track E** (`Trip`).
 - Turning the arrival summary into a shareable image → **Track F** (F1).

@@ -9,7 +9,7 @@ export interface Maneuver {
   bearingDelta: number;
   distanceFromStartM: number;
   streetName?: string;
-  shadeSideHint?: "left" | "right" | null;
+  shadowSideHint?: "left" | "right" | null;
   legIndex: number;
 }
 
