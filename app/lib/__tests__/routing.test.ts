@@ -6,7 +6,7 @@
  *
  * Graph notation used throughout:
  *   node id → [lng, lat] coordinates
- *   edges labelled with [distanceM, shadeFactor]
+ *   edges labelled with [distanceM, shadowFactor]
  *
  * Run with: npm test
  */
@@ -33,8 +33,8 @@ import {
 
 /**
  * Linear graph: 1 -- 2 -- 3
- *   1→2: 100 m, shade=0
- *   2→3: 100 m, shade=0.5
+ *   1→2: 100 m, shadow=0
+ *   2→3: 100 m, shadow=0.5
  */
 function makeLinearGraph(): RoutingGraph {
   const nodes = new Map<number, OsmNode>([
@@ -43,10 +43,10 @@ function makeLinearGraph(): RoutingGraph {
     [3, { id: 3, lat: 0.0, lon: 0.002 }],
   ]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: 100, shadeFactor: 0.0 }]],
-    [2, [{ toId: 1, distanceM: 100, shadeFactor: 0.0 },
-         { toId: 3, distanceM: 100, shadeFactor: 0.5 }]],
-    [3, [{ toId: 2, distanceM: 100, shadeFactor: 0.5 }]],
+    [1, [{ toId: 2, distanceM: 100, shadowFactor: 0.0 }]],
+    [2, [{ toId: 1, distanceM: 100, shadowFactor: 0.0 },
+         { toId: 3, distanceM: 100, shadowFactor: 0.5 }]],
+    [3, [{ toId: 2, distanceM: 100, shadowFactor: 0.5 }]],
   ]);
   return { nodes, adj };
 }
@@ -54,11 +54,11 @@ function makeLinearGraph(): RoutingGraph {
 /**
  * Two-path graph:
  *
- *   1 --[100m, shade=0]--> 3          (sunny shortcut)
- *   1 --[100m, shade=1]--> 2 --[100m, shade=1]--> 3  (shaded detour, 200m total)
+ *   1 --[100m, shadow=0]--> 3          (sunny shortcut)
+ *   1 --[100m, shadow=1]--> 2 --[100m, shadow=1]--> 3  (shadowed detour, 200m total)
  *
- * shade=0 Dijkstra: 1→3 direct (cost 100) vs 1→2→3 (cost 200) → 1→3
- * shade=1 Dijkstra: 1→3 cost=100*(1-0*0.7)=100 vs 1→2→3 cost=2*100*(1-0.7)=60 → 1→2→3
+ * shadow=0 Dijkstra: 1→3 direct (cost 100) vs 1→2→3 (cost 200) → 1→3
+ * shadow=1 Dijkstra: 1→3 cost=100*(1-0*0.7)=100 vs 1→2→3 cost=2*100*(1-0.7)=60 → 1→2→3
  */
 function makeTwoPathGraph(): RoutingGraph {
   const nodes = new Map<number, OsmNode>([
@@ -67,12 +67,12 @@ function makeTwoPathGraph(): RoutingGraph {
     [3, { id: 3, lat: 0.0, lon: 0.002 }],
   ]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 3, distanceM: 100, shadeFactor: 0.0 },
-         { toId: 2, distanceM: 100, shadeFactor: 1.0 }]],
-    [2, [{ toId: 1, distanceM: 100, shadeFactor: 1.0 },
-         { toId: 3, distanceM: 100, shadeFactor: 1.0 }]],
-    [3, [{ toId: 1, distanceM: 100, shadeFactor: 0.0 },
-         { toId: 2, distanceM: 100, shadeFactor: 1.0 }]],
+    [1, [{ toId: 3, distanceM: 100, shadowFactor: 0.0 },
+         { toId: 2, distanceM: 100, shadowFactor: 1.0 }]],
+    [2, [{ toId: 1, distanceM: 100, shadowFactor: 1.0 },
+         { toId: 3, distanceM: 100, shadowFactor: 1.0 }]],
+    [3, [{ toId: 1, distanceM: 100, shadowFactor: 0.0 },
+         { toId: 2, distanceM: 100, shadowFactor: 1.0 }]],
   ]);
   return { nodes, adj };
 }
@@ -89,8 +89,8 @@ function makeDisconnectedGraph(): RoutingGraph {
     [3, { id: 3, lat: 1.0, lon: 1.000 }], // isolated
   ]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: 100, shadeFactor: 0 }]],
-    [2, [{ toId: 1, distanceM: 100, shadeFactor: 0 }]],
+    [1, [{ toId: 2, distanceM: 100, shadowFactor: 0 }]],
+    [2, [{ toId: 1, distanceM: 100, shadowFactor: 0 }]],
     [3, []],
   ]);
   return { nodes, adj };
@@ -111,14 +111,14 @@ function makeSquareGraph(): RoutingGraph {
   ]);
   const d = haversineMeters([0, 0], [0.01, 0]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: d, shadeFactor: 0 },
-         { toId: 3, distanceM: d, shadeFactor: 0 }]],
-    [2, [{ toId: 1, distanceM: d, shadeFactor: 0 },
-         { toId: 4, distanceM: d, shadeFactor: 0 }]],
-    [3, [{ toId: 1, distanceM: d, shadeFactor: 0 },
-         { toId: 4, distanceM: d, shadeFactor: 0 }]],
-    [4, [{ toId: 2, distanceM: d, shadeFactor: 0 },
-         { toId: 3, distanceM: d, shadeFactor: 0 }]],
+    [1, [{ toId: 2, distanceM: d, shadowFactor: 0 },
+         { toId: 3, distanceM: d, shadowFactor: 0 }]],
+    [2, [{ toId: 1, distanceM: d, shadowFactor: 0 },
+         { toId: 4, distanceM: d, shadowFactor: 0 }]],
+    [3, [{ toId: 1, distanceM: d, shadowFactor: 0 },
+         { toId: 4, distanceM: d, shadowFactor: 0 }]],
+    [4, [{ toId: 2, distanceM: d, shadowFactor: 0 },
+         { toId: 3, distanceM: d, shadowFactor: 0 }]],
   ]);
   return { nodes, adj };
 }
@@ -165,11 +165,11 @@ describe("dijkstra — linear graph (single path)", () => {
     expect(result!.distanceM).toBeCloseTo(200, 5);
   });
 
-  it("shadeCoverage is weighted average (edge 2→3 has shade=0.5, 100m each → 0.25)", () => {
+  it("shadowCoverage is weighted average (edge 2→3 has shadow=0.5, 100m each → 0.25)", () => {
     const g = makeLinearGraph();
     const result = dijkstra(g, 1, 3, 0);
-    // 100m * 0.0 + 100m * 0.5 = 50 shaded of 200 total → 0.25
-    expect(result!.shadeCoverage).toBeCloseTo(0.25, 5);
+    // 100m * 0.0 + 100m * 0.5 = 50 shadowed of 200 total → 0.25
+    expect(result!.shadowCoverage).toBeCloseTo(0.25, 5);
   });
 
   it("path nodes are in start→end order (regression: must not be reversed)", () => {
@@ -181,10 +181,10 @@ describe("dijkstra — linear graph (single path)", () => {
   });
 });
 
-// ── Scenario 3: dijkstra — shade preference changes the chosen path ───────────
+// ── Scenario 3: dijkstra — shadow preference changes the chosen path ───────────
 
-describe("dijkstra — two-path graph (shade vs distance trade-off)", () => {
-  it("shade=0 picks the shortest (direct 1→3, 100 m)", () => {
+describe("dijkstra — two-path graph (shadow vs distance trade-off)", () => {
+  it("shadow=0 picks the shortest (direct 1→3, 100 m)", () => {
     const g = makeTwoPathGraph();
     const result = dijkstra(g, 1, 3, 0);
     expect(result).not.toBeNull();
@@ -192,27 +192,27 @@ describe("dijkstra — two-path graph (shade vs distance trade-off)", () => {
     expect(result!.distanceM).toBeCloseTo(100, 5);
   });
 
-  it("shade=1 picks the most-shaded detour (1→2→3, 200 m, 100% shade)", () => {
+  it("shadow=1 picks the most-shadowed detour (1→2→3, 200 m, 100% shadow)", () => {
     const g = makeTwoPathGraph();
     const result = dijkstra(g, 1, 3, 1.0);
     expect(result).not.toBeNull();
     // Effective cost of 1→2→3: 2 * 100 * (1 - 0.7) = 60 < 100
     expect(result!.nodeIds).toEqual([1, 2, 3]);
-    expect(result!.shadeCoverage).toBeCloseTo(1.0, 5);
+    expect(result!.shadowCoverage).toBeCloseTo(1.0, 5);
   });
 
-  it("shortest and most-shaded produce different nodeId keys (no false dedup)", () => {
+  it("shortest and most-shadowed produce different nodeId keys (no false dedup)", () => {
     const g1 = makeTwoPathGraph();
     const shortest = dijkstra(g1, 1, 3, 0.0)!;
     const g2 = makeTwoPathGraph();
-    const mostShaded = dijkstra(g2, 1, 3, 1.0)!;
-    expect(shortest.nodeIds.join(",")).not.toBe(mostShaded.nodeIds.join(","));
+    const mostShadowed = dijkstra(g2, 1, 3, 1.0)!;
+    expect(shortest.nodeIds.join(",")).not.toBe(mostShadowed.nodeIds.join(","));
   });
 
-  it("shade coverage is 0 on the direct (sunny) edge", () => {
+  it("shadow coverage is 0 on the direct (sunny) edge", () => {
     const g = makeTwoPathGraph();
     const result = dijkstra(g, 1, 3, 0);
-    expect(result!.shadeCoverage).toBeCloseTo(0.0, 5);
+    expect(result!.shadowCoverage).toBeCloseTo(0.0, 5);
   });
 });
 
@@ -258,8 +258,8 @@ describe("snapToEdge", () => {
         [2, { id: 2, lat: 0, lon: 0.01 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: haversineMeters([0, 0], [0.01, 0]), shadeFactor: 0.5 }]],
-        [2, [{ toId: 1, distanceM: haversineMeters([0, 0], [0.01, 0]), shadeFactor: 0.5 }]],
+        [1, [{ toId: 2, distanceM: haversineMeters([0, 0], [0.01, 0]), shadowFactor: 0.5 }]],
+        [2, [{ toId: 1, distanceM: haversineMeters([0, 0], [0.01, 0]), shadowFactor: 0.5 }]],
       ]),
     };
     const midLon = 0.005;
@@ -279,8 +279,8 @@ describe("snapToEdge", () => {
         [2, { id: 2, lat: 0, lon: 0.01 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 1000, shadeFactor: 0 }]],
-        [2, [{ toId: 1, distanceM: 1000, shadeFactor: 0 }]],
+        [1, [{ toId: 2, distanceM: 1000, shadowFactor: 0 }]],
+        [2, [{ toId: 1, distanceM: 1000, shadowFactor: 0 }]],
       ]),
     };
     // Project exactly onto node 1
@@ -297,13 +297,13 @@ describe("snapToEdge", () => {
         [2, { id: 2, lat: 0, lon: 0.01 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 1000, shadeFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
-        [2, [{ toId: 1, distanceM: 1000, shadeFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
+        [1, [{ toId: 2, distanceM: 1000, shadowFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
+        [2, [{ toId: 1, distanceM: 1000, shadowFactor: 0.75, highway: "cycleway", surface: "gravel" }]],
       ]),
     };
     snapToEdge([0.005, 0], graph, -1);
     const vEdges = graph.adj.get(-1)!;
-    expect(vEdges.every((e) => e.shadeFactor === 0.75)).toBe(true);
+    expect(vEdges.every((e) => e.shadowFactor === 0.75)).toBe(true);
     expect(vEdges.every((e) => e.highway === "cycleway")).toBe(true);
     expect(vEdges.every((e) => e.surface === "gravel")).toBe(true);
   });
@@ -369,23 +369,23 @@ describe("connectRouteEndpoints", () => {
 // ── Scenario 8: Regression guard — route ordering and deduplication ───────────
 
 describe("route ordering regression guard", () => {
-  it("Most Shaded shadeCoverage ≥ Shortest shadeCoverage on two-path graph", () => {
+  it("Most Shadowed shadowCoverage ≥ Shortest shadowCoverage on two-path graph", () => {
     const g1 = makeTwoPathGraph();
     const g2 = makeTwoPathGraph();
     const shortest = dijkstra(g1, 1, 3, 0.0)!;
-    const mostShaded = dijkstra(g2, 1, 3, 1.0)!;
-    expect(mostShaded.shadeCoverage).toBeGreaterThanOrEqual(shortest.shadeCoverage);
+    const mostShadowed = dijkstra(g2, 1, 3, 1.0)!;
+    expect(mostShadowed.shadowCoverage).toBeGreaterThanOrEqual(shortest.shadowCoverage);
   });
 
-  it("Most Shaded distanceM ≥ Shortest distanceM (shaded path is a detour here)", () => {
+  it("Most Shadowed distanceM ≥ Shortest distanceM (shadowed path is a detour here)", () => {
     const g1 = makeTwoPathGraph();
     const g2 = makeTwoPathGraph();
     const shortest = dijkstra(g1, 1, 3, 0.0)!;
-    const mostShaded = dijkstra(g2, 1, 3, 1.0)!;
-    expect(mostShaded.distanceM).toBeGreaterThanOrEqual(shortest.distanceM);
+    const mostShadowed = dijkstra(g2, 1, 3, 1.0)!;
+    expect(mostShadowed.distanceM).toBeGreaterThanOrEqual(shortest.distanceM);
   });
 
-  it("nodeIds from different shade strengths differ on the two-path graph", () => {
+  it("nodeIds from different shadow strengths differ on the two-path graph", () => {
     const g1 = makeTwoPathGraph();
     const g2 = makeTwoPathGraph();
     const r0 = dijkstra(g1, 1, 3, 0)!;
@@ -393,8 +393,8 @@ describe("route ordering regression guard", () => {
     expect(r0.nodeIds.join(",")).not.toBe(r1.nodeIds.join(","));
   });
 
-  it("uniform shade graph: shade=0 and shade=1 produce the same route (adaptive skip)", () => {
-    // All edges have shadeFactor=0 → no shade preference possible
+  it("uniform shadow graph: shadow=0 and shadow=1 produce the same route (adaptive skip)", () => {
+    // All edges have shadowFactor=0 → no shadow preference possible
     const g1 = makeLinearGraph();
     const g2 = makeLinearGraph();
     const r0 = dijkstra(g1, 1, 3, 0)!;
@@ -406,20 +406,20 @@ describe("route ordering regression guard", () => {
 
 // ── Scenario 9: New RouteResult fields ───────────────────────────────────────
 
-describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
-  it("linear graph: shade=0.5 is not > SHADE_THRESH (0.5), so 0 transitions and 0 streak", () => {
+describe("dijkstra — longestContinuousShadowM and shadowTransitions", () => {
+  it("linear graph: shadow=0.5 is not > SHADOW_THRESH (0.5), so 0 transitions and 0 streak", () => {
     const g = makeLinearGraph();
-    // edge 1→2 shade=0, edge 2→3 shade=0.5
-    // SHADE_THRESH=0.5 with strict >: 0.5 > 0.5 = false → both edges sunny
+    // edge 1→2 shadow=0, edge 2→3 shadow=0.5
+    // SHADOW_THRESH=0.5 with strict >: 0.5 > 0.5 = false → both edges sunny
     const result = dijkstra(g, 1, 3, 0);
-    expect(result!.shadeTransitions).toBe(0);
-    expect(result!.longestContinuousShadeM).toBe(0);
+    expect(result!.shadowTransitions).toBe(0);
+    expect(result!.longestContinuousShadowM).toBe(0);
     // both edges sunny and contiguous → the whole path is one exposed stretch
     expect(result!.longestContinuousSunM).toBeCloseTo(result!.distanceM, 5);
   });
 
-  it("one sunny edge then one shaded edge → 1 transition, streak = shaded edge distance", () => {
-    // Inline graph: 1→2 sunny, 2→3 shaded (shade=0.8 > 0.5 threshold)
+  it("one sunny edge then one shadowed edge → 1 transition, streak = shadowed edge distance", () => {
+    // Inline graph: 1→2 sunny, 2→3 shadowed (shadow=0.8 > 0.5 threshold)
     const g: RoutingGraph = {
       nodes: new Map([
         [1, { id: 1, lat: 0.0, lon: 0.000 }],
@@ -427,38 +427,38 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
         [3, { id: 3, lat: 0.0, lon: 0.002 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 100, shadeFactor: 0.0 }]],
-        [2, [{ toId: 1, distanceM: 100, shadeFactor: 0.0 },
-             { toId: 3, distanceM: 100, shadeFactor: 0.8 }]],
-        [3, [{ toId: 2, distanceM: 100, shadeFactor: 0.8 }]],
+        [1, [{ toId: 2, distanceM: 100, shadowFactor: 0.0 }]],
+        [2, [{ toId: 1, distanceM: 100, shadowFactor: 0.0 },
+             { toId: 3, distanceM: 100, shadowFactor: 0.8 }]],
+        [3, [{ toId: 2, distanceM: 100, shadowFactor: 0.8 }]],
       ]),
     };
     const result = dijkstra(g, 1, 3, 0);
-    expect(result!.shadeTransitions).toBe(1);
-    expect(result!.longestContinuousShadeM).toBeCloseTo(100, 5);
+    expect(result!.shadowTransitions).toBe(1);
+    expect(result!.longestContinuousShadowM).toBeCloseTo(100, 5);
     expect(result!.longestContinuousSunM).toBeCloseTo(100, 5);
   });
 
-  it("fully-shaded path has 0 transitions and streak = total distance", () => {
+  it("fully-shadowed path has 0 transitions and streak = total distance", () => {
     const g = makeTwoPathGraph();
-    // Most-shaded path: 1→2→3, both edges shade=1.0
+    // Most-shadowed path: 1→2→3, both edges shadow=1.0
     const result = dijkstra(g, 1, 3, 1.0);
-    expect(result!.shadeTransitions).toBe(0);
-    expect(result!.longestContinuousShadeM).toBeCloseTo(200, 5);
+    expect(result!.shadowTransitions).toBe(0);
+    expect(result!.longestContinuousShadowM).toBeCloseTo(200, 5);
     expect(result!.longestContinuousSunM).toBe(0);
   });
 
   it("fully-sunny path has 0 transitions and streak = 0", () => {
     const g = makeTwoPathGraph();
-    // Shortest path: 1→3 direct, shade=0
+    // Shortest path: 1→3 direct, shadow=0
     const result = dijkstra(g, 1, 3, 0.0);
-    expect(result!.shadeTransitions).toBe(0);
-    expect(result!.longestContinuousShadeM).toBe(0);
+    expect(result!.shadowTransitions).toBe(0);
+    expect(result!.longestContinuousShadowM).toBe(0);
     expect(result!.longestContinuousSunM).toBeCloseTo(result!.distanceM, 5);
   });
 
   it("sun streak measures the longest run, not the total sun", () => {
-    // 1→2 sun 100 m, 2→3 shade 100 m, 3→4 sun 200 m. Total sun is 300 m,
+    // 1→2 sun 100 m, 2→3 shadow 100 m, 3→4 sun 200 m. Total sun is 300 m,
     // but the longest unbroken exposure is the 200 m run — the number that
     // distinguishes one crossing from several short gaps.
     const g: RoutingGraph = {
@@ -469,17 +469,17 @@ describe("dijkstra — longestContinuousShadeM and shadeTransitions", () => {
         [4, { id: 4, lat: 0.0, lon: 0.003 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 100, shadeFactor: 0.0 }]],
-        [2, [{ toId: 1, distanceM: 100, shadeFactor: 0.0 },
-             { toId: 3, distanceM: 100, shadeFactor: 1.0 }]],
-        [3, [{ toId: 2, distanceM: 100, shadeFactor: 1.0 },
-             { toId: 4, distanceM: 200, shadeFactor: 0.0 }]],
-        [4, [{ toId: 3, distanceM: 200, shadeFactor: 0.0 }]],
+        [1, [{ toId: 2, distanceM: 100, shadowFactor: 0.0 }]],
+        [2, [{ toId: 1, distanceM: 100, shadowFactor: 0.0 },
+             { toId: 3, distanceM: 100, shadowFactor: 1.0 }]],
+        [3, [{ toId: 2, distanceM: 100, shadowFactor: 1.0 },
+             { toId: 4, distanceM: 200, shadowFactor: 0.0 }]],
+        [4, [{ toId: 3, distanceM: 200, shadowFactor: 0.0 }]],
       ]),
     };
     const result = dijkstra(g, 1, 4, 0)!;
     expect(result.longestContinuousSunM).toBeCloseTo(200, 5);
-    expect(result.longestContinuousShadeM).toBeCloseTo(100, 5);
+    expect(result.longestContinuousShadowM).toBeCloseTo(100, 5);
   });
 });
 
@@ -490,18 +490,18 @@ describe("dijkstra — DijkstraOptions", () => {
     expect(r!.nodeIds).toEqual([1, 3]); // same shortest path; no nodes are marked
   });
 
-  it("solarIntensity=0 collapses shade routing to shortest", () => {
+  it("solarIntensity=0 collapses shadow routing to shortest", () => {
     const g0 = makeTwoPathGraph();
     const g1 = makeTwoPathGraph();
     const r0 = dijkstra(g0, 1, 3, 0,   { solarIntensity: 0 })!;
     const r1 = dijkstra(g1, 1, 3, 1.0, { solarIntensity: 0 })!;
     expect(r0.nodeIds.join(",")).toBe(r1.nodeIds.join(","));
-    expect(r1.nodeIds).toEqual([1, 3]); // no shade benefit → same as shortest
+    expect(r1.nodeIds).toEqual([1, 3]); // no shadow benefit → same as shortest
   });
 
-  it("detourRatio > 1 when shaded path is a detour", () => {
+  it("detourRatio > 1 when shadowed path is a detour", () => {
     const g = makeTwoPathGraph();
-    // Direct edge 1→3 costs 100m; shaded detour 1→2→3 costs 200m.
+    // Direct edge 1→3 costs 100m; shadowed detour 1→2→3 costs 200m.
     // Using the direct edge distance (100m) as the straight-line baseline
     // gives detourRatio = 200 / 100 = 2.0 > 1.
     const r = dijkstra(g, 1, 3, 1.0, { straightLineDistM: 100 })!;
@@ -517,10 +517,10 @@ describe("dijkstra — DijkstraOptions", () => {
 
 // ── Scenario 10: Parallel sidewalk edges ─────────────────────────────────────
 
-describe("dijkstra — parallel sidewalk edges (same fromId→toId, different shadeFactor)", () => {
+describe("dijkstra — parallel sidewalk edges (same fromId→toId, different shadowFactor)", () => {
   function makeParallelEdgeGraph(): RoutingGraph {
-    // 1 → 2: two parallel edges (shaded sidewalk shade=0.9, sunny sidewalk shade=0.1)
-    // 2 → 3: two parallel edges (both shaded, shade=0.8)
+    // 1 → 2: two parallel edges (shadowed sidewalk shadow=0.9, sunny sidewalk shadow=0.1)
+    // 2 → 3: two parallel edges (both shadowed, shadow=0.8)
     return {
       nodes: new Map([
         [1, { id: 1, lat: 0.0, lon: 0.000 }],
@@ -528,42 +528,42 @@ describe("dijkstra — parallel sidewalk edges (same fromId→toId, different sh
         [3, { id: 3, lat: 0.0, lon: 0.002 }],
       ]),
       adj: new Map([
-        [1, [{ toId: 2, distanceM: 100, shadeFactor: 0.9 },
-             { toId: 2, distanceM: 100, shadeFactor: 0.1 }]],
-        [2, [{ toId: 1, distanceM: 100, shadeFactor: 0.9 },
-             { toId: 1, distanceM: 100, shadeFactor: 0.1 },
-             { toId: 3, distanceM: 100, shadeFactor: 0.8 },
-             { toId: 3, distanceM: 100, shadeFactor: 0.8 }]],
-        [3, [{ toId: 2, distanceM: 100, shadeFactor: 0.8 },
-             { toId: 2, distanceM: 100, shadeFactor: 0.8 }]],
+        [1, [{ toId: 2, distanceM: 100, shadowFactor: 0.9 },
+             { toId: 2, distanceM: 100, shadowFactor: 0.1 }]],
+        [2, [{ toId: 1, distanceM: 100, shadowFactor: 0.9 },
+             { toId: 1, distanceM: 100, shadowFactor: 0.1 },
+             { toId: 3, distanceM: 100, shadowFactor: 0.8 },
+             { toId: 3, distanceM: 100, shadowFactor: 0.8 }]],
+        [3, [{ toId: 2, distanceM: 100, shadowFactor: 0.8 },
+             { toId: 2, distanceM: 100, shadowFactor: 0.8 }]],
       ]),
     };
   }
 
-  it("shade=1 picks the shadier sidewalk: shadeCoverage = 0.9 for edge 1→2", () => {
+  it("shadow=1 picks the more shadow sidewalk: shadowCoverage = 0.9 for edge 1→2", () => {
     const g = makeParallelEdgeGraph();
     const result = dijkstra(g, 1, 3, 1.0)!;
     expect(result).not.toBeNull();
     expect(result.nodeIds).toEqual([1, 2, 3]);
-    // Edge 1→2: shaded sidewalk (0.9) chosen; edge 2→3: both 0.8
-    // shadeCoverage = (100*0.9 + 100*0.8) / 200 = 0.85
-    expect(result.shadeCoverage).toBeCloseTo(0.85, 5);
+    // Edge 1→2: shadowed sidewalk (0.9) chosen; edge 2→3: both 0.8
+    // shadowCoverage = (100*0.9 + 100*0.8) / 200 = 0.85
+    expect(result.shadowCoverage).toBeCloseTo(0.85, 5);
   });
 
-  it("shade=0 picks the edge with lower cost (both edges same distanceM, so first found)", () => {
+  it("shadow=0 picks the edge with lower cost (both edges same distanceM, so first found)", () => {
     const g = makeParallelEdgeGraph();
     const result = dijkstra(g, 1, 3, 0.0)!;
     expect(result).not.toBeNull();
-    // shade=0 → cost = distanceM regardless of shade; both sidewalks identical cost
+    // shadow=0 → cost = distanceM regardless of shadow; both sidewalks identical cost
     expect(result.nodeIds).toEqual([1, 2, 3]);
     expect(result.distanceM).toBeCloseTo(200, 5);
   });
 
   it("stats reflect the actual edge chosen, not the first edge in the adj list", () => {
     const g = makeParallelEdgeGraph();
-    const shaded = dijkstra(g, 1, 3, 1.0)!;
-    // The shaded sidewalk (0.9) should be chosen for 1→2; not the sunny one (0.1)
-    expect(shaded.shadeCoverage).toBeGreaterThan(0.5);
+    const shadowed = dijkstra(g, 1, 3, 1.0)!;
+    // The shadowed sidewalk (0.9) should be chosen for 1→2; not the sunny one (0.1)
+    expect(shadowed.shadowCoverage).toBeGreaterThan(0.5);
   });
 });
 
@@ -574,34 +574,34 @@ import { computeDerivedKpis } from "../metrics";
 describe("computeDerivedKpis", () => {
   it("returns nulls when only one route", () => {
     const kpis = computeDerivedKpis([
-      { label: "Shortest", distanceM: 200, shadeCoverage: 0.1 },
+      { label: "Shortest", distanceM: 200, shadowCoverage: 0.1 },
     ]);
-    expect(kpis.shadeCoverageGainPp).toBeNull();
+    expect(kpis.shadowCoverageGainPp).toBeNull();
     expect(kpis.pathLengthDeltaPct).toBeNull();
   });
 
-  it("computes shade gain correctly", () => {
+  it("computes shadow gain correctly", () => {
     const kpis = computeDerivedKpis([
-      { label: "Shortest", distanceM: 200, shadeCoverage: 0.1 },
-      { label: "Most shaded", distanceM: 250, shadeCoverage: 0.6 },
+      { label: "Shortest", distanceM: 200, shadowCoverage: 0.1 },
+      { label: "Most shadowed", distanceM: 250, shadowCoverage: 0.6 },
     ]);
     // (0.6 - 0.1) * 100 = 50 pp
-    expect(kpis.shadeCoverageGainPp).toBeCloseTo(50, 5);
+    expect(kpis.shadowCoverageGainPp).toBeCloseTo(50, 5);
   });
 
   it("computes path length delta correctly", () => {
     const kpis = computeDerivedKpis([
-      { label: "Shortest", distanceM: 200, shadeCoverage: 0.1 },
-      { label: "Most shaded", distanceM: 250, shadeCoverage: 0.6 },
+      { label: "Shortest", distanceM: 200, shadowCoverage: 0.1 },
+      { label: "Most shadowed", distanceM: 250, shadowCoverage: 0.6 },
     ]);
     // (250 - 200) / 200 * 100 = 25%
     expect(kpis.pathLengthDeltaPct).toBeCloseTo(25, 5);
   });
 
-  it("negative delta when Most Shaded is somehow shorter (edge case)", () => {
+  it("negative delta when Most Shadowed is somehow shorter (edge case)", () => {
     const kpis = computeDerivedKpis([
-      { label: "Shortest", distanceM: 300, shadeCoverage: 0.0 },
-      { label: "Most shaded", distanceM: 200, shadeCoverage: 1.0 },
+      { label: "Shortest", distanceM: 300, shadowCoverage: 0.0 },
+      { label: "Most shadowed", distanceM: 200, shadowCoverage: 1.0 },
     ]);
     // (200 - 300) / 300 * 100 = -33.33%
     expect(kpis.pathLengthDeltaPct).toBeCloseTo(-33.33, 1);
@@ -615,8 +615,8 @@ describe("TransitLeg type (compile-time check)", () => {
     const r: RouteOption = {
       label: "Shortest",
       geojson: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
-      distanceM: 200, shadeCoverage: 0.3, longestContinuousShadeM: 100, longestContinuousSunM: 60,
-      shadeTransitions: 1, detourRatio: 1.0, turnCount: 2,
+      distanceM: 200, shadowCoverage: 0.3, longestContinuousShadowM: 100, longestContinuousSunM: 60,
+      shadowTransitions: 1, detourRatio: 1.0, turnCount: 2,
     };
     expect(r.transitLeg).toBeUndefined();
   });
@@ -630,8 +630,8 @@ describe("TransitLeg type (compile-time check)", () => {
     const r: RouteOption = {
       label: "Via Transit",
       geojson: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
-      distanceM: 1550, shadeCoverage: 0.1, longestContinuousShadeM: 0, longestContinuousSunM: 0,
-      shadeTransitions: 0, detourRatio: 1.0, turnCount: 0,
+      distanceM: 1550, shadowCoverage: 0.1, longestContinuousShadowM: 0, longestContinuousSunM: 0,
+      shadowTransitions: 0, detourRatio: 1.0, turnCount: 0,
       transitLeg: leg,
     };
     expect(r.transitLeg?.sunExposure).toBe(0.0);
@@ -655,10 +655,10 @@ function makeSplitComponentGraph(): RoutingGraph {
   const dAB = haversineMeters([0.1, 0], [0.2, 0]);
   const dCD = haversineMeters([0.0, 0], [0.01, 0]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: dAB, shadeFactor: 0 }]],
-    [2, [{ toId: 1, distanceM: dAB, shadeFactor: 0 }]],
-    [3, [{ toId: 4, distanceM: dCD, shadeFactor: 0 }]],
-    [4, [{ toId: 3, distanceM: dCD, shadeFactor: 0 }]],
+    [1, [{ toId: 2, distanceM: dAB, shadowFactor: 0 }]],
+    [2, [{ toId: 1, distanceM: dAB, shadowFactor: 0 }]],
+    [3, [{ toId: 4, distanceM: dCD, shadowFactor: 0 }]],
+    [4, [{ toId: 3, distanceM: dCD, shadowFactor: 0 }]],
   ]);
   return { nodes, adj };
 }
@@ -753,10 +753,10 @@ function makeNearbyDisconnectedWaypointGraph(): RoutingGraph {
   const mainDist = haversineMeters([0, 0], [0.02, 0]);
   const islandDist = haversineMeters([0.009, 0.0002], [0.011, 0.0002]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: mainDist, shadeFactor: 0.2 }]],
-    [2, [{ toId: 1, distanceM: mainDist, shadeFactor: 0.2 }]],
-    [3, [{ toId: 4, distanceM: islandDist, shadeFactor: 0.9 }]],
-    [4, [{ toId: 3, distanceM: islandDist, shadeFactor: 0.9 }]],
+    [1, [{ toId: 2, distanceM: mainDist, shadowFactor: 0.2 }]],
+    [2, [{ toId: 1, distanceM: mainDist, shadowFactor: 0.2 }]],
+    [3, [{ toId: 4, distanceM: islandDist, shadowFactor: 0.9 }]],
+    [4, [{ toId: 3, distanceM: islandDist, shadowFactor: 0.9 }]],
   ]);
   return { nodes, adj };
 }
@@ -808,18 +808,18 @@ function expectSimplePath(nodeIds: number[]) {
 }
 
 /**
- * Shaded dead-end spur:
- *   1 --[111m, shade 0]-- 2 --[111m, shade 0]-- 3
+ * Shadowed dead-end spur:
+ *   1 --[111m, shadow 0]-- 2 --[111m, shadow 0]-- 3
  *                         |
- *                       [55m, shade 1.0]
+ *                       [55m, shadow 1.0]
  *                         |
  *                         5   (cul-de-sac)
  *
- * The only simple path 1→3 is [1,2,3]. Walking the spur (2→5→2) adds shaded
+ * The only simple path 1→3 is [1,2,3]. Walking the spur (2→5→2) adds shadowed
  * meters at the cost of distance, so "pump" walks like [1,2,5,2,3] are
- * Pareto-optimal in (distance, shade-meters) space — but useless as routes.
+ * Pareto-optimal in (distance, shadow-meters) space — but useless as routes.
  */
-function makeShadeSpurGraph(): RoutingGraph {
+function makeShadowSpurGraph(): RoutingGraph {
   const d = 111, s = 55;
   const nodes = new Map<number, OsmNode>([
     [1, { id: 1, lat: 0.0,    lon: 0.000 }],
@@ -828,24 +828,24 @@ function makeShadeSpurGraph(): RoutingGraph {
     [5, { id: 5, lat: 0.0005, lon: 0.001 }],
   ]);
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 2, distanceM: d, shadeFactor: 0 }]],
-    [2, [{ toId: 1, distanceM: d, shadeFactor: 0 },
-         { toId: 3, distanceM: d, shadeFactor: 0 },
-         { toId: 5, distanceM: s, shadeFactor: 1.0 }]],
-    [3, [{ toId: 2, distanceM: d, shadeFactor: 0 }]],
-    [5, [{ toId: 2, distanceM: s, shadeFactor: 1.0 }]],
+    [1, [{ toId: 2, distanceM: d, shadowFactor: 0 }]],
+    [2, [{ toId: 1, distanceM: d, shadowFactor: 0 },
+         { toId: 3, distanceM: d, shadowFactor: 0 },
+         { toId: 5, distanceM: s, shadowFactor: 1.0 }]],
+    [3, [{ toId: 2, distanceM: d, shadowFactor: 0 }]],
+    [5, [{ toId: 2, distanceM: s, shadowFactor: 1.0 }]],
   ]);
   return { nodes, adj };
 }
 
 /**
- * Shaded triangle block hanging off the only path — loopable WITHOUT U-turns:
- *   1 --[111m, shade 0]-- A --[111m, shade 0]-- 3
- *   A — B — C — A: fully shaded triangle (111 m + 111 m + ~166 m)
+ * Shadowed triangle block hanging off the only path — loopable WITHOUT U-turns:
+ *   1 --[111m, shadow 0]-- A --[111m, shadow 0]-- 3
+ *   A — B — C — A: fully shadowed triangle (111 m + 111 m + ~166 m)
  *
  * [1, A, B, C, A, 3] never immediately backtracks, yet revisits A.
  */
-function makeShadedBlockGraph(): RoutingGraph {
+function makeShadowedBlockGraph(): RoutingGraph {
   const A = 10, B = 11, C = 12;
   const nodes = new Map<number, OsmNode>([
     [1, { id: 1, lat: 0.0,     lon: 0.000 }],
@@ -856,22 +856,22 @@ function makeShadedBlockGraph(): RoutingGraph {
   ]);
   const dAB = 111, dBC = 111, dCA = 166;
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: A, distanceM: 111, shadeFactor: 0 }]],
-    [A, [{ toId: 1, distanceM: 111, shadeFactor: 0 },
-         { toId: 3, distanceM: 111, shadeFactor: 0 },
-         { toId: B, distanceM: dAB, shadeFactor: 1.0 },
-         { toId: C, distanceM: dCA, shadeFactor: 1.0 }]],
-    [3, [{ toId: A, distanceM: 111, shadeFactor: 0 }]],
-    [B, [{ toId: A, distanceM: dAB, shadeFactor: 1.0 },
-         { toId: C, distanceM: dBC, shadeFactor: 1.0 }]],
-    [C, [{ toId: B, distanceM: dBC, shadeFactor: 1.0 },
-         { toId: A, distanceM: dCA, shadeFactor: 1.0 }]],
+    [1, [{ toId: A, distanceM: 111, shadowFactor: 0 }]],
+    [A, [{ toId: 1, distanceM: 111, shadowFactor: 0 },
+         { toId: 3, distanceM: 111, shadowFactor: 0 },
+         { toId: B, distanceM: dAB, shadowFactor: 1.0 },
+         { toId: C, distanceM: dCA, shadowFactor: 1.0 }]],
+    [3, [{ toId: A, distanceM: 111, shadowFactor: 0 }]],
+    [B, [{ toId: A, distanceM: dAB, shadowFactor: 1.0 },
+         { toId: C, distanceM: dBC, shadowFactor: 1.0 }]],
+    [C, [{ toId: B, distanceM: dBC, shadowFactor: 1.0 },
+         { toId: A, distanceM: dCA, shadowFactor: 1.0 }]],
   ]);
   return { nodes, adj };
 }
 
 /**
- * Extreme detour: direct sunny 111 m vs fully-shaded ~1116 m (10×) via node 4.
+ * Extreme detour: direct sunny 111 m vs fully-shadowed ~1116 m (10×) via node 4.
  */
 function makeLongDetourGraph(): RoutingGraph {
   const nodes = new Map<number, OsmNode>([
@@ -881,18 +881,18 @@ function makeLongDetourGraph(): RoutingGraph {
   ]);
   const dLeg = haversineMeters([0.0, 0.0], [0.0005, 0.005]); // ≈ 558 m
   const adj = new Map<number, GraphEdge[]>([
-    [1, [{ toId: 3, distanceM: 111,  shadeFactor: 0 },
-         { toId: 4, distanceM: dLeg, shadeFactor: 1.0 }]],
-    [3, [{ toId: 1, distanceM: 111,  shadeFactor: 0 },
-         { toId: 4, distanceM: dLeg, shadeFactor: 1.0 }]],
-    [4, [{ toId: 1, distanceM: dLeg, shadeFactor: 1.0 },
-         { toId: 3, distanceM: dLeg, shadeFactor: 1.0 }]],
+    [1, [{ toId: 3, distanceM: 111,  shadowFactor: 0 },
+         { toId: 4, distanceM: dLeg, shadowFactor: 1.0 }]],
+    [3, [{ toId: 1, distanceM: 111,  shadowFactor: 0 },
+         { toId: 4, distanceM: dLeg, shadowFactor: 1.0 }]],
+    [4, [{ toId: 1, distanceM: dLeg, shadowFactor: 1.0 },
+         { toId: 3, distanceM: dLeg, shadowFactor: 1.0 }]],
   ]);
   return { nodes, adj };
 }
 
 /**
- * Deterministic n×n city grid, 4-connected, ~111 m spacing, per-edge shade
+ * Deterministic n×n city grid, 4-connected, ~111 m spacing, per-edge shadow
  * from an integer hash. Start = corner (0,0), end = corner (n-1,n-1).
  */
 function makeGridGraph(n: number): { graph: RoutingGraph; startId: number; endId: number } {
@@ -900,7 +900,7 @@ function makeGridGraph(n: number): { graph: RoutingGraph; startId: number; endId
   const adj = new Map<number, GraphEdge[]>();
   const id = (r: number, c: number) => r * n + c + 1;
   const D = 111.195;
-  const shadeAt = (r: number, c: number, horizontal: boolean) =>
+  const shadowAt = (r: number, c: number, horizontal: boolean) =>
     (((r * 31 + c * 17 + (horizontal ? 7 : 0)) % 100) / 100);
 
   for (let r = 0; r < n; r++) {
@@ -909,31 +909,31 @@ function makeGridGraph(n: number): { graph: RoutingGraph; startId: number; endId
       adj.set(id(r, c), []);
     }
   }
-  const link = (a: number, b: number, shade: number) => {
-    adj.get(a)!.push({ toId: b, distanceM: D, shadeFactor: shade });
-    adj.get(b)!.push({ toId: a, distanceM: D, shadeFactor: shade });
+  const link = (a: number, b: number, shadow: number) => {
+    adj.get(a)!.push({ toId: b, distanceM: D, shadowFactor: shadow });
+    adj.get(b)!.push({ toId: a, distanceM: D, shadowFactor: shadow });
   };
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      if (c + 1 < n) link(id(r, c), id(r, c + 1), shadeAt(r, c, true));
-      if (r + 1 < n) link(id(r, c), id(r + 1, c), shadeAt(r, c, false));
+      if (c + 1 < n) link(id(r, c), id(r, c + 1), shadowAt(r, c, true));
+      if (r + 1 < n) link(id(r, c), id(r + 1, c), shadowAt(r, c, false));
     }
   }
   return { graph: { nodes, adj }, startId: id(0, 0), endId: id(n - 1, n - 1) };
 }
 
 describe("paretoRoutes — basic front selection", () => {
-  it("two-path graph: returns the direct route first and the shaded detour", () => {
+  it("two-path graph: returns the direct route first and the shadowed detour", () => {
     const g = makeTwoPathGraph();
     const routes = paretoRoutes(g, 1, 3);
     expect(routes.length).toBeGreaterThanOrEqual(2);
     expect(routes[0].nodeIds).toEqual([1, 3]); // shortest first
-    const mostShaded = routes[routes.length - 1];
-    expect(mostShaded.nodeIds).toEqual([1, 2, 3]);
-    expect(mostShaded.shadeCoverage).toBeCloseTo(1.0, 5);
+    const mostShadowed = routes[routes.length - 1];
+    expect(mostShadowed.nodeIds).toEqual([1, 2, 3]);
+    expect(mostShadowed.shadowCoverage).toBeCloseTo(1.0, 5);
   });
 
-  it("uniform-shade graph: collapses to a single deduplicated route", () => {
+  it("uniform-shadow graph: collapses to a single deduplicated route", () => {
     const g = makeLinearGraph();
     const routes = paretoRoutes(g, 1, 3);
     expect(routes).toHaveLength(1);
@@ -947,8 +947,8 @@ describe("paretoRoutes — basic front selection", () => {
 });
 
 describe("paretoRoutes — routes must be simple paths (no loops, no back-and-forth)", () => {
-  it("never pumps shade by walking a shaded cul-de-sac and back", () => {
-    const g = makeShadeSpurGraph();
+  it("never pumps shadow by walking a shadowed cul-de-sac and back", () => {
+    const g = makeShadowSpurGraph();
     const routes = paretoRoutes(g, 1, 3);
     expect(routes.length).toBeGreaterThanOrEqual(1);
     for (const r of routes) expectSimplePath(r.nodeIds);
@@ -957,8 +957,8 @@ describe("paretoRoutes — routes must be simple paths (no loops, no back-and-fo
     expect(routes[0].nodeIds).toEqual([1, 2, 3]);
   });
 
-  it("never loops around a shaded block (revisit without immediate backtrack)", () => {
-    const g = makeShadedBlockGraph();
+  it("never loops around a shadowed block (revisit without immediate backtrack)", () => {
+    const g = makeShadowedBlockGraph();
     const routes = paretoRoutes(g, 1, 3);
     expect(routes.length).toBeGreaterThanOrEqual(1);
     for (const r of routes) expectSimplePath(r.nodeIds);
@@ -974,7 +974,7 @@ describe("paretoRoutes — routes must be simple paths (no loops, no back-and-fo
 });
 
 describe("paretoRoutes — detour budget", () => {
-  it("default budget excludes absurd detours (10× shaded loop not offered)", () => {
+  it("default budget excludes absurd detours (10× shadowed loop not offered)", () => {
     const g = makeLongDetourGraph();
     const routes = paretoRoutes(g, 1, 3);
     // shortest = 111 m → budget = 111 × 2 + 250 = 472 m; the 1116 m detour is out
@@ -987,9 +987,9 @@ describe("paretoRoutes — detour budget", () => {
   it("maxDetourFactor option admits longer detours", () => {
     const g = makeLongDetourGraph();
     const routes = paretoRoutes(g, 1, 3, { maxDetourFactor: 12 });
-    const mostShaded = routes[routes.length - 1];
-    expect(mostShaded.nodeIds).toEqual([1, 4, 3]);
-    expect(mostShaded.shadeCoverage).toBeCloseTo(1.0, 5);
+    const mostShadowed = routes[routes.length - 1];
+    expect(mostShadowed.nodeIds).toEqual([1, 4, 3]);
+    expect(mostShadowed.shadowCoverage).toBeCloseTo(1.0, 5);
   });
 
   it("grid: every route respects the default budget relative to the shortest", () => {
@@ -999,11 +999,11 @@ describe("paretoRoutes — detour budget", () => {
     for (const r of routes) {
       expect(r.distanceM).toBeLessThanOrEqual(shortest * 2 + 250);
     }
-    // Absolute shaded meters grow along the front: last (most shaded) ≥ first (shortest)
+    // Absolute shadowed meters grow along the front: last (most shadowed) ≥ first (shortest)
     const first = routes[0];
     const last = routes[routes.length - 1];
-    expect(last.shadeCoverage * last.distanceM)
-      .toBeGreaterThanOrEqual(first.shadeCoverage * first.distanceM - 1e-9);
+    expect(last.shadowCoverage * last.distanceM)
+      .toBeGreaterThanOrEqual(first.shadowCoverage * first.distanceM - 1e-9);
   });
 });
 
@@ -1014,11 +1014,11 @@ describe("paretoRoutes — detour budget", () => {
  * per-sidewalk edges `useNavigation` builds — one labelled "left", one "right",
  * relative to that directed edge's own direction of travel.
  *
- * `shadedSide[i]` says which sidewalk is in shade on segment i, so a test can make
+ * `shadowedSide[i]` says which sidewalk is in shadow on segment i, so a test can make
  * the search prefer a known side and then assert it was reported.
  */
-function makeSidewalkGraph(shadedSide: Array<"left" | "right">): RoutingGraph {
-  const n = shadedSide.length + 1;
+function makeSidewalkGraph(shadowedSide: Array<"left" | "right">): RoutingGraph {
+  const n = shadowedSide.length + 1;
   const nodes = new Map<number, OsmNode>();
   for (let i = 1; i <= n; i++) {
     nodes.set(i, { id: i, lat: 0, lon: (i - 1) * 0.001 });
@@ -1026,21 +1026,21 @@ function makeSidewalkGraph(shadedSide: Array<"left" | "right">): RoutingGraph {
   const adj = new Map<number, GraphEdge[]>();
   for (let i = 1; i <= n; i++) adj.set(i, []);
 
-  for (let i = 0; i < shadedSide.length; i++) {
+  for (let i = 0; i < shadowedSide.length; i++) {
     const a = i + 1;
     const b = i + 2;
-    const leftShade = shadedSide[i] === "left" ? 1 : 0;
-    const rightShade = shadedSide[i] === "right" ? 1 : 0;
+    const leftShadow = shadowedSide[i] === "left" ? 1 : 0;
+    const rightShadow = shadowedSide[i] === "right" ? 1 : 0;
     // Forward (canonical: a < b) — left-of-canonical is the traveller's left.
     adj.get(a)!.push(
-      { toId: b, distanceM: 100, shadeFactor: leftShade, side: "left" },
-      { toId: b, distanceM: 100, shadeFactor: rightShade, side: "right" }
+      { toId: b, distanceM: 100, shadowFactor: leftShadow, side: "left" },
+      { toId: b, distanceM: 100, shadowFactor: rightShadow, side: "right" }
     );
     // Reverse (b > a, so against canonical) — the traveller now faces the other
     // way, so the sidewalk that is left-of-canonical is on their right.
     adj.get(b)!.push(
-      { toId: a, distanceM: 100, shadeFactor: rightShade, side: "left" },
-      { toId: a, distanceM: 100, shadeFactor: leftShade, side: "right" }
+      { toId: a, distanceM: 100, shadowFactor: rightShadow, side: "left" },
+      { toId: a, distanceM: 100, shadowFactor: leftShadow, side: "right" }
     );
   }
   return { nodes, adj };
@@ -1055,8 +1055,8 @@ describe("sidewalk side reporting", () => {
   });
 
   it("reports sides relative to travel direction, not to node ordering", () => {
-    // Same street walked backwards. Shade is a property of the physical sidewalk,
-    // so walking 4→1 the shaded side flips to the traveller's other hand. A naive
+    // Same street walked backwards. Shadow is a property of the physical sidewalk,
+    // so walking 4→1 the shadowed side flips to the traveller's other hand. A naive
     // implementation that ignores canonicality returns the forward answer reversed.
     const graph = makeSidewalkGraph(["left", "right", "left"]);
     const res = dijkstra(graph, 4, 1, 1);
@@ -1087,26 +1087,26 @@ describe("sidewalk side reporting", () => {
       // graph actually offers for that segment.
       for (const side of r.sides ?? []) expect(["left", "right"]).toContain(side);
     }
-    const mostShaded = routes[routes.length - 1];
-    expect(mostShaded.sides).toEqual(["left", "right", "left"]);
+    const mostShadowed = routes[routes.length - 1];
+    expect(mostShadowed.sides).toEqual(["left", "right", "left"]);
   });
 
   it("is purely additive — no aggregate moves", () => {
     // The regression guard. If labelling changed which edge the search picked,
-    // these would drift, and every shade number in the product with them.
+    // these would drift, and every shadow number in the product with them.
     const graph = makeSidewalkGraph(["left", "left", "left"]);
     const res = dijkstra(graph, 1, 4, 1)!;
     expect(res.distanceM).toBe(300);
-    expect(res.shadeCoverage).toBe(1);
-    expect(res.longestContinuousShadeM).toBe(300);
+    expect(res.shadowCoverage).toBe(1);
+    expect(res.longestContinuousShadowM).toBe(300);
     expect(res.longestContinuousSunM).toBe(0);
-    expect(res.shadeTransitions).toBe(0);
+    expect(res.shadowTransitions).toBe(0);
     expect(res.turnCount).toBe(0);
   });
 
   it("switching sides currently costs nothing — the zigzag #147 warns about", () => {
     // Not a desired behaviour, pinned so it is visible rather than surprising.
-    // The parallel edges share toId and distanceM, so alternating shade makes the
+    // The parallel edges share toId and distanceM, so alternating shadow makes the
     // optimal path cross the street on every segment for free. Charging for that
     // needs the search keyed on (node, side); tracked separately.
     const alternating: Array<"left" | "right"> = [
@@ -1125,31 +1125,31 @@ describe("sidewalk side reporting", () => {
 
 describe("parallelSidewalkEdges", () => {
   // sampleBothSidewalks reports relative to the canonical direction (low id → high).
-  // Here the canonical-left kerb is fully shaded and canonical-right is in full sun.
+  // Here the canonical-left kerb is fully shadowed and canonical-right is in full sun.
   const CANON_LEFT = 1;
   const CANON_RIGHT = 0;
 
-  /** The plain street edge overpass.ts builds, before shade sampling splits it. */
+  /** The plain street edge overpass.ts builds, before shadow sampling splits it. */
   const srcEdge = (toId: number, tags: Partial<GraphEdge> = {}): GraphEdge =>
-    ({ toId, distanceM: 100, shadeFactor: 0, ...tags });
+    ({ toId, distanceM: 100, shadowFactor: 0, ...tags });
 
   it("walking canonically, canonical-left is the traveller's left", () => {
     const [left, right] = parallelSidewalkEdges(1, srcEdge(2), CANON_LEFT, CANON_RIGHT);
     expect(left.side).toBe("left");
-    expect(left.shadeFactor).toBe(CANON_LEFT);
+    expect(left.shadowFactor).toBe(CANON_LEFT);
     expect(right.side).toBe("right");
-    expect(right.shadeFactor).toBe(CANON_RIGHT);
+    expect(right.shadowFactor).toBe(CANON_RIGHT);
   });
 
-  it("walking against canonical, the shaded kerb moves to the traveller's right", () => {
+  it("walking against canonical, the shadowed kerb moves to the traveller's right", () => {
     // Same physical street, opposite direction. This is the assertion that fails if
     // the canonicality flip is dropped or inverted — the bug this helper exists to
     // make visible, and which is invisible at pitch 0 and in every aggregate.
     const [left, right] = parallelSidewalkEdges(2, srcEdge(1), CANON_LEFT, CANON_RIGHT);
     expect(left.side).toBe("left");
-    expect(left.shadeFactor).toBe(CANON_RIGHT);
+    expect(left.shadowFactor).toBe(CANON_RIGHT);
     expect(right.side).toBe("right");
-    expect(right.shadeFactor).toBe(CANON_LEFT);
+    expect(right.shadowFactor).toBe(CANON_LEFT);
   });
 
   it("labels are always left-then-right regardless of direction", () => {
@@ -1160,9 +1160,9 @@ describe("parallelSidewalkEdges", () => {
     }
   });
 
-  it("keeps both kerbs' shade — the pair carries the same two values either way", () => {
-    const fwd = parallelSidewalkEdges(1, srcEdge(2), 0.3, 0.7).map((e) => e.shadeFactor);
-    const rev = parallelSidewalkEdges(2, srcEdge(1), 0.3, 0.7).map((e) => e.shadeFactor);
+  it("keeps both kerbs' shadow — the pair carries the same two values either way", () => {
+    const fwd = parallelSidewalkEdges(1, srcEdge(2), 0.3, 0.7).map((e) => e.shadowFactor);
+    const rev = parallelSidewalkEdges(2, srcEdge(1), 0.3, 0.7).map((e) => e.shadowFactor);
     expect([...fwd].sort()).toEqual([...rev].sort());
     expect(fwd).not.toEqual(rev);
   });

@@ -65,7 +65,7 @@ describe("runAgent fallback plotting", () => {
   it("plots gathered place candidates when the model finishes without plot_points", async () => {
     mockCallModel
       .mockResolvedValueOnce(modelResponse([
-        { functionCall: { name: "search_places", args: { query: "shaded parks" } } },
+        { functionCall: { name: "search_places", args: { query: "shadowed parks" } } },
       ]))
       .mockResolvedValueOnce(modelResponse([{ text: "Try Bryant Park around 3 PM." }]))
       .mockResolvedValueOnce(modelResponse([{ text: "Bryant Park is plotted for your walk." }]));
@@ -73,7 +73,7 @@ describe("runAgent fallback plotting", () => {
     const toolEvents: string[] = [];
     const result = await runAgent({
       history: [],
-      userText: "Plan a shaded afternoon",
+      userText: "Plan a shadowed afternoon",
       ctx: makeCtx(),
       onToolEvent: (event) => toolEvents.push(event.name),
     });
@@ -121,13 +121,13 @@ describe("runAgent fallback plotting", () => {
     mockRolesShareConfig.mockReturnValue(true);
     mockCallModel
       .mockResolvedValueOnce(modelResponse([
-        { functionCall: { name: "search_places", args: { query: "shaded plazas" } } },
+        { functionCall: { name: "search_places", args: { query: "shadowed plazas" } } },
       ]))
       .mockResolvedValueOnce(modelResponse([{ text: "Use Bryant Park first." }]));
 
     const result = await runAgent({
       history: [],
-      userText: "Plan a shaded walk",
+      userText: "Plan a shadowed walk",
       ctx: makeCtx(),
     });
 

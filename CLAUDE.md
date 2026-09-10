@@ -1,8 +1,7 @@
-# ShadeMapNav — Agent Guide (canonical entry)
+# Umbra — Agent Guide (canonical entry)
 
-ShadeMapNav is a personal open-source shaded-route navigation project. It is an
-independent personal project and is not affiliated with ShadeMap.app.
-Browser-based sun-shadow simulation with shade-aware pedestrian + transit routing.
+Umbra is a personal open-source shadowed-route navigation project. It is an independent personal project.
+Browser-based sun-shadow simulation with shadow-aware pedestrian + transit routing.
 React 19 + Vite 5 + TypeScript + Tailwind v4 + MapLibre GL. Everything runs client-side
 except four thin serverless proxies (`api/fsq.js`, `api/agent.js`, `api/overpass.js`,
 `api/nominatim.js`).
@@ -61,7 +60,7 @@ and the browser sends no Foursquare credential at all. Foursquare service keys s
 origin restriction, so the key must not reach the bundle; the `import.meta.env.DEV` guard in
 `foursquare.ts` is what keeps it out). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
 
-AI assistant (Shade Assistant, `app/lib/agent/`): uses a **free** LLM — **Cerebras only**
+AI assistant (Umbra Assistant, `app/lib/agent/`): uses a **free** LLM — **Cerebras only**
 (OpenAI-compatible, ~1M tokens/day **per account**, but only 5 req/min). Key:
 https://cloud.cerebras.ai. dev `VITE_CEREBRAS_API_KEY` (via the Vite `/__cerebras` proxy);
 prod `CEREBRAS_API_KEY` (server-only, via `api/agent.js`).
@@ -80,14 +79,14 @@ prod `CEREBRAS_API_KEY` (server-only, via `api/agent.js`).
   tool-calls — keep zai-glm-4.7 (or another non-reasoning-heavy model) for research.
 The loop is tuned for determinism: temperature 0, fixed `seed`, `parallel_tool_calls: false`,
 `MAX_STEPS` 8 (the happy path needs ~5 tool turns through plot_points — a lower cap strands the
-loop before pins reach the map), and a tightly-scoped system prompt (shade-day-planning only).
+loop before pins reach the map), and a tightly-scoped system prompt (shadow-day-planning only).
 **Determinism by pre-injection:** `get_current_context` is NOT a tool — the map center / local
 time / location-known status is plain app state, so `agentLoop.ts` reads it once per turn (via
 the still-present `executeTool("get_current_context")` executor) and appends it to the system
 prompt, saving a guaranteed LLM round-trip. The final write call uses a separate, tool-free
 system prompt so a reasoning response model never narrates uncallable tools into the answer.
 The agent loop runs client-side (it orchestrates tools needing the live map canvas:
-geocoding, the solar model, on-canvas shade sampling, time/camera, the routing pipeline).
+geocoding, the solar model, on-canvas shadow sampling, time/camera, the routing pipeline).
 The loop speaks one neutral IR (`LlmContent`/`LlmPart`); `llmClient.ts` translates it to/from
 the OpenAI chat-completions shape Cerebras expects.
 
@@ -108,17 +107,17 @@ approach needs to change.
    dropping either back to a transitive-only dep re-breaks both the build and `tsc`.
    **`suncalc` also stays on `1.x`.** 2.x is an ESM rewrite exporting only named
    functions, so the `import SunCalc from "suncalc"` in `sunPosition.worker.ts`,
-   `LocalShadowAdapter.ts`, and `offscreenShade.ts` fails the Vite/rollup build
+   `LocalShadowAdapter.ts`, and `offscreenShadow.ts` fails the Vite/rollup build
    ("default is not exported by node_modules/suncalc/index.js"). Independently,
    `mapbox-gl-shadow-simulator` depends on `suncalc ^1.9.0`, so bumping ours to 2.x
    installs a *second* copy and skews solar math between our sampling and the
    renderer. Both this and the maplibre pin are enforced in `.github/dependabot.yml`.
 3. **Map must keep `canvasContextAttributes: { preserveDrawingBuffer: true }`** —
-   shade sampling and GeoTIFF export read the canvas back.
+   shadow sampling and GeoTIFF export read the canvas back.
 4. **`MapView` is only imported via `React.lazy`** in `app/page.tsx` (code-splits MapLibre).
    Never import it statically from app code (type-only imports are fine).
-5. **Shade detection couples to shadow color.** Routing and assistant spot checks decide
-   "shaded" with the shared `isBlueDominantShadowPixel` predicate:
+5. **Shadow detection couples to shadow color.** Routing and assistant spot checks decide
+   "shadowed" with the shared `isBlueDominantShadowPixel` predicate:
    `r + g + b < 600 && b - ((r + g) / 2) > 18 && b > ((r + g) / 2) * 1.15`.
    The shadow colors in `LocalShadowAdapter.ts` must stay blue-dominant enough to
    satisfy that predicate after compositing over the basemap.
@@ -145,7 +144,7 @@ approach needs to change.
 | `app/main.tsx` | Entry; BrowserRouter (`/`, `/about`) | — |
 | `app/hooks/` | All real state: `useShadowTime`, `useNavigation` (routing pipeline), `useAppState` (phase FSM) | `.claude/rules/hooks-and-state.md` |
 | `app/components/` | UI components incl. `MapView` (map + layers) | `.claude/rules/components-and-map.md` |
-| `app/lib/` | Pure TS: routing, overpass, trainGraph, shade sampling, exports | `.claude/rules/routing-and-shade.md` |
+| `app/lib/` | Pure TS: routing, overpass, trainGraph, shadow sampling, exports | `.claude/rules/routing-and-shadow.md` |
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |

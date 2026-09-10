@@ -29,7 +29,7 @@ async function callOverpass(target, body) {
         // A real server-side User-Agent (browsers forbid setting this header, so
         // the old client-side attempt was silently dropped). Overpass asks clients
         // to identify themselves.
-        "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)",
+        "User-Agent": "Umbra/1.0 (+https://shademapnav.vercel.app)",
       },
       body,
       signal: controller.signal,

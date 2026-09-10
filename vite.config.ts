@@ -43,7 +43,7 @@ export default defineConfig({
         },
         configure: (proxy) => {
           proxy.on("proxyReq", (proxyReq) => {
-            proxyReq.setHeader("User-Agent", "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)");
+            proxyReq.setHeader("User-Agent", "Umbra/1.0 (+https://shademapnav.vercel.app)");
           });
         },
       },

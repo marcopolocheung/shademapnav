@@ -16,36 +16,36 @@ const PROBES = Array.from({ length: 8 }, (_, i) => ({
 export const stepBudgetExhaustedStillPlots: Scenario = {
   id: "step-budget-exhausted-still-plots",
   intent: "a loop that burns all 8 research steps still plots before the write call",
-  userText: "Check every corner of the block for shade",
+  userText: "Check every corner of the block for shadow",
   tools: {
-    check_shade: { shadeFraction: 0.5, status: "partial sun" },
+    check_shadow: { shadowFraction: 0.5, status: "partial sun" },
     plot_points: { ok: true, plotted: 8 },
   },
   script: [
-    ...PROBES.map((p) => ({ calls: [{ name: "check_shade", args: { ...p } }] })),
-    { text: "The block is half shaded; the probes are pinned." },
+    ...PROBES.map((p) => ({ calls: [{ name: "check_shadow", args: { ...p } }] })),
+    { text: "The block is half shadowed; the probes are pinned." },
   ],
   maxLlmCalls: 9,
   maxToolCalls: 9,
   expect: {
-    toolOrder: [...PROBES.map(() => "check_shade"), "plot_points"],
+    toolOrder: [...PROBES.map(() => "check_shadow"), "plot_points"],
     plotsBeforeWrite: true,
     pinCount: 8,
-    answer: "The block is half shaded; the probes are pinned.",
+    answer: "The block is half shadowed; the probes are pinned.",
   },
 };
 
 export const sharedModelSkipsWriteCall: Scenario = {
   id: "shared-model-skips-write-call",
   intent: "when both roles resolve to one model the research answer is the answer",
-  userText: "Plan a shaded walk",
+  userText: "Plan a shadowed walk",
   sharedModel: true,
   tools: {
     search_places: { results: [BRYANT] },
     plot_points: { ok: true, plotted: 1 },
   },
   script: [
-    { calls: [{ name: "search_places", args: { query: "shaded plazas" } }] },
+    { calls: [{ name: "search_places", args: { query: "shadowed plazas" } }] },
     { text: "Use Bryant Park first." },
   ],
   grounded: [BRYANT.name],
@@ -60,7 +60,7 @@ export const sharedModelSkipsWriteCall: Scenario = {
 };
 
 /**
- * `check_shade` and `plan_shaded_route` candidates have no per-call cap of their
+ * `check_shadow` and `plan_shadowed_route` candidates have no per-call cap of their
  * own, so this is the case where the overall `slice(0, 8)` is the only thing
  * standing between ten gathered candidates and ten pins.
  */
@@ -75,16 +75,16 @@ export const candidatesOverflowCapAtEightPins: Scenario = {
   intent: "ten gathered candidates still plot as eight pins, in gathering order",
   userText: "Check four corners then route me through three legs",
   tools: {
-    check_shade: { shadeFraction: 0.4, status: "partial sun" },
-    plan_shaded_route: { ok: true },
+    check_shadow: { shadowFraction: 0.4, status: "partial sun" },
+    plan_shadowed_route: { ok: true },
     plot_points: { ok: true, plotted: 8 },
   },
   script: [
-    ...PROBES.slice(0, 4).map((p) => ({ calls: [{ name: "check_shade", args: { ...p } }] })),
+    ...PROBES.slice(0, 4).map((p) => ({ calls: [{ name: "check_shadow", args: { ...p } }] })),
     ...LEGS.map((leg, i) => ({
       calls: [
         {
-          name: "plan_shaded_route",
+          name: "plan_shadowed_route",
           args: {
             fromLat: 41 + i * 0.01,
             fromLng: -74 - i * 0.01,
@@ -103,13 +103,13 @@ export const candidatesOverflowCapAtEightPins: Scenario = {
   maxToolCalls: 8,
   expect: {
     toolOrder: [
-      "check_shade",
-      "check_shade",
-      "check_shade",
-      "check_shade",
-      "plan_shaded_route",
-      "plan_shaded_route",
-      "plan_shaded_route",
+      "check_shadow",
+      "check_shadow",
+      "check_shadow",
+      "check_shadow",
+      "plan_shadowed_route",
+      "plan_shadowed_route",
+      "plan_shadowed_route",
       "plot_points",
     ],
     plotsBeforeWrite: true,

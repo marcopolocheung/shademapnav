@@ -16,13 +16,13 @@ import { createRoute, getRoutes, getFolders, updateRoute, deleteRoute } from "..
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { routeToGPX, routeToGeoJSON, downloadBlob } from "../lib/exportRoute";
 import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN_SUN_EXPOSURE, buildTrainDrawData } from "../lib/trainGraph";
-import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadeSampling";
+import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadowSampling";
 import {
-  LOW_CONFIDENCE, QUERY_PAD_M, bboxAroundEdges, createGeometryShadeField, edgeSampleCount,
-} from "../lib/shade/ShadeField";
-import type { EdgeRef, ShadeField, ShadeSource } from "../lib/shade/ShadeField";
-import { createOverpassPrismProvider, createTilePrismProvider } from "../lib/shade/providers";
-import { summarizeShadeSource } from "../lib/shadeProvenance";
+  LOW_CONFIDENCE, QUERY_PAD_M, bboxAroundEdges, createGeometryShadowField, edgeSampleCount,
+} from "../lib/shadowField/ShadowField";
+import type { EdgeRef, ShadowField, ShadowSource } from "../lib/shadowField/ShadowField";
+import { createOverpassPrismProvider, createTilePrismProvider } from "../lib/shadowField/providers";
+import { summarizeShadowSource } from "../lib/shadowProvenance";
 import type { RouteCalculationProgress } from "../lib/routeProgress";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { travelTimeSeconds } from "../lib/travelMode";
@@ -113,9 +113,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const [navWarning, setNavWarning] = useState<string | null>(null);
   const [simplifiedWaypoints, setSimplifiedWaypoints] = useState<LatLng[] | null>(null);
 
-  // Route mode and shade preference
+  // Route mode and shadow preference
   const [routeMode, setRouteMode] = useState<'walk' | 'transit'>('walk');
-  const [shadePreference, setShadePreference] = useState(0.5);
+  const [shadowPreference, setShadowPreference] = useState(0.5);
 
   // Refs for stale-closure avoidance
   const waypointARef = useRef(waypointA);
@@ -130,20 +130,20 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const dragActiveRef = useRef(false);
   const ghostElRef = useRef<HTMLDivElement | null>(null);
-  /** The pitch to hand back to the user once a flat shade readback is done. */
+  /** The pitch to hand back to the user once a flat shadow readback is done. */
   const pitchRestoreRef = useRef<number | null>(null);
 
   /**
-   * Shade from building geometry, tiles first and Overpass behind for reach.
+   * Shadow from building geometry, tiles first and Overpass behind for reach.
    *
-   * Lazily built rather than `useRef(createGeometryShadeField(...))`, whose argument
+   * Lazily built rather than `useRef(createGeometryShadowField(...))`, whose argument
    * would be re-evaluated on every render and thrown away. `maplibregl.Map` satisfies
    * `TileMapLike` structurally, so the provider reads the live map through a getter
    * without any of it being plumbed through props.
    */
-  const shadeFieldRef = useRef<ShadeField | null>(null);
-  if (!shadeFieldRef.current) {
-    shadeFieldRef.current = createGeometryShadeField([
+  const shadowFieldRef = useRef<ShadowField | null>(null);
+  if (!shadowFieldRef.current) {
+    shadowFieldRef.current = createGeometryShadowField([
       createTilePrismProvider(() => mapRef.current),
       createOverpassPrismProvider(),
     ]);
@@ -166,14 +166,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, []);
 
   /**
-   * Flatten the camera before a shade readback. Returns whether it moved, because a
+   * Flatten the camera before a shadow readback. Returns whether it moved, because a
    * camera that moved has to settle before the canvas is read.
    *
-   * `isBlueDominantShadowPixel` calls any blue-dominant pixel shaded, and the shadow
-   * layer now paints the buildings with that same field — a shaded wall (`#6f7f99`)
-   * and a shaded roof (`#8797b2`) both satisfy the predicate. So a tilted readback
+   * `isBlueDominantShadowPixel` calls any blue-dominant pixel shadowed, and the shadow
+   * layer now paints the buildings with that same field — a shadowed wall (`#6f7f99`)
+   * and a shadowed roof (`#8797b2`) both satisfy the predicate. So a tilted readback
    * puts building surfaces under the sample points and scores an occluded sidewalk
-   * as shaded (#154). Pass E already skips drawing buildings at pitch 0 *because* it
+   * as shadowed (#154). Pass E already skips drawing buildings at pitch 0 *because* it
    * assumes this readback is flat (`LocalShadowAdapter.ts`, "always at pitch 0");
    * this is what makes that true. Bearing needs no such handling — `map.project`
    * is correct under rotation, and only pitch produces occlusion.
@@ -181,7 +181,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
    * A second calculation starting while the first is still flat must not record 0
    * as the pitch to go back to, so an already-pending restore is left alone.
    */
-  const flattenForShadeReadback = useCallback((map: maplibregl.Map): boolean => {
+  const flattenForShadowReadback = useCallback((map: maplibregl.Map): boolean => {
     if (map.getPitch() === 0) return false;
     if (pitchRestoreRef.current === null) pitchRestoreRef.current = map.getPitch();
     map.jumpTo({ pitch: 0 });
@@ -189,7 +189,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
   }, []);
 
   /** Hand the user's tilt back. Safe to call when nothing was flattened. */
-  const restorePitchAfterShadeReadback = useCallback((map: maplibregl.Map | null) => {
+  const restorePitchAfterShadowReadback = useCallback((map: maplibregl.Map | null) => {
     const pitch = pitchRestoreRef.current;
     if (pitch === null || !map) return;
     pitchRestoreRef.current = null;
@@ -203,11 +203,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     calcAbortRef.current?.abort();
     // The abandoned calculation's `finally` sees a bumped generation and leaves the
     // camera alone, so cancelling is what gives the tilt back.
-    restorePitchAfterShadeReadback(mapRef.current);
+    restorePitchAfterShadowReadback(mapRef.current);
     setIsCalculating(false);
     setRouteProgress(null);
     setRoutePreview(null);
-  }, [mapRef, restorePitchAfterShadeReadback]);
+  }, [mapRef, restorePitchAfterShadowReadback]);
 
   const fitMapToRoute = useCallback((route: RouteOption) => {
     const map = mapRef.current;
@@ -299,7 +299,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setNavWarning(null);
     setSimplifiedWaypoints(null);
     setRouteMode('walk');
-    setShadePreference(0.5);
+    setShadowPreference(0.5);
   }, [cancelInFlightCalculation]);
 
   const handleOpenSaveModal = useCallback((routeIndex: number) => {
@@ -432,7 +432,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setNavWarning(null);
     setSimplifiedWaypoints(null);
     setRouteMode('walk');
-    setShadePreference(0.5);
+    setShadowPreference(0.5);
     setNavMode(false);
   }, [cancelInFlightCalculation, navMode]);
 
@@ -458,14 +458,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     setSelectedRouteIndex(0);
   }, [cancelInFlightCalculation]);
 
-  const handleShadePreferenceChange = useCallback((v: number) => {
-    setShadePreference(v);
+  const handleShadowPreferenceChange = useCallback((v: number) => {
+    setShadowPreference(v);
     setNavRoutes((routes) => {
       if (routes.length === 0) return routes;
       let bestIdx = 0;
       let bestDiff = Infinity;
       for (let i = 0; i < routes.length; i++) {
-        const diff = Math.abs(routes[i].shadeCoverage - v);
+        const diff = Math.abs(routes[i].shadowCoverage - v);
         if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
       }
       setSelectedRouteIndex(bestIdx);
@@ -535,7 +535,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     const nodes = new Map(graph.nodes);
     const adj = new Map<number, GraphEdge[]>();
     for (const [id, edges] of graph.adj) {
-      adj.set(id, edges.map((e) => ({ toId: e.toId, distanceM: e.distanceM, shadeFactor: e.shadeFactor })));
+      adj.set(id, edges.map((e) => ({ toId: e.toId, distanceM: e.distanceM, shadowFactor: e.shadowFactor })));
     }
     return { nodes, adj };
   }, []);
@@ -619,24 +619,24 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const bbox = sketchBoundingBox(simplified, 0.005);
       setRouteProgress({ message: "Fetching walk network" });
 
-      const shadeBbox = bboxAroundEdges(
+      const shadowBbox = bboxAroundEdges(
         [{ from: [bbox.west, bbox.south], to: [bbox.east, bbox.north] }],
         QUERY_PAD_M,
       )!;
-      const field = shadeFieldRef.current!;
+      const field = shadowFieldRef.current!;
 
       const [graph] = await Promise.all([
         fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east),
-        field.ready(shadeBbox).catch(() => {}),
+        field.ready(shadowBbox).catch(() => {}),
       ]);
 
-      const coverage = field.coverage(shadeBbox, dateRef.current);
+      const coverage = field.coverage(shadowBbox, dateRef.current);
       const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
 
       if (needsCanvas) {
         // Flatten before reading the bounds: a tilted camera sees further, so the
         // in-view test has to be asked of the camera the canvas will be read from.
-        const flattened = flattenForShadeReadback(map);
+        const flattened = flattenForShadowReadback(map);
         const currentBounds = map.getBounds();
         const bboxInView =
           currentBounds.getWest() <= bbox.west &&
@@ -681,10 +681,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         return [p.x, p.y];
       };
 
-      setRouteProgress({ message: "Sampling street shade" });
+      setRouteProgress({ message: "Sampling street shadow" });
       // Sketch routing has no per-sidewalk graph — it folds both sides into one
-      // `shadeFactor` — so there is no provenance to surface here. The source still
-      // has to be the same one `calculateRoute` uses: two definitions of shade in one
+      // `shadowFactor` — so there is no provenance to surface here. The source still
+      // has to be the same one `calculateRoute` uses: two definitions of shadow in one
       // app is worse than a sketch card without a label.
       const sketchRefs: EdgeRef[] = [];
       const sketchEdges: GraphEdge[][] = [];
@@ -715,18 +715,18 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         }
       }
 
-      const sketchShade = sketchRefs.length > 0 ? field.sampleEdges(sketchRefs, dateRef.current) : [];
+      const sketchShadow = sketchRefs.length > 0 ? field.sampleEdges(sketchRefs, dateRef.current) : [];
       for (let i = 0; i < sketchRefs.length; i++) {
-        let { left, right } = sketchShade[i];
-        if (sketchShade[i].confidence < LOW_CONFIDENCE && imageData) {
+        let { left, right } = sketchShadow[i];
+        if (sketchShadow[i].confidence < LOW_CONFIDENCE && imageData) {
           ({ left, right } = sampleBothSidewalks(
             projectToScreen, imageData, dpr,
             sketchRefs[i].from, sketchRefs[i].to,
             edgeSampleCount(sketchDistances[i]),
           ));
         }
-        const shadeFactor = Math.max(left, right);
-        for (const edge of sketchEdges[i]) edge.shadeFactor = shadeFactor;
+        const shadowFactor = Math.max(left, right);
+        for (const edge of sketchEdges[i]) edge.shadowFactor = shadowFactor;
       }
 
       setRouteProgress({ message: "Finding route choices" });
@@ -734,9 +734,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const { snappedIds } = snapSketchWaypoints(simplified, sketchGraph, map);
 
       const variants = [
-        { label: "Shortest", shadeStrength: 0.0 },
-        { label: "Balanced", shadeStrength: 0.5 },
-        { label: "Most shaded", shadeStrength: 1.0 },
+        { label: "Shortest", shadowStrength: 0.0 },
+        { label: "Balanced", shadowStrength: 0.5 },
+        { label: "Most shadowed", shadowStrength: 1.0 },
       ] as const;
 
       const seen = new Set<string>();
@@ -744,16 +744,16 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       for (const v of variants) {
         const fullPath: number[] = [];
         let totalDist = 0;
-        let totalShadeDist = 0;
+        let totalShadowDist = 0;
         let failed = false;
 
         for (let i = 0; i < snappedIds.length - 1; i++) {
-          const leg = dijkstra(sketchGraph, snappedIds[i], snappedIds[i + 1], v.shadeStrength);
+          const leg = dijkstra(sketchGraph, snappedIds[i], snappedIds[i + 1], v.shadowStrength);
           if (!leg) { failed = true; break; }
           if (i === 0) fullPath.push(...leg.nodeIds);
           else fullPath.push(...leg.nodeIds.slice(1));
           totalDist += leg.distanceM;
-          totalShadeDist += leg.distanceM * leg.shadeCoverage;
+          totalShadowDist += leg.distanceM * leg.shadowCoverage;
         }
 
         if (failed || fullPath.length < 2 || totalDist <= 0) continue;
@@ -766,15 +766,15 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           simplified[0],
           simplified[simplified.length - 1],
         );
-        const shadeCoverage = totalShadeDist / totalDist;
+        const shadowCoverage = totalShadowDist / totalDist;
         options.push({
           label: v.label,
           geojson,
           distanceM: totalDist,
-          shadeCoverage,
-          longestContinuousShadeM: 0,
+          shadowCoverage,
+          longestContinuousShadowM: 0,
           longestContinuousSunM: 0,
-          shadeTransitions: 0,
+          shadowTransitions: 0,
           detourRatio: 1.0,
           turnCount: 0,
         });
@@ -790,13 +790,13 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     } catch (e) {
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
-      restorePitchAfterShadeReadback(mapRef.current);
+      restorePitchAfterShadowReadback(mapRef.current);
       setIsCalculating(false);
       setRouteProgress(null);
     }
   }, [
     sketchPoints, mapRef, dateRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
-    flattenForShadeReadback, restorePitchAfterShadeReadback,
+    flattenForShadowReadback, restorePitchAfterShadowReadback,
   ]);
 
   const handleSketchFinish = useCallback(() => {
@@ -1005,7 +1005,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     const t0 = performance.now();
     let graphFetchMs = 0;
     let canvasReadMs = 0;
-    let shadeSampleMs = 0;
+    let shadowSampleMs = 0;
     let dijkstraMs = 0;
 
     try {
@@ -1030,17 +1030,17 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // The area the field must be able to speak for: every node the graph fetch can
       // return, padded exactly as `sampleEdges` will pad internally. Loading one area
       // and resolving another makes a provider decline geometry it actually holds.
-      const shadeBbox = bboxAroundEdges(
+      const shadowBbox = bboxAroundEdges(
         [{ from: [west, south], to: [east, north] }],
         QUERY_PAD_M,
       )!;
-      const field = shadeFieldRef.current!;
+      const field = shadowFieldRef.current!;
 
       const [graph] = await Promise.all([
         fetchRoutingGraph(south, west, north, east, calcSignal),
         // A failed preload is not a failed route — Overpass rate-limits, and the
         // answer to that is low coverage and the canvas, not an error.
-        field.ready(shadeBbox).catch(() => {}),
+        field.ready(shadowBbox).catch(() => {}),
       ]);
       graphFetchMs = performance.now() - tFetch;
       if (myGen !== calcGenRef.current) return;
@@ -1049,7 +1049,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // whole point of A4b: when geometry can answer, the mid-calculation `fitBounds`
       // jump and the full-canvas readback are both pure cost. The camera work stays
       // exactly as PR #160 left it on the path that still needs pixels.
-      const coverage = field.coverage(shadeBbox, dateRef.current);
+      const coverage = field.coverage(shadowBbox, dateRef.current);
       const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
 
       let imageData: ImageData | null = null;
@@ -1058,7 +1058,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       if (needsCanvas) {
         // Flatten before reading the bounds: a tilted camera sees further, so the
         // in-view test has to be asked of the camera the canvas will be read from.
-        const flattened = flattenForShadeReadback(map);
+        const flattened = flattenForShadowReadback(map);
         const currentBounds = map.getBounds();
         const bboxInView =
           currentBounds.getWest() <= west &&
@@ -1088,10 +1088,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         canvasReadMs = performance.now() - tCanvas;
       }
 
-      // Project lng/lat → CSS pixels with MapLibre's transform so shade sampling
+      // Project lng/lat → CSS pixels with MapLibre's transform so shadow sampling
       // stays correct under any camera orientation. A hand-rolled web-mercator
       // formula is only valid at bearing 0 / pitch 0; the moment the user rotates
-      // or tilts the map it samples the wrong pixels and the shade % is garbage.
+      // or tilts the map it samples the wrong pixels and the shadow % is garbage.
       const projectToScreen = (lng: number, lat: number): [number, number] => {
         const p = map.project([lng, lat]);
         return [p.x, p.y];
@@ -1103,11 +1103,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       await yieldToBrowser();
       if (myGen !== calcGenRef.current) return;
 
-      const tShade = performance.now();
+      const tShadow = performance.now();
       let directedEdgeCount = 0;
-      const edgeShadeCache = new Map<
+      const edgeShadowCache = new Map<
         string,
-        { left: number; right: number; source: ShadeSource; confidence: number }
+        { left: number; right: number; source: ShadowSource; confidence: number }
       >();
 
       // One canonical (low id → high id) `EdgeRef` per undirected street segment,
@@ -1147,11 +1147,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       }
 
       updateProgress({
-        message: "Sampling street shade",
+        message: "Sampling street shadow",
         current: 0,
         total: edgeRefs.length,
       });
-      const fieldShade = edgeRefs.length > 0 ? field.sampleEdges(edgeRefs, dateRef.current) : [];
+      const fieldShadow = edgeRefs.length > 0 ? field.sampleEdges(edgeRefs, dateRef.current) : [];
       if (myGen !== calcGenRef.current) return;
 
       // Per edge: trust the geometry, or fall back to pixels for that edge alone.
@@ -1160,9 +1160,9 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // rather than pretending to a certainty nothing measured.
       let canvasFallbackEdges = 0;
       for (let i = 0; i < edgeRefs.length; i++) {
-        const sample = fieldShade[i];
+        const sample = fieldShadow[i];
         if (sample.confidence >= LOW_CONFIDENCE || !imageData) {
-          edgeShadeCache.set(edgeKeys[i], {
+          edgeShadowCache.set(edgeKeys[i], {
             left: sample.left,
             right: sample.right,
             source: sample.source,
@@ -1174,7 +1174,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             edgeRefs[i].from, edgeRefs[i].to,
             edgeSampleCount(edgeDistances[i]),
           );
-          edgeShadeCache.set(edgeKeys[i], {
+          edgeShadowCache.set(edgeKeys[i], {
             ...pixels,
             source: "canvas",
             confidence: CANVAS_CONFIDENCE,
@@ -1184,7 +1184,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         const done = i + 1;
         if (done === edgeRefs.length || done % 100 === 0) {
           updateProgress({
-            message: "Sampling street shade",
+            message: "Sampling street shadow",
             current: done,
             total: edgeRefs.length,
           });
@@ -1192,10 +1192,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           if (myGen !== calcGenRef.current) return;
         }
       }
-      shadeSampleMs = performance.now() - tShade;
+      shadowSampleMs = performance.now() - tShadow;
 
       const tDijkstra = performance.now();
-      updateProgress({ message: "Building shade-aware graph" });
+      updateProgress({ message: "Building shadow-aware graph" });
       const routingAdj = new Map<number, GraphEdge[]>();
       const ensureRA = (id: number) => { if (!routingAdj.has(id)) routingAdj.set(id, []); };
 
@@ -1207,7 +1207,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           if (!graph.nodes.has(edge.toId)) continue;
           const lo = Math.min(fromId, edge.toId);
           const hi = Math.max(fromId, edge.toId);
-          const { left, right } = edgeShadeCache.get(`${lo},${hi}`) ?? { left: 0, right: 0 };
+          const { left, right } = edgeShadowCache.get(`${lo},${hi}`) ?? { left: 0, right: 0 };
           routingAdj.get(fromId)!.push(
             ...parallelSidewalkEdges(fromId, edge, left, right)
           );
@@ -1265,30 +1265,30 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         const paretoResults = paretoRoutes(routingGraph, effectiveStartId, effectiveEndId, opts);
         dijkstraMs = performance.now() - tDijkstra;
 
-        // Results are ordered [shortest, balanced, most shaded] with duplicate
-        // paths removed — when only 2 remain, the second is always the shaded
+        // Results are ordered [shortest, balanced, most shadowed] with duplicate
+        // paths removed — when only 2 remain, the second is always the shadowed
         // end of the Pareto front, not "Balanced".
         const ROUTE_LABELS =
           paretoResults.length === 2
-            ? ["Shortest", "Most shaded"]
-            : ["Shortest", "Balanced", "Most shaded"];
+            ? ["Shortest", "Most shadowed"]
+            : ["Shortest", "Balanced", "Most shadowed"];
         options = paretoResults.map((result, i) => ({
           label: ROUTE_LABELS[i] ?? "Route",
           geojson: connectRouteEndpoints(graphToGeoJSON(result.nodeIds, routingGraph), a, b),
           sides: result.sides,
           distanceM: result.distanceM,
-          shadeCoverage: result.shadeCoverage,
-          longestContinuousShadeM: result.longestContinuousShadeM,
+          shadowCoverage: result.shadowCoverage,
+          longestContinuousShadowM: result.longestContinuousShadowM,
           longestContinuousSunM: result.longestContinuousSunM,
-          shadeTransitions: result.shadeTransitions,
+          shadowTransitions: result.shadowTransitions,
           detourRatio: result.detourRatio,
           turnCount: result.turnCount,
-          shadeSource: summarizeShadeSource(result.nodeIds, edgeShadeCache, edgeDistanceFor),
+          shadowSource: summarizeShadowSource(result.nodeIds, edgeShadowCache, edgeDistanceFor),
         }));
       } else {
         const nodeChain = snappedStops.ids;
 
-        const MULTI_LABELS = ["Shortest", "Balanced", "Most shaded"] as const;
+        const MULTI_LABELS = ["Shortest", "Balanced", "Most shadowed"] as const;
         const STRENGTHS = [0, 0.5, 1.0];
         const totalRouteLegs = STRENGTHS.length * (nodeChain.length - 1);
         let completedRouteLegs = 0;
@@ -1302,7 +1302,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         for (let si = 0; si < STRENGTHS.length; si++) {
           const strength = STRENGTHS[si];
           let totalDist = 0;
-          let totalShadeDist = 0;
+          let totalShadowDist = 0;
           const allCoords: [number, number][] = [];
           // `segResult` is scoped to the leg loop, but provenance is a property of the
           // whole route — so the node ids have to outlive the leg that produced them.
@@ -1341,16 +1341,16 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               type: "walk",
               geojson: segGeojson,
               distanceM: segResult.distanceM,
-              shadeCoverage: segResult.shadeCoverage,
+              shadowCoverage: segResult.shadowCoverage,
             });
             totalDist += segResult.distanceM;
-            totalShadeDist += segResult.distanceM * segResult.shadeCoverage;
+            totalShadowDist += segResult.distanceM * segResult.shadowCoverage;
             if (si === 0) updatePreview(allCoords);
           }
 
           if (failed) {
             if (failedLeg != null && allCoords.length >= 2 && totalDist > 0) {
-              const shadeCov = totalShadeDist / totalDist;
+              const shadowCov = totalShadowDist / totalDist;
               options.push({
                 label: `${MULTI_LABELS[si] ?? "Route"} (partial)`,
                 geojson: {
@@ -1359,14 +1359,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                   geometry: { type: "LineString", coordinates: allCoords },
                 },
                 distanceM: totalDist,
-                shadeCoverage: shadeCov,
-                longestContinuousShadeM: 0,
+                shadowCoverage: shadowCov,
+                longestContinuousShadowM: 0,
                 longestContinuousSunM: 0,
-                shadeTransitions: 0,
+                shadowTransitions: 0,
                 detourRatio: 1.0,
                 turnCount: 0,
                 legs,
-                shadeSource: summarizeShadeSource(allNodeIds, edgeShadeCache, edgeDistanceFor),
+                shadowSource: summarizeShadowSource(allNodeIds, edgeShadowCache, edgeDistanceFor),
                 partial: {
                   completedLegs: failedLeg - 1,
                   failedLeg,
@@ -1378,7 +1378,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
           }
           if (allCoords.length < 2) continue;
 
-          const shadeCov = totalDist > 0 ? totalShadeDist / totalDist : 0;
+          const shadowCov = totalDist > 0 ? totalShadowDist / totalDist : 0;
           options.push({
             label: MULTI_LABELS[si] ?? "Route",
             geojson: connectRouteEndpoints(
@@ -1391,14 +1391,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               b,
             ),
             distanceM: totalDist,
-            shadeCoverage: shadeCov,
-            longestContinuousShadeM: 0,
+            shadowCoverage: shadowCov,
+            longestContinuousShadowM: 0,
             longestContinuousSunM: 0,
-            shadeTransitions: 0,
+            shadowTransitions: 0,
             detourRatio: 1.0,
             turnCount: 0,
             legs,
-            shadeSource: summarizeShadeSource(allNodeIds, edgeShadeCache, edgeDistanceFor),
+            shadowSource: summarizeShadowSource(allNodeIds, edgeShadowCache, edgeDistanceFor),
           });
         }
 
@@ -1454,7 +1454,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             if (import.meta.env.DEV) console.log("[transit] bestTrain:", bestTrain ? `entry=${bestTrain.entryStation.name}, exit=${bestTrain.exitStation.name}, ${bestTrain.path.stationIds.length} stations, ${bestTrain.path.segments.length} segments` : "null");
 
             if (bestTrain) {
-              const WALK_SHADE_STRENGTH = 0.5;
+              const WALK_SHADOW_STRENGTH = 0.5;
 
               const boardCandidates = stationEntrances.get(bestTrain.entryStation.id) ?? [{ ...bestTrain.entryStation, kind: "station" }];
               const boardEntrance = pickClosestEntrance(a, boardCandidates, haversineMeters);
@@ -1463,11 +1463,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
               const alightEntrance = pickClosestEntrance(b, alightCandidates, haversineMeters);
 
               const boardNodeId = snapToGraph([boardEntrance.lon, boardEntrance.lat], routingGraph, spatialGrid);
-              const walkA = dijkstra(routingGraph, effectiveStartId, boardNodeId, WALK_SHADE_STRENGTH, opts);
+              const walkA = dijkstra(routingGraph, effectiveStartId, boardNodeId, WALK_SHADOW_STRENGTH, opts);
               if (import.meta.env.DEV) console.log("[transit] walkA:", walkA ? `${walkA.distanceM.toFixed(0)}m` : "null", "boardNodeId:", boardNodeId);
 
               const alightNodeId = snapToGraph([alightEntrance.lon, alightEntrance.lat], routingGraph, spatialGrid);
-              const walkB = dijkstra(routingGraph, alightNodeId, effectiveEndId, WALK_SHADE_STRENGTH, opts);
+              const walkB = dijkstra(routingGraph, alightNodeId, effectiveEndId, WALK_SHADOW_STRENGTH, opts);
               if (import.meta.env.DEV) console.log("[transit] walkB:", walkB ? `${walkB.distanceM.toFixed(0)}m` : "null", "alightNodeId:", alightNodeId);
 
               if (!walkA || !walkB) {
@@ -1505,7 +1505,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                     type: 'walk',
                     geojson: walkAGeoJSON,
                     distanceM: walkA.distanceM,
-                    shadeCoverage: walkA.shadeCoverage,
+                    shadowCoverage: walkA.shadowCoverage,
                   },
                   {
                     type: 'transit',
@@ -1521,14 +1521,14 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                     type: 'walk',
                     geojson: walkBGeoJSON,
                     distanceM: walkB.distanceM,
-                    shadeCoverage: walkB.shadeCoverage,
+                    shadowCoverage: walkB.shadowCoverage,
                   },
                 ];
 
                 const totalWalkDistM = walkA.distanceM + walkB.distanceM;
                 const totalTimeSec = travelTimeSeconds(totalWalkDistM, "walk") + transitTimeSec;
-                const shadeCov = totalWalkDistM > 0
-                  ? (walkA.distanceM * walkA.shadeCoverage + walkB.distanceM * walkB.shadeCoverage) / totalWalkDistM
+                const shadowCov = totalWalkDistM > 0
+                  ? (walkA.distanceM * walkA.shadowCoverage + walkB.distanceM * walkB.shadowCoverage) / totalWalkDistM
                   : 0;
 
                 const combinedGeoJSON: GeoJSON.Feature<GeoJSON.LineString> = {
@@ -1552,10 +1552,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
                   label: "Via Transit",
                   geojson: combinedGeoJSON,
                   distanceM: totalWalkDistM,
-                  shadeCoverage: shadeCov,
-                  longestContinuousShadeM: 0,
+                  shadowCoverage: shadowCov,
+                  longestContinuousShadowM: 0,
                   longestContinuousSunM: 0,
-                  shadeTransitions: 0,
+                  shadowTransitions: 0,
                   detourRatio: 1.0,
                   turnCount: 0,
                   legs,
@@ -1577,25 +1577,25 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       const routeSnapshots = options.map((o) => ({
         label: o.label,
         distanceM: o.distanceM,
-        shadeCoverage: o.shadeCoverage,
+        shadowCoverage: o.shadowCoverage,
       }));
-      const { shadeCoverageGainPp, pathLengthDeltaPct } =
+      const { shadowCoverageGainPp, pathLengthDeltaPct } =
         computeDerivedKpis(routeSnapshots);
       recordRoutingRun({
         timestamp: Date.now(),
         phases: {
           graphFetch: graphFetchMs,
           canvasRead: canvasReadMs,
-          shadeSample: shadeSampleMs,
+          shadowSample: shadowSampleMs,
           dijkstra: dijkstraMs,
           total: performance.now() - t0,
         },
         graphNodeCount: graph.nodes.size,
         graphDirectedEdges: directedEdgeCount,
-        shadeFallbackShare: edgeRefs.length > 0 ? canvasFallbackEdges / edgeRefs.length : 0,
+        shadowFallbackShare: edgeRefs.length > 0 ? canvasFallbackEdges / edgeRefs.length : 0,
         routes: routeSnapshots,
         routeComputeMs: performance.now() - t0,
-        shadeCoverageGainPp,
+        shadowCoverageGainPp,
         pathLengthDeltaPct,
       });
 
@@ -1618,7 +1618,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       if (calcGenRef.current === myGen) {
         // A superseded calculation leaves the camera flat on purpose — the one
         // that replaced it owns the restore, and still holds the original pitch.
-        restorePitchAfterShadeReadback(mapRef.current);
+        restorePitchAfterShadowReadback(mapRef.current);
         setIsCalculating(false);
         setRouteProgress(null);
         setRoutePreview(null);
@@ -1626,7 +1626,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     }
   }, [
     additionalWaypoints, mapRef, dateRef, fitMapToRoute,
-    flattenForShadeReadback, restorePitchAfterShadeReadback,
+    flattenForShadowReadback, restorePitchAfterShadowReadback,
   ]);
 
   const handleCalculateRoute = useCallback(() => {
@@ -1673,7 +1673,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     savedRoutes, savedFolders,
     userLocation, isLocating,
     sketchPoints, drawMode, navWarning, simplifiedWaypoints,
-    routeMode, shadePreference,
+    routeMode, shadowPreference,
 
     // Setters
     setPendingSlot, setSelectedRouteIndex, setSaveModalRouteIndex,
@@ -1685,7 +1685,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints, handleAddAdditionalWaypoint,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
-    handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,
+    handleClearSketch, handleRouteModeChange, handleShadowPreferenceChange,
     handleSketchPointClick, handleSketchPointDrag, handleSketchFinish,
     handleSetWaypointA, handleSetWaypointB,
     handleUseLocationAsA, handleUseLocationAsB,
@@ -1697,8 +1697,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
     // Derived
     selectedNavRoute, navTrainDrawData, navMrtEntrances,
     filteredRoutes, canTransit,
-    // The geometry shade field, shared so a day sweep reuses this cache
+    // The geometry shadow field, shared so a day sweep reuses this cache
     // rather than building a second one and re-fetching the same prisms.
-    shadeField: shadeFieldRef.current,
+    shadowField: shadowFieldRef.current,
   };
 }

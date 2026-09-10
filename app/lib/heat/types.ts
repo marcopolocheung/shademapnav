@@ -1,6 +1,6 @@
 /**
  * The contract Track D publishes: one hour of weather, from one cached fetch,
- * shared by every consumer that needs more than a shade fraction.
+ * shared by every consumer that needs more than a shadow fraction.
  *
  * Every measured field is nullable, deliberately. Open-Meteo can omit a variable,
  * a cached response can predate a field being requested, and "absent" has to stay
@@ -43,7 +43,7 @@ export interface Range {
 
 /**
  * A UV dose estimate for one trip. Ranges throughout, because the inputs are
- * ranges — chiefly the share of ambient UV still reaching you in building shade.
+ * ranges — chiefly the share of ambient UV still reaching you in building shadow.
  *
  * `sed` and `fullSunEquivalentMinutes` are physical quantities and describe the
  * trip. `burnFraction` describes a *person*, and is null unless a caller supplies

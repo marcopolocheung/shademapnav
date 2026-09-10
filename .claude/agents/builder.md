@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Implement exactly one slice of a ShadeMapNav checkpoint in an isolated git worktree, then open a PR. Use ONLY when a checkpoint splits into slices touching provably disjoint files, and never for the three contested files. Sequential checkpoints and anything touching useNavigation.ts, MapView.tsx or page.tsx stay in the main session.
+description: Implement exactly one slice of a Umbra checkpoint in an isolated git worktree, then open a PR. Use ONLY when a checkpoint splits into slices touching provably disjoint files, and never for the three contested files. Sequential checkpoints and anything touching useNavigation.ts, MapView.tsx or page.tsx stay in the main session.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: inherit
 isolation: worktree

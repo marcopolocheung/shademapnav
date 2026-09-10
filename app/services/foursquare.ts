@@ -1,3 +1,4 @@
+import "../lib/storageMigration";
 const FSQ_DEBUG = true;
 
 export interface FoursquarePlaceInfo {
@@ -242,7 +243,7 @@ function setRateLimitedFromResponse(res: Response) {
 // avoid repeated 401 console noise on every marker click.
 let authBlocked = false;
 
-const AUTH_BLOCK_KEY = "shademapnav:foursquareAuthBlocked";
+const AUTH_BLOCK_KEY = "umbra:foursquareAuthBlocked";
 const AUTH_BLOCK_TTL_MS = 5 * 60 * 1000; // don't permanently suppress retries
 
 function getSessionStorage(): Storage | null {
@@ -287,7 +288,7 @@ function normalizeStoredAuthBlock() {
 }
 
 // Run once on module load.
-normalizeStoredAuthBlock();
+try { normalizeStoredAuthBlock(); } catch { /* Storage may be unavailable. */ }
 
 function isAuthBlocked(): boolean {
   if (authBlocked) return true;

@@ -5,7 +5,7 @@ import {
   type CacheAnchor,
   coversPoint,
   shouldRebuildCache,
-} from '../shade/cachePolicy';
+} from '../shadowField/cachePolicy';
 import {
   type BuildingPrism,
   type PrismMesh,
@@ -14,8 +14,8 @@ import {
   metersPerDegree,
   prismsFromTileFeatures,
   triangulateRing,
-} from '../shade/geometry';
-import { buildShadowIndex } from '../shade/shadowIndex';
+} from '../shadowField/geometry';
+import { buildShadowIndex } from '../shadowField/shadowIndex';
 import SunWorker from '../../workers/sunPosition.worker?worker';
 import {
   ceilingFieldScale,
@@ -59,7 +59,7 @@ const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
  * geometrically free: the wall's terminator lands where the ground shadow at its
  * base says it should, while the sample still escapes the near cap. Left
  * uncompensated, the raised ceiling meets an unraised threshold and every wall
- * shades 1–2 m too high — which is what made a shadow step as it crossed onto a wall.
+ * shadows 1–2 m too high — which is what made a shadow step as it crossed onto a wall.
  */
 const WALL_SHADOW_SUN_OFFSET_M = 1.5;
 const WALL_SHADOW_NORMAL_OFFSET_M = 1.5;
@@ -71,7 +71,7 @@ interface ShadowGeometry {
   shadowVerts: Float32Array;    // Mercator (x,y) shadow triangles
   /**
    * Per-vertex *shadow ceiling*, normalized by `maxH`: the highest point the
-   * caster still shades at that spot — its own height under its roofline,
+   * caster still shadows at that spot — its own height under its roofline,
    * falling to 0 at the shadow's tip. Interpolated across a triangle this is
    * exact (see `buildShadowTriangles`), which is what lets Pass C decide a roof
    * and Pass E decide a wall fragment with one screen-space texture.
@@ -192,7 +192,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   private roofPosBuffer: WebGLBuffer | null = null;
   private roofHeightBuffer: WebGLBuffer | null = null;
 
-  // Building pass (Pass E): extruded walls + roofs, shaded by the height field
+  // Building pass (Pass E): extruded walls + roofs, shadowed by the height field
   private bldgProgram: WebGLProgram | null = null;
   private bldgAttrPos = -1;
   private bldgAttrHeight = -1;
@@ -217,7 +217,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
    * Rebuilding is the most expensive routine here, and all three map events below
    * used to force one unconditionally — so a single pan paid for two (the source
    * settles *and* the move ends), and a follow camera paid on every settle. The
-   * policy in `../shade/cachePolicy` decides; this just applies it.
+   * policy in `../shadowField/cachePolicy` decides; this just applies it.
    *
    * Always repaints regardless: the sun may have moved even when the geometry
    * has not.
@@ -266,8 +266,8 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   // Shadow color interpolates from BASE_RGB (night/sunrise/sunset) to NOON_RGB (12:00 noon)
   // based on current sun altitude relative to its altitude at 12:00.
   private static readonly SHADOW_ALPHA = 0.7;
-  // IMPORTANT: shadows MUST stay blue-dominant at every sun altitude — shade
-  // routing detects them by blue dominance (app/lib/shadeSampling.ts). A neutral
+  // IMPORTANT: shadows MUST stay blue-dominant at every sun altitude — shadow
+  // routing detects them by blue dominance (app/lib/shadowSampling.ts). A neutral
   // gray shadow is invisible to the sampler (r≈g≈b → 0% coverage, single route).
   // So BOTH endpoints below are blue. NOON is a lighter blue for midday
   // visibility, not gray. (CLAUDE.md invariant #5: change one → change both.)
@@ -361,7 +361,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     this.listeners.get(event)!.add(callback);
   }
 
-  queryPointShade(lng: number, lat: number, opts?: { date?: Date }) {
+  queryPointShadow(lng: number, lat: number, opts?: { date?: Date }) {
     if (!this.map) return null;
     if (!this.map.getBounds().contains([lng, lat])) return null;
 
@@ -390,7 +390,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const queryDate = opts?.date ?? this.currentDate;
     const sun = SunCalc.getPosition(queryDate, lat, lng);
     if (sun.altitude <= 0) {
-      return { shadeFraction: 1, source: "geometry-cache" as const };
+      return { shadowFraction: 1, source: "geometry-cache" as const };
     }
 
     const { mPerLat, mPerLng } = metersPerDegree(lat);
@@ -407,16 +407,16 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // frame, so these are the same shadows the per-query path rebuilt five times over.
     const shadows = buildShadowIndex(prisms, sun.azimuth, sun.altitude, mPerLat, mPerLng, null);
 
-    let shaded = 0;
+    let shadowed = 0;
     for (const [dxM, dyM] of offsetsM) {
       const sampleLng = lng + dxM / mPerLng;
       const sampleLat = lat + dyM / mPerLat;
-      if (shadows.isShaded(sampleLng, sampleLat)) {
-        shaded++;
+      if (shadows.isShadowed(sampleLng, sampleLat)) {
+        shadowed++;
       }
     }
 
-    return { shadeFraction: shaded / offsetsM.length, source: "geometry-cache" as const };
+    return { shadowFraction: shadowed / offsetsM.length, source: "geometry-cache" as const };
   }
 
   // ─── CustomLayerInterface ──────────────────────────────────────────────────
@@ -532,7 +532,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // `v_groundClip` is the vertex's *ground* position (height 0), stepped toward the
     // sun, run through the same matrix. Dividing it by w per fragment gives the pixel
     // the height FBO stored that column's shadow ceiling at, which is what makes a
-    // wall halfway up a building shaded by its neighbour but lit above the roofline.
+    // wall halfway up a building shadowed by its neighbour but lit above the roofline.
     const bldgVsSrc = `
       attribute vec2 a_pos;
       attribute float a_heightM;
@@ -589,32 +589,32 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
       // sky, a wall about half, and a face turned toward the sun's side of the sky
       // sees more than one turned away.
       //
-      // Without this every shaded surface takes one flat colour, and — because that
+      // Without this every shadowed surface takes one flat colour, and — because that
       // colour landed within a few percent of the street shadow it stands in — a
       // tilted view looking *away* from the sun showed rooftops floating on blue
-      // with no walls under them. The three shaded tones below sit above the
+      // with no walls under them. The three shadowed tones below sit above the
       // measured ground shadow (#516990) and below the lit ones, so the surfaces
-      // read apart by brightness while all of them stay blue enough to read as shade.
+      // read apart by brightness while all of them stay blue enough to read as shadow.
       const float SKY_BASE = 0.80;
       const float SKY_UP = 0.20;
       const float SKY_SUNWARD = 0.14;
-      const float SHADE_TINT = 0.46;
+      const float SHADOW_TINT = 0.46;
       void main() {
         vec2 uv = (v_groundClip.xy / v_groundClip.w) * 0.5 + 0.5;
         float onScreen = step(0.0, uv.x) * step(uv.x, 1.0)
                        * step(0.0, uv.y) * step(uv.y, 1.0)
                        * step(0.0001, v_groundClip.w);
         float ceilN = texture2D(u_heightTex, uv).r * onScreen;
-        // Turned away from the sun, or something taller shades this height.
-        float shaded = max(step(v_facing, 0.0),
+        // Turned away from the sun, or something taller shadows this height.
+        float shadowed = max(step(v_facing, 0.0),
                            step(v_hNorm + v_ceilLift + u_bias, ceilN));
-        shaded = max(shaded, u_sunBelow);
+        shadowed = max(shadowed, u_sunBelow);
         float sky = SKY_BASE
                   + SKY_UP * v_normal.z
                   + SKY_SUNWARD * max(dot(v_normal.xy, u_sunFlat), 0.0);
         vec3 lit = u_wallColor * (AMBIENT + (1.0 - AMBIENT) * max(v_facing, 0.0));
-        vec3 dark = mix(u_wallColor * sky, u_shadowTint, SHADE_TINT);
-        gl_FragColor = vec4(mix(lit, dark, shaded), 1.0);
+        vec3 dark = mix(u_wallColor * sky, u_shadowTint, SHADOW_TINT);
+        gl_FragColor = vec4(mix(lit, dark, shadowed), 1.0);
       }
     `;
     this.bldgProgram = createProgram(gl, bldgVsSrc, bldgFsSrc);
@@ -882,7 +882,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     // ── Pass E: extruded buildings, painted with the shadow field ──
     // Flat-on there is nothing to paint — the roofs are all you would see, and the
     // basemap already draws those — so this only runs once the camera is tilted.
-    // That also keeps the canvas the shade sampler reads (invariant #5, always at
+    // That also keeps the canvas the shadow sampler reads (invariant #5, always at
     // pitch 0) exactly as it was.
     const cache = this.buildingCache;
     if (cache && cache.bldgVertexCount > 0 && this.map.getPitch() > 0 &&
@@ -1145,7 +1145,7 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
     const heightFboStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (heightFboStatus !== gl.FRAMEBUFFER_COMPLETE) {
       console.warn(
-        `[shadow] height framebuffer incomplete (0x${heightFboStatus.toString(16)}) at ${w}x${h}; roofs will render unshaded`,
+        `[shadow] height framebuffer incomplete (0x${heightFboStatus.toString(16)}) at ${w}x${h}; roofs will render unshadowed`,
       );
     }
 

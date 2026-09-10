@@ -1,4 +1,4 @@
-# How ShadeMapNav estimates UV exposure
+# How Umbra estimates UV exposure
 
 **Method version `sed-uvi-v1`.** Implemented in `app/lib/heat/dose.ts`.
 **Status: experimental.** The app labels it so, and this page explains why.
@@ -49,19 +49,19 @@ accumulates about 3.6 SED. This arithmetic is not in doubt.
 
 ## The part that is a derivation, not a measurement
 
-**Shade is not a UV shield.** Under clear skies the diffuse component is roughly
+**Shadow is not a UV shield.** Under clear skies the diffuse component is roughly
 **50–62%** of global erythemal UV, rising toward 93% under heavy cloud. A building
 shadow removes the direct beam and leaves most of the rest. [Parisi, diffuse UV
 review][parisi] [Modeling erythemal UV diffuse fraction][diffuse]
 
-Purpose-built shade structures block 97.1–99.9% of *direct* radiation to the head and
+Purpose-built shadow structures block 97.1–99.9% of *direct* radiation to the head and
 neck, and their overall protection factor depends on the sky view still visible from
 underneath, the roof transmittance, the diffuse share, and surface albedo. A street
-shaded by one building has a far larger sky view than a purpose-built canopy, so it
-keeps a correspondingly larger share of the diffuse component. [Shade structure
-protection factor model][shade-pf] [Religi et al.][religi]
+shadowed by one building has a far larger sky view than a purpose-built canopy, so it
+keeps a correspondingly larger share of the diffuse component. [Shadow structure
+protection factor model][shadow-pf] [Religi et al.][religi]
 
-`SHADE_UV_TRANSMISSION` is set to **0.2–0.6** — the diffuse share multiplied by a
+`SHADOW_UV_TRANSMISSION` is set to **0.2–0.6** — the diffuse share multiplied by a
 plausible range of street sky-view fractions. **This is our derivation from the cited
 values, not a figure any of those papers reports.** It is the least defensible number
 in the model, and Track A's sky view factor (A9) is what would replace it with
@@ -102,7 +102,7 @@ instructive: a range and a disclaimer made a poorly founded figure *look* rigoro
 
 ## Why every figure is an interval
 
-The shade transmission band spans a factor of three, so a single number computed from
+The shadow transmission band spans a factor of three, so a single number computed from
 its midpoint would imply precision the input does not contain. `dose()` returns
 `{ low, high }` throughout, and `uncertainty` is derived from that band's own width
 rather than asserted:
@@ -113,7 +113,7 @@ rather than asserted:
 | ≤ 2.6 | medium |
 | above | high |
 
-A mostly shaded trip lands in "high" for a real reason: most of its estimate rests on
+A mostly shadowed trip lands in "high" for a real reason: most of its estimate rests on
 the transmission assumption, which is the crudest thing in the model.
 
 ## What this model does not include
@@ -122,13 +122,13 @@ Each of these would move the answer, and none is modelled:
 
 - **Altitude.** Erythemal UV rises with elevation. A mountain trip is underestimated.
 - **Surface albedo.** Fresh snow can nearly double effective exposure; sand and water
-  raise it materially. Not counted, though the shade-structure literature treats it
+  raise it materially. Not counted, though the shadow-structure literature treats it
   as a real term.
 - **Clothing, sunscreen, hats, a carried parasol.** The estimate is for unprotected
   skin, so anything worn makes it an overestimate.
 - **Body geometry.** Horizontal and vertical surfaces of a person receive different
   irradiance; this treats exposure as a single surface.
-- **Tree canopy** as distinct from building shade — canopy is not yet a shade source
+- **Tree canopy** as distinct from building shadow — canopy is not yet a shadow source
   in the engine at all (Track A, A7).
 - **Sky view factor** per location, which is exactly what would narrow the widest
   band in the model (Track A, A9).
@@ -142,7 +142,7 @@ Each of these would move the answer, and none is modelled:
 
 This is **not medical advice and not a safe-exposure budget.**
 
-- The WHO is explicit that shade is *incomplete* UV protection.
+- The WHO is explicit that shadow is *incomplete* UV protection.
 - Erythema is the threshold for visible reddening, not for injury. UV damage
   accumulates over a lifetime, and a low dose is not a guarantee of no harm.
 - Nothing here models skin cancer risk, photosensitising medication, or any medical
@@ -158,14 +158,14 @@ never phrase its output as permission.
 [bentham]: https://support.bentham.co.uk/support/solutions/articles/5000619299-erythemal-radiant-exposure-and-uv-index "Bentham Instruments. Erythemal radiant exposure and UV index. Accessed 2026-09-06."
 [parisi]: https://onlinelibrary.wiley.com/doi/10.1111/php.70084 "Parisi et al. Measurement and modeling of diffuse ultraviolet radiation: A review. Photochemistry and Photobiology."
 [diffuse]: https://acp.copernicus.org/preprints/acp-2017-524/acp-2017-524.pdf "Modeling erythemal ultraviolet diffuse fraction. Atmospheric Chemistry and Physics preprint, 2017."
-[shade-pf]: https://www.sciencedirect.com/science/article/abs/pii/S0360132318306280 "Development of a model for calculating the solar ultraviolet protection factor of small to medium sized built shade structures. Building and Environment."
-[religi]: https://onlinelibrary.wiley.com/doi/10.1111/php.12949 "Religi et al. Body Anatomical UV Protection Predicted by Shade Structures: A Modeling Study. Photochemistry and Photobiology, 2018."
+[shadow-pf]: https://www.sciencedirect.com/science/article/abs/pii/S0360132318306280 "Development of a model for calculating the solar ultraviolet protection factor of small to medium sized built shadow structures. Building and Environment."
+[religi]: https://onlinelibrary.wiley.com/doi/10.1111/php.12949 "Religi et al. Body Anatomical UV Protection Predicted by Shadow Structures: A Modeling Study. Photochemistry and Photobiology, 2018."
 [med-colombia]: https://www.sciencedirect.com/science/article/pii/S1578219020301505 "Minimal Erythema Dose: Correlation with Fitzpatrick Skin Type and Concordance Between Methods of Erythema Assessment in a Patient Sample in Colombia. Actas Dermo-Sifiliográficas, 2020."
 [acclim]: https://pubmed.ncbi.nlm.nih.gov/7287960/ "Skin type, minimal erythema dose (MED), and sunlight acclimatization. J Am Acad Dermatol."
 
 - UV index → irradiance and SED: [WHO/WMO Global Solar UV Index][uvi], [Bentham][bentham]
 - Diffuse fraction of erythemal UV: [Parisi review][parisi], [ACP diffuse fraction][diffuse]
-- Shade protection factors and sky view: [Shade structure PF model][shade-pf], [Religi et al.][religi]
+- Shadow protection factors and sky view: [Shadow structure PF model][shadow-pf], [Religi et al.][religi]
 - Fitzpatrick ↔ MED correlation and its limits: [Colombian MED study][med-colombia], [acclimatisation study][acclim]
 - UV index forecast: Open-Meteo hourly `uv_index`, fetched once per location per hour
   (`app/services/weather.ts`).

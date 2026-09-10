@@ -124,7 +124,7 @@ rule 3 above says implementation stays in the session, and the roster now enforc
   `Stop` hook blocks a session that edited source and never got them green — but neither
   substitutes for reading the output.
 - **Re-deriving the repo every session.** If you spent the first 20 minutes rediscovering how
-  shade sampling works, the brief was missing a pointer — add it before you finish.
+  shadow sampling works, the brief was missing a pointer — add it before you finish.
 
 ---
 
@@ -138,7 +138,7 @@ no application code.
 
 | | A | B | C | D | E | G | H |
 |---|---|---|---|---|---|---|---|
-| **A** Shade Engine | — | ✅ | ✅ | ⚠️ A6/D1 share the sweep API | ⚠️ both edit `routing.ts` | ⚠️ G4 owns A's fixtures | ⚠️ both edit `routing.ts`; H consumes A6 |
+| **A** Shadow Engine | — | ✅ | ✅ | ⚠️ A6/D1 share the sweep API | ⚠️ both edit `routing.ts` | ⚠️ G4 owns A's fixtures | ⚠️ both edit `routing.ts`; H consumes A6 |
 | **B** Navigation | ✅ | — | ✅ | ✅ | ⚠️ both want `Trip` + `useNavigation` | ✅ | ✅ |
 | **C** Copilot | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ (H6 consumes C's job contract) |
 | **D** Heat & Timing | ⚠️ | ✅ | ✅ | — | ✅ | ✅ | ✅ (H supplies minutes, D converts) |
@@ -167,7 +167,7 @@ app links into it — the heat and UV rows render a "how this was calculated" li
 what #199 was.
 
 **You do not push the mirror.** `.github/workflows/mirror.yml` pushes `main` on every merge,
-then curls every `shademapnav` doc URL it finds in `app/` and fails if one 404s. If that job
+then curls every `umbra` doc URL it finds in `app/` and fails if one 404s. If that job
 goes red, the mirror is stale and a link in the UI is probably broken — fix it before taking
 new work.
 
@@ -185,7 +185,7 @@ The same workflow also runs on your PR, minus the push. Two things follow for a 
 **One-time setup, owner only.** The job needs push access to a second repo, which
 `GITHUB_TOKEN` does not grant. Create a fine-grained PAT scoped to `marcopolocheung/shademapnav`
 alone with **Contents: Read and write**, add it as the `MIRROR_TOKEN` repository secret on
-`ShadeMapNavigation`, then run the workflow once from the Actions tab to backfill. Until that
+`Umbra`, then run the workflow once from the Actions tab to backfill. Until that
 secret exists the job fails loudly on every merge rather than mirroring nothing quietly.
 
 ## State and handoff
@@ -198,7 +198,7 @@ Each brief carries a `## Current state` block. It is the only thing a new sessio
 - **Done:** B1, B2
 - **Open PRs:** #NNN (B3)
 - **Decisions made:** map-matching tolerance 25 m; heading from `coords.heading`, compass fallback deferred
-- **Blocked on:** nothing (B6 will need Track A's `ShadeField`; stubbed at `app/lib/shade/stub.ts`)
+- **Blocked on:** nothing (B6 will need Track A's `ShadowField`; stubbed at `app/lib/shadowField/stub.ts`)
 - **Next action:** B4 — replace the NAVIGATING card
 - **Last verified:** 2026-08-24, 156 tests / 23 files green on main
 ```

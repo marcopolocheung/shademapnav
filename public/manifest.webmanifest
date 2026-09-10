@@ -1,7 +1,7 @@
 {
-  "name": "ShadeMapNav",
-  "short_name": "ShadeMapNav",
-  "description": "Shade-aware walking route planning for hot, sunny days.",
+  "name": "Umbra",
+  "short_name": "Umbra",
+  "description": "Shadow-aware walking route planning for hot, sunny days.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

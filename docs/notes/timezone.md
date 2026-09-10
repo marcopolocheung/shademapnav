@@ -1,4 +1,4 @@
-# How ShadeMapNav decides what time it is where you are looking
+# How Umbra decides what time it is where you are looking
 
 **Method version `tz-lookup-intl-v1`.** Implemented in `app/lib/timezone.ts` and
 `app/lib/tzLookup.ts`.

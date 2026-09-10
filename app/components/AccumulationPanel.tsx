@@ -150,7 +150,7 @@ export default function AccumulationPanel({
     const url = URL.createObjectURL(tif);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "shademapnav-accumulation.tif";
+    a.download = "umbra-accumulation.tif";
     a.click();
     URL.revokeObjectURL(url);
   }

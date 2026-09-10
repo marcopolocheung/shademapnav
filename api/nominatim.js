@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       headers: {
         // The whole point of this proxy. Nominatim rejects requests that do not
         // identify themselves, and a browser is not allowed to send this.
-        "User-Agent": "ShadeMapNav/1.0 (+https://shademapnav.vercel.app)",
+        "User-Agent": "Umbra/1.0 (+https://shademapnav.vercel.app)",
         Accept: "application/json",
       },
       signal: controller.signal,

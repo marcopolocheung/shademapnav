@@ -2,24 +2,24 @@
  * Routing instrumentation — captures KPIs for every calculateRoute() call.
  *
  * In development, results are logged to the console and exposed at:
- *   window.__shadeMapMetrics.latest       — most recent run
- *   window.__shadeMapMetrics.history      — last 20 runs
- *   window.__shadeMapMetrics.summary      — p50/p95 aggregates
- *   window.__shadeMapMetrics.clearMetrics — reset the history buffer
+ *   window.__umbraMetrics.latest       — most recent run
+ *   window.__umbraMetrics.history      — last 20 runs
+ *   window.__umbraMetrics.summary      — p50/p95 aggregates
+ *   window.__umbraMetrics.clearMetrics — reset the history buffer
  *
  * The first three are getters, so a caller that resets the buffer never reads a
  * stale aggregate computed before the reset.
  *
  * Three headline KPIs:
  *   1. routeComputeMs  — end-to-end calculateRoute latency
- *   2. shadeCoverageGain — percentage-point improvement from Shortest → Most Shaded
- *   3. pathLengthDeltaPct — how much longer Most Shaded is vs Shortest (% overhead)
+ *   2. shadowCoverageGain — percentage-point improvement from Shortest → Most Shadowed
+ *   3. pathLengthDeltaPct — how much longer Most Shadowed is vs Shortest (% overhead)
  */
 
 export interface RoutingPhaseMs {
   graphFetch: number; // fetchRoutingGraph (cache hit or network)
   canvasRead: number; // blob → ImageBitmap → ImageData
-  shadeSample: number; // edge shade-factor sampling loop
+  shadowSample: number; // edge shadow-factor sampling loop
   dijkstra: number; // snap + all Dijkstra passes
   total: number; // wall-clock end-to-end
 }
@@ -27,7 +27,7 @@ export interface RoutingPhaseMs {
 export interface RouteMetricSnapshot {
   label: string;
   distanceM: number;
-  shadeCoverage: number; // 0–1
+  shadowCoverage: number; // 0–1
 }
 
 export interface RoutingRunMetrics {
@@ -35,14 +35,14 @@ export interface RoutingRunMetrics {
   timestamp: number;
   phases: RoutingPhaseMs;
   graphNodeCount: number;
-  /** Total directed edges iterated during shade sampling (both directions). */
+  /** Total directed edges iterated during shadow sampling (both directions). */
   graphDirectedEdges: number;
   /**
    * Share of sampled edges (0–1) the geometric field could not answer confidently,
    * so the pixel sampler answered instead. A4b demotes the canvas to a fallback;
    * this is how you tell whether it actually got demoted on a given route.
    */
-  shadeFallbackShare: number;
+  shadowFallbackShare: number;
   routes: RouteMetricSnapshot[];
 
   // ── Derived KPIs ──────────────────────────────────────────────────────────
@@ -54,18 +54,18 @@ export interface RoutingRunMetrics {
   routeComputeMs: number;
 
   /**
-   * KPI 2: Shade coverage gain (percentage points, 0–100).
-   * Difference in shadeCoverage between the Most Shaded and Shortest routes.
+   * KPI 2: Shadow coverage gain (percentage points, 0–100).
+   * Difference in shadowCoverage between the Most Shadowed and Shortest routes.
    * null when only one route was found.
-   * Target: > 10 pp for routes where a shade-aware detour exists.
+   * Target: > 10 pp for routes where a shadow-aware detour exists.
    */
-  shadeCoverageGainPp: number | null;
+  shadowCoverageGainPp: number | null;
 
   /**
    * KPI 3: Path length overhead (%).
-   * How much longer Most Shaded is compared to Shortest.
+   * How much longer Most Shadowed is compared to Shortest.
    * null when only one route was found.
-   * A well-calibrated cost model keeps this below ~40% for useful shade gains.
+   * A well-calibrated cost model keeps this below ~40% for useful shadow gains.
    */
   pathLengthDeltaPct: number | null;
 }
@@ -86,21 +86,21 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
   if (process.env.NODE_ENV === "development") {
     const { phases, graphNodeCount, graphDirectedEdges } = m;
     console.groupCollapsed(
-      `[ShadeMapNav] Route computed in ${phases.total.toFixed(0)} ms` +
+      `[Umbra] Route computed in ${phases.total.toFixed(0)} ms` +
         ` | ${graphNodeCount} nodes, ${graphDirectedEdges} directed edges`
     );
     console.table({
       "Graph fetch (ms)": phases.graphFetch.toFixed(1),
       "Canvas read (ms)": phases.canvasRead.toFixed(1),
-      "Canvas fallback (%)": (m.shadeFallbackShare * 100).toFixed(1),
-      "Shade sample (ms)": phases.shadeSample.toFixed(1),
+      "Canvas fallback (%)": (m.shadowFallbackShare * 100).toFixed(1),
+      "Shadow sample (ms)": phases.shadowSample.toFixed(1),
       "Dijkstra (ms)": phases.dijkstra.toFixed(1),
       "Total (ms)": phases.total.toFixed(1),
     });
-    if (m.shadeCoverageGainPp !== null) {
+    if (m.shadowCoverageGainPp !== null) {
       console.log(
-        `[KPI] Shaded route is ${m.pathLengthDeltaPct!.toFixed(1)}% longer` +
-          ` and gains ${m.shadeCoverageGainPp.toFixed(1)} pp of shade coverage`
+        `[KPI] Shadowed route is ${m.pathLengthDeltaPct!.toFixed(1)}% longer` +
+          ` and gains ${m.shadowCoverageGainPp.toFixed(1)} pp of shadow coverage`
       );
     }
     console.groupEnd();
@@ -108,7 +108,7 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
 }
 
 /**
- * Installs (or reinstalls) `window.__shadeMapMetrics`.
+ * Installs (or reinstalls) `window.__umbraMetrics`.
  *
  * The three reads are getters rather than snapshots because a benchmark resets the
  * buffer between scenarios: a `summary` captured at record time would survive
@@ -116,7 +116,7 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
  */
 function publishMetricsToWindow(): void {
   if (typeof window === "undefined") return;
-  (window as any).__shadeMapMetrics = {
+  (window as any).__umbraMetrics = {
     get latest(): RoutingRunMetrics | null {
       return _history[0] ?? null;
     },
@@ -135,9 +135,9 @@ export interface MetricsSummary {
   avgTotalMs: number;
   p50TotalMs: number;
   p95TotalMs: number;
-  avgShadeSampleMs: number;
+  avgShadowSampleMs: number;
   avgDijkstraMs: number;
-  avgShadeCoverageGainPp: number | null;
+  avgShadowCoverageGainPp: number | null;
   avgPathLengthDeltaPct: number | null;
 }
 
@@ -169,7 +169,7 @@ export function getMetricsSummary(): MetricsSummary | null {
 
   const totals = _history.map((h) => h.phases.total).sort((a, b) => a - b);
 
-  const gainRuns = _history.filter((h) => h.shadeCoverageGainPp !== null);
+  const gainRuns = _history.filter((h) => h.shadowCoverageGainPp !== null);
   const deltaRuns = _history.filter((h) => h.pathLengthDeltaPct !== null);
 
   return {
@@ -177,11 +177,11 @@ export function getMetricsSummary(): MetricsSummary | null {
     avgTotalMs: avg(totals),
     p50TotalMs: percentile(totals, 0.5),
     p95TotalMs: percentile(totals, 0.95),
-    avgShadeSampleMs: avg(_history.map((h) => h.phases.shadeSample)),
+    avgShadowSampleMs: avg(_history.map((h) => h.phases.shadowSample)),
     avgDijkstraMs: avg(_history.map((h) => h.phases.dijkstra)),
-    avgShadeCoverageGainPp:
+    avgShadowCoverageGainPp:
       gainRuns.length > 0
-        ? avg(gainRuns.map((h) => h.shadeCoverageGainPp!))
+        ? avg(gainRuns.map((h) => h.shadowCoverageGainPp!))
         : null,
     avgPathLengthDeltaPct:
       deltaRuns.length > 0
@@ -204,21 +204,21 @@ export function clearMetrics(): void {
 // ── Helper: compute derived KPIs from route options ───────────────────────────
 
 export function computeDerivedKpis(routes: RouteMetricSnapshot[]): {
-  shadeCoverageGainPp: number | null;
+  shadowCoverageGainPp: number | null;
   pathLengthDeltaPct: number | null;
 } {
   if (routes.length < 2) {
-    return { shadeCoverageGainPp: null, pathLengthDeltaPct: null };
+    return { shadowCoverageGainPp: null, pathLengthDeltaPct: null };
   }
-  // Shortest is always first (label "Shortest"), Most Shaded is always last.
+  // Shortest is always first (label "Shortest"), Most Shadowed is always last.
   const shortest = routes[0];
-  const mostShaded = routes[routes.length - 1];
-  if (shortest === mostShaded || shortest.distanceM === 0) {
-    return { shadeCoverageGainPp: null, pathLengthDeltaPct: null };
+  const mostShadowed = routes[routes.length - 1];
+  if (shortest === mostShadowed || shortest.distanceM === 0) {
+    return { shadowCoverageGainPp: null, pathLengthDeltaPct: null };
   }
   return {
-    shadeCoverageGainPp: (mostShaded.shadeCoverage - shortest.shadeCoverage) * 100,
+    shadowCoverageGainPp: (mostShadowed.shadowCoverage - shortest.shadowCoverage) * 100,
     pathLengthDeltaPct:
-      ((mostShaded.distanceM - shortest.distanceM) / shortest.distanceM) * 100,
+      ((mostShadowed.distanceM - shortest.distanceM) / shortest.distanceM) * 100,
   };
 }

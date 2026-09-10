@@ -26,7 +26,7 @@ Three rules govern it.
 
 | Layer | Oracle | What exists today | State |
 |---|---|---|---|
-| **Geometry** | synthetic analytic fixtures; independent observation | shade-field ↔ pixel-sampler agreement, 150 cases, CI-gated | ⚠️ **method agreement only — no physical accuracy number exists** |
+| **Geometry** | synthetic analytic fixtures; independent observation | shadow-field ↔ pixel-sampler agreement, 150 cases, CI-gated | ⚠️ **method agreement only — no physical accuracy number exists** |
 | **Routing** | tiny exact fixtures; independently checked constraints | unit tests of the cost model and Pareto search | ⬜ **no approximation gap, no violation rate, no optimality bound** |
 | **Agent** | final app state + task graders | 18 orchestrator scenarios + a sabotage suite, scripted model | ⚠️ **contract only — no live-model or task-completion number** |
 | **Systems** | documented hardware, fixed snapshots | shadow-index microbenchmark, bundle sizes, CI suite, one browser smoke test | ⚠️ **Node microbenchmark and build sizes only — no browser latency budget** |
@@ -35,15 +35,15 @@ Three rules govern it.
 
 ## 1. Geometry
 
-### 1.1 Shade field vs pixel sampler — agreement
+### 1.1 Shadow field vs pixel sampler — agreement
 
-Routing used to read shade off the map canvas. It now samples building geometry
-(`app/lib/shade/ShadeField.ts`) and falls back to the canvas per edge. This harness measures
+Routing used to read shadow off the map canvas. It now samples building geometry
+(`app/lib/shadowField/ShadowField.ts`) and falls back to the canvas per edge. This harness measures
 how far the two disagree, so that the swap was a number rather than an opinion.
 
-**Source.** `app/lib/shade/__tests__/agreement/` — `fixtures.ts` builds the corpus,
+**Source.** `app/lib/shadowField/__tests__/agreement/` — `fixtures.ts` builds the corpus,
 `harness.ts` runs it, `agreement.test.ts` holds the ceilings.
-**Reproduce.** `npx vitest run app/lib/shade/__tests__/agreement/agreement.test.ts` — the report
+**Reproduce.** `npx vitest run app/lib/shadowField/__tests__/agreement/agreement.test.ts` — the report
 line prints on every run, passing or failing. Deterministic: no network, no key, no clock.
 **Measured at** `6a4b58f`.
 
@@ -110,15 +110,15 @@ as accuracy.
 
 ### 1.3 Confidence values are priors, not measurements
 
-`ShadeField.ts:198` says so in the source, and it is repeated here because it is the kind of
+`ShadowField.ts:198` says so in the source, and it is repeated here because it is the kind of
 thing that quietly gets promoted:
 
 > Neither is measured ground truth — these are priors, and A3's agreement harness is what turns
 > them into calibrated numbers.
 
-The per-edge confidence the field attaches to a shade answer is a hand-set prior over source
+The per-edge confidence the field attaches to a shadow answer is a hand-set prior over source
 quality and sun-altitude conditions. It has not been calibrated against outcomes. The route
-provenance line the UI shows (`app/lib/shadeProvenance.ts`) is derived from these priors, so it
+provenance line the UI shows (`app/lib/shadowProvenance.ts`) is derived from these priors, so it
 reports *where a number came from* — building geometry, the map view, mixed, or unknown — and
 deliberately not how right it is.
 
@@ -133,7 +133,7 @@ covered by unit tests of the cost model and the dominance rule
 (`app/lib/__tests__/routing.test.ts`), which check that the implementation does what it says.
 
 **No optimality bound, no brute-force oracle comparison, and no published approximation gap
-exist.** The search must not be described as optimal, and the phrase "shadiest route" is a
+exist.** The search must not be described as optimal, and the phrase "most shadowed route" is a
 description of the objective, not a claim about the result.
 
 ### 2.2 Time-dependent exposure — **not implemented**
@@ -157,7 +157,7 @@ tests, 2 corpus-level tests and 5 focused sub-tests. The `expect` count is sever
 
 | Group | Cases | What it pins down |
 |---|---:|---|
-| Planning | 6 | tool order, the fallback plot when the model forgets, no duplicate plot when it doesn't, locate-then-search, time set before shade is read, route endpoints becoming pins |
+| Planning | 6 | tool order, the fallback plot when the model forgets, no duplicate plot when it doesn't, locate-then-search, time set before shadow is read, route endpoints becoming pins |
 | Grounding | 6 | a tool error is fed back rather than swallowed, an empty search plots and names nothing, an off-topic turn spends no tools, an unlocated map asks instead of inventing, the pin cap, coordinate de-duplication |
 | Budget | 3 | the 8-step research cap still plots before the write call, the 8-pin cap, the shared-model fast path skipping the write call |
 | Degradation | 3 | a safety block ends the turn with no tools and no pins, an empty research turn still reaches the write call, an empty write returns a plain retry message |
@@ -199,14 +199,14 @@ do act. The separation is in what is reported, not in how the code is filed.)
 
 ### 4.1 Shadow-index speedup — a Node microbenchmark
 
-**This is a synthetic Node microbenchmark of `ShadeField.sampleEdges` in isolation. It is not
+**This is a synthetic Node microbenchmark of `ShadowField.sampleEdges` in isolation. It is not
 end-to-end browser route time, and it must not be quoted as one.** (Issue #207 exists to keep
 that qualification attached wherever the number appears.)
 
-**Source.** `app/lib/shade/__benchmarks__/shadeField.bench.ts`, committed in **#166**.
+**Source.** `app/lib/shadowField/__benchmarks__/shadowField.bench.ts`, committed in **#166**.
 **Reproduce.** `npm run bench`
-(`SHADEMAP_BENCH_FULL=1` adds the city-scale case).
-**Measured 2026-09-04.** Before: `main` at `c2821f7`. After: `shade/shadow-index` at `c6b21a1`
+(`UMBRA_BENCH_FULL=1` adds the city-scale case).
+**Measured 2026-09-04.** Before: `main` at `c2821f7`. After: `shadow/shadow-index` at `c6b21a1`
 (PR #164). **Hardware:** WSL2 Linux `6.18.33.2-microsoft-standard-WSL2`, Node `v20.20.1`.
 8 iterations each, 3 for the last; margins are Tinybench's relative margin of error.
 
@@ -283,7 +283,7 @@ visual regression test, and it covers no other screen, mode, or interaction in t
 No time-to-interactive, no published route-calculation timing from a real browser, no memory
 ceiling, no throttled-network figure. Route instrumentation does exist — `app/lib/metrics.ts`
 records per-phase timings and computes p50/p95 in-session, and the browser smoke test polls
-`window.__shadeMapMetrics.latest` as a liveness signal — but **no figure from it is recorded,
+`window.__umbraMetrics.latest` as a liveness signal — but **no figure from it is recorded,
 published or gated**. Note also that `metrics.ts:46-48` states latency *targets* (< 3000 ms
 typical, < 500 ms on a cache hit). Those are targets. **No measurement anywhere in this project
 says whether they are met.** A browser *is* now runnable locally (see
@@ -301,24 +301,24 @@ for the value; the strings are otherwise as they appear on screen.
 
 | The app shows | Computed by | Method | Standing |
 |---|---|---|---|
-| `<n>% shade` on a route card | `routing.ts:530` and `:803` — shaded distance ÷ total distance | §1.1 is the only evidence about how right the underlying per-edge shade calls are | agreement-checked, **not accuracy-checked** |
-| `from building geometry` / `from the map view` / `mixed sources` / `low confidence` | `shadeProvenance.ts:156` | §1.3 — aggregated over the walked path, weighted by distance | provenance, not quality |
+| `<n>% shadow` on a route card | `routing.ts:530` and `:803` — shadowed distance ÷ total distance | §1.1 is the only evidence about how right the underlying per-edge shadow calls are | agreement-checked, **not accuracy-checked** |
+| `from building geometry` / `from the map view` / `mixed sources` / `low confidence` | `shadowProvenance.ts:156` | §1.3 — aggregated over the walked path, weighted by distance | provenance, not quality |
 | `<d> km` / `<n> m` | summed edge lengths (`RouteCard.tsx:8`) | — | direct measurement of the graph, not of the ground |
 | `<n> min total` | distance ÷ a constant **1.4 m/s** (`travelMode.ts:16`) | there is no timing model beyond that constant: no crossings, no signals, no elevation, no fatigue | **an assumption, not a measurement** |
-| `<n> min in sun · longest stretch <n> min` | `routeTradeoff.ts:65,83` — sunlit metres ÷ 1.4 m/s | same shade evidence as `% shade`, same speed assumption | derived from both rows above |
-| `+<n> min, +<n>% sun exposure` / `Shortest baseline, <n>% shade` | `routeTradeoff.ts:36` — relative change in sunlit **metres** against the shortest route | a ratio between two routes, **not** the `% shade` ratio | comparison, valid only within one calculation |
-| `<n>m shade` (longest unbroken run), `<n>×` detour, `<n> breaks` / `continuous` | `RouteCard.tsx:21-23`, from `longestContinuousShadeM`, `detourRatio`, `shadeTransitions` | same shade evidence as `% shade` | derived |
+| `<n> min in sun · longest stretch <n> min` | `routeTradeoff.ts:65,83` — sunlit metres ÷ 1.4 m/s | same shadow evidence as `% shadow`, same speed assumption | derived from both rows above |
+| `+<n> min, +<n>% sun exposure` / `Shortest baseline, <n>% shadow` | `routeTradeoff.ts:36` — relative change in sunlit **metres** against the shortest route | a ratio between two routes, **not** the `% shadow` ratio | comparison, valid only within one calculation |
+| `<n>m shadow` (longest unbroken run), `<n>×` detour, `<n> breaks` / `continuous` | `RouteCard.tsx:21-23`, from `longestContinuousShadowM`, `detourRatio`, `shadowTransitions` | same shadow evidence as `% shadow` | derived |
 | `Turns <n>` | `routing.ts:529` — a count of bearing changes over 30° | a **proxy** for turns: it counts geometry, not junctions, so a curved street can read as several turns | proxy, presented as a count |
-| `<n>% in sun` per hour, `Shadiest around <label>` | `HourlyExposureStrip.tsx:41,51` from `bestTime.ts:54` (`1 − shadeCoverage`) | inherits §1.1 in full | agreement-checked, **not accuracy-checked** |
+| `<n>% in sun` per hour, `most shadowed around <label>` | `HourlyExposureStrip.tsx:41,51` from `bestTime.ts:54` (`1 − shadowCoverage`) | inherits §1.1 in full | agreement-checked, **not accuracy-checked** |
 
 ### 5.2 Weather and heat figures
 
 | The app shows | Computed by | Method | Standing |
 |---|---|---|---|
 | `UV <n.n>` | Open-Meteo hourly forecast (`app/services/weather.ts:157`) | a third-party forecast, passed through unmodified | **not ours, and not verified by us** |
-| `Strong heat stress · Heat <n> vs <m>` | `app/lib/heat/score.ts`, method version `shade-radiation-v1` | [`heat-score.md`](./heat-score.md) | **experimental**, labelled so in the UI; ordinal, comparable only between the routes on screen at that hour |
+| `Strong heat stress · Heat <n> vs <m>` | `app/lib/heat/score.ts`, method version `shadow-radiation-v1` | [`heat-score.md`](./heat-score.md) | **experimental**, labelled so in the UI; ordinal, comparable only between the routes on screen at that hour |
 | `feels about <n> °C walking this` / `about <n> °C — air temperature only` | `heat/score.ts` (`feltC`) | [`heat-score.md`](./heat-score.md); the second wording is the degraded rung, where humidity and wind are absent from the number | **experimental** |
-| `<n>% of this walk is in sun` (in the heat slot, with no forecast) | `RouteConditionsLine.tsx:65` | a shade figure standing in for a heat score when none can be computed | a **different quantity** in the same slot, worded to say so |
+| `<n>% of this walk is in sun` (in the heat slot, with no forecast) | `RouteConditionsLine.tsx:65` | a shadow figure standing in for a heat score when none can be computed | a **different quantity** in the same slot, worded to say so |
 | `About 4–6 min of full sun (<lo>–<hi> SED)` | `app/lib/heat/dose.ts`, method version `sed-uvi-v1` | [`heat-model.md`](./heat-model.md) | **experimental**, labelled so in the UI |
 | the hour every solar figure is computed for | `app/lib/timezone.ts`, `tzLookup.ts` | [`timezone.md`](./timezone.md) — and see §5.5, it carries a real measured error rate | measured |
 
@@ -334,8 +334,8 @@ the interface:
 - `<n> min total` includes a train leg timed at a hardcoded **30 km/h with no dwell, no headway
   and no schedule** (`useNavigation.ts:1500`).
 - `<d> km` is the **walking legs only** (`useNavigation.ts:1553`).
-- `<n>% shade` is the walk-weighted average of the two walking legs; the train leg is not in it.
-- `underground` / `mostly shaded` comes from `trainGraph.ts:81` — hand-set constants
+- `<n>% shadow` is the walk-weighted average of the two walking legs; the train leg is not in it.
+- `underground` / `mostly shadowed` comes from `trainGraph.ts:81` — hand-set constants
   (`subway 0.0`, `light_rail 0.25`, `monorail 0.1`) with no measurement behind them.
 
 None of those is wrong as an internal quantity. All of them are labelled as if they were the
@@ -352,7 +352,7 @@ here**. Three do not trace to anything, and naming them is the only honest way t
 |---|---|---|
 | `4.4 ★` *(#235)* | `PlaceDetail.tsx:40` | **A hardcoded literal.** When Foursquare returns no rating, the app prints `4.4` in the same position, weight and colour as a real one. Nothing distinguishes the two on screen. |
 | `$$` *(#235)* | `PlaceDetail.tsx:10` | The same, for price level. |
-| `shadeFraction: 0.73` to the assistant *(#237)* | `app/lib/agent/tools.ts:369,380` | A shade probe rounded to **two decimals** and handed to a language model, which renders it as prose. Two decimals on a quantity whose worst agreement reading is 62.5 pp, with none of §1.1's caveats travelling with it. |
+| `shadowFraction: 0.73` to the assistant *(#237)* | `app/lib/agent/tools.ts:369,380` | A shadow probe rounded to **two decimals** and handed to a language model, which renders it as prose. Two decimals on a quantity whose worst agreement reading is 62.5 pp, with none of §1.1's caveats travelling with it. |
 
 The same file already knows how to decline: `PlaceDetail.tsx:45` prints
 `(reviews unavailable)` when the review count is zero, and `:119` labels its review histogram
@@ -410,8 +410,8 @@ through one escaping helper (`placePopup.ts:57`); and the upstream fix is a semv
 invariant forbids. It is a live accepted risk, not a
 non-issue and not a compromise.
 
-**The shade source was described wrongly.** Routing is not "a pixel sampler". It is a
-geometry-backed `ShadeField` with a per-edge canvas fallback, and §1.1 is the measurement that
+**The shadow source was described wrongly.** Routing is not "a pixel sampler". It is a
+geometry-backed `ShadowField` with a per-edge canvas fallback, and §1.1 is the measurement that
 made the swap defensible. An earlier research pass got this wrong and the impression persisted;
 it is corrected here.
 
@@ -428,7 +428,7 @@ Named so the empty rows have owners rather than looking like oversights:
   runs locally, so nothing but the recording is missing.
 - **An approximation gap** (§2.1) needs a brute-force oracle over tiny exact fixtures.
 - **A live-model agent eval** (§3.2) needs task graders and a groundedness oracle.
-- **Browser latency budgets** (§4.5) need the existing `window.__shadeMapMetrics` captured from
+- **Browser latency budgets** (§4.5) need the existing `window.__umbraMetrics` captured from
   a real session and given a CI-enforced ceiling. Until then `metrics.ts`'s < 3000 ms and
   < 500 ms are targets nobody has checked.
 - **The three numbers in §5.4 need removing from the app, not documenting better** (#235, #237).

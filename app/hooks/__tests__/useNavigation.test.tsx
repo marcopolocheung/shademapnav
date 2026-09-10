@@ -6,7 +6,7 @@ import type { SavedRoute } from "../../lib/savedRoutes";
 import { downloadBlob } from "../../lib/exportRoute";
 import { geocodeReverse } from "../../lib/nominatim";
 import { fetchRoutingGraph } from "../../lib/overpass";
-import { sampleBothSidewalks } from "../../lib/shadeSampling";
+import { sampleBothSidewalks } from "../../lib/shadowSampling";
 import { useNavigation } from "../useNavigation";
 
 vi.mock("../../lib/nominatim", () => ({
@@ -21,43 +21,43 @@ vi.mock("../../lib/overpass", async () => {
 });
 
 /**
- * The shade field, swappable per test. `vi.hoisted` because `vi.mock`'s factory runs
+ * The shadow field, swappable per test. `vi.hoisted` because `vi.mock`'s factory runs
  * when `useNavigation` is first imported, before this file's own consts initialise.
  */
-const shadeStub = vi.hoisted(() => ({
+const shadowStub = vi.hoisted(() => ({
   coverage: { source: "tiles" as string, confidence: 0.8 },
   /** Per-edge answers, in the order `sampleEdges` was handed them. */
-  edgeShade: [] as Array<{ left: number; right: number; source: string; confidence: number }>,
+  edgeShadow: [] as Array<{ left: number; right: number; source: string; confidence: number }>,
   readyError: null as Error | null,
   readyGate: null as Promise<void> | null,
   sampledBatchSizes: [] as number[],
 }));
 
-vi.mock("../../lib/shade/ShadeField", async () => {
-  const actual = await vi.importActual<typeof import("../../lib/shade/ShadeField")>(
-    "../../lib/shade/ShadeField",
+vi.mock("../../lib/shadowField/ShadowField", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/shadowField/ShadowField")>(
+    "../../lib/shadowField/ShadowField",
   );
   return {
     ...actual,
-    createGeometryShadeField: () => ({
-      shadeAt: () => ({ shade: 0, source: "none", confidence: 0 }),
+    createGeometryShadowField: () => ({
+      shadowAt: () => ({ shadow: 0, source: "none", confidence: 0 }),
       sweep: () => [],
-      coverage: () => shadeStub.coverage,
+      coverage: () => shadowStub.coverage,
       sampleEdges: (edges: unknown[]) => {
-        shadeStub.sampledBatchSizes.push(edges.length);
-        return edges.map((_, i) => shadeStub.edgeShade[i] ?? shadeStub.edgeShade[0]);
+        shadowStub.sampledBatchSizes.push(edges.length);
+        return edges.map((_, i) => shadowStub.edgeShadow[i] ?? shadowStub.edgeShadow[0]);
       },
       ready: async () => {
-        if (shadeStub.readyGate) await shadeStub.readyGate;
-        if (shadeStub.readyError) throw shadeStub.readyError;
+        if (shadowStub.readyGate) await shadowStub.readyGate;
+        if (shadowStub.readyError) throw shadowStub.readyError;
       },
     }),
   };
 });
 
-vi.mock("../../lib/shadeSampling", async () => {
-  const actual = await vi.importActual<typeof import("../../lib/shadeSampling")>(
-    "../../lib/shadeSampling",
+vi.mock("../../lib/shadowSampling", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/shadowSampling")>(
+    "../../lib/shadowSampling",
   );
   return { ...actual, sampleBothSidewalks: vi.fn(actual.sampleBothSidewalks) };
 });
@@ -80,7 +80,7 @@ function line(coordinates: [number, number][]): GeoJSON.Feature<GeoJSON.LineStri
   };
 }
 
-function route(label = "Shortest", shadeCoverage = 0.4): RouteOption {
+function route(label = "Shortest", shadowCoverage = 0.4): RouteOption {
   return {
     label,
     geojson: line([
@@ -88,10 +88,10 @@ function route(label = "Shortest", shadeCoverage = 0.4): RouteOption {
       [103.81, 1.31],
     ]),
     distanceM: 1000,
-    shadeCoverage,
-    longestContinuousShadeM: 120,
+    shadowCoverage,
+    longestContinuousShadowM: 120,
     longestContinuousSunM: 40,
-    shadeTransitions: 2,
+    shadowTransitions: 2,
     detourRatio: 1,
     turnCount: 3,
   };
@@ -226,12 +226,12 @@ describe("useNavigation", () => {
   });
 });
 
-// ─── Flat shade readback (#154) ───────────────────────────────────────────────
+// ─── Flat shadow readback (#154) ───────────────────────────────────────────────
 
 /**
- * The shade sampler classifies blue-dominant pixels as shade and the shadow layer
+ * The shadow sampler classifies blue-dominant pixels as shadow and the shadow layer
  * paints buildings with that same field, so the canvas has to be read at pitch 0
- * or an occluded sidewalk scores shaded. These drive `calculateRoute` far enough
+ * or an occluded sidewalk scores shadowed. These drive `calculateRoute` far enough
  * to reach the readback and assert what the camera was doing when it happened.
  */
 
@@ -347,12 +347,12 @@ async function runRouteWith(map: unknown) {
 }
 
 /** The field answers confidently from tiles unless a test says otherwise. */
-function resetShadeStub() {
-  shadeStub.coverage = { source: "tiles", confidence: 0.8 };
-  shadeStub.edgeShade = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
-  shadeStub.readyError = null;
-  shadeStub.readyGate = null;
-  shadeStub.sampledBatchSizes = [];
+function resetShadowStub() {
+  shadowStub.coverage = { source: "tiles", confidence: 0.8 };
+  shadowStub.edgeShadow = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
+  shadowStub.readyError = null;
+  shadowStub.readyGate = null;
+  shadowStub.sampledBatchSizes = [];
   vi.mocked(sampleBothSidewalks).mockClear();
 }
 
@@ -372,16 +372,16 @@ function threeNodeGraph() {
   };
 }
 
-describe("flat shade readback (#154)", () => {
+describe("flat shadow readback (#154)", () => {
   let restoreCanvas: () => void;
 
   beforeEach(() => {
     restoreCanvas = stubCanvas2d();
     vi.mocked(fetchRoutingGraph).mockResolvedValue(twoNodeGraph() as never);
-    resetShadeStub();
+    resetShadowStub();
     // These tests are about the canvas path, so keep the field unable to answer.
-    shadeStub.coverage = { source: "none", confidence: 0 };
-    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    shadowStub.coverage = { source: "none", confidence: 0 };
+    shadowStub.edgeShadow = [{ left: 0, right: 0, source: "none", confidence: 0 }];
   });
 
   afterEach(() => restoreCanvas());
@@ -463,13 +463,13 @@ describe("flat shade readback (#154)", () => {
 });
 
 
-describe("routing reads the shade field (A4b)", () => {
+describe("routing reads the shadow field (A4b)", () => {
   let restoreCanvas: () => void;
 
   beforeEach(() => {
     restoreCanvas = stubCanvas2d();
     vi.mocked(fetchRoutingGraph).mockResolvedValue(twoNodeGraph() as never);
-    resetShadeStub();
+    resetShadowStub();
   });
 
   afterEach(() => restoreCanvas());
@@ -494,8 +494,8 @@ describe("routing reads the shade field (A4b)", () => {
   });
 
   it("does fit and read when geometry cannot answer, so the last test discriminates", async () => {
-    shadeStub.coverage = { source: "none", confidence: 0 };
-    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    shadowStub.coverage = { source: "none", confidence: 0 };
+    shadowStub.edgeShadow = [{ left: 0, right: 0, source: "none", confidence: 0 }];
     const { map, log } = fakeMap({ pitch: 0, boundsAtPitch: narrowBounds });
 
     await runRouteWith(map);
@@ -505,20 +505,20 @@ describe("routing reads the shade field (A4b)", () => {
   });
 
   it("routes on the field's own left/right values", async () => {
-    shadeStub.edgeShade = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
+    shadowStub.edgeShadow = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
     const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
 
     const result = await runRouteWith(map);
 
-    // Fully shaded sidewalks on the only edge there is, so the route inherits it.
-    expect(result.current.navRoutes[0].shadeCoverage).toBe(1);
-    expect(result.current.navRoutes[0].shadeSource?.dominant).toBe("tiles");
+    // Fully shadowed sidewalks on the only edge there is, so the route inherits it.
+    expect(result.current.navRoutes[0].shadowCoverage).toBe(1);
+    expect(result.current.navRoutes[0].shadowSource?.dominant).toBe("tiles");
   });
 
   it("falls back to pixels for a weak edge and only that edge", async () => {
     vi.mocked(fetchRoutingGraph).mockResolvedValue(threeNodeGraph() as never);
-    shadeStub.coverage = { source: "tiles", confidence: 0.2 }; // so a canvas exists
-    shadeStub.edgeShade = [
+    shadowStub.coverage = { source: "tiles", confidence: 0.2 }; // so a canvas exists
+    shadowStub.edgeShadow = [
       { left: 1, right: 1, source: "tiles", confidence: 0.8 },
       { left: 0, right: 0, source: "tiles", confidence: 0.2 },
     ];
@@ -527,37 +527,37 @@ describe("routing reads the shade field (A4b)", () => {
     const result = await runRouteWith(map);
 
     expect(vi.mocked(sampleBothSidewalks)).toHaveBeenCalledTimes(1);
-    expect(result.current.navRoutes[0].shadeSource?.bySource.canvas).toBeGreaterThan(0);
-    expect(result.current.navRoutes[0].shadeSource?.bySource.tiles).toBeGreaterThan(0);
+    expect(result.current.navRoutes[0].shadowSource?.bySource.canvas).toBeGreaterThan(0);
+    expect(result.current.navRoutes[0].shadowSource?.bySource.tiles).toBeGreaterThan(0);
   });
 
   it("still routes, from the map view, when no geometry resolves at all", async () => {
-    shadeStub.coverage = { source: "none", confidence: 0 };
-    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    shadowStub.coverage = { source: "none", confidence: 0 };
+    shadowStub.edgeShadow = [{ left: 0, right: 0, source: "none", confidence: 0 }];
     const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
 
     const result = await runRouteWith(map);
 
     expect(result.current.navRoutes.length).toBeGreaterThan(0);
-    expect(result.current.navRoutes[0].shadeSource?.dominant).toBe("canvas");
+    expect(result.current.navRoutes[0].shadowSource?.dominant).toBe("canvas");
   });
 
   it("hands the whole edge set to the field in one batch", async () => {
     vi.mocked(fetchRoutingGraph).mockResolvedValue(threeNodeGraph() as never);
-    shadeStub.edgeShade = [{ left: 0, right: 0, source: "tiles", confidence: 0.8 }];
+    shadowStub.edgeShadow = [{ left: 0, right: 0, source: "tiles", confidence: 0.8 }];
     const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
 
     await runRouteWith(map);
 
     // Slicing the batch would rebuild the field's internal per-cell shadow indices.
-    expect(shadeStub.sampledBatchSizes).toEqual([2]);
+    expect(shadowStub.sampledBatchSizes).toEqual([2]);
   });
 
   it("routes anyway when the geometry preload fails", async () => {
     // Overpass rate-limits constantly; that is a reason to fall back, not to fail.
-    shadeStub.readyError = new Error("429 Too Many Requests");
-    shadeStub.coverage = { source: "none", confidence: 0 };
-    shadeStub.edgeShade = [{ left: 0, right: 0, source: "none", confidence: 0 }];
+    shadowStub.readyError = new Error("429 Too Many Requests");
+    shadowStub.coverage = { source: "none", confidence: 0 };
+    shadowStub.edgeShadow = [{ left: 0, right: 0, source: "none", confidence: 0 }];
     const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
 
     const result = await runRouteWith(map);
@@ -568,7 +568,7 @@ describe("routing reads the shade field (A4b)", () => {
 
   it("writes nothing when cancelled during the geometry preload", async () => {
     let openGate: () => void = () => {};
-    shadeStub.readyGate = new Promise<void>((resolve) => {
+    shadowStub.readyGate = new Promise<void>((resolve) => {
       openGate = resolve;
     });
     const { map, log } = fakeMap({ pitch: 60, boundsAtPitch: wideBounds });

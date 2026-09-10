@@ -289,8 +289,8 @@ describe("fetchRoutingGraph — cache isolation", () => {
     const [south, west, north, east] = nextBbox();
     const first = await fetchRoutingGraph(south, west, north, east);
     first.nodes.set(-1, { id: -1, lat: 0, lon: 0 });
-    first.adj.get(110)![0].shadeFactor = 0.95;
-    first.adj.set(-1, [{ toId: 110, distanceM: 1, shadeFactor: 1 }]);
+    first.adj.get(110)![0].shadowFactor = 0.95;
+    first.adj.set(-1, [{ toId: 110, distanceM: 1, shadowFactor: 1 }]);
 
     const second = await fetchRoutingGraph(
       south + 0.001,
@@ -303,7 +303,7 @@ describe("fetchRoutingGraph — cache isolation", () => {
     expect(second).not.toBe(first);
     expect(second.nodes.has(-1)).toBe(false);
     expect(second.adj.has(-1)).toBe(false);
-    expect(second.adj.get(110)?.[0].shadeFactor).toBe(0);
+    expect(second.adj.get(110)?.[0].shadowFactor).toBe(0);
   });
 });
 

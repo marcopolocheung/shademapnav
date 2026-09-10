@@ -29,10 +29,10 @@ const TOOL_LABELS: Record<string, string> = {
   locate_user: "Finding your location",
   geocode_place: "Looking up a place",
   search_places: "Searching for places",
-  check_shade: "Probing real shade on the map",
+  check_shadow: "Probing real shadow on the map",
   set_time: "Setting the time of day",
   plot_points: "Plotting points on the map",
-  plan_shaded_route: "Computing a shade-aware route",
+  plan_shadowed_route: "Computing a shadow-aware route",
 };
 
 let idCounter = 0;

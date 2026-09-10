@@ -1,4 +1,4 @@
-# ShadeMapNav — the golden roadmap
+# Umbra — the golden roadmap
 
 # Northstar:
 ## Can this become the world's best comfort-aware routing engine?
@@ -38,7 +38,7 @@ hook prints every track's active checkpoint, and that is the only state worth tr
 
 The request the finished product answers:
 
-> *"I have 90 minutes. Find coffee and somewhere shaded to read for 20, keep me under 8 minutes
+> *"I have 90 minutes. Find coffee and somewhere shadowed to read for 20, keep me under 8 minutes
 > of direct sun including the walk back, and get me home before 5:30."*
 
 ---
@@ -56,21 +56,21 @@ conclude four things, and each needs an artifact they can click.
 | **Is honest about what they measured** | The agreement harness publishing `mean 2.6pp · worst 62.5pp · severe 3.3%` — worst case included. Confidence values labelled in code as *priors, not measurements*. UI numbers linking to their own method. | ✅ The strongest signal here — and **invisible to anyone outside the repo** → **Track P** |
 
 **That last row is the whole argument.** Almost every portfolio project claims; almost none
-measures; essentially none publishes its own worst case. `ShadeField.ts:199` already says
+measures; essentially none publishes its own worst case. `ShadowField.ts:199` already says
 *"Neither is measured ground truth — these are priors"* in a source comment. That instinct is
 the most hireable thing in this repository and no recruiter can currently see it. **Track P
 exists to fix exactly that, and it is cheaper than any feature on this list.**
 
 ### The novelty claim, stated precisely
 
-From `AUTONOMOUS_GOAL.md` §2 — the honest competitive picture. **Google Maps** ships a shade
+From `AUTONOMOUS_GOAL.md` §2 — the honest competitive picture. **Google Maps** ships a shadow
 *toggle*; it is commoditized. **ASU Cool Routes** routes on mean radiant temperature at 1 m —
 the academic ceiling, and better physics than anything here — as a **single-user web tool over
 171 fixed points on one campus**, built from LiDAR that does not exist for most cities.
-**Shadehopper / Geuneullo** ship consumer shade routing, and Geuneullo already models street
+**Shadehopper / Geuneullo** ship consumer shadow routing, and Geuneullo already models street
 trees, so our buildings-only model is behind the consumer state of the art, not ahead of it.
 
-So the differentiator is **not** "shade routing". It is this combination, which nobody ships:
+So the differentiator is **not** "shadow routing". It is this combination, which nobody ships:
 
 > **The sun advances while you walk** — exposure priced at each segment's *traversal* time, not
 > one frozen timestamp — **turned into a reachability question** ("everywhere I can reach on ≤8
@@ -137,7 +137,7 @@ Unglamorous, small, and currently false in production. These are the difference 
 | Item | Track | Why it blocks | Issue |
 |---|---|---|---|
 | ~~**P1** Mirror `public` on every merge~~ **✅ done 2026-09-08** | P | Was blocking D3/D4's "method linked from the UI" acceptance. Merged as #203; the mirror at `marcopolocheung/shademapnav` is public and current. **P4 and P2 are unblocked** | #199 |
-| **D0** Real timezones (IANA + DST) | D | `Math.round(lng / 15)` is off 30 min across India, an hour across half of China. **The time axis is this product's entire differentiator**; every "shadiest at 7 PM" claim inherits the error. **This is a Track H prerequisite, not only a Track D one** — an hour of clock error is ~15° of sun, so H1 would price every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input | #204 |
+| **D0** Real timezones (IANA + DST) | D | `Math.round(lng / 15)` is off 30 min across India, an hour across half of China. **The time axis is this product's entire differentiator**; every "most shadowed at 7 PM" claim inherits the error. **This is a Track H prerequisite, not only a Track D one** — an hour of clock error is ~15° of sun, so H1 would price every edge's traversal against a wrong sky and H4 would publish a gap measured on a bad input | #204 |
 | **G8** Nominatim policy + the dropped `User-Agent` | G | `SearchBar.tsx:150` does prohibited keystroke autocomplete and bypasses the queue in `nominatim.ts`; `User-Agent` is a **forbidden header name**, silently dropped, so invariant #6 holds nowhere on the client | #205 |
 | **#208** OSM access tags dropped rebuilding sidewalks | H | `GraphEdge` carries `highway/surface/cycleway/bicycle/foot` (`routing.ts:21`) and `overpass.ts:220` fills them, but `parallelSidewalkEdges` (`routing.ts:400`) returns four fields and silently loses all five. **H2/H3 declare access exclusions a hard constraint and cannot enforce one**; E1/E3/E4's mode profiles have the same dependency. Small fix, large unblock | #208 |
 | **#206 · #207** Two claim corrections | P | The novelty claim overstated its prior art, and the shadow-index microbenchmark is unqualified. **Both must land before P4 transcribes them onto a public page** — a corrected overclaim is an asset, a published one is a liability | #206, #207 |
@@ -193,9 +193,9 @@ This wave adds almost no new ideas on purpose.
 |---|---|---|
 | 1 | **G2** benchmark, then **G6** seams | A5's acceptance is literally *"no benchmark → no claim"*, and Track H's central claim is a *comparison*. G6 permanently removes the ⚠️s from the parallelism table. "Built the measurement before claiming the improvement" is a senior-shaped decision. |
 | 2 | **A5** worker, **A6** sweep | A5 gets routing off the main thread (#38). A6 exploits that a prism's shadow is an affine function of sun azimuth/altitude — an exactness criterion, not a vague speedup. **A6 gates Track H.** |
-| 2.5 | **A7** Overpass trees, **A8** canopy raster *(promoted 2026-09-08)* | **The app says "exposed" on a tree-lined street in July.** `ShadeSource` already declares `"canopy"` and `"mixed"` and `ShadeSample.shade` is already a fraction (`ShadeField.ts:36,39`) — the contract reserved the slot and nothing filled it; `canopy.ts` does not exist and `overpass.ts:399` fetches `way["building"]` alone. §2 concedes Geuneullo already models street trees, so this is the gap between us and the *consumer* state of the art, not a stretch goal. Closes **#46**. **Take it before H3** — "routes around tree shade" is a materially better flagship than "routes around building shade", and the A2 contract means H never has to know a canopy source exists. **It is also the experiment that decides Wave 4**: A7+A8 are ~2–3 weeks and zero fieldwork, so measure what is *still* wrong before committing to Option A's season-locked corpus. |
-| 3 | **B2 → B7** | The app is called navigation and does not navigate. **B6 is the reason Track B exists**: *"cross to the shaded side"* — an instruction no competitor can generate. B7 unparks F and supplies P3's demo. |
-| 4 | **C1 → C5**, then **C10 → C11 → C12** | Eval harness first, then probes on `ShadeField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.**
+| 2.5 | **A7** Overpass trees, **A8** canopy raster *(promoted 2026-09-08)* | **The app says "exposed" on a tree-lined street in July.** `ShadowSource` already declares `"canopy"` and `"mixed"` and `ShadowSample.shadow` is already a fraction (`ShadowField.ts:36,39`) — the contract reserved the slot and nothing filled it; `canopy.ts` does not exist and `overpass.ts:399` fetches `way["building"]` alone. §2 concedes Geuneullo already models street trees, so this is the gap between us and the *consumer* state of the art, not a stretch goal. Closes **#46**. **Take it before H3** — "routes around tree shadow" is a materially better flagship than "routes around building shadow", and the A2 contract means H never has to know a canopy source exists. **It is also the experiment that decides Wave 4**: A7+A8 are ~2–3 weeks and zero fieldwork, so measure what is *still* wrong before committing to Option A's season-locked corpus. |
+| 3 | **B2 → B7** | The app is called navigation and does not navigate. **B6 is the reason Track B exists**: *"cross to the shadowed side"* — an instruction no competitor can generate. B7 unparks F and supplies P3's demo. |
+| 4 | **C1 → C5**, then **C10 → C11 → C12** | Eval harness first, then probes on `ShadowField`, then **C4 — the plan job contract** (re-scoped; see the brief), then receipts. Then **C11 — plan revisions and repair**, the *Living Itinerary*: a plan is a data object with provenance, expiry and a version, and a late departure re-solves only the affected span. This is exactly the shape agent-platform and model-evaluation postings describe, and "I built the eval harness first" separates people who have shipped an agent from people who have prompted one. **C11 is the second-most distinctive capability in the product and P3's demo ends on it.**
 **C12** (added 2026-09-08) is the *multimodal agent* checkpoint: the agent chooses which visual
 evidence to inspect under a budget, grounds every claim in an image region, and is measured
 against fixed-interval sampling **at equal budget**. Its corpus is geotagged photos from one
@@ -214,7 +214,7 @@ unprovable without G2. Full brief: `docs/tracks/TRACK_H.md`.
 | Checkpoint | Why it earns its place |
 |---|---|
 | **H1** traversal-time exposure | A genuine time-dependent shortest-path problem with the traps intact: does non-overtaking hold, is waiting an action, what does dominance mean once a label carries time *and* accumulated exposure. The novelty is the *constrained search*, not the sun advancing — see §2's prior-art note (#206) before writing this up. |
-| **H2** exposure as the objective | The current front is (distance, shaded distance) under a 2.0× detour budget, so "Most Shaded" can carry **more absolute exposed metres** than "Shortest" — a demonstrable defect, not a hypothetical. *"I found my own objective was measuring the wrong thing and proved it with a fixture"* is a self-caught defect, which reads better than a caught bug. |
+| **H2** exposure as the objective | The current front is (distance, shadowed distance) under a 2.0× detour budget, so "Most Shadowed" can carry **more absolute exposed metres** than "Shortest" — a demonstrable defect, not a hypothetical. *"I found my own objective was measuring the wrong thing and proved it with a fixture"* is a self-caught defect, which reads better than a caught bug. |
 | **H3** Sun Budget reachability | The flagship interaction, and it **inverts the product**: every other maps app needs your destination first; this answers *"where can I even go?"* Forces the honesty split between an exact result, a bounded approximation, and *a search that ran out of budget* — a capped search returning nothing has not proved impossibility. |
 | **H4** oracle + published gap | What upgrades H from a cool feature to an algorithm you can defend. Without it H3 is a demo. |
 | **H5** waiting, dwell, return leg | The subtle correctness point: earlier arrival does **not** dominate if the wait it implies breaks the budget. Noticing that before it bites is the difference between a student implementation and an engineered one. |
@@ -244,7 +244,7 @@ constraint was lifted (#248).** Record why, so it is not re-litigated: **Option 
 binds, and offline remains a real user need but a thinner *story*. **Option C strengthened** — its
 weakest section now has published method (see #209).
 
-**Option A — Reality Check (the perception-ML story).** Users flag where predicted shade
+**Option A — Reality Check (the perception-ML story).** Users flag where predicted shadow
 disagrees with what they observe; a learned correction improves on the geometry baseline.
 
 > **Demoted 2026-09-08 for the stated goal, which is a *multimodal agent* in a navigation app.**
@@ -267,7 +267,7 @@ disagrees with what they observe; a learned correction improves on the geometry 
 - **Two different corpora, and only one is expensive** *(clarified 2026-09-08)*. Do not
   conflate them:
   - **The calibration set — small, cheap, and needed even if Option A is never chosen.**
-    ~100–200 timestamped *"I am standing here at this time and I am in sun / in shade"*
+    ~100–200 timestamped *"I am standing here at this time and I am in sun / in shadow"*
     observations. A phone and a notebook. No pose precision, no masks, no seasons, no model.
     **This is what upgrades P4 from method-agreement to physical accuracy** — A3 compares two
     models to each other, and A7/A8 will ship *unvalidated* without it. Weeks.
@@ -280,7 +280,7 @@ disagrees with what they observe; a learned correction improves on the geometry 
   cannot close: canopy **transmittance** (a height raster cannot tell a dense evergreen from a
   bare ginkgo), **sky view factor from eye level** (top-down data cannot answer an upward
   question), **awnings, arcades and scaffolding** (in no raster and no reliable tag), and
-  **physical ground truth** (you cannot validate a shade model against another shade model).
+  **physical ground truth** (you cannot validate a shadow model against another shadow model).
   Those four are the entire remaining case for imagery — decide against them, with the residual
   measured, not against an assumption.
 - **Trap:** USGS bare-earth DEMs strip buildings and vegetation. A terrain DEM is not a shadow
@@ -288,7 +288,7 @@ disagrees with what they observe; a learned correction improves on the geometry 
 - **Prerequisites:** opt-in, minimized location retention, deletion support, no medical data.
 
 **Option B — City Capsules (the systems story).** Download a neighborhood; keep planning with no
-network. Versioned local graph + shade representation + permitted assets behind a worker
+network. Versioned local graph + shadow representation + permitted assets behind a worker
 boundary, with an **atomic manifest swap** so a half-downloaded update cannot replace a working
 capsule; checksums validated on install; interrupted downloads, eviction and restart handled.
 Demonstrate on a **named device**: install, kill the network, route, retime, restart, resume —
@@ -297,7 +297,7 @@ archive, not a routing graph or a caching policy; a PWA manifest is not offline 
 Rust/WASM only after profiling proves a kernel is the limit, with a reference implementation
 kept for parity. Overlaps Track F's F4.
 
-**Option C — Shade Design Studio (the optimization story).** *"Where would two shade structures
+**Option C — Shadow Design Studio (the optimization story).** *"Where would two shadow structures
 most improve this walking loop between noon and 3 PM?"* Inverse spatial design over a **finite,
 hand-authored candidate set**: union-coverage precompute, a max-coverage integer program under a
 budget, exhaustive enumeration as the oracle on small instances, offline OR-Tools CP-SAT for the
@@ -309,32 +309,32 @@ the upper bound. Full model in **#209**.
 - **It replaces the Shadow Lab slot below** rather than adding to it — same interaction, posed as
   optimization instead of a toy.
 - **Prerequisite it exposes:** `shadowIndex.ts:227` returns `false` inside a footprint (a roof is
-  not shaded). Correct for buildings, wrong for an elevated canopy where the *ground beneath*
-  must read as shaded. Overhead structures need an elevated-occluder / ground-receiver test;
+  not shadowed). Correct for buildings, wrong for an elevated canopy where the *ground beneath*
+  must read as shadowed. Overhead structures need an elevated-occluder / ground-receiver test;
   solid obstacles shading adjacent ground work with today's primitives.
 - **Honesty:** demand weights are scenarios unless a real pedestrian dataset exists. Maximizing
   modeled coverage ≠ maximizing benefit after users reroute — re-run the planner to check that
-  separately. Models shade; not validated urban cooling, not structural engineering.
+  separately. Models shadow; not validated urban cooling, not structural engineering.
 
 **Option D — The Comfort Engine (the applied-science story).** *(added 2026-09-09 from §5c)*
-*"Is shade actually a good proxy for thermal comfort — and where isn't it?"* Answered at breadth,
+*"Is shadow actually a good proxy for thermal comfort — and where isn't it?"* Answered at breadth,
 across climates, and published including the part that makes this product look worse.
 
 > **Why this is the frontrunner.** It is the only option that answers a question the literature
 > **explicitly poses and leaves open.** Buo et al. 2026 §4.4: *"Future work should systematically
-> compare shade-based and MRT-based routing approaches to evaluate trade-offs between
+> compare shadow-based and MRT-based routing approaches to evaluate trade-offs between
 > computational efficiency and physiological accuracy."* Ma et al. 2025 answered it for **one
-> district on one summer day** and found shade-optimal routing *worse than the plain shortest
-> route in 24% of trips*. Nobody has done it across climates, and nobody who **ships** shade
-> routing has published evidence about when shade routing is wrong. That last clause is §2's
+> district on one summer day** and found shadow-optimal routing *worse than the plain shortest
+> route in 24% of trips*. Nobody has done it across climates, and nobody who **ships** shadow
+> routing has published evidence about when shadow routing is wrong. That last clause is §2's
 > honesty thesis at full strength, and it is not available to any other option on this list.
 
 - **What it is, in four steps.** (1) Build the MRT approximation — **A6**'s shadow geometry +
   **A9**'s sky view factor + a radiation balance from the live forecast (**#247**; Tier 1
   geometry, Tier 2 radiation, per §7). (2) Route on it, as a third objective beside distance and
   sun-minutes — this is where **H** and **D** finally become one engine. (3) Run the comparison at
-  breadth: several cities across climate types × O-D pairs × hours, scoring shade-optimal vs.
-  comfort-optimal vs. shortest, and publish where shade routing **wins, ties and loses**.
+  breadth: several cities across climate types × O-D pairs × hours, scoring shadow-optimal vs.
+  comfort-optimal vs. shortest, and publish where shadow routing **wins, ties and loses**.
   (4) Validate against what is actually publishable — Buo et al.'s MaRTy statistics, ISO 7726's
   ±5 °C band, and Option A's *cheap* calibration set.
 - **Why it is affordable.** No training corpus, no fieldwork, no season lock, no permissions, no
@@ -347,12 +347,12 @@ across climates, and published including the part that makes this product look w
   model, which is the same trap **A3** already documents.
 - **Honesty, and this is the whole discipline of the option.** Ours is an approximation *of an
   approximation*: SOLWEIG itself misses ISO 7726's band on transient walks (RMSE 8.4 °C), so
-  nothing here may be presented as MRT-grade. Comparing our shade model against our comfort model
-  is **model-vs-model agreement**, exactly what `ShadeField.ts:199` already refuses to call
+  nothing here may be presented as MRT-grade. Comparing our shadow model against our comfort model
+  is **model-vs-model agreement**, exactly what `ShadowField.ts:199` already refuses to call
   accuracy — physical validation needs the calibration set and nothing else substitutes.
   Ma et al.'s 24% is **one district, one day, simulated**; reproducing it is the point,
   assuming it is not.
-- **The result may partially devalue the product, and it ships anyway.** If shade routing turns
+- **The result may partially devalue the product, and it ships anyway.** If shadow routing turns
   out to be a poor comfort proxy in humid climates, that is the finding. §7's stopping rules
   already say a note explaining what you did *not* ship is itself an artifact; this is the
   version of that with a number attached.
@@ -366,7 +366,7 @@ Each reuses Track H's planner rather than adding a system, and each is what make
 to *use* the thing: **Shadow Lab** (drop a hypothetical tree, watch routes change — a
 counterfactual tool; label the assumptions — **superseded by Wave 4 Option C if that is
 chosen**), **Find the Light** (invert preference per stop:
-sunny breakfast, shaded reading, sunset viewpoint — **and the natural second multimodal item**:
+sunny breakfast, shadowed reading, sunset viewpoint — **and the natural second multimodal item**:
 posed as image-text retrieval over ~20–50 curated micro-locations with *hard* spatial and
 temporal filters, it shows judgment about when **not** to use a generative model, which
 complements C12 rather than repeating it), **Golden-Hour Rendezvous** (two people, one
@@ -389,7 +389,7 @@ proposals that were considered and declined.
 | In-browser SOLWEIG/CFD microclimate | **Declined** *(reason sharpened 2026-09-09)* | Still declined **in the browser**. But the blocker was misdiagnosed: ASU's four hours per 24 h of MRT is dominated by redoing *geometry* every hour, which A6 exists to avoid, and their real constraint is **LiDAR — a data problem, not a compute one**, with a free global substitute (OSM heights + Meta/WRI 1 m canopy + Copernicus DEM). §7 Tier 1 always permitted precomputed physics; #248 permits the weather-conditioned half. **CFD (ENVI-met) stays declined outright** — commercial, licensed, hours per domain. See #247. |
 | A native app | **Deferred** | PWA first; revisit only if background location or notifications block D7. |
 | A 50–100 task agent benchmark | **Rescoped** | Cerebras is 5 req/min; 100 tasks with repeats is hours per run. C1's ~15 recorded, network-free scenarios is the right start — **grow from real failures, not to a target number.** |
-| Chasing Google's feature list | **Declined** | The answer to "Prefer shade" is not a better toggle. It is §2's five clauses. |
+| Chasing Google's feature list | **Declined** | The answer to "Prefer shadow" is not a better toggle. It is §2's five clauses. |
 
 ---
 
@@ -430,7 +430,7 @@ gates are green — `docs/tracks/README.md`'s definition of done applies to all 
 
 **Wave 4 — one specialization** *(pick exactly one)*
 - [ ] Option A Reality Check · [ ] Option B City Capsules *(weakened by #248)* ·
-  [ ] Option C Shade Design Studio *(#209)* · [ ] **Option D The Comfort Engine** *(#250 —
+  [ ] Option C Shadow Design Studio *(#209)* · [ ] **Option D The Comfort Engine** *(#250 —
   current frontrunner)* · *decision recorded on:* ______
 
 **Conditional** — not on a wave, but required the moment a precondition is met:
@@ -457,9 +457,9 @@ its "most consequential gaps" hold. Recorded so no session re-audits them:
 |---|---|---|
 | Every edge sampled at one `dateRef.current` | ✅ `useNavigation.ts:633`, `:1154` | **H1** |
 | Timezone from longitude, whole-hour, no DST | ✅ `timezone.ts:8` | **D0** |
-| Pareto maximizes shaded distance → more shade can mean more sun | ✅ `routing.ts:544`, `maxDetourFactor = 2.0` | **H2** |
-| `plan_shaded_route` returns "started", never awaits | ✅ `tools.ts:470-478` | **C4** |
-| Source confidences are priors, not measurements | ✅ `ShadeField.ts:199` says so in-source | Wave 4 Option A; **P4** publishes the distinction |
+| Pareto maximizes shadowed distance → more shadow can mean more sun | ✅ `routing.ts:544`, `maxDetourFactor = 2.0` | **H2** |
+| `plan_shadowed_route` returns "started", never awaits | ✅ `tools.ts:470-478` | **C4** |
+| Source confidences are priors, not measurements | ✅ `ShadowField.ts:199` says so in-source | Wave 4 Option A; **P4** publishes the distinction |
 | Public Nominatim behind a browser-local queue | ✅ **understated** — `SearchBar.tsx:150` bypasses the queue entirely, and `User-Agent` is silently dropped as a forbidden header | **G8** |
 | `api/agent.js` per-IP limiter is a process-local `Map` | ✅ `:39` | **G8**, **C6** |
 | Not merely a pixel sampler — geometry field with pixel fallback | ✅ A4b landed | Corrects a stale impression; keep it corrected in **P2** |
@@ -467,7 +467,7 @@ its "most consequential gaps" hold. Recorded so no session re-audits them:
 
 **Where the research was incomplete:** it called exposure entirely unrepresented, but
 `longestContinuousSunM` and `sunExposure` already exist as *outputs* (`routing.ts:481`) — they
-just never enter the search, which is precisely H2. It also missed that `plan_shaded_route`
+just never enter the search, which is precisely H2. It also missed that `plan_shadowed_route`
 already accepts `via` stops, which is why C4 needed re-scoping rather than building.
 
 **Restored 2026-09-07 after an audit found them dropped.** A first pass at this file was 775
@@ -484,7 +484,7 @@ sentence over the pages above it.
 
 ### 5b. The 2026-09-08 Google-roles pass
 
-`ShadeMapNav_Google_Maps_GenAI_Feature_Recommendations_2026-09-08.pdf` — six proposed features
+`Umbra_Google_Maps_GenAI_Feature_Recommendations_2026-09-08.pdf` — six proposed features
 ranked against two Google job descriptions, audited at `f61371c`. **Every repository citation in
 it was re-verified line by line and all of them hold.** Recorded so no session re-audits it.
 
@@ -493,11 +493,11 @@ it was re-verified line by line and all of them hold.** Recorded so no session r
 | The "nobody advances the sun along a route" claim is too strong — Fujiwara 2024 §6.2 does traversal-time irradiance over three predefined routes | ✅ overclaim confirmed | **#206**, §2 |
 | The index speedup is a synthetic Node microbenchmark, not browser route time | ✅ | **#207**, §2, **P4** |
 | OSM access tags are lost rebuilding sidewalk edges | ✅ `routing.ts:400` returns four fields; `GraphEdge:21` declares nine | **#208** |
-| `shadowIndex.ts:227` excludes points inside footprints, so an overhead canopy would shade nothing | ✅ correct for buildings, wrong for canopies | **Option C** prerequisite |
+| `shadowIndex.ts:227` excludes points inside footprints, so an overhead canopy would shadow nothing | ✅ correct for buildings, wrong for canopies | **Option C** prerequisite |
 | Timezone still longitude-rounded; fix before claiming temporal plans | ✅ | **D0**, already Wave 0 |
-| `plan_shaded_route` returns "started"; `via` already supported | ✅ (agrees with the 09-07 pass) | **C4** |
+| `plan_shadowed_route` returns "started"; `via` already supported | ✅ (agrees with the 09-07 pass) | **C4** |
 | 7 tools, 18 recorded scenarios, model and tools mocked — replay is not model competence | ✅ counts exact | **P4**'s layer table |
-| Confidences are hand-set priors; the harness measures method agreement, not physical accuracy | ✅ `ShadeField.ts:193` | **P4**, Option A |
+| Confidences are hand-set priors; the harness measures method agreement, not physical accuracy | ✅ `ShadowField.ts:193` | **P4**, Option A |
 
 **Its ranking is a keyword ranking, not a value ranking.** It optimizes for matching two JD
 requirement lists; this file optimizes for one coherent product with published numbers. Where
@@ -528,7 +528,7 @@ kept only for the perception-ML one.
 
 | Proposed | Verdict | Reason |
 |---|---|---|
-| Features 1 & 4 — Visual Shade Field, Active Survey Planner | **Deferred → Wave 4 Option A** | Not new scope, it *is* Option A with a better evaluation protocol (pose rejection, geographic *and* temporal holdouts, leaf-season splits, reliability diagrams, dataset card, rollback — adopt these wholesale if Option A is chosen). The cost is a pose-accurate seasonal photo corpus: **months, and season-locked**. Do **A7 + A8 first** — free Overpass trees and the free Meta/WRI 1 m canopy raster may deliver most of the *routing-decision* benefit for none of the fieldwork; the panorama corpus buys per-position sky-view-factor and transmittance, which is better physics at a much higher price. Measure the residual before committing months. |
+| Features 1 & 4 — Visual Shadow Field, Active Survey Planner | **Deferred → Wave 4 Option A** | Not new scope, it *is* Option A with a better evaluation protocol (pose rejection, geographic *and* temporal holdouts, leaf-season splits, reliability diagrams, dataset card, rollback — adopt these wholesale if Option A is chosen). The cost is a pose-accurate seasonal photo corpus: **months, and season-locked**. Do **A7 + A8 first** — free Overpass trees and the free Meta/WRI 1 m canopy raster may deliver most of the *routing-decision* benefit for none of the fieldwork; the panorama corpus buys per-position sky-view-factor and transmittance, which is better physics at a much higher price. Measure the residual before committing months. |
 | Feature 3's **visual** half — live VLM route scout | **Deferred** | The non-visual half is already **C4 + C11 + E5**. Its "local VLM adapter (Gemma)" is a second model path — not a paid provider, so not literally a §2 anti-goal, but it must be a recorded decision, not drift. |
 | Feature 5 — Find the Light w/ SigLIP retrieval | **Kept where it is** | Already in the playful list. The retrieval framing is a real upgrade; the 20–50 curated micro-locations and photo permissions are the actual cost. |
 | Street View as a training corpus | **Prohibited** | Maps Platform Terms §3.2.3 restricts extraction and model training/testing/validation and building a tree-location index. Own photographs only. Not a judgment call. |
@@ -537,12 +537,12 @@ kept only for the perception-ML one.
 ### 5c. The 2026-09-09 frontier-literature pass
 
 Three peer-reviewed papers, read in full and reconciled in
-`docs/research/shade-thermal-comfort-literature-2026-09-09.md` (which holds the detail, the
+`docs/research/shadow-thermal-comfort-literature-2026-09-09.md` (which holds the detail, the
 caveats and the citations — this is the index):
 
 | | Paper | What it is |
 |---|---|---|
-| **P1** | Wen et al. 2025, *CEUS* 122:102337 | MIT Senseable, Dubai. Street-view segmentation → binary shade; **distance-dependent sigmoid shade reward** |
+| **P1** | Wen et al. 2025, *CEUS* 122:102337 | MIT Senseable, Dubai. Street-view segmentation → binary shadow; **distance-dependent sigmoid shadow reward** |
 | **P2** | Buo et al. 2026, *Build. Environ.* 298:114622 | **This is "ASU Cool Routes."** SOLWEIG MRT @ 1 m from LiDAR; MaRTy-validated |
 | **P3** | Ma et al. 2025, *Sustain. Cities Soc.* 131:106697 | Tsinghua, Hong Kong. ENVI-met → PET; 2.2 M routes exhaustively enumerated |
 
@@ -552,15 +552,15 @@ software. Do not plan a checkpoint around P3's corpus arriving.
 
 | Finding | Verified | Went to |
 |---|---|---|
-| **Shade is not a reliable proxy for comfort.** Minimising *unshaded metres* — exactly H2's corrected objective — scored **worse** than the plain shortest route in **24%** of 1200 O-D pairs (41% at 08:00; worst −472%) | ✅ P3 §4.2.2, §5.1 | **#241** — bounds H2's claim; H2 still lands |
+| **Shadow is not a reliable proxy for comfort.** Minimising *unshadowed metres* — exactly H2's corrected objective — scored **worse** than the plain shortest route in **24%** of 1200 O-D pairs (41% at 08:00; worst −472%) | ✅ P3 §4.2.2, §5.1 | **#241** — bounds H2's claim; H2 still lands |
 | **P1's dynamic reward makes edge cost path-dependent, and their Dijkstra keeps one label per node** — a label carrying more distance is *advantaged* downstream, so cost-only pruning can discard the optimum. This is H1's stated open question, unresolved, in print | ✅ P1 §2.3.3 | **#242** — the highest-value new item, and entirely client-side |
 | **The useful detour is ~1.1×, not 2.0×** — three climates, three methods, converging: +1.3%, <3%, plateau at 110% | ✅ all three | **#243** — measure via G2, do not blind-edit |
-| **Tree shade ≈ 0.5 × building shade** (indoor 1.5×), and tree shade dominates at midday precisely when building shade collapses | ✅ P1, via Melnikov 2022 | **#244** — A7/A8 gets a published weight; supports A7/A8-before-H3 |
-| P1 takes a **one-hour max-shade window** on behavioural grounds — "a pedestrian will step a few metres" | ✅ P1 §2.3.2 | **#245** — adopt deliberately or decline in writing |
+| **Tree shadow ≈ 0.5 × building shadow** (indoor 1.5×), and tree shadow dominates at midday precisely when building shadow collapses | ✅ P1, via Melnikov 2022 | **#244** — A7/A8 gets a published weight; supports A7/A8-before-H3 |
+| P1 takes a **one-hour max-shadow window** on behavioural grounds — "a pedestrian will step a few metres" | ✅ P1 §2.3.2 | **#245** — adopt deliberately or decline in writing |
 | **PetL** = `Σ (PET − 33)⁺ × length` — a threshold-excess *dose*, the companion our intensity score documents itself as lacking | ✅ P3 §3.3.2 | **#246** — Track D |
 | **SOLWEIG splits into expensive geometry (once per area) + cheap radiation balance (per query).** A6 + A9 already are the first half; ASU's blocker was **LiDAR, not compute**, and it has a free global substitute | ✅ P2 §2.3.1, §3.1 | **#247** — D8 is no longer a stretch; §3, §7 |
 | **§2's "ASU … with no app" is false** — Flask web app, interactive map, 171 POIs, 3-day forecasts, ~2 s. True limits: single-user, campus-only, POI-to-POI, LiDAR-bound | ✅ P2 §2.1–2.3, §4.4 | **#206**, **#195** (which also corrects −4.5 °C → −1–2 °C mean, −3.8 °C best case) |
-| **P2's validation gives P4 an external scale**: d = 0.73, RMSE 8.4 °C, MBE −2.0, only 72% of edges under RMSE, **ISO 7726's ±5 °C band exceeded** — and their tail is dominated by sun–shade misclassification, structurally the same failure as our `worst 62.5pp` | ✅ P2 §3.2, §4.2 | **#249** — P4 |
+| **P2's validation gives P4 an external scale**: d = 0.73, RMSE 8.4 °C, MBE −2.0, only 72% of edges under RMSE, **ISO 7726's ±5 °C band exceeded** — and their tail is dominated by sun–shadow misclassification, structurally the same failure as our `worst 62.5pp` | ✅ P2 §3.2, §4.2 | **#249** — P4 |
 | **Option C's weakest point has published method**: derive demand from the *optimiser's own* chosen routes, not the shortest-path network, because pedestrians avoid the streets you would otherwise renovate | ✅ P3 §5.2, P2 §4.3 | comment on **#209** |
 
 **The differentiator survives, and two of the three name it as their own future work.** None of the
@@ -583,7 +583,7 @@ thinner than the physics on top of it.
 **What was declined.** MRT/PET *as a routing objective* (P2/P3's ceiling; needs LiDAR plus
 offline physics per city — §3's row, reason now sharpened). ENVI-met in any form (commercial
 CFD). Reopening Wave 4 on this evidence — P1's street-view segmentation is superficially Option
-A's method, but they performed **no validation against measured shade**, only a visual
+A's method, but they performed **no validation against measured shadow**, only a visual
 sun-position check, so it is weak support and the demotion stands.
 
 **Changed nothing:** Wave 0 (D0, G8, #208, G7), **Track C entirely** — there is no agent,
@@ -601,10 +601,10 @@ public mirror.
 |---|---|---|
 | ⬜ | "Built a time-dependent pedestrian planner with exposure and arrival constraints; reduced [error] by [measured] versus a static baseline on [versioned fixtures]." | H1–H4 |
 | ⬜ | "Developed a tool-using itinerary agent with deterministic validation and recovery; improved valid-plan rate from [A] to [B] over [N] held-out tasks at [cost] per successful task." | C1, C4, C5, P4 |
-| ⬜ | "Cut per-edge shade sampling by [measured]× by precomputing and indexing shadow geometry per sun cell." | **Already measured (#166) — needs only P4** |
-| ⬜ | "Published a shade-model agreement harness across [N] cases and 3 cities, reporting mean, p90 and worst-case error against committed regression ceilings." | **Already true (A3) — needs only P4** |
+| ⬜ | "Cut per-edge shadow sampling by [measured]× by precomputing and indexing shadow geometry per sun cell." | **Already measured (#166) — needs only P4** |
+| ⬜ | "Published a shadow-model agreement harness across [N] cases and 3 cities, reporting mean, p90 and worst-case error against committed regression ceilings." | **Already true (A3) — needs only P4** |
 | ⬜ | "Implemented offline neighborhood routing with atomic snapshot updates; [latency and size], verified online/offline parity on [device]." | Wave 4 Option B |
-| ⬜ | "Trained and calibrated a geospatial shade-correction model with neighborhood and date holdouts; measured [metric] and [route impact], with versioned deployment and rollback." | Wave 4 Option A |
+| ⬜ | "Trained and calibrated a geospatial shadow-correction model with neighborhood and date holdouts; measured [metric] and [route impact], with versioned deployment and rollback." | Wave 4 Option A |
 
 **Two of six are already earned and merely unpublished.** That is the cheapest value available
 anywhere in this document.
@@ -616,7 +616,7 @@ anywhere in this document.
 **Design is out of scope here** and is never a reason to delay an item above. Two exceptions,
 because they are correctness rather than taste and are already filed: **#197** (the hourly strip
 never renders on mobile — a feature nobody can see) and **#198 / #158** (9px uppercase
-disclaimers; 1.63:1 shaded-vs-lit contrast against a 3:1 floor). An app used one-handed in
+disclaimers; 1.63:1 shadowed-vs-lit contrast against a 3:1 floor). An app used one-handed in
 bright sun has legibility as a functional requirement. When design gets its own pass, it gets
 its own document.
 
@@ -625,11 +625,11 @@ the answer for everything heavy, and it is free.
 
 | Tier | What runs there | Verdict |
 |---|---|---|
-| **0 — client** | shadow render, shade sampling, graph search | Already interactive. The complaint is main-thread blocking, and **A5 fixes that for free**. Needs no service. |
+| **0 — client** | shadow render, shadow sampling, graph search | Already interactive. The complaint is main-thread blocking, and **A5 fixes that for free**. Needs no service. |
 | **1 — offline batch → versioned static artifacts** | SAM masks, model training, embeddings, canopy field tiles, Option C's coverage matrices | **Adopted.** Runs on a laptop or free Colab/Kaggle; ships compact versioned files over the CDN already in use. Zero marginal cost, zero new service, no request-path latency, scales to any number of users. It is also the architecture the 09-08 research cites from Google's own routing work — expensive inference offline, stored, fast online graph search. |
-| **2 — request-path service** *(what Cerebras is)* | per-request inference that cannot be precomputed | **Reopened 2026-09-09 — #248.** Was: *"justified only when work can be neither precomputed nor run on the client; for this app that is close to nothing."* The owner has lifted the client-side-only constraint, so the test is now **"does it buy accuracy that cannot be precomputed?"** — which admits weather-conditioned radiant load (a live forecast cannot be baked into a static tile) and personalised thermal comfort. It does **not** admit moving shade geometry off the client: that is deterministic, the client already holds the inputs, and Tier 1 covers it. |
+| **2 — request-path service** *(what Cerebras is)* | per-request inference that cannot be precomputed | **Reopened 2026-09-09 — #248.** Was: *"justified only when work can be neither precomputed nor run on the client; for this app that is close to nothing."* The owner has lifted the client-side-only constraint, so the test is now **"does it buy accuracy that cannot be precomputed?"** — which admits weather-conditioned radiant load (a live forecast cannot be baked into a static tile) and personalised thermal comfort. It does **not** admit moving shadow geometry off the client: that is deterministic, the client already holds the inputs, and Tier 1 covers it. |
 
-**The half of this that still holds.** Moving *shade geometry* server-side remains wrong: it adds
+**The half of this that still holds.** Moving *shadow geometry* server-side remains wrong: it adds
 a round trip per route and a per-user cost to compute something deterministic from inputs the
 client already has. Tier 1 gets that heavy work off the user's machine without either. Nothing
 below repeals that.

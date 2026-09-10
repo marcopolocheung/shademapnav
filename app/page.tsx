@@ -1,3 +1,4 @@
+import "./lib/storageMigration";
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import TimelineSlider from "./components/TimelineSlider";
 import AccumulationPanel from "./components/AccumulationPanel";
@@ -38,11 +39,11 @@ import { useAgent } from "./hooks/useAgent";
 import { fetchCloudCoverForecast } from "./services/weather";
 
 const MapView = lazy(() => import("./components/MapView"));
-const SHADE_LEGEND_STORAGE_KEY = "shademapnav:shadeLegendDismissed";
+const SHADOW_LEGEND_STORAGE_KEY = "umbra:shadowLegendDismissed";
 
-function readShadeLegendDismissed(): boolean {
+function readShadowLegendDismissed(): boolean {
   try {
-    return window.localStorage.getItem(SHADE_LEGEND_STORAGE_KEY) === "1";
+    return window.localStorage.getItem(SHADOW_LEGEND_STORAGE_KEY) === "1";
   } catch {
     return false;
   }
@@ -122,10 +123,10 @@ function TimeInput({ date, onChange, utcOffsetMin, zone }: { date: Date; onChang
 function CloudCoverBadge({ pct }: { pct: number }) {
   const label =
     pct >= 80
-      ? `Cloud cover ${pct}% - shade routing matters less`
+      ? `Cloud cover ${pct}% - shadow routing matters less`
       : pct >= 55
         ? `Cloud cover ${pct}% - shadows may be muted`
-        : `Cloud cover ${pct}% - building shade still matters`;
+        : `Cloud cover ${pct}% - building shadow still matters`;
   const strongClouds = pct >= 55;
 
   return (
@@ -142,7 +143,7 @@ function CloudCoverBadge({ pct }: { pct: number }) {
   );
 }
 
-function ShadeLegend({ onDismiss }: { onDismiss: () => void }) {
+function ShadowLegend({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
       className="flex min-h-11 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur-md"
@@ -158,7 +159,7 @@ function ShadeLegend({ onDismiss }: { onDismiss: () => void }) {
         Swatch mirrors LocalShadowAdapter's midday shadow: NOON_RGB #22467f at
         SHADOW_ALPHA 0.7. If those change, change this — a legend that shows a
         colour the map never paints is worse than no legend. See CLAUDE.md
-        invariant #5, which already couples shadow colour to the shade predicate.
+        invariant #5, which already couples shadow colour to the shadow predicate.
       */}
       <span
         className="h-4 w-4 shrink-0 rounded-sm border"
@@ -168,12 +169,12 @@ function ShadeLegend({ onDismiss }: { onDismiss: () => void }) {
         }}
         aria-hidden="true"
       />
-      <span className="leading-snug">Dark blue areas are shaded at the selected time.</span>
+      <span className="leading-snug">Dark blue areas are shadowed at the selected time.</span>
       <button
         type="button"
         onClick={onDismiss}
         className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-slate-100"
-        aria-label="Dismiss shade legend"
+        aria-label="Dismiss shadow legend"
         title="Dismiss"
       >
         <span className="material-symbols-outlined text-base" aria-hidden="true">
@@ -209,7 +210,7 @@ export default function Home() {
     savedRoutes, savedFolders,
     userLocation, isLocating,
     sketchPoints, drawMode, navWarning, simplifiedWaypoints,
-    routeMode, shadePreference,
+    routeMode, shadowPreference,
     setPendingSlot, setSelectedRouteIndex, setSaveModalRouteIndex,
     handleMapClick, handleClear,
     handleOpenSaveModal, handleConfirmSave,
@@ -217,7 +218,7 @@ export default function Home() {
     handleRemoveAdditionalWaypoint, handleSetAdditionalWaypoints, handleAddAdditionalWaypoint,
     handleDeleteSavedRoute, handleRenameSavedRoute,
     handleLocateMe, handleToggleNavMode, handleDrawModeToggle,
-    handleClearSketch, handleRouteModeChange, handleShadePreferenceChange,
+    handleClearSketch, handleRouteModeChange, handleShadowPreferenceChange,
     handleSketchPointClick, handleSketchPointDrag, handleSketchFinish,
     handleSetWaypointA, handleSetWaypointB,
     handleSwapWaypoints,
@@ -225,7 +226,7 @@ export default function Home() {
     handleMarkerDragEnd, handlePinDragStart,
     handleCalculateRoute,
     selectedNavRoute, navTrainDrawData, navMrtEntrances,
-    filteredRoutes, canTransit, shadeField,
+    filteredRoutes, canTransit, shadowField,
   } = nav;
 
 
@@ -233,7 +234,7 @@ export default function Home() {
   // of the two route surfaces the current breakpoint shows.
   const hourlyExposure = useHourlyExposure(
     filteredRoutes[selectedRouteIndex] ?? null,
-    shadeField,
+    shadowField,
     date,
     mapUtcOffsetMin,
   );
@@ -255,10 +256,10 @@ export default function Home() {
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
   const [cloudCoverPct, setCloudCoverPct] = useState<number | null>(null);
   const [shadowLayerReady, setShadowLayerReady] = useState(false);
-  const [shadeLegendDismissed, setShadeLegendDismissed] = useState(readShadeLegendDismissed);
+  const [shadowLegendDismissed, setShadowLegendDismissed] = useState(readShadowLegendDismissed);
   const didHydrateShareRef = useRef(false);
 
-  // AI assistant (shade-aware day-trip planner)
+  // AI assistant (shadow-aware day-trip planner)
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPins, setAssistantPins] = useState<{ lng: number; lat: number; label?: string }[]>([]);
   const shadowLayerRef = useRef<IShadowLayer | null>(null);
@@ -421,10 +422,10 @@ export default function Home() {
     window.setTimeout(() => setShareStatus("idle"), 1800);
   }, [additionalWaypoints, date, mapCenter, mapUtcOffsetMin, mapZoom, waypointA, waypointB]);
 
-  const handleDismissShadeLegend = useCallback(() => {
-    setShadeLegendDismissed(true);
+  const handleDismissShadowLegend = useCallback(() => {
+    setShadowLegendDismissed(true);
     try {
-      window.localStorage.setItem(SHADE_LEGEND_STORAGE_KEY, "1");
+      window.localStorage.setItem(SHADOW_LEGEND_STORAGE_KEY, "1");
     } catch {
       // Ignore storage failures; dismissal still applies for this session.
     }
@@ -600,7 +601,7 @@ export default function Home() {
           getBounds={getBounds as () => { getWest(): number; getEast(): number; getNorth(): number; getSouth(): number } | undefined}
         />
         <SettingsPanel showSunLines={showSunLines} onShowSunLinesChange={setShowSunLines} />
-        <a href="/about" className="text-[11px] hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About ShadeMapNav</a>
+        <a href="/about" className="text-[11px] hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About Umbra</a>
         <div className="h-px" style={{ background: "var(--md-outline-variant)" }} />
         <div className="text-[10px] tabular-nums select-none" style={{ color: "var(--md-on-surface-variant)", opacity: 0.6 }}>zoom {mapZoom.toFixed(1)}</div>
       </div>
@@ -671,8 +672,8 @@ export default function Home() {
             routeMode={routeMode}
             onRouteModeChange={handleRouteModeChange}
             canTransit={canTransit}
-            shadePreference={shadePreference}
-            onShadePreferenceChange={handleShadePreferenceChange}
+            shadowPreference={shadowPreference}
+            onShadowPreferenceChange={handleShadowPreferenceChange}
           />
         );
 
@@ -781,9 +782,9 @@ export default function Home() {
         />
       </div>
 
-      {shadowLayerReady && !shadeLegendDismissed && !accumulation.enabled && (
+      {shadowLayerReady && !shadowLegendDismissed && !accumulation.enabled && (
         <div className="absolute left-4 top-20 z-20 md:left-6 md:top-20">
-          <ShadeLegend onDismiss={handleDismissShadeLegend} />
+          <ShadowLegend onDismiss={handleDismissShadowLegend} />
         </div>
       )}
 
@@ -856,8 +857,8 @@ export default function Home() {
               routeMode={routeMode}
               onRouteModeChange={handleRouteModeChange}
               canTransit={canTransit}
-              shadePreference={shadePreference}
-              onShadePreferenceChange={handleShadePreferenceChange}
+              shadowPreference={shadowPreference}
+              onShadowPreferenceChange={handleShadowPreferenceChange}
             />
           ) : phase === "NAVIGATING" ? (
             <NavigationStatusPanel
@@ -893,7 +894,7 @@ export default function Home() {
                   getBounds={getBounds as () => { getWest(): number; getEast(): number; getNorth(): number; getSouth(): number } | undefined}
                 />
                 <SettingsPanel showSunLines={showSunLines} onShowSunLinesChange={setShowSunLines} />
-                <a href="/about" className="text-[10px] px-1.5 pt-0.5 pb-0.5 transition-colors hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About ShadeMapNav</a>
+                <a href="/about" className="text-[10px] px-1.5 pt-0.5 pb-0.5 transition-colors hover:underline" style={{ color: "var(--md-on-surface-variant)" }}>About Umbra</a>
               </div>
             </div>
           )}
@@ -977,8 +978,8 @@ export default function Home() {
             background: "var(--md-primary, #b45309)",
             color: "white",
           }}
-          title="Ask the Shade Assistant"
-          aria-label="Open Shade Assistant"
+          title="Ask the Umbra Assistant"
+          aria-label="Open Umbra Assistant"
         >
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
             assistant

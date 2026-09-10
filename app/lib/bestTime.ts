@@ -4,7 +4,7 @@ export interface HourlyExposureSample {
   date: Date;
   hour: number;
   label: string;
-  shadeCoverage: number;
+  shadowCoverage: number;
   sunExposure: number;
 }
 
@@ -14,7 +14,7 @@ export interface HourlyExposureOptions {
   stepHours?: number;
 }
 
-export type ShadeCoverageSampler = (date: Date) => number;
+export type ShadowCoverageSampler = (date: Date) => number;
 
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -32,7 +32,7 @@ function formatHourLabel(hour: number): string {
 export function buildHourlyExposureSeries(
   baseDate: Date,
   utcOffsetMin: number,
-  sampleShadeCoverage: ShadeCoverageSampler,
+  sampleShadowCoverage: ShadowCoverageSampler,
   options: HourlyExposureOptions = {}
 ): HourlyExposureSample[] {
   const startHour = options.startHour ?? 6;
@@ -45,13 +45,13 @@ export function buildHourlyExposureSeries(
   for (let hour = startHour; hour <= endHour; hour += stepHours) {
     const date = fromMapLocal(baseDate, utcOffsetMin, hour, 0);
     const local = toMapLocal(date, utcOffsetMin);
-    const shadeCoverage = clamp01(sampleShadeCoverage(date));
+    const shadowCoverage = clamp01(sampleShadowCoverage(date));
     samples.push({
       date,
       hour: local.hours,
       label: formatHourLabel(local.hours),
-      shadeCoverage,
-      sunExposure: 1 - shadeCoverage,
+      shadowCoverage,
+      sunExposure: 1 - shadowCoverage,
     });
   }
   return samples;

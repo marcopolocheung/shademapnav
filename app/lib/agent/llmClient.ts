@@ -1,5 +1,5 @@
 /**
- * LLM client for the Shade Assistant — Cerebras only (OpenAI-compatible).
+ * LLM client for the Umbra Assistant — Cerebras only (OpenAI-compatible).
  *
  * Cerebras gives ~1M tokens/day per account and is OpenAI chat-completions
  * compatible. Supply several keys (one per account) as a comma-separated list in

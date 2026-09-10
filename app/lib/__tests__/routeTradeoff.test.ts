@@ -10,23 +10,23 @@ import {
 function route(
   label: string,
   distanceM: number,
-  shadeCoverage: number,
+  shadowCoverage: number,
   totalTimeSec?: number,
   longestContinuousSunM = 0,
 ): RouteOption {
   return {
     label,
     distanceM,
-    shadeCoverage,
+    shadowCoverage,
     totalTimeSec,
     geojson: {
       type: "Feature",
       properties: {},
       geometry: { type: "LineString", coordinates: [] },
     },
-    longestContinuousShadeM: 0,
+    longestContinuousShadowM: 0,
     longestContinuousSunM,
-    shadeTransitions: 0,
+    shadowTransitions: 0,
     detourRatio: 1,
     turnCount: 0,
   };
@@ -36,14 +36,14 @@ describe("routeTradeoffLine", () => {
   it("labels the shortest route as the comparison baseline", () => {
     const shortest = route("Shortest", 1000, 0.25);
 
-    expect(routeTradeoffLine(shortest, shortest)).toBe("Shortest baseline, 25% shade");
+    expect(routeTradeoffLine(shortest, shortest)).toBe("Shortest baseline, 25% shadow");
   });
 
   it("reports added time and reduced sun exposure", () => {
     const shortest = route("Shortest", 1000, 0.2);
-    const shaded = route("Most shaded", 1260, 0.62);
+    const shadowed = route("Most shadowed", 1260, 0.62);
 
-    expect(routeTradeoffLine(shaded, shortest)).toBe("+3 min, -40% sun exposure");
+    expect(routeTradeoffLine(shadowed, shortest)).toBe("+3 min, -40% sun exposure");
   });
 
   it("uses total travel time when a route has transit timing", () => {
@@ -68,7 +68,7 @@ describe("routeExposureLine", () => {
     );
   });
 
-  it("distinguishes routes a shade percentage would call equivalent", () => {
+  it("distinguishes routes a shadow percentage would call equivalent", () => {
     // Same total sun, split six ways versus taken in one crossing.
     const scattered = route("Scattered", 2000, 0.7, undefined, 100);
     const oneCrossing = route("One crossing", 2000, 0.7, undefined, 600);
@@ -82,32 +82,32 @@ describe("routeExposureLine", () => {
   });
 
   it("does not round a short exposure down to zero", () => {
-    expect(routeExposureLine(route("Most shaded", 1000, 0.98))).toBe("under a minute in sun");
+    expect(routeExposureLine(route("Most shadowed", 1000, 0.98))).toBe("under a minute in sun");
   });
 });
 
 describe("routeExposureMinutes", () => {
-  it("splits the trip into sunlit and shaded minutes at walking pace", () => {
-    // 840 m at 1.4 m/s is 10 minutes; 25% shade leaves 7.5 of them in the sun.
-    const { sunMinutes, shadeMinutes } = routeExposureMinutes(route("Shortest", 840, 0.25));
+  it("splits the trip into sunlit and shadowed minutes at walking pace", () => {
+    // 840 m at 1.4 m/s is 10 minutes; 25% shadow leaves 7.5 of them in the sun.
+    const { sunMinutes, shadowMinutes } = routeExposureMinutes(route("Shortest", 840, 0.25));
 
     expect(sunMinutes).toBeCloseTo(7.5, 10);
-    expect(shadeMinutes).toBeCloseTo(2.5, 10);
+    expect(shadowMinutes).toBeCloseTo(2.5, 10);
   });
 
-  it("reports shaded minutes rather than dropping them", () => {
-    // A fully shaded route is not a zero-exposure route: the UV model still charges
+  it("reports shadowed minutes rather than dropping them", () => {
+    // A fully shadowed route is not a zero-exposure route: the UV model still charges
     // it for diffuse sky, and the heat model still has to know how long it lasts.
-    const { sunMinutes, shadeMinutes } = routeExposureMinutes(route("Most shaded", 840, 1));
+    const { sunMinutes, shadowMinutes } = routeExposureMinutes(route("Most shadowed", 840, 1));
 
     expect(sunMinutes).toBe(0);
-    expect(shadeMinutes).toBeCloseTo(10, 10);
+    expect(shadowMinutes).toBeCloseTo(10, 10);
   });
 
   it("never returns a negative half", () => {
-    const { sunMinutes, shadeMinutes } = routeExposureMinutes(route("Odd", 840, 1.4));
+    const { sunMinutes, shadowMinutes } = routeExposureMinutes(route("Odd", 840, 1.4));
 
     expect(sunMinutes).toBeGreaterThanOrEqual(0);
-    expect(shadeMinutes).toBeGreaterThanOrEqual(0);
+    expect(shadowMinutes).toBeGreaterThanOrEqual(0);
   });
 });

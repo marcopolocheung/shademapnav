@@ -55,7 +55,7 @@ export default function ArrivalPanel({
         <div className="mt-3 text-sm font-semibold">Arrived at {destination}</div>
         {route && (
           <div className="mt-1 text-[11px]" style={{ color: "var(--md-on-surface-variant)" }}>
-            {formatDistance(route.distanceM)} route with {Math.round(route.shadeCoverage * 100)}% shade
+            {formatDistance(route.distanceM)} route with {Math.round(route.shadowCoverage * 100)}% shadow
           </div>
         )}
       </div>

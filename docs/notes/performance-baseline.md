@@ -54,15 +54,15 @@ upgrades to the real zone when the chunk lands. The 0.67 kB is the loader plus t
 
 Method and accuracy trade-off: [`timezone.md`](./timezone.md).
 
-## Shade Sampling
+## Shadow Sampling
 
-`ShadeField.sampleEdges` — the call routing makes once per calculation, and the
+`ShadowField.sampleEdges` — the call routing makes once per calculation, and the
 hot path behind issue #122. Reproduce with `npm run bench`
-(`SHADEMAP_BENCH_FULL=1` adds the city-scale case);
-`app/lib/shade/__benchmarks__/shadeField.bench.ts` holds the fixtures.
+(`UMBRA_BENCH_FULL=1` adds the city-scale case);
+`app/lib/shadowField/__benchmarks__/shadowField.bench.ts` holds the fixtures.
 
 Measured 2026-09-04 in the environment above, Node `v20.20.1`. **Before** is `main`
-at `c2821f7`; **after** is `shade/shadow-index` at `c6b21a1` (PR #164, the shadow
+at `c2821f7`; **after** is `shadow/shadow-index` at `c6b21a1` (PR #164, the shadow
 index). Both columns come from the same benchmark file, unmodified.
 
 | Case | Before (mean) | After (mean) | Change |
@@ -96,9 +96,9 @@ index). Both columns come from the same benchmark file, unmodified.
 
 ## Time Sweep (A6)
 
-`ShadeField.sweep` — the call Track D's hourly strip already makes and Track H's
+`ShadowField.sweep` — the call Track D's hourly strip already makes and Track H's
 traversal-time pricing will make N times per route. Same benchmark file as the
-section above; the sweep cases are `ShadeField.sweep — a 3 km route across a day`.
+section above; the sweep cases are `ShadowField.sweep — a 3 km route across a day`.
 
 Measured 2026-09-09 in the environment above but on **Node `v24.20.0`**, not the
 `v20.20.1` in the header — the repo's `engines` field asks for 24, and 20 fails to
@@ -183,7 +183,7 @@ Three cheaper wins were measured and deliberately not taken:
 
 ### What the sweep costs at sub-hourly resolution (#245)
 
-A one-hour max-shade window needs the shade at several instants per displayed hour.
+A one-hour max-shadow window needs the shadow at several instants per displayed hour.
 On the same 3 km fixture, `sweep` at 10-minute steps over the same 14 hours (84 times)
 costs **6.9× the 14-hour sweep** across two runs, against a linear floor of 6.0×; an
 independent run measured 6.3×. Whichever, the sweep is **linear in times**, so a window
@@ -226,12 +226,12 @@ network variance inside a number meant to be a baseline; the cost is that everyt
 is measured against synthetic buildings.
 
 Measured 2026-09-09 on branch `feat/g2-route-benchmark`. Timings come from the app's own
-`window.__shadeMapMetrics`, so the benchmark reports the same numbers the product does.
+`window.__umbraMetrics`, so the benchmark reports the same numbers the product does.
 **Every figure below is verbatim harness output from one code version** — three consecutive
 full runs, all four scenarios each. The table is the first of the three; the other two are in
 the reproducibility section, and nothing here is re-rounded by hand.
 
-| Scenario | N | p50 total (ms) | p95 total (ms) | spread | graph fetch | canvas read | shade sample | dijkstra |
+| Scenario | N | p50 total (ms) | p95 total (ms) | spread | graph fetch | canvas read | shadow sample | dijkstra |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | 2-point cold | 5 | 2563.9 | 2789.7 | ±9.3% | 17.8 | 1194.8 | 40.2 | 13.6 |
 | 2-point warm | 10 | 3852.4 | 4070.4 | ±16.6% | 0.3 | 2164.3 | 22.0 | 6.6 |
@@ -301,7 +301,7 @@ spent for nothing.** As a share of the scenario median it ran 33.3%–58.0% acro
 scenario-runs, highest on 2-point warm and lowest on 5-point warm; in absolute terms
 1136–2164 ms. `canvasRead` was non-zero on **all 90 runs**, so `coverage()` returned confidence
 below `LOW_CONFIDENCE` every time and `useNavigation` took the `needsCanvas` branch — while
-`shadeFallbackShare` printed **0.0% on all 90**, meaning `sampleEdges` then answered every edge
+`shadowFallbackShare` printed **0.0% on all 90**, meaning `sampleEdges` then answered every edge
 from geometry and the pixels were used for nothing. Both halves are per-run output, not a
 median: the harness prints the fallback share for every run precisely because a median of 0.0
 is consistent with half the runs being non-zero. Filed as **#259**. Unverified against real
@@ -313,29 +313,29 @@ all thirty 2-point runs. A5's worker offload moves the main-thread block, and th
 canvas read, not the search.
 
 **4. The 5-point shape is a different algorithm, not a bigger one.** With `via` waypoints
-`useNavigation` leaves `paretoRoutes` and runs a plain `dijkstra` per leg at several shade
+`useNavigation` leaves `paretoRoutes` and runs a plain `dijkstra` per leg at several shadow
 strengths, which is why its dijkstra phase is two orders of magnitude larger (320–2690 ms) and
-why it returns a single route (`[Shortest]`) with no shade-gain KPI at all.
+why it returns a single route (`[Shortest]`) with no shadow-gain KPI at all.
 
 ### Detour budget sweep (#243)
 
 `paretoRoutes` prunes any label whose optimistic length exceeds
 `shortestDist × maxDetourFactor + 250 m`. `maxDetourFactor` defaults to **2.0** — a route
 twice as long as the direct one. Three independent studies
-([literature note](../research/shade-thermal-comfort-literature-2026-09-09.md)) find useful
-shade detours at +1.3%, under 3%, and plateauing near 110%.
+([literature note](../research/shadow-thermal-comfort-literature-2026-09-09.md)) find useful
+shadow detours at +1.3%, under 3%, and plateauing near 110%.
 
 **This publishes the curve; it does not change the constant.** #243 is labelled `track-h`, and
 H3 picks a value against the measured cost.
 
-Same fixture grid and instant, 8 fixed O-D pairs, 5 repeats each, 20.7% mean sidewalk shade.
+Same fixture grid and instant, 8 fixed O-D pairs, 5 repeats each, 20.7% mean sidewalk shadow.
 The sweep runs in **Node against `paretoRoutes` directly**, because `maxDetourFactor` is a
 `DijkstraOptions` field that `useNavigation` never passes — varying it from the browser would
 mean adding a production seam the benchmark has no business adding. So this is the **search
 alone**: no fetch, no canvas read, no sampling, and the whole 11x11 grid rather than the bbox
 the app fetches. Comparable across rows, **not** against the totals above.
 
-| maxDetourFactor | p50 search (ms) | p95 search (ms) | mean shade gain (pp) | mean length overhead (%) | pairs with an alternative |
+| maxDetourFactor | p50 search (ms) | p95 search (ms) | mean shadow gain (pp) | mean length overhead (%) | pairs with an alternative |
 |---|---:|---:|---:|---:|---:|
 | 1.05 | 0.5 | 1.2 | 4.9 | 13.7 | 7/8 |
 | 1.10 | 0.4 | 1.3 | 5.7 | 17.6 | 8/8 |
@@ -348,17 +348,17 @@ the app fetches. Comparable across rows, **not** against the totals above.
 deterministic, and only the timing columns move (the 2.0 row's p50 read 1.4, 1.5 and 1.1 ms).
 So the shape of this curve is a far more solid result than any single latency figure above it.
 
-**What the curve costs and buys.** Between 1.10 and 1.25 the budget buys 0.3 pp of shade for
+**What the curve costs and buys.** Between 1.10 and 1.25 the budget buys 0.3 pp of shadow for
 1.2 pp of extra walking — nearly free. Between 1.25 and the current 2.0 it buys **5.8 pp of
-shade for 60.7 pp of extra walking** and roughly triples the search time. At 3.0 the mean
-shaded route is 130% longer than the shortest one, which is not a route anybody walks.
+shadow for 60.7 pp of extra walking** and roughly triples the search time. At 3.0 the mean
+shadowed route is 130% longer than the shortest one, which is not a route anybody walks.
 
 **Read this as a shape, not as a recommendation.** The grid is regular by construction and the
 buildings are synthetic, which is what isolates the parameter and also why the absolute
-percentages are not about real Manhattan. Two further caveats H3 has to carry: `shadeCoverage`
+percentages are not about real Manhattan. Two further caveats H3 has to carry: `shadowCoverage`
 is a blue-pixel-derived fraction with tens of percentage points of worst-case uncertainty, and
-**#241** reports that minimising unshaded metres scored worse than the plain shortest route in
-24% of 1200 real O-D pairs — so "more shade gain" in this table is not the same claim as
+**#241** reports that minimising unshadowed metres scored worse than the plain shortest route in
+24% of 1200 real O-D pairs — so "more shadow gain" in this table is not the same claim as
 "better route".
 
 **Not measured: TTI.** #37 asks for throttled-4G time-to-interactive *and* route-calc timings.

@@ -25,12 +25,12 @@ replaced by the exact expression the test asserts. That test passes forever and 
 nothing. Neither does one that counts internal calls rather than checking results.
 
 Write the test as a claim about behavior — *given this graph and this sun position, the
-shadier path wins* — so that a wrong refactor breaks it and a right one does not.
+more shadow path wins* — so that a wrong refactor breaks it and a right one does not.
 
 ## What requires a test
 
 Logic changes anywhere in `app/lib/**`, `app/services/**` or `app/hooks/**`. Behavior changes
-to `routing.ts`, `trainGraph.ts`, `shadeSampling.ts`, `app/lib/shade/**`,
+to `routing.ts`, `trainGraph.ts`, `shadowSampling.ts`, `app/lib/shadowField/**`,
 `app/lib/guidance/**` and `app/lib/agent/**` require coverage specifically, because those are
 the files whose bugs are invisible in review: a wrong cost weight produces a route that looks
 entirely reasonable.
@@ -41,5 +41,5 @@ fix, against the fixed code, proves only that you can describe what you just wro
 ## What a green suite does not mean
 
 It does not mean a UI or map change works — run `npm run dev` and look. It does not mean the
-shade numbers are right; the agreement harness measures agreement between two models, both of
+shadow numbers are right; the agreement harness measures agreement between two models, both of
 which can be wrong together. Say which check you actually ran, and name the one you did not.

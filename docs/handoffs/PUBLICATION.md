@@ -15,7 +15,7 @@ the board and it is pure transcription and framing.
 ## Why this is not last
 
 `ROADMAP.md` §2's fourth row is the thesis: *"almost every portfolio project claims; almost none
-measures; essentially none publishes its own worst case."* `ShadeField.ts:193` already says in a
+measures; essentially none publishes its own worst case."* `ShadowField.ts:193` already says in a
 source comment that its confidences are **priors, not measurements**. That instinct is the most
 hireable thing in the repository and **no recruiter can currently see it.**
 
@@ -33,7 +33,7 @@ included.
 
 | Number | Where it lives | What it does **not** say |
 |---|---|---|
-| `mean 2.6pp · worst 62.5pp · severe 3.3%`, 150 cases | `app/lib/shade/__tests__/agreement/` (ceilings: mean 0.04, p90 0.05, severe 0.04) | **Method agreement, not physical accuracy.** Two models compared to each other on synthetic geometry. Neither is ground truth. |
+| `mean 2.6pp · worst 62.5pp · severe 3.3%`, 150 cases | `app/lib/shadowField/__tests__/agreement/` (ceilings: mean 0.04, p90 0.05, severe 0.04) | **Method agreement, not physical accuracy.** Two models compared to each other on synthetic geometry. Neither is ground truth. |
 | Shadow-index speedup, ~1,000–2,200× (#166) | its benchmark | **A synthetic Node microbenchmark of the index in isolation.** Not end-to-end browser route time. #207 exists to make sure this ships qualified. |
 | C1 eval: 18 scenarios + a sabotage suite | `app/lib/agent/__tests__/` | Orchestrator contract under **scripted** model/tool responses. Not live-model judgment, not task completion. |
 | Suite size: 497 tests / 40 files, all green | `npm test` on `99bb418` | Nothing about rendering. `npm test` never opens a browser. |
@@ -75,7 +75,7 @@ appears without its method.**
 
 **Must land here:**
 - A link to `evidence.md`, prominently. The page is the argument.
-- The **A4b correction**: this is not "a pixel sampler." It is a geometry-backed `ShadeField`
+- The **A4b correction**: this is not "a pixel sampler." It is a geometry-backed `ShadowField`
   with a pixel fallback. An earlier research pass got this wrong and the impression persists.
 - What the project is, what it does not do, and what is measured versus assumed.
 - **No badge wall.** `ROADMAP.md` §2 anti-goals: every badge is a claim a reviewer can test.

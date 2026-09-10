@@ -119,7 +119,7 @@ export default function RouteConditionsLine({
         <div className="text-xs leading-snug" style={{ color: "var(--md-on-surface-variant)" }}>
           About{" "}
           {formatMinuteRange(uv.fullSunEquivalentMinutes.low, uv.fullSunEquivalentMinutes.high)} of
-          full sun ({uv.sed.low.toFixed(1)}–{uv.sed.high.toFixed(1)} SED) · shade counts toward
+          full sun ({uv.sed.low.toFixed(1)}–{uv.sed.high.toFixed(1)} SED) · shadow counts toward
           this — it blocks the direct beam, not the diffuse sky.
         </div>
       )}

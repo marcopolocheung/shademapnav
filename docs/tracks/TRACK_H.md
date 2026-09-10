@@ -1,7 +1,7 @@
 # Track H — Sun Budget
 
 > **Charter:** make the sun *move while you walk*. Price every segment at the time the walker
-> actually reaches it, make exposure duration the objective instead of shaded metres, and turn
+> actually reaches it, make exposure duration the objective instead of shadowed metres, and turn
 > the result into the question no other maps product answers: **"where can I even go?"**
 
 **Class:** Flagship — and the only track whose output nothing else in the market has.
@@ -14,14 +14,14 @@ G's fixture and benchmark infrastructure).
 
 - **Active checkpoint:** H1 — **not started, and correctly blocked.**
 - **Gate:** do not start until **A6 (time sweep)** and **G2 (route benchmark)** have landed.
-  H1 without A6 costs one full shade evaluation per time bucket per edge and will not run at
+  H1 without A6 costs one full shadow evaluation per time bucket per edge and will not run at
   interactive speed; H3 without G2 has no committed baseline, and this track's central claim is
   a *comparison* against the static method. Starting early produces a demo that cannot be
   defended, which is the one outcome this track exists to avoid.
 - **Done:** nothing in H1–H4. One prerequisite cleared: **#208** — `parallelSidewalkEdges`
   rebuilt each sidewalk edge from scratch and silently dropped the five OSM access tags
   `overpass.ts` had filled in, so H2/H3's "hard constraint" had nothing to read. It now
-  returns the source edge with only `shadeFactor` and `side` replaced.
+  returns the source edge with only `shadowFactor` and `side` replaced.
 - **Open PRs:** none.
 - **Decisions made:** none yet. The design notes below are the starting position, not
   decisions — record real ones here as they are made.
@@ -50,19 +50,19 @@ more credible than one that claims there is none.
 Today `useNavigation.ts` samples every edge of the graph at a single `dateRef.current`
 (`:633`, `:1154`). A 40-minute walk is priced as if it happened in an instant. That is fine for
 a 400 m route at noon and wrong in exactly the cases the product is *for*: a long trip in the
-late afternoon, when the shadiest street at departure is the sunniest by the time you reach it.
+late afternoon, when the most shadowed street at departure is the sunniest by the time you reach it.
 
 Worse, the objective is measurably pointed at the wrong quantity. `paretoRoutes` finds the
-front of **(distance, shaded distance)** (`routing.ts:544`) under a detour budget of
-`shortestDist × 2.0 + 250 m`. Maximizing shaded metres inside a budget that generous means the
-"Most Shaded" option can accumulate **more absolute exposed metres** than "Shortest":
+front of **(distance, shadowed distance)** (`routing.ts:544`) under a detour budget of
+`shortestDist × 2.0 + 250 m`. Maximizing shadowed metres inside a budget that generous means the
+"Most Shadowed" option can accumulate **more absolute exposed metres** than "Shortest":
 
 ```
-Route A: 1,000 m total,   800 m shaded →  200 m exposed
-Route B: 1,500 m total, 1,000 m shaded →  500 m exposed   ← "more shaded", 2.5× the sun
+Route A: 1,000 m total,   800 m shadowed →  200 m exposed
+Route B: 1,500 m total, 1,000 m shadowed →  500 m exposed   ← "more shadowed", 2.5× the sun
 ```
 
-B is inside the default budget and wins the "most shaded" slot. `longestContinuousSunM` is
+B is inside the default budget and wins the "most shadowed" slot. `longestContinuousSunM` is
 already computed (`routing.ts:481`) and `sunExposure` already exists on legs — but both are
 display-only. Neither enters the search.
 
@@ -80,34 +80,34 @@ fix is in.
 time from the existing `travelTimeSeconds` (`travelMode.ts`, already imported by
 `useNavigation.ts`). Discretize time into buckets — start with 15 minutes; the bucket width is
 a documented parameter, not a magic number — and use **A6's `sweep(edges, times[])`** so all
-buckets cost far less than N separate `sampleEdges` calls. Store the shade answer against
+buckets cost far less than N separate `sampleEdges` calls. Store the shadow answer against
 **versioned geometry *and* time bucket**: never serve a value computed for a different geometry
 snapshot or a different bucket merely because the coordinates match. Ship behind a flag with
 the static path intact for A/B comparison — H2 and H4 both need to run both.
-**Acceptance.** On a fixture where the shadiest departure-time path is measurably worse by
+**Acceptance.** On a fixture where the most shadowed departure-time path is measurably worse by
 arrival, the time-aware run picks a different route than the static run, and the difference is
 attributable to specific edges in a written-down comparison. Bucket width, walking speed
 assumption, and sampling resolution are all documented. The static path still passes every
 existing routing test.
-**Files.** `app/lib/routing.ts`, `app/lib/shade/ShadeField.ts` (consumer only — A owns it),
+**Files.** `app/lib/routing.ts`, `app/lib/shadowField/ShadowField.ts` (consumer only — A owns it),
 `useNavigation.ts` (⚠️ contested), new fixtures under `app/lib/__tests__/`.
 **Size.** Large. **Depends on A6.**
 
 ### H2 — Exposure as the objective
-**Goal.** Optimize the thing the user cares about: minutes in the sun, not metres of shade.
+**Goal.** Optimize the thing the user cares about: minutes in the sun, not metres of shadow.
 **Literature (2026-09-09, ROADMAP §5c) — read #241 before writing the note.** Ma et al. 2025
-enumerated 2.2 M routes and found that minimising *unshaded metres* — **exactly this
+enumerated 2.2 M routes and found that minimising *unshadowed metres* — **exactly this
 checkpoint's corrected objective** — scored **worse than the plain shortest route in 24% of 1200
-O-D pairs** (41% at 08:00). H2 still lands: maximised `shadeM` is a real defect. But the note
-must say that minimised exposure is *better than* maximised shade and *still not* the comfort
+O-D pairs** (41% at 08:00). H2 still lands: maximised `shadowM` is a real defect. But the note
+must say that minimised exposure is *better than* maximised shadow and *still not* the comfort
 objective, with that bound attached. Also **#243**: `maxDetourFactor = 2.0` is ~10× the detour
 any of three studies finds useful — measure it through G2 rather than editing the constant.
-**Approach.** Replace the maximized `shadeM` criterion with **minimized exposure duration**,
+**Approach.** Replace the maximized `shadowM` criterion with **minimized exposure duration**,
 computed from H1's per-edge traversal times. Keep the front bi-criteria — (travel time, exposure
 time) — so the three route representatives still mean something, and re-derive the "balanced"
 knee in the new normalized space. Add `maxContinuousExposureS` as an optional hard constraint,
 since `longestContinuousSunM` already proves the data is there. Re-validate the dominance rule
-explicitly: a rule that was sound for (distance, shadeM) is **not automatically sound** once a
+explicitly: a rule that was sound for (distance, shadowM) is **not automatically sound** once a
 label carries time and accumulated exposure, and this is the single most likely place for a
 silent correctness bug in the track.
 **Acceptance.** The Route-A/Route-B fixture above is committed as a regression test and the new
@@ -159,7 +159,7 @@ number ships anyway — that is the point.
 ### H5 — Waiting, dwell, and the return leg
 **Goal.** Model the parts of a real outing that are not walking.
 **Approach.** Treat waiting as an **explicit action with its own exposure** — waiting in the sun
-costs, waiting in shade does not. Add per-stop dwell (Track E's `Trip` carries it; consume,
+costs, waiting in shadow does not. Add per-stop dwell (Track E's `Trip` carries it; consume,
 don't reinvent) and an exposed-destination-dwell term. Then the subtle part: **do not assume an
 earlier arrival dominates a later one.** Arriving early may require waiting, and that wait may
 itself violate the exposure budget or a venue's opening hours. Any pruning rule must be shown
@@ -187,11 +187,11 @@ useless.
   state space. Start at 15 minutes, measure, and make the number a documented parameter. State
   the resulting error bound rather than implying exactness.
 - **This is a discretized model, not physiology.** The formula is
-  `Σ(segment duration × unshaded fraction during traversal) + exposed waiting + exposed dwell`.
+  `Σ(segment duration × unshadowed fraction during traversal) + exposed waiting + exposed dwell`.
   It is not a claim about heat load — Track D owns dose and heat score, and H supplies it the
   exposure *minutes* to work from.
 - **Cache keys carry geometry version and time bucket.** The most likely subtle bug in this
-  track is serving a stale shade answer because the coordinates matched.
+  track is serving a stale shadow answer because the coordinates matched.
 - **Keep the static path alive** until H2 ships and H4 has published the comparison. The whole
   claim is "better than the static baseline"; you cannot make it after deleting the baseline.
 
@@ -226,7 +226,7 @@ useless.
 
 ## Out of scope / hand-offs
 
-- The shade field, the sweep API, canopy → **Track A**. Consume `ShadeField`; never fork it.
+- The shadow field, the sweep API, canopy → **Track A**. Consume `ShadowField`; never fork it.
 - UV dose, heat score, thermal comfort → **Track D**. H supplies exposure minutes; D converts.
 - Mode policies, `Trip`, dwell as a data model → **Track E**. Consume the contract.
 - The assistant's tool wrapper and the job contract → **Track C** (H6 needs C4 first).

@@ -22,7 +22,7 @@ export const blockedPromptDegrades: Scenario = {
 export const emptyResearchFallsThroughToWrite: Scenario = {
   id: "empty-research-falls-through-to-write",
   intent: "an empty research candidate still reaches the write call",
-  userText: "Plan my afternoon in the shade",
+  userText: "Plan my afternoon in the shadow",
   script: [{ empty: true }, { text: "Stay on the north side of the street after 4 PM." }],
   maxLlmCalls: 2,
   maxToolCalls: 0,
@@ -37,7 +37,7 @@ export const emptyResearchFallsThroughToWrite: Scenario = {
 export const emptyWriteSaysSo: Scenario = {
   id: "empty-write-says-so",
   intent: "a write call that returns nothing produces a plain retry message",
-  userText: "Plan my afternoon in the shade",
+  userText: "Plan my afternoon in the shadow",
   script: [{ text: "draft answer from the research model" }, { empty: true }],
   maxLlmCalls: 2,
   maxToolCalls: 0,

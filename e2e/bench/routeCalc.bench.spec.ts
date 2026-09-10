@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { SAMPLE_STEP, stubNetwork } from "../helpers/scenario";
-import { sampleMapCanvas, shadeMask, shadedFraction } from "../helpers/map";
+import { sampleMapCanvas, shadowMask, shadowedFraction } from "../helpers/map";
 import { markdownTable, ms, pct, stats, type Stats } from "./stats";
 import {
   COLD_REPEATS,
@@ -29,17 +29,17 @@ import {
  * network variance inside a baseline instead.
  *
  * What is being timed is `useNavigation.calculateRoute` end to end, as the app's
- * own instrumentation reports it (`window.__shadeMapMetrics`) — graph fetch,
- * canvas read, shade sampling and the Dijkstra/Pareto passes, with their phase
+ * own instrumentation reports it (`window.__umbraMetrics`) — graph fetch,
+ * canvas read, shadow sampling and the Dijkstra/Pareto passes, with their phase
  * split. Two shapes, because they run different code:
  *
  * - **2-point** goes through `paretoRoutes`, the bi-criteria search.
  * - **5-point** goes through the per-segment branch, which runs a plain
- *   `dijkstra` per leg at several shade strengths. It is a different algorithm,
+ *   `dijkstra` per leg at several shadow strengths. It is a different algorithm,
  *   not a bigger version of the same one.
  *
  * And two cache states: **cold** is the first calculation after a page load,
- * carrying the Overpass fetch and the first shade build; **warm** reuses the
+ * carrying the Overpass fetch and the first shadow build; **warm** reuses the
  * module-level graph cache in `overpass.ts`, which is what a user gets on every
  * calculation after their first.
  */
@@ -47,10 +47,10 @@ import {
 interface PhaseSample {
   graphFetch: number;
   canvasRead: number;
-  shadeSample: number;
+  shadowSample: number;
   dijkstra: number;
   total: number;
-  shadeFallbackShare: number;
+  shadowFallbackShare: number;
 }
 
 interface AppSummary {
@@ -77,23 +77,23 @@ async function readHistory(page: Page): Promise<PhaseSample[]> {
   return page.evaluate(() => {
     const m = (
       window as unknown as {
-        __shadeMapMetrics?: {
+        __umbraMetrics?: {
           history: {
             phases: Record<string, number>;
-            shadeFallbackShare: number;
+            shadowFallbackShare: number;
           }[];
         };
       }
-    ).__shadeMapMetrics;
+    ).__umbraMetrics;
     if (!m) return [];
     // The buffer is newest-first; the benchmark wants chronological order.
     return [...m.history].reverse().map((h) => ({
       graphFetch: h.phases.graphFetch,
       canvasRead: h.phases.canvasRead,
-      shadeSample: h.phases.shadeSample,
+      shadowSample: h.phases.shadowSample,
       dijkstra: h.phases.dijkstra,
       total: h.phases.total,
-      shadeFallbackShare: h.shadeFallbackShare,
+      shadowFallbackShare: h.shadowFallbackShare,
     }));
   });
 }
@@ -104,7 +104,7 @@ async function readLatestShape(
   return page.evaluate(() => {
     const m = (
       window as unknown as {
-        __shadeMapMetrics?: {
+        __umbraMetrics?: {
           latest: {
             graphNodeCount: number;
             graphDirectedEdges: number;
@@ -112,7 +112,7 @@ async function readLatestShape(
           } | null;
         };
       }
-    ).__shadeMapMetrics;
+    ).__umbraMetrics;
     const latest = m?.latest;
     return {
       graphNodeCount: latest?.graphNodeCount ?? 0,
@@ -124,8 +124,8 @@ async function readLatestShape(
 
 async function readAppSummary(page: Page): Promise<AppSummary | null> {
   return page.evaluate(() => {
-    const m = (window as unknown as { __shadeMapMetrics?: { summary: AppSummary | null } })
-      .__shadeMapMetrics;
+    const m = (window as unknown as { __umbraMetrics?: { summary: AppSummary | null } })
+      .__umbraMetrics;
     return m?.summary ?? null;
   });
 }
@@ -133,8 +133,8 @@ async function readAppSummary(page: Page): Promise<AppSummary | null> {
 async function clearAppMetrics(page: Page): Promise<void> {
   await page.evaluate(() => {
     (
-      window as unknown as { __shadeMapMetrics?: { clearMetrics: () => void } }
-    ).__shadeMapMetrics?.clearMetrics();
+      window as unknown as { __umbraMetrics?: { clearMetrics: () => void } }
+    ).__umbraMetrics?.clearMetrics();
   });
 }
 
@@ -149,17 +149,17 @@ async function loadAndSettle(page: Page, url: string): Promise<void> {
   await expect(page.locator("canvas.maplibregl-canvas")).toBeVisible();
 
   await expect
-    .poll(async () => shadedFraction(shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))), {
+    .poll(async () => shadowedFraction(shadowMask(await sampleMapCanvas(page, SAMPLE_STEP))), {
       timeout: 90_000,
       message: "no shadow pixels ever appeared, so there was nothing to route against",
     })
     .toBeGreaterThan(0.02);
 
-  let mask = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+  let mask = shadowMask(await sampleMapCanvas(page, SAMPLE_STEP));
   await expect
     .poll(
       async () => {
-        const next = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+        const next = shadowMask(await sampleMapCanvas(page, SAMPLE_STEP));
         const drift = next.filter((s, i) => s !== mask[i]).length / next.length;
         mask = next;
         return drift;
@@ -169,15 +169,15 @@ async function loadAndSettle(page: Page, url: string): Promise<void> {
     .toBeLessThan(0.005);
 }
 
-/** Click Find Shaded Route and wait for the run count to advance by one. */
+/** Click Find Shadowed Route and wait for the run count to advance by one. */
 async function calculateOnce(page: Page, runsBefore: number): Promise<void> {
-  await page.getByRole("button", { name: "Find Shaded Route" }).click();
+  await page.getByRole("button", { name: "Find Shadowed Route" }).click();
   await expect
     .poll(
       () =>
         page.evaluate(() => {
-          const m = (window as unknown as { __shadeMapMetrics?: { history: unknown[] } })
-            .__shadeMapMetrics;
+          const m = (window as unknown as { __umbraMetrics?: { history: unknown[] } })
+            .__umbraMetrics;
           return m?.history.length ?? 0;
         }),
       { timeout: 60_000, message: "a route calculation never completed" }
@@ -266,7 +266,7 @@ test.afterAll(() => {
       `±${pct(t.spreadPct)}%`,
       phase((s) => s.graphFetch),
       phase((s) => s.canvasRead),
-      phase((s) => s.shadeSample),
+      phase((s) => s.shadowSample),
       phase((s) => s.dijkstra),
     ];
   });
@@ -282,7 +282,7 @@ test.afterAll(() => {
           "spread",
           "graph fetch",
           "canvas read",
-          "shade sample",
+          "shadow sample",
           "dijkstra",
         ],
         phaseRows
@@ -292,7 +292,7 @@ test.afterAll(() => {
   );
 
   for (const r of results) {
-    const fallback = stats(r.samples.map((s) => s.shadeFallbackShare)).p50;
+    const fallback = stats(r.samples.map((s) => s.shadowFallbackShare)).p50;
     console.log(
       `${r.name}: ${r.graphNodeCount} nodes, ${r.graphDirectedEdges} directed edges, ` +
         `routes [${r.routeLabels.join(", ")}], median canvas fallback ${pct(fallback * 100)}%`
@@ -307,7 +307,7 @@ test.afterAll(() => {
     // claim about every run, and a median of 0 is consistent with half of them
     // being non-zero. Whatever is asserted from this has to be readable here.
     console.log(
-      `  fallback share:  ${r.samples.map((s) => pct(s.shadeFallbackShare * 100)).join("%, ")}%`
+      `  fallback share:  ${r.samples.map((s) => pct(s.shadowFallbackShare * 100)).join("%, ")}%`
     );
   }
 
@@ -318,9 +318,9 @@ test.afterAll(() => {
     if (!r.appSummary) continue;
     const t = totals.get(r.name)!;
     expect(r.appSummary.runs, `${r.name}: run count`).toBe(t.n);
-    expect(r.appSummary.p50TotalMs, `${r.name}: p50 disagrees with window.__shadeMapMetrics`)
+    expect(r.appSummary.p50TotalMs, `${r.name}: p50 disagrees with window.__umbraMetrics`)
       .toBeCloseTo(t.p50, 6);
-    expect(r.appSummary.p95TotalMs, `${r.name}: p95 disagrees with window.__shadeMapMetrics`)
+    expect(r.appSummary.p95TotalMs, `${r.name}: p95 disagrees with window.__umbraMetrics`)
       .toBeCloseTo(t.p95, 6);
   }
 

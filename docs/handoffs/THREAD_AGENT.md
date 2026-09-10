@@ -5,7 +5,7 @@ implementation in a navigation app"* with an artifact rather than a claim.
 
 **Verified 2026-09-08 at `99bb418`.** Brief: `docs/tracks/TRACK_C.md`.
 
-> **Runs in parallel with the shade thread.** Track C owns `app/lib/agent/**` outright and
+> **Runs in parallel with the shadow thread.** Track C owns `app/lib/agent/**` outright and
 > reaches the rest of the app only through tool wrappers — it is the friendliest track to run
 > alongside any other. The two threads do not collide.
 
@@ -62,8 +62,8 @@ measured separately against it."* The weak version is pretending.
 | # | Checkpoint | Note |
 |---|---|---|
 | **C2** | Ground the write phase | The active checkpoint. Use C1's harness to find where plot-before-answer leaks — candidates collected but not plotted, places named in prose that never became candidates, the `separateWrite === false` path. Close **#59** by observation in `npm run dev`. |
-| **C3** | Probes on the `ShadeField` | **Needs A2/A6 — stub until the shade thread lands A6.** Do not block on it; stub and move on. |
-| **C4** | The plan job contract | **Re-scoped 2026-09-07 — read the brief.** Multi-stop already shipped (`tools.ts:448` accepts `via`); the missing piece is that `plan_shaded_route` returns `{ok:true, note:"…started"}` and never awaits a terminal result. Reuse the existing generation counters and cancellation in `useNavigation.ts:979` — **do not rebuild them.** |
+| **C3** | Probes on the `ShadowField` | **Needs A2/A6 — stub until the shadow thread lands A6.** Do not block on it; stub and move on. |
+| **C4** | The plan job contract | **Re-scoped 2026-09-07 — read the brief.** Multi-stop already shipped (`tools.ts:448` accepts `via`); the missing piece is that `plan_shadowed_route` returns `{ok:true, note:"…started"}` and never awaits a terminal result. Reuse the existing generation counters and cancellation in `useNavigation.ts:979` — **do not rebuild them.** |
 | **C5** | Answers with receipts | |
 | **C10** | Untrusted content and tool authority | **Gates C12** — C12 is the first checkpoint that makes this surface live. Land it first or with it. |
 | **C11** | Plan revisions and repair | The Living Itinerary. **Depends on C4, E5, D0.** Report **revision minimality** alongside validity — a "repair" that rebuilds the whole day is a new plan wearing the old one's name. |
@@ -94,7 +94,7 @@ is a finding, not a failure, and P4 has a row for it.
 - **Rate-limit-shaped design failures.** Cerebras is **5 req/min**. An "obviously better" extra
   verification call can double turn latency. Every added call needs a C6 budget justification.
 - **Scope creep toward a general chatbot.** The system prompt is deliberately narrow
-  (shade-day-planning only). Breadth is where Gemini wins and we cannot.
+  (shadow-day-planning only). Breadth is where Gemini wins and we cannot.
 - **Building on the stale review.** `PROJECT_REVIEW-2026-07-05.md` is partly stale — read the
   brief's "What's already true" section, and the code, not the archive.
 - **A photo shows an apparent obstacle at capture time.** It never certifies current passage, an

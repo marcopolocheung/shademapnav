@@ -9,7 +9,7 @@ input=$(cat 2>/dev/null || echo '{}')
 
 dir=$(jq -r '.workspace.current_dir // .cwd // ""' <<<"$input" 2>/dev/null)
 [[ -n "$dir" && -d "$dir" ]] && cd "$dir" 2>/dev/null
-root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "shademapnav"; exit 0; }
+root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "umbra"; exit 0; }
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')
 model=$(jq -r '.model.display_name // ""' <<<"$input" 2>/dev/null)
@@ -17,7 +17,7 @@ model=$(jq -r '.model.display_name // ""' <<<"$input" 2>/dev/null)
 # Track inferred from the branch name when it follows the brief's conventions.
 track=""
 case "$branch" in
-  shade/*|*/a[0-9]*) track="A" ;;
+  shadow/*|*/a[0-9]*) track="A" ;;
   nav/*|guidance/*)  track="B" ;;
   agent/*|copilot/*) track="C" ;;
   heat/*|timing/*)   track="D" ;;

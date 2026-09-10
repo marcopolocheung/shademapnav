@@ -10,16 +10,16 @@ const MADISON = { name: "Madison Square Park", lat: 40.7414, lng: -73.9882 };
 
 export const toolErrorStaysHonest: Scenario = {
   id: "tool-error-stays-honest",
-  intent: "a failed shade probe is fed back as an error and still ends in a plotted answer",
-  userText: "Is Madison Square Park shaded right now?",
+  intent: "a failed shadow probe is fed back as an error and still ends in a plotted answer",
+  userText: "Is Madison Square Park shadowed right now?",
   tools: {
     geocode_place: { results: [MADISON] },
-    check_shade: { error: "No building geometry loaded for that area." },
+    check_shadow: { error: "No building geometry loaded for that area." },
     plot_points: { ok: true, plotted: 1 },
   },
   script: [
     { calls: [{ name: "geocode_place", args: { query: "Madison Square Park" } }] },
-    { calls: [{ name: "check_shade", args: { lat: MADISON.lat, lng: MADISON.lng } }] },
+    { calls: [{ name: "check_shadow", args: { lat: MADISON.lat, lng: MADISON.lng } }] },
     {
       calls: [
         {
@@ -29,24 +29,24 @@ export const toolErrorStaysHonest: Scenario = {
       ],
     },
     { text: "draft answer from the research model" },
-    { text: "I couldn't measure shade at Madison Square Park — it's pinned so you can look." },
+    { text: "I couldn't measure shadow at Madison Square Park — it's pinned so you can look." },
   ],
   grounded: [MADISON.name],
   decoys: ["Willow Court Café"],
   maxLlmCalls: 5,
   maxToolCalls: 3,
   expect: {
-    toolOrder: ["geocode_place", "check_shade", "plot_points"],
+    toolOrder: ["geocode_place", "check_shadow", "plot_points"],
     plotsBeforeWrite: true,
     pinLabels: [MADISON.name],
-    answer: "I couldn't measure shade at Madison Square Park — it's pinned so you can look.",
+    answer: "I couldn't measure shadow at Madison Square Park — it's pinned so you can look.",
   },
 };
 
 export const emptySearchInventsNothing: Scenario = {
   id: "empty-search-invents-nothing",
   intent: "an empty search result plots nothing and names nothing",
-  userText: "Find me a shaded café around here",
+  userText: "Find me a shadowed café around here",
   tools: {
     search_places: { results: [], note: "No matches found." },
   },
@@ -72,7 +72,7 @@ export const noResearchNoPins: Scenario = {
   userText: "What's the capital of France?",
   script: [
     { text: "draft answer from the research model" },
-    { text: "I only help plan a day around shade and sun." },
+    { text: "I only help plan a day around shadow and sun." },
   ],
   decoys: ["Bryant Park"],
   maxLlmCalls: 2,
@@ -81,14 +81,14 @@ export const noResearchNoPins: Scenario = {
     toolOrder: [],
     plotsBeforeWrite: false,
     pinLabels: [],
-    answer: "I only help plan a day around shade and sun.",
+    answer: "I only help plan a day around shadow and sun.",
   },
 };
 
 export const unknownLocationAsksInstead: Scenario = {
   id: "unknown-location-asks-instead",
   intent: "with no located map the loop asks for an area rather than inventing one",
-  userText: "Somewhere shaded, please",
+  userText: "Somewhere shadowed, please",
   context: { locationKnown: false, zoom: 2, center: { lat: 0, lng: 0 } },
   script: [
     { text: "draft answer from the research model" },
@@ -114,7 +114,7 @@ const MANY = Array.from({ length: 12 }, (_, i) => ({
 export const fallbackPinsCapAtEight: Scenario = {
   id: "fallback-pins-cap-at-eight",
   intent: "twelve search hits become at most eight pins",
-  userText: "Show me every shaded park nearby",
+  userText: "Show me every shadowed park nearby",
   tools: {
     search_places: { results: MANY },
     plot_points: { ok: true, plotted: 8 },
@@ -143,7 +143,7 @@ const BRYANT = { name: "Bryant Park", lat: 40.7536, lng: -73.9832 };
 export const duplicateHitsBecomeOnePin: Scenario = {
   id: "duplicate-hits-become-one-pin",
   intent: "two search hits at the same coordinate become a single pin",
-  userText: "Shaded parks around Midtown",
+  userText: "Shadowed parks around Midtown",
   tools: {
     search_places: {
       results: [

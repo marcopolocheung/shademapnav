@@ -4,7 +4,7 @@
  * Each tool is a thin, typed wrapper over capabilities the app already has:
  * geocoding (Nominatim), the solar-intensity model, the WebGL shadow simulator
  * (queried from loaded or fetched building geometry), the time/date state, and the
- * shade-aware routing pipeline. The LLM plans; these tools act.
+ * shadow-aware routing pipeline. The LLM plans; these tools act.
  *
  * Tool executors receive an `AgentContext` of live handles supplied by the
  * React layer (see useAgent.ts) so they can read/write app state without the
@@ -13,8 +13,8 @@
 import type maplibregl from "maplibre-gl";
 import type { IShadowLayer } from "../shadow/IShadowLayer";
 import { geocodeForward, geocodeNear } from "../nominatim";
-import { computeSolarIntensity } from "../shadeSampling";
-import { queryOffscreenBuildingShade } from "../shadow/offscreenShade";
+import { computeSolarIntensity } from "../shadowSampling";
+import { queryOffscreenBuildingShadow } from "../shadow/offscreenShadow";
 import { fromMapLocal, toMapLocal } from "../timezone";
 import { parseTime } from "../../hooks/useShadowTime";
 import type { LlmFunctionDeclaration } from "./llmClient";
@@ -95,8 +95,8 @@ function requestBrowserLocation(): Promise<[number, number] | null> {
   });
 }
 
-function shadeStatus(frac: number): "shaded" | "partial sun" | "sunlit" {
-  if (frac >= 0.6) return "shaded";
+function shadowStatus(frac: number): "shadowed" | "partial sun" | "sunlit" {
+  if (frac >= 0.6) return "shadowed";
   if (frac >= 0.25) return "partial sun";
   return "sunlit";
 }
@@ -143,9 +143,9 @@ export const toolDeclarations: LlmFunctionDeclaration[] = [
     },
   },
   {
-    name: "check_shade",
+    name: "check_shadow",
     description:
-      "Real building-shade at a spot and time from building geometry. Returns shadeFraction 0..1.",
+      "Real building-shadow at a spot and time from building geometry. Returns shadowFraction 0..1.",
     parameters: {
       type: "object",
       properties: {
@@ -192,9 +192,9 @@ export const toolDeclarations: LlmFunctionDeclaration[] = [
     },
   },
   {
-    name: "plan_shaded_route",
+    name: "plan_shadowed_route",
     description:
-      "Draw a shade-aware walking route through an ordered set of stops (shortest/balanced/most-shaded for the current time).",
+      "Draw a shadow-aware walking route through an ordered set of stops (shortest/balanced/most-shadowed for the current time).",
     parameters: {
       type: "object",
       properties: {
@@ -356,37 +356,37 @@ export async function executeTool(
       };
     }
 
-    case "check_shade": {
+    case "check_shadow": {
       const lat = num(args.lat);
       const lng = num(args.lng);
       if (lat == null || lng == null) return { error: "lat and lng are required." };
 
       const probeDate = dateAtLocalTime(ctx.dateRef.current, offset, str(args.time));
-      const geometryShade = ctx.shadowLayerRef.current?.queryPointShade?.(lng, lat, { date: probeDate });
-      if (geometryShade) {
-        const frac = geometryShade.shadeFraction;
+      const geometryShadow = ctx.shadowLayerRef.current?.queryPointShadow?.(lng, lat, { date: probeDate });
+      if (geometryShadow) {
+        const frac = geometryShadow.shadowFraction;
         return {
-          shadeFraction: +frac.toFixed(2),
-          status: shadeStatus(frac),
+          shadowFraction: +frac.toFixed(2),
+          status: shadowStatus(frac),
           atLocalTime: fmtLocalTime(probeDate, offset),
-          source: geometryShade.source,
+          source: geometryShadow.source,
         };
       }
 
       try {
-        const offscreenShade = await queryOffscreenBuildingShade(lng, lat, probeDate);
-        const frac = offscreenShade.shadeFraction;
+        const offscreenShadow = await queryOffscreenBuildingShadow(lng, lat, probeDate);
+        const frac = offscreenShadow.shadowFraction;
         return {
-          shadeFraction: +frac.toFixed(2),
-          status: shadeStatus(frac),
+          shadowFraction: +frac.toFixed(2),
+          status: shadowStatus(frac),
           atLocalTime: fmtLocalTime(probeDate, offset),
-          source: offscreenShade.source,
-          buildingCount: offscreenShade.buildingCount,
+          source: offscreenShadow.source,
+          buildingCount: offscreenShadow.buildingCount,
         };
       } catch {
         return {
           error:
-            "Could not check building shade here without moving the map. Try again in a moment.",
+            "Could not check building shadow here without moving the map. Try again in a moment.",
         };
       }
     }
@@ -445,7 +445,7 @@ export async function executeTool(
       };
     }
 
-    case "plan_shaded_route": {
+    case "plan_shadowed_route": {
       const fromLat = num(args.fromLat);
       const fromLng = num(args.fromLng);
       const toLat = num(args.toLat);
@@ -474,7 +474,7 @@ export async function executeTool(
         viaStops: via.length,
         note:
           "Route calculation started and will draw on the map. It produces " +
-          "shortest, balanced, and most-shaded options for the current time.",
+          "shortest, balanced, and most-shadowed options for the current time.",
       };
     }
 

@@ -1,5 +1,5 @@
 import type { RouteOption, RouteLeg } from "../lib/routing";
-import { describeShadeProvenance } from "../lib/shadeProvenance";
+import { describeShadowProvenance } from "../lib/shadowProvenance";
 import { partialRouteNotice } from "../lib/partialRoute";
 import { routeLegSummary } from "../lib/routeLegSummary";
 import { routeExposureLine } from "../lib/routeTradeoff";
@@ -18,12 +18,12 @@ interface RouteCardProps {
 }
 
 export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended }: RouteCardProps) {
-  const streak = r.longestContinuousShadeM >= 10 ? `${Math.round(r.longestContinuousShadeM)}m shade` : null;
-  const transitions = r.shadeTransitions === 0 ? "continuous" : `${r.shadeTransitions} break${r.shadeTransitions === 1 ? "" : "s"}`;
+  const streak = r.longestContinuousShadowM >= 10 ? `${Math.round(r.longestContinuousShadowM)}m shadow` : null;
+  const transitions = r.shadowTransitions === 0 ? "continuous" : `${r.shadowTransitions} break${r.shadowTransitions === 1 ? "" : "s"}`;
   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
-  const shadePct = Math.round(r.shadeCoverage * 100);
-  // Absent on sketch and transit routes, whose shade was not sampled per sidewalk.
-  const shadeSource = r.shadeSource ? describeShadeProvenance(r.shadeSource) : null;
+  const shadowPct = Math.round(r.shadowCoverage * 100);
+  // Absent on sketch and transit routes, whose shadow was not sampled per sidewalk.
+  const shadowSource = r.shadowSource ? describeShadowProvenance(r.shadowSource) : null;
   const isPartial = !!r.partial;
 
   return (
@@ -74,7 +74,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
               color: selected ? "var(--md-on-surface)" : "var(--md-on-surface-variant)",
             }}
           >
-            {shadePct}% shade
+            {shadowPct}% shadow
           </span>
         </div>
 
@@ -84,12 +84,12 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
           </div>
         )}
 
-        {/* Shade bar */}
+        {/* Shadow bar */}
         <div className="mt-2 flex items-center gap-2">
           <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(130,85,0,0.08)" }}>
             <div
               className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${shadePct}%`, background: "var(--md-primary-container)" }}
+              style={{ width: `${shadowPct}%`, background: "var(--md-primary-container)" }}
             />
           </div>
           <span className="text-[10px] tabular-nums w-12 text-right" style={{ color: "var(--md-on-surface-variant)" }}>
@@ -101,9 +101,9 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
           {routeExposureLine(r)}
         </div>
 
-        {shadeSource && (
+        {shadowSource && (
           <div className="mt-1 text-[10px]" style={{ color: "var(--md-on-surface-variant)" }}>
-            {shadeSource}
+            {shadowSource}
           </div>
         )}
 
@@ -116,7 +116,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
             </div>
             {streak && (
               <div className="rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
-                <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Continuous Shade</div>
+                <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Continuous Shadow</div>
                 <div className="text-xs font-semibold mt-0.5" style={{ color: "var(--md-on-surface)" }}>{streak}</div>
               </div>
             )}
@@ -127,7 +127,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
               </div>
             )}
             <div className="rounded-lg p-2" style={{ background: "var(--md-surface-container-low)" }}>
-              <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shade Breaks</div>
+              <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--md-on-surface-variant)" }}>Shadow Breaks</div>
               <div className="text-xs font-semibold mt-0.5" style={{ color: "var(--md-on-surface)" }}>{transitions}</div>
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function RouteCard({ route: r, selected, onSelect, onSave, onExpo
           const sunLabel = sunExposure < 0.05
             ? "Underground — no sun"
             : sunExposure < 0.2
-            ? "Mostly shaded"
+            ? "Mostly shadowed"
             : "Some sun exposure";
           const sunColor = sunExposure < 0.05
             ? "#0e7490"

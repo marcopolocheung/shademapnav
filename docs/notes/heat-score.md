@@ -1,6 +1,6 @@
-# How ShadeMapNav scores a route for heat
+# How Umbra scores a route for heat
 
-**Method version `shade-radiation-v1`.** Implemented in `app/lib/heat/score.ts`.
+**Method version `shadow-radiation-v1`.** Implemented in `app/lib/heat/score.ts`.
 **Status: experimental.** The app labels it so, and this page explains why.
 
 > This score is an *intensity* — how hot the walk feels, not how long it lasts. The UV
@@ -32,7 +32,7 @@ does not print the word "Heat" over a number that means a different thing.
 ## The score is an intensity, not a dose
 
 It estimates how hot the walk *feels*, not how much heat you accumulate over it. A
-90-minute shaded walk can score lower than a 10-minute exposed one, and that is the
+90-minute shadowed walk can score lower than a 10-minute exposed one, and that is the
 intended behaviour: the trip's length and its minutes in sun are on screen directly
 above the score, and rolling duration into the number would silently rank a long
 comfortable walk worse than a short punishing one.
@@ -61,10 +61,10 @@ easily. Nothing says a 60 is twice as bad as a 30.
 ## The felt temperature
 
 ```
-feltC = shadeAmbientC + sunFraction × sunPenaltyC
+feltC = shadowAmbientC + sunFraction × sunPenaltyC
 ```
 
-### `shadeAmbientC` — what it feels like out of the sun
+### `shadowAmbientC` — what it feels like out of the sun
 
 Open-Meteo's `apparent_temperature`, with its own solar term subtracted.
 
@@ -80,8 +80,8 @@ w2m = w10m × 0.75
 The `Q` term adds **up to about 2.5 °C** of solar warming at 1000 W/m², and exactly
 zero below 550 W/m². Critically, it uses the *grid cell's* radiation with no local
 shading — it assumes the sun reaches you, which is precisely the assumption this app
-exists to question. So `score.ts` removes that term and adds a shade-aware penalty of
-its own. Without it, a fully shaded route would still be charged for sunshine.
+exists to question. So `score.ts` removes that term and adds a shadow-aware penalty of
+its own. Without it, a fully shadowed route would still be charged for sunshine.
 
 Removing the term needs the wind speed the formula divides by, **in metres per second**.
 Open-Meteo answers in km/h unless asked otherwise, so `weather.ts` sends
@@ -94,14 +94,14 @@ temperature only"), because humidity and wind are then not in the number at all.
 
 ### `sunFraction` — how much of the trip is exposed
 
-Sunlit minutes over total minutes, from the route's sampled shade coverage at walking
+Sunlit minutes over total minutes, from the route's sampled shadow coverage at walking
 pace. A route half in sun takes half the penalty.
 
 ### `sunPenaltyC` — what direct sun adds
 
 `min(6.5, shortwave_radiation × 0.005)` °C.
 
-Measured street-shade studies put the sun-versus-shade difference at roughly
+Measured street-shadow studies put the sun-versus-shadow difference at roughly
 **3.1–6.3 °C UTCI** on hot summer days, when global shortwave near solar noon is on
 the order of 900 W/m². The middle of that band against that irradiance gives about
 **0.005 °C per W/m²**, and the cap is the top of the reported range.
@@ -127,15 +127,15 @@ request D2 already makes.
 ## Degraded mode
 
 With no forecast — or a forecast missing radiation or temperature — the score falls
-back to `shade-only`: the sunlit share of the trip, times 100, and nothing else.
+back to `shadow-only`: the sunlit share of the trip, times 100, and nothing else.
 
 That number is **not comparable** to a felt-temperature score. 70 on the UTCI ramp is
-about 35 °C; 70 in shade-only mode is 70% of the walk in sun. So the UI stops using the
+about 35 °C; 70 in shadow-only mode is 70% of the walk in sun. So the UI stops using the
 word "Heat" for it altogether and reads *"70% of this walk is in sun · no weather
 forecast — heat not scored"*. `mode` carries the same distinction in the data.
 
 `confidence` records which rung the estimate is on: 0.6 with apparent temperature,
-0.45 with dry-bulb only, 0.3 in shade-only mode. All three rungs are distinguishable on
+0.45 with dry-bulb only, 0.3 in shadow-only mode. All three rungs are distinguishable on
 screen without it, so nothing currently reads the field.
 
 ## What this model does not include
@@ -143,10 +143,10 @@ screen without it, so nothing currently reads the field.
 1. **Mean radiant temperature.** The real driver of outdoor thermal comfort, and the
    thing SOLWEIG-class models compute. We approximate its effect with one constant.
 2. **Sky view factor.** A narrow street between tall buildings and an open plaza in the
-   same shade get the same penalty here. Track A's A9 is what would fix this.
+   same shadow get the same penalty here. Track A's A9 is what would fix this.
 3. **Surface materials and albedo.** Asphalt and grass are the same surface to us.
-4. **Building and pavement re-radiation.** Shade next to a hot west-facing wall is
-   worse than shade in a park; this model cannot tell them apart.
+4. **Building and pavement re-radiation.** Shadow next to a hot west-facing wall is
+   worse than shadow in a park; this model cannot tell them apart.
 5. **Wind at street level.** We use the grid's 10 m wind, funnelled and blocked
    differently on every street.
 6. **Humidity beyond what apparent temperature already folds in.**
@@ -177,13 +177,13 @@ still means a 40 °C day.
   https://github.com/open-meteo/open-meteo/blob/main/Sources/App/Helper/Meteorology.swift
   — and the maintainer's note that the 550 W/m² cutoff was added after "unreasonably
   high values" — https://github.com/open-meteo/open-meteo/discussions/651
-- **Sun-vs-shade UTCI, street shade, hot Mediterranean summer**, mean decrease 3.1 °C —
+- **Sun-vs-shadow UTCI, street shadow, hot Mediterranean summer**, mean decrease 3.1 °C —
   Aleksandrowicz & Pearlmutter, *Landscape & Urban Planning*, 2022 —
   https://www.sciencedirect.com/science/article/abs/pii/S0169204622002377
-- **Sun-vs-shade UTCI, street trees**, 3.19–6.27 °C on a hot summer day —
+- **Sun-vs-shadow UTCI, street trees**, 3.19–6.27 °C on a hot summer day —
   *Theor Appl Climatol*, 2025 —
   https://link.springer.com/article/10.1007/s00704-025-05400-7
-- **Sun-vs-shade Tmrt, Phoenix summer**, >65 °C in sun against <38 °C in shade —
+- **Sun-vs-shadow Tmrt, Phoenix summer**, >65 °C in sun against <38 °C in shadow —
   ASU/Middel, 2026 — https://www.eurekalert.org/news-releases/1131561
 - **UV as a share of global shortwave**, 3.1% (January) to 7.8% (June) —
   https://www.sciencedirect.com/science/article/abs/pii/0038092X9090028B

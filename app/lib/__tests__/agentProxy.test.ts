@@ -5,7 +5,7 @@ type JsonBody = Record<string, unknown>;
 function makePayload(model = "gpt-oss-120b") {
   return {
     model,
-    messages: [{ role: "user", content: "plan shade" }],
+    messages: [{ role: "user", content: "plan shadow" }],
   };
 }
 

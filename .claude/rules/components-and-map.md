@@ -27,7 +27,7 @@ are where the invariants bite hardest.
 initial bundle. A static import from app code silently doubles the entry bundle; type-only
 imports are fine. A `PreToolUse` hook blocks the static form.
 
-**The map keeps `canvasContextAttributes: { preserveDrawingBuffer: true }`.** Shade sampling
+**The map keeps `canvasContextAttributes: { preserveDrawingBuffer: true }`.** Shadow sampling
 and GeoTIFF export read the canvas back.
 
 The map instance flows up **once** through `onMapReady(map)` into a ref — never into state.
@@ -40,7 +40,7 @@ standard, not desktop aesthetics:
 
 - Touch targets ~44px minimum. The bottom sheet, timeline handle, floating controls and route
   cards are all thumb-operated. `docs/notes/touch-target-audit.md` records a prior pass.
-- Text over the map canvas needs a scrim or plate — and remember the shade overlay darkens the
+- Text over the map canvas needs a scrim or plate — and remember the shadow overlay darkens the
   basemap in exactly the places the user is looking.
 - Panels occlude the thing being decided about. When one opens, know what it covers.
 - `AppShell.tsx` + `page.tsx` drive the responsive split: sidebar wide, bottom sheet narrow.

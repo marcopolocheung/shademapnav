@@ -3,8 +3,8 @@ import {
   countRouteLinePixels,
   maskDiff,
   sampleMapCanvas,
-  shadeMask,
-  shadedFraction,
+  shadowMask,
+  shadowedFraction,
 } from "./helpers/map";
 import {
   type Basemap,
@@ -42,18 +42,18 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
   //    first shadow pass are both slower under SwiftShader than on a GPU.
   await expect
     .poll(
-      async () => shadedFraction(shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))),
+      async () => shadowedFraction(shadowMask(await sampleMapCanvas(page, SAMPLE_STEP))),
       { timeout: 90_000, message: "no blue-dominant shadow pixels ever appeared on the map" }
     )
     .toBeGreaterThan(0.02);
 
   // Let the field settle before it becomes the reference frame: a half-finished
   // first shadow pass would otherwise read as the drag's doing.
-  let morningMask = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+  let morningMask = shadowMask(await sampleMapCanvas(page, SAMPLE_STEP));
   await expect
     .poll(
       async () => {
-        const next = shadeMask(await sampleMapCanvas(page, SAMPLE_STEP));
+        const next = shadowMask(await sampleMapCanvas(page, SAMPLE_STEP));
         const drift = maskDiff(morningMask, next);
         morningMask = next;
         return drift;
@@ -63,7 +63,7 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
     .toBeLessThan(0.005);
 
   // 2. Dragging the timeline moves the shadows. Compare masks, not totals: at a
-  //    different hour the same *amount* of shade can fall somewhere else.
+  //    different hour the same *amount* of shadow can fall somewhere else.
   // The desktop and mobile layouts each mount a timeline; only one is displayed
   // at this viewport.
   const slider = page.getByTestId("timeline-slider").filter({ visible: true });
@@ -97,7 +97,7 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
     .toBeLessThanOrEqual(2);
 
   await expect
-    .poll(async () => maskDiff(morningMask, shadeMask(await sampleMapCanvas(page, SAMPLE_STEP))), {
+    .poll(async () => maskDiff(morningMask, shadowMask(await sampleMapCanvas(page, SAMPLE_STEP))), {
       timeout: 20_000,
       message: "the shadow field did not change after dragging the timeline",
     })
@@ -106,17 +106,17 @@ test("loads, paints shadows, retimes them, and renders a calculated route", asyn
   // 3. A two-point route calculates and its line reaches the canvas. The share
   //    link already seeded both waypoints and opened the directions panel.
   const routeLinePixelsBefore = await countRouteLinePixels(page);
-  await page.getByRole("button", { name: "Find Shaded Route" }).click();
+  await page.getByRole("button", { name: "Find Shadowed Route" }).click();
 
   await expect
     .poll(
       () =>
         page.evaluate(() => {
-          const metrics = (window as unknown as { __shadeMapMetrics?: { latest?: unknown } })
-            .__shadeMapMetrics;
+          const metrics = (window as unknown as { __umbraMetrics?: { latest?: unknown } })
+            .__umbraMetrics;
           return Boolean(metrics?.latest);
         }),
-      { timeout: 40_000, message: "no routing run was ever recorded on window.__shadeMapMetrics" }
+      { timeout: 40_000, message: "no routing run was ever recorded on window.__umbraMetrics" }
     )
     .toBe(true);
 

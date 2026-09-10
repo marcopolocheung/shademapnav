@@ -1,6 +1,6 @@
 ---
 name: gates
-description: Run all four ShadeMapNav CI gates (lint, typecheck, test, build) in order, report the real output, and record the result so the session can honestly claim the work was verified. Use before opening any PR and whenever asked whether the checks pass.
+description: Run all four Umbra CI gates (lint, typecheck, test, build) in order, report the real output, and record the result so the session can honestly claim the work was verified. Use before opening any PR and whenever asked whether the checks pass.
 argument-hint: "[--quick to stop at typecheck]"
 disable-model-invocation: false
 allowed-tools:

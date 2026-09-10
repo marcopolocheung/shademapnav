@@ -1,7 +1,7 @@
 // Pure TypeScript routing utilities — no browser dependencies
 import type { PartialRouteInfo } from "./partialRoute";
 import type { TrainDrawData } from "./trainGraph";
-import type { ShadeProvenance } from "./shadeProvenance";
+import type { ShadowProvenance } from "./shadowProvenance";
 
 export interface OsmNode {
   id: number;
@@ -21,7 +21,7 @@ export type SidewalkSide = "left" | "right";
 export interface GraphEdge {
   toId: number;
   distanceM: number;
-  shadeFactor: number;
+  shadowFactor: number;
   side?: SidewalkSide;
   highway?: string;
   surface?: string;
@@ -49,21 +49,21 @@ export interface RouteResult {
    */
   sides?: Array<SidewalkSide | null>;
   distanceM: number;
-  shadeCoverage: number; // 0–1
-  longestContinuousShadeM: number;
+  shadowCoverage: number; // 0–1
+  longestContinuousShadowM: number;
   /**
    * Longest unbroken run of *sunlit* edges, in meters.
    *
-   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * Not derivable from `shadowCoverage`: two routes with identical coverage differ
    * entirely depending on whether the sun arrives as one long crossing or as many
    * short gaps, and it is the long unbroken stretch a walker actually feels.
    */
   longestContinuousSunM: number;
-  shadeTransitions: number;
+  shadowTransitions: number;
   detourRatio: number;
   turnCount: number;
-  /** Where `shadeCoverage` came from. Set by the caller that sampled; see `shadeProvenance.ts`. */
-  shadeSource?: ShadeProvenance;
+  /** Where `shadowCoverage` came from. Set by the caller that sampled; see `shadowProvenance.ts`. */
+  shadowSource?: ShadowProvenance;
 }
 
 export interface TransitLeg {
@@ -81,7 +81,7 @@ export interface RouteLeg {
   geojson: GeoJSON.Feature<GeoJSON.LineString>;
   distanceM?: number;        // walk legs
   travelTimeSec?: number;    // transit legs
-  shadeCoverage?: number;    // walk legs only (0–1)
+  shadowCoverage?: number;    // walk legs only (0–1)
   line?: string;             // transit legs: line ref/code
   lineColor?: string;        // transit legs: hex color
   lineName?: string;         // transit legs: display name
@@ -90,22 +90,22 @@ export interface RouteLeg {
 }
 
 export interface RouteOption {
-  label: string; // "Shortest" | "Balanced" | "Most shaded" | "Via MRT"
+  label: string; // "Shortest" | "Balanced" | "Most shadowed" | "Via MRT"
   geojson: GeoJSON.Feature<GeoJSON.LineString>;
   /** Per-segment sidewalk choice — see `RouteResult.sides`. Walk routes only. */
   sides?: Array<SidewalkSide | null>;
   distanceM: number;
-  shadeCoverage: number; // 0–1
-  longestContinuousShadeM: number;
+  shadowCoverage: number; // 0–1
+  longestContinuousShadowM: number;
   /**
    * Longest unbroken run of *sunlit* edges, in meters.
    *
-   * Not derivable from `shadeCoverage`: two routes with identical coverage differ
+   * Not derivable from `shadowCoverage`: two routes with identical coverage differ
    * entirely depending on whether the sun arrives as one long crossing or as many
    * short gaps, and it is the long unbroken stretch a walker actually feels.
    */
   longestContinuousSunM: number;
-  shadeTransitions: number;
+  shadowTransitions: number;
   detourRatio: number;
   turnCount: number;
   transitLeg?: TransitLeg; // undefined for all pure-walk routes
@@ -114,13 +114,13 @@ export interface RouteOption {
   mrtEntrances?: [[number, number], [number, number]]; // [boardEntrance, alightEntrance] in [lng, lat]
   trainDrawData?: TrainDrawData; // multi-colored polylines, stops, transfers for MapView
   partial?: PartialRouteInfo; // present when only completed legs are shown
-  /** Where `shadeCoverage` came from. Absent on sketch and transit routes. */
-  shadeSource?: ShadeProvenance;
+  /** Where `shadowCoverage` came from. Absent on sketch and transit routes. */
+  shadowSource?: ShadowProvenance;
 }
 
 export interface DijkstraOptions {
   crossingPenaltyM?: number;  // default 0; extra meters cost per intersection traversal
-  solarIntensity?: number;    // 0–1; scales MAX_SHADE_SAVING; default 1.0
+  solarIntensity?: number;    // 0–1; scales MAX_SHADOW_SAVING; default 1.0
   straightLineDistM?: number; // for detourRatio; defaults to 0 → ratio = 1.0
   maxDetourFactor?: number;   // paretoRoutes only: search budget = shortest distance
                               // × this factor + 250 m flat; default 2.0
@@ -364,7 +364,7 @@ export function snapToEdge(
 
   // Inherit edge metadata from the split edge.
   const sourceEdge = (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId);
-  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadeFactor: 0 };
+  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadowFactor: 0 };
 
   // Wire virtual node bidirectionally
   graph.adj.set(virtualId, [
@@ -390,7 +390,7 @@ export function snapToEdge(
  * resolves that once, so callers never have to reason about it again — and so the
  * flip is testable, which it is not when spelled inline at the call site.
  *
- * Both outputs are the source edge with only `shadeFactor` and `side` replaced, so
+ * Both outputs are the source edge with only `shadowFactor` and `side` replaced, so
  * every OSM access tag it carries (`highway`, `foot`, `bicycle`, …) survives the
  * split. Rebuilding the edge from scratch instead dropped them silently: the edge
  * still looked well-formed, so any access predicate read it as "no restriction".
@@ -398,37 +398,37 @@ export function snapToEdge(
 export function parallelSidewalkEdges(
   fromId: number,
   sourceEdge: GraphEdge,
-  canonicalLeftShade: number,
-  canonicalRightShade: number
+  canonicalLeftShadow: number,
+  canonicalRightShadow: number
 ): [GraphEdge, GraphEdge] {
   const isCanonical = fromId < sourceEdge.toId;
-  const travellerLeft = isCanonical ? canonicalLeftShade : canonicalRightShade;
-  const travellerRight = isCanonical ? canonicalRightShade : canonicalLeftShade;
+  const travellerLeft = isCanonical ? canonicalLeftShadow : canonicalRightShadow;
+  const travellerRight = isCanonical ? canonicalRightShadow : canonicalLeftShadow;
   return [
-    { ...sourceEdge, shadeFactor: travellerLeft, side: "left" },
-    { ...sourceEdge, shadeFactor: travellerRight, side: "right" },
+    { ...sourceEdge, shadowFactor: travellerLeft, side: "left" },
+    { ...sourceEdge, shadowFactor: travellerRight, side: "right" },
   ];
 }
 
-/** Cap shade saving at 70% so fully-shaded edges still cost 30% of their distance.
- *  Prevents Dijkstra from creating unbounded detours through zero-cost shaded paths. */
-const MAX_SHADE_SAVING = 0.7;
+/** Cap shadow saving at 70% so fully-shadowed edges still cost 30% of their distance.
+ *  Prevents Dijkstra from creating unbounded detours through zero-cost shadowed paths. */
+const MAX_SHADOW_SAVING = 0.7;
 
 /**
  * Dijkstra's shortest path.
- * Edge cost = distanceM * (1 - shadeStrength * shadeFactor * MAX_SHADE_SAVING * solarIntensity)
+ * Edge cost = distanceM * (1 - shadowStrength * shadowFactor * MAX_SHADOW_SAVING * solarIntensity)
  *           + crossingPenaltyM (when toNode is an intersection, except destination)
- * shadeStrength=1 → maximally prefers shaded paths; 0 → shortest distance.
+ * shadowStrength=1 → maximally prefers shadowed paths; 0 → shortest distance.
  */
 export function dijkstra(
   graph: RoutingGraph,
   startId: number,
   endId: number,
-  shadeStrength: number,
+  shadowStrength: number,
   options: DijkstraOptions = {}
 ): RouteResult | null {
   const { crossingPenaltyM = 0, solarIntensity = 1.0, straightLineDistM = 0 } = options;
-  const effectiveMaxShadeSaving = MAX_SHADE_SAVING * solarIntensity;
+  const effectiveMaxShadowSaving = MAX_SHADOW_SAVING * solarIntensity;
 
   const dist = new Map<number, number>();
   const prev = new Map<number, number>();
@@ -453,7 +453,7 @@ export function dijkstra(
           ? crossingPenaltyM
           : 0;
       const edgeCost =
-        edge.distanceM * (1 - shadeStrength * edge.shadeFactor * effectiveMaxShadeSaving)
+        edge.distanceM * (1 - shadowStrength * edge.shadowFactor * effectiveMaxShadowSaving)
         + crossing;
       const newCost = cost + edgeCost;
       if (newCost < (dist.get(edge.toId) ?? Infinity)) {
@@ -479,11 +479,11 @@ export function dijkstra(
 
   // Compute aggregate stats along the path
   const sides: Array<SidewalkSide | null> = [];
-  const SHADE_THRESH = 0.5;
-  let totalDist = 0, shadedDist = 0;
-  let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+  const SHADOW_THRESH = 0.5;
+  let totalDist = 0, shadowedDist = 0;
+  let longestContinuousShadowM = 0, currentStreakM = 0, shadowTransitions = 0;
   let longestContinuousSunM = 0, currentSunStreakM = 0;
-  let prevShaded: boolean | null = null;
+  let prevShadowed: boolean | null = null;
   let turnCount = 0, prevBearing: number | null = null;
 
   for (let i = 0; i < nodeIds.length - 1; i++) {
@@ -493,21 +493,21 @@ export function dijkstra(
     if (!edge || edge.toId !== nodeIds[i + 1]) { sides.push(null); continue; }
     sides.push(edge.side ?? null);
     totalDist += edge.distanceM;
-    shadedDist += edge.distanceM * edge.shadeFactor;
+    shadowedDist += edge.distanceM * edge.shadowFactor;
 
-    // Shade continuity tracking
-    const isShaded = edge.shadeFactor > SHADE_THRESH;
-    if (isShaded) {
+    // Shadow continuity tracking
+    const isShadowed = edge.shadowFactor > SHADOW_THRESH;
+    if (isShadowed) {
       currentStreakM += edge.distanceM;
-      longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+      longestContinuousShadowM = Math.max(longestContinuousShadowM, currentStreakM);
       currentSunStreakM = 0;
     } else {
       currentStreakM = 0;
       currentSunStreakM += edge.distanceM;
       longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
     }
-    if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
-    prevShaded = isShaded;
+    if (prevShadowed !== null && isShadowed !== prevShadowed) shadowTransitions++;
+    prevShadowed = isShadowed;
 
     // Turn counting
     const fn = graph.nodes.get(nodeIds[i])!;
@@ -527,10 +527,10 @@ export function dijkstra(
     nodeIds,
     sides,
     distanceM: totalDist,
-    shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
-    longestContinuousShadeM,
+    shadowCoverage: totalDist > 0 ? shadowedDist / totalDist : 0,
+    longestContinuousShadowM,
     longestContinuousSunM,
-    shadeTransitions,
+    shadowTransitions,
     detourRatio,
     turnCount,
   };
@@ -539,30 +539,30 @@ export function dijkstra(
 // ─── Bi-criteria Pareto routing ──────────────────────────────────────────────
 
 /** Flat allowance added to the Pareto detour budget so very short routes can
- *  still take a meaningfully shadier parallel street. */
+ *  still take a meaningfully more shadow parallel street. */
 const DETOUR_FLAT_M = 250;
 
 /**
  * Bi-criteria Pareto routing (NAMOA*-inspired label-setting).
  *
- * Finds the Pareto front of (distance, shaded distance) between start and end.
+ * Finds the Pareto front of (distance, shadowed distance) between start and end.
  * Returns up to 3 RouteResult objects:
  *   - Shortest (min distM)
- *   - Most shaded (max shadeM)
+ *   - Most shadowed (max shadowM)
  *   - Balanced (knee of Pareto front — closest to ideal point in normalized space)
  *
- * The search is bounded — in raw (distance, shaded-meters) space any walk that
- * adds shaded meters is Pareto-optimal, including pacing back and forth on one
- * shaded edge, so an unbounded search both explodes and returns degenerate
+ * The search is bounded — in raw (distance, shadowed-meters) space any walk that
+ * adds shadowed meters is Pareto-optimal, including pacing back and forth on one
+ * shadowed edge, so an unbounded search both explodes and returns degenerate
  * "routes". Three guards keep it sane:
  *   1. Detour budget: labels whose optimistic total length exceeds
  *      shortestDist × maxDetourFactor + DETOUR_FLAT_M are pruned (a plain
  *      distance Dijkstra runs first; also gives a fast unreachable exit).
  *   2. No U-turns: an edge straight back to the node we just came from can
- *      never extend a simple path — it only ever pumps shade.
+ *      never extend a simple path — it only ever pumps shadow.
  *   3. Returned routes are simple paths: representatives are selected only
  *      from destination labels whose path never revisits a node (loops around
- *      a shaded block survive guards 1–2).
+ *      a shadowed block survive guards 1–2).
  *
  * Labels use integer back-pointer IDs (not embedded path arrays) so memory is
  * O(nodes × MAX_LABELS_PER_NODE) rather than O(nodes × labels × pathLength).
@@ -584,7 +584,7 @@ export function paretoRoutes(
   interface PLabel {
     id: number;
     distM: number;
-    shadeM: number;
+    shadowM: number;
     nodeId: number;
     parentId: number;      // allLabels index; -1 for the start label
     prevEdge: GraphEdge | null;
@@ -593,26 +593,26 @@ export function paretoRoutes(
 
   const allLabels: PLabel[] = [];
   const mkLabel = (
-    distM: number, shadeM: number, nodeId: number,
+    distM: number, shadowM: number, nodeId: number,
     parentId: number, prevEdge: GraphEdge | null
   ): PLabel => {
-    const lbl: PLabel = { id: allLabels.length, distM, shadeM, nodeId, parentId, prevEdge, evicted: false };
+    const lbl: PLabel = { id: allLabels.length, distM, shadowM, nodeId, parentId, prevEdge, evicted: false };
     allLabels.push(lbl);
     return lbl;
   };
 
   const MAX_LABELS_PER_NODE = 20;
 
-  // Per-node Pareto set: array of label IDs, sorted distM asc (→ shadeM necessarily
-  // asc too — a later label with less shade would be dominated by an earlier one).
+  // Per-node Pareto set: array of label IDs, sorted distM asc (→ shadowM necessarily
+  // asc too — a later label with less shadow would be dominated by an earlier one).
   const paretoSets = new Map<number, number[]>();
   const getSet = (id: number): number[] => {
     if (!paretoSets.has(id)) paretoSets.set(id, []);
     return paretoSets.get(id)!;
   };
 
-  /** Returns true if a dominates b (a is at least as short AND at least as shaded). */
-  const dom = (a: PLabel, b: PLabel) => a.distM <= b.distM && a.shadeM >= b.shadeM;
+  /** Returns true if a dominates b (a is at least as short AND at least as shadowed). */
+  const dom = (a: PLabel, b: PLabel) => a.distM <= b.distM && a.shadowM >= b.shadowM;
 
   /**
    * Try to insert `incoming` into the Pareto set for its node.
@@ -686,17 +686,17 @@ export function paretoRoutes(
     if (label.nodeId === endId) continue;
 
     // Destination-front pruning: the best this label can still become is
-    // (distM + straight-line remainder, shadeM + whole remaining budget walked
-    // fully shaded). If an already-found destination label dominates even that
+    // (distM + straight-line remainder, shadowM + whole remaining budget walked
+    // fully shadowed). If an already-found destination label dominates even that
     // optimistic completion, the label can't contribute to the front.
     const destSet = paretoSets.get(endId);
     if (destSet && destSet.length > 0 && label.nodeId !== endId) {
       const optDistM  = label.distM + hRemaining(label.nodeId);
-      const optShadeM = label.shadeM + (budgetM - label.distM);
+      const optShadowM = label.shadowM + (budgetM - label.distM);
       let prunedByDest = false;
       for (const id of destSet) {
         const d = allLabels[id];
-        if (d.distM <= optDistM && d.shadeM >= optShadeM) { prunedByDest = true; break; }
+        if (d.distM <= optDistM && d.shadowM >= optShadowM) { prunedByDest = true; break; }
       }
       if (prunedByDest) continue;
     }
@@ -704,7 +704,7 @@ export function paretoRoutes(
     const cameFromId = label.parentId >= 0 ? allLabels[label.parentId].nodeId : Number.NaN;
 
     for (const edge of graph.adj.get(label.nodeId) ?? []) {
-      // U-turns never extend a simple path; they only pump shade meters.
+      // U-turns never extend a simple path; they only pump shadow meters.
       if (edge.toId === cameFromId) continue;
 
       const toNode = graph.nodes.get(edge.toId);
@@ -713,7 +713,7 @@ export function paretoRoutes(
           ? crossingPenaltyM : 0;
 
       const newDistM  = label.distM  + edge.distanceM + crossing;
-      const newShadeM = label.shadeM + edge.distanceM * edge.shadeFactor;
+      const newShadowM = label.shadowM + edge.distanceM * edge.shadowFactor;
 
       // Detour budget: prune anything that can no longer finish within budget
       const hTo = hRemaining(edge.toId);
@@ -724,11 +724,11 @@ export function paretoRoutes(
       let dominated = false;
       for (const id of candidateSet) {
         const ex = allLabels[id];
-        if (ex.distM <= newDistM && ex.shadeM >= newShadeM) { dominated = true; break; }
+        if (ex.distM <= newDistM && ex.shadowM >= newShadowM) { dominated = true; break; }
       }
       if (dominated) continue;
 
-      const newLabel = mkLabel(newDistM, newShadeM, edge.toId, labelId, edge);
+      const newLabel = mkLabel(newDistM, newShadowM, edge.toId, labelId, edge);
       if (insertPareto(newLabel)) {
         heap.push({ labelId: newLabel.id, f: newDistM + hTo });
       }
@@ -758,29 +758,29 @@ export function paretoRoutes(
     // edgePath[i] is the edge from nodeIds[i] to nodeIds[i + 1], so this stays
     // one shorter than nodeIds — the alignment RouteResult.sides documents.
     const sides: Array<SidewalkSide | null> = edgePath.map((e) => e.side ?? null);
-    const SHADE_THRESH = 0.5;
-    let totalDist = 0, shadedDist = 0;
-    let longestContinuousShadeM = 0, currentStreakM = 0, shadeTransitions = 0;
+    const SHADOW_THRESH = 0.5;
+    let totalDist = 0, shadowedDist = 0;
+    let longestContinuousShadowM = 0, currentStreakM = 0, shadowTransitions = 0;
     let longestContinuousSunM = 0, currentSunStreakM = 0;
-    let prevShaded: boolean | null = null;
+    let prevShadowed: boolean | null = null;
     let turnCount = 0, prevBearing: number | null = null;
 
     for (let i = 0; i < edgePath.length; i++) {
       const edge = edgePath[i];
       totalDist  += edge.distanceM;
-      shadedDist += edge.distanceM * edge.shadeFactor;
-      const isShaded = edge.shadeFactor > SHADE_THRESH;
-      if (isShaded) {
+      shadowedDist += edge.distanceM * edge.shadowFactor;
+      const isShadowed = edge.shadowFactor > SHADOW_THRESH;
+      if (isShadowed) {
         currentStreakM += edge.distanceM;
-        longestContinuousShadeM = Math.max(longestContinuousShadeM, currentStreakM);
+        longestContinuousShadowM = Math.max(longestContinuousShadowM, currentStreakM);
         currentSunStreakM = 0;
       } else {
         currentStreakM = 0;
         currentSunStreakM += edge.distanceM;
         longestContinuousSunM = Math.max(longestContinuousSunM, currentSunStreakM);
       }
-      if (prevShaded !== null && isShaded !== prevShaded) shadeTransitions++;
-      prevShaded = isShaded;
+      if (prevShadowed !== null && isShadowed !== prevShadowed) shadowTransitions++;
+      prevShadowed = isShadowed;
 
       const fn = graph.nodes.get(nodeIds[i]);
       const tn = graph.nodes.get(nodeIds[i + 1]);
@@ -800,16 +800,16 @@ export function paretoRoutes(
       nodeIds,
       sides,
       distanceM: totalDist,
-      shadeCoverage: totalDist > 0 ? shadedDist / totalDist : 0,
-      longestContinuousShadeM,
+      shadowCoverage: totalDist > 0 ? shadowedDist / totalDist : 0,
+      longestContinuousShadowM,
       longestContinuousSunM,
-      shadeTransitions,
+      shadowTransitions,
       detourRatio: straightLineDistM > 0 ? totalDist / straightLineDistM : 1.0,
       turnCount,
     };
   };
 
-  // Keep only labels whose path is a simple path — loops around shaded blocks
+  // Keep only labels whose path is a simple path — loops around shadowed blocks
   // survive the U-turn ban but are useless as navigation routes. The shortest
   // path is always simple and within budget, so this never empties the front.
   const candidates = destFront
@@ -817,23 +817,23 @@ export function paretoRoutes(
     .filter(({ res }) => new Set(res.nodeIds).size === res.nodeIds.length);
   if (candidates.length === 0) return [];
 
-  // Select representatives: shortest (min distM), most shaded (max shadeM), knee.
-  // candidates inherit destFront's order: distM asc → shadeM asc.
+  // Select representatives: shortest (min distM), most shadowed (max shadowM), knee.
+  // candidates inherit destFront's order: distM asc → shadowM asc.
   const shortest   = candidates[0];
-  const mostShaded = candidates[candidates.length - 1];
+  const mostShadowed = candidates[candidates.length - 1];
 
   const minDist  = candidates[0].lbl.distM;
   const maxDist  = candidates[candidates.length - 1].lbl.distM;
-  const minShade = candidates[0].lbl.shadeM;
-  const maxShade = candidates[candidates.length - 1].lbl.shadeM;
+  const minShadow = candidates[0].lbl.shadowM;
+  const maxShadow = candidates[candidates.length - 1].lbl.shadowM;
   const distRange  = maxDist  - minDist  || 1;
-  const shadeRange = maxShade - minShade || 1;
+  const shadowRange = maxShadow - minShadow || 1;
 
   let knee = candidates[0];
   let kneeScore = Infinity;
   for (const c of candidates) {
     const nd = (c.lbl.distM  - minDist)  / distRange;
-    const ns = (c.lbl.shadeM - minShade) / shadeRange;
+    const ns = (c.lbl.shadowM - minShadow) / shadowRange;
     const score = Math.sqrt(nd * nd + (1 - ns) * (1 - ns));
     if (score < kneeScore) { kneeScore = score; knee = c; }
   }
@@ -851,7 +851,7 @@ export function paretoRoutes(
 
   tryAdd(shortest);
   tryAdd(knee);
-  tryAdd(mostShaded);
+  tryAdd(mostShadowed);
 
   return results;
 }
@@ -961,7 +961,7 @@ export function snapToReachableEdge(
   const distToTo   = totalDist * (1 - bestT);
 
   const sourceEdge = (graph.adj.get(bestFromId) ?? []).find((e) => e.toId === bestToId);
-  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadeFactor: 0 };
+  const edgeBase = sourceEdge ? { ...sourceEdge } : { shadowFactor: 0 };
 
   graph.adj.set(virtualId, [
     { ...edgeBase, toId: bestFromId, distanceM: distToFrom },
@@ -1230,13 +1230,13 @@ export function sketchBoundingBox(
  *
  * @param waypoints   Simplified waypoints from simplifyPolyline()
  * @param graph       RoutingGraph from fetchRoutingGraph()
- * @param shadeStrength  0.0 = shortest, 1.0 = most shaded (passed to each leg)
+ * @param shadowStrength  0.0 = shortest, 1.0 = most shadowed (passed to each leg)
  * @returns           Full stitched node-ID path, or null if any leg fails
  */
 export function dijkstraMultiLeg(
   waypoints: LatLng[],
   graph: RoutingGraph,
-  shadeStrength: number
+  shadowStrength: number
 ): number[] | null {
   if (waypoints.length < 2)
     throw new Error("Need at least 2 waypoints");
@@ -1246,7 +1246,7 @@ export function dijkstraMultiLeg(
   for (let i = 0; i < waypoints.length - 1; i++) {
     const fromId = snapToGraph(waypoints[i], graph);
     const toId = snapToGraph(waypoints[i + 1], graph);
-    const result = dijkstra(graph, fromId, toId, shadeStrength);
+    const result = dijkstra(graph, fromId, toId, shadowStrength);
     if (!result) return null;
     if (i === 0) {
       fullPath.push(...result.nodeIds);
