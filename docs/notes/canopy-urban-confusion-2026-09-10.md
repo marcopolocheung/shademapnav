@@ -104,7 +104,7 @@ Two things must still be carried forward. Neither is a gate condition; both are 
 
 ## Results — measured 2026-09-10
 
-Reproduce with `node scripts/canopy-urban-confusion.mjs`. Every read is cached under
+Reproduce with `node studies/canopy-urban-confusion.mjs`. Every read is cached under
 `node_modules/.cache/umbra-canopy/`, so the numbers are stable across re-runs and the study
 does not re-hit `source.coop`.
 

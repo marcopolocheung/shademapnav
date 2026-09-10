@@ -9,9 +9,9 @@
  * the thing cities are mostly made of. This script measures that, and the note it
  * feeds — `docs/notes/canopy-urban-confusion-2026-09-10.md` — records the verdict.
  *
- *   node scripts/canopy-urban-confusion.mjs                  # all four AOIs
- *   node scripts/canopy-urban-confusion.mjs --aoi madrid     # one
- *   node scripts/canopy-urban-confusion.mjs --json out.json  # + raw measures
+ *   node studies/canopy-urban-confusion.mjs                  # all four AOIs
+ *   node studies/canopy-urban-confusion.mjs --aoi madrid     # one
+ *   node studies/canopy-urban-confusion.mjs --json out.json  # + raw measures
  *
  * **It is a gate, not a step.** Nothing here reaches `ShadowField`, routing or the
  * renderer, and nothing should until the note says PASS or CONDITIONAL PASS.
@@ -21,6 +21,14 @@
  * Overpass failed two of three recon queries first try. Transient host failures
  * must not contaminate the science, and re-running the analysis must not re-hit
  * the network. Delete `node_modules/.cache/umbra-canopy/` to force a refetch.
+ *
+ * **Why the scanline fill below is a copy.** `scripts/canopy-acq-index.mjs` has the
+ * same fill, and sharing it was the first thing tried. But that script regenerates
+ * `app/lib/canopyRaster/acqDateIndex.json`, which ships in the bundle — so a shared
+ * module would let an edit made for this study change a committed artifact, across
+ * a boundary none of the four gates watches (nothing under `studies/` or `scripts/`
+ * is linted or typechecked). A study does not get to reach into anything that
+ * ships. Forty duplicated lines is the cheaper of the two risks.
  *
  * **Why it bundles the reader instead of reimplementing it.** The canopy raster is
  * read through `app/lib/canopyRaster/canopyCog.ts` — the same overview selection,
@@ -34,9 +42,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mercatorX, mercatorY, rasterizeRings } from "./lib/mercatorRaster.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
 const CACHE_DIR = join(REPO_ROOT, "node_modules", ".cache", "umbra-canopy");
 
 /**
@@ -99,21 +107,35 @@ function argValue(flag) {
   return at === -1 ? undefined : args[at + 1];
 }
 
-const { readCanopyHeights, acquisitionAt, acquisitionDatesIn } = await loadAppModules();
+/**
+ * Bound by `main` before anything reads them.
+ *
+ * `main` is invoked at the very *end* of this file rather than here. Top-level
+ * await runs in source order, so driving the run from the top puts every constant
+ * and arrow function declared below it inside its own temporal dead zone — which
+ * fails at run time, in a file no linter and no typechecker looks at.
+ */
+let readCanopyHeights;
+let acquisitionAt;
+let acquisitionDatesIn;
 
-const results = [];
-for (const aoi of AOIS) {
-  if (only && aoi.slug !== only) continue;
-  process.stderr.write(`\n=== ${aoi.label} ===\n`);
-  const raster = await canopyFor(aoi);
-  const buildings = await buildingsFor(aoi);
-  results.push(analyse(aoi, raster, buildings));
-}
+async function main() {
+  ({ readCanopyHeights, acquisitionAt, acquisitionDatesIn } = await loadAppModules());
 
-report(results);
-if (jsonPath) {
-  writeFileSync(jsonPath, `${JSON.stringify(results, null, 2)}\n`);
-  process.stderr.write(`\nwrote ${jsonPath}\n`);
+  const results = [];
+  for (const aoi of AOIS) {
+    if (only && aoi.slug !== only) continue;
+    process.stderr.write(`\n=== ${aoi.label} ===\n`);
+    const raster = await canopyFor(aoi);
+    const buildings = await buildingsFor(aoi);
+    results.push(analyse(aoi, raster, buildings));
+  }
+
+  report(results);
+  if (jsonPath) {
+    writeFileSync(jsonPath, `${JSON.stringify(results, null, 2)}\n`);
+    process.stderr.write(`\nwrote ${jsonPath}\n`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -687,15 +709,8 @@ function transform1d(f, d, v, z, n) {
 // Report
 // ---------------------------------------------------------------------------
 
-// Declarations, not arrow consts: `report` is called from the top of the file and
-// would hit their temporal dead zone.
-function pct(v) {
-  return v === null ? "—" : `${(v * 100).toFixed(1)}%`;
-}
-
-function num(v, digits = 1) {
-  return v === null ? "—" : v.toFixed(digits);
-}
+const pct = (v) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`);
+const num = (v, digits = 1) => (v === null ? "—" : v.toFixed(digits));
 
 function report(all) {
   const cols = all.map((r) => r.aoi.label);
@@ -823,3 +838,69 @@ function report(all) {
   );
   console.log(row("leaf-off risk", (r) => (r.vintage.leafOffRisk ? "**yes**" : "no")));
 }
+
+// ---------------------------------------------------------------------------
+// Geometry — copied from `scripts/canopy-acq-index.mjs`, deliberately. See the
+// header: that script generates a file the app ships, and a study must not share
+// a module with it.
+// ---------------------------------------------------------------------------
+
+/** Web Mercator sphere radius, metres. EPSG:3857's defining constant. */
+const EARTH_RADIUS_M = 6378137;
+
+/** Latitude beyond which Web Mercator is undefined for tiling purposes. */
+const MERCATOR_MAX_LAT = 85.0511287798066;
+
+function mercatorX(lon) {
+  return (EARTH_RADIUS_M * lon * Math.PI) / 180;
+}
+
+function mercatorY(lat) {
+  const clamped = Math.min(MERCATOR_MAX_LAT, Math.max(-MERCATOR_MAX_LAT, lat));
+  return EARTH_RADIUS_M * Math.log(Math.tan(Math.PI / 4 + (clamped * Math.PI) / 360));
+}
+
+/**
+ * Scanline fill of a lon/lat ring set onto a `width` x `height` Mercator raster,
+ * even-odd, north-up. `paint` is called with the row-major cell index.
+ *
+ * Per row rather than per cell: a cell-by-cell point-in-polygon over Singapore
+ * CBD's 1,367 footprints would be 1.8M x every edge. This is one pass over the
+ * edges per row. Cells are sampled at their centres, so a footprint smaller than
+ * one pixel paints nothing rather than rounding up to one.
+ *
+ * The original takes a square `grid`; this takes `width` and `height` separately,
+ * because the CHM pixel windows are not square (991x990 at Kent).
+ */
+function rasterizeRings(rings, bbox, width, height, paint) {
+  const [minX, minY, maxX, maxY] = bbox;
+  const cellX = (maxX - minX) / width;
+  const cellY = (maxY - minY) / height;
+
+  for (let row = 0; row < height; row++) {
+    // Sample at the row's centre, in mercator y (north-up).
+    const y = maxY - (row + 0.5) * cellY;
+    const crossings = [];
+    for (const ring of rings) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const [lon1, lat1] = ring[i];
+        const [lon2, lat2] = ring[i + 1];
+        const y1 = mercatorY(lat1);
+        const y2 = mercatorY(lat2);
+        if (y1 === y2) continue;
+        if (y < Math.min(y1, y2) || y >= Math.max(y1, y2)) continue;
+        const t = (y - y1) / (y2 - y1);
+        crossings.push(mercatorX(lon1) + t * (mercatorX(lon2) - mercatorX(lon1)));
+      }
+    }
+    if (crossings.length < 2) continue;
+    crossings.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < crossings.length; i += 2) {
+      const from = Math.max(0, Math.ceil((crossings[i] - minX) / cellX - 0.5));
+      const to = Math.min(width - 1, Math.floor((crossings[i + 1] - minX) / cellX - 0.5));
+      for (let col = from; col <= to; col++) paint(row * width + col);
+    }
+  }
+}
+
+await main();
