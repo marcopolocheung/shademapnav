@@ -32,6 +32,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { rasterizeRings, tileMercatorBbox } from "./lib/mercatorRaster.mjs";
 
 const META_BASE =
   "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/metadata";
@@ -49,9 +50,6 @@ const CORPUS = [
  * enough to ship. Raising it costs bytes roughly linearly after RLE.
  */
 const GRID = 128;
-
-const EARTH_RADIUS_M = 6378137;
-const MERCATOR_MAX_LAT = 85.0511287798066;
 
 const outputPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -97,7 +95,7 @@ for (const { city, quadkey } of CORPUS) {
   const coverage = new Uint8Array(GRID * GRID);
   for (const feature of features) {
     const dateIndex = dates.indexOf(feature.date);
-    rasterize(feature.rings, tileBbox, GRID, (cell) => {
+    rasterizeRings(feature.rings, tileBbox, GRID, GRID, (cell) => {
       cells[cell] = dateIndex;
       coverage[cell] = Math.min(255, coverage[cell] + 1);
     });
@@ -175,47 +173,6 @@ function ringsOf(geometry) {
 }
 
 /**
- * Scanline fill of a ring set onto a GRID x GRID raster, even-odd.
- *
- * Per row rather than per cell: a cell-by-cell point-in-polygon over Singapore's
- * 586k vertices would be 16384 x 586086 edge tests. This is one pass over the
- * edges per row.
- */
-function rasterize(rings, tileBbox, grid, paint) {
-  const [minX, minY, maxX, maxY] = tileBbox;
-  const cellX = (maxX - minX) / grid;
-  const cellY = (maxY - minY) / grid;
-
-  for (let row = 0; row < grid; row++) {
-    // Sample at the row's centre, in mercator y (north-up).
-    const y = maxY - (row + 0.5) * cellY;
-    const crossings = [];
-    for (const ring of rings) {
-      for (let i = 0; i < ring.length - 1; i++) {
-        const [lon1, lat1] = ring[i];
-        const [lon2, lat2] = ring[i + 1];
-        const y1 = mercatorY(lat1);
-        const y2 = mercatorY(lat2);
-        if (y1 === y2) continue;
-        if (y < Math.min(y1, y2) || y >= Math.max(y1, y2)) continue;
-        const t = (y - y1) / (y2 - y1);
-        crossings.push(mercatorX(lon1) + t * (mercatorX(lon2) - mercatorX(lon1)));
-      }
-    }
-    if (crossings.length < 2) continue;
-    crossings.sort((a, b) => a - b);
-    for (let i = 0; i + 1 < crossings.length; i += 2) {
-      const from = Math.max(0, Math.ceil((crossings[i] - minX) / cellX - 0.5));
-      const to = Math.min(
-        grid - 1,
-        Math.floor((crossings[i + 1] - minX) / cellX - 0.5),
-      );
-      for (let col = from; col <= to; col++) paint(row * grid + col);
-    }
-  }
-}
-
-/**
  * How often the shipped grid answers differently from a 4x finer rasterization.
  *
  * The index approximates a polygon boundary, so it is wrong in a band one cell
@@ -231,7 +188,7 @@ function measureDisagreement(features, dates, tileBbox, cells) {
   const fine = new Int16Array(probe * probe).fill(-1);
   for (const feature of features) {
     const dateIndex = dates.indexOf(feature.date);
-    rasterize(feature.rings, tileBbox, probe, (cell) => {
+    rasterizeRings(feature.rings, tileBbox, probe, probe, (cell) => {
       fine[cell] = dateIndex;
     });
   }
@@ -264,36 +221,4 @@ function runLengthEncode(cells) {
   }
   runs.push([length, value]);
   return runs;
-}
-
-/** The EPSG:3857 bbox of a quadkey, derived from the quadkey alone. */
-function tileMercatorBbox(quadkey) {
-  let x = 0;
-  let y = 0;
-  const zoom = quadkey.length;
-  for (let i = 0; i < zoom; i++) {
-    const mask = 1 << (zoom - i - 1);
-    const digit = Number(quadkey[i]);
-    if (digit & 1) x |= mask;
-    if (digit & 2) y |= mask;
-  }
-  const n = 2 ** zoom;
-  const span = (2 * Math.PI * EARTH_RADIUS_M) / n;
-  const originX = -Math.PI * EARTH_RADIUS_M;
-  const originY = Math.PI * EARTH_RADIUS_M;
-  return [
-    originX + x * span,
-    originY - (y + 1) * span,
-    originX + (x + 1) * span,
-    originY - y * span,
-  ];
-}
-
-function mercatorX(lon) {
-  return (EARTH_RADIUS_M * lon * Math.PI) / 180;
-}
-
-function mercatorY(lat) {
-  const clamped = Math.min(MERCATOR_MAX_LAT, Math.max(-MERCATOR_MAX_LAT, lat));
-  return EARTH_RADIUS_M * Math.log(Math.tan(Math.PI / 4 + (clamped * Math.PI) / 360));
 }
