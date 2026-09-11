@@ -55,3 +55,29 @@ export const emptyWriteSaysSo: Scenario = {
     answer: "I didn't get a response from the model. Try rephrasing.",
   },
 };
+
+export const writeCallThatToolCallsStaysAnAnswer: Scenario = {
+  id: "write-call-that-tool-calls-stays-an-answer",
+  intent: "a write call answering with a tool call, not text, still returns an answer and clean history",
+  userText: "Plan a shadowed afternoon",
+  tools: {
+    search_places: { results: [{ name: "Bryant Park", lat: 40.7536, lng: -73.9832 }] },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    { text: "draft answer from the research model" },
+    // Seen live: offered no tools, the model still emitted a call and no text.
+    { calls: [{ name: "check_shadow", args: { lat: 40.7536, lng: -73.9832 } }] },
+  ],
+  grounded: ["Bryant Park"],
+  maxLlmCalls: 3,
+  maxToolCalls: 2,
+  expect: {
+    toolOrder: ["search_places", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: ["Bryant Park"],
+    answer:
+      "I didn't get a written plan back, but these are on the map: Bryant Park. Ask again and I'll pick up from here.",
+  },
+};

@@ -135,6 +135,8 @@ describe("agent scenarios", () => {
       // call the model actually made in the turn before it. An orphaned
       // functionResponse is rejected by the OpenAI wire format llmClient emits.
       expect(orphanedToolResponses(trace)).toEqual([]);
+      // ...and the turn the next request starts from is not an unanswered call.
+      expect(trace.history.at(-1)?.parts.some((p) => p.functionCall)).toBe(false);
     });
   });
 });

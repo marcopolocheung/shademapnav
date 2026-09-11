@@ -328,8 +328,17 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     };
   }
 
-  contents.push({ role: finalCandidate.role ?? "model", parts: finalCandidate.parts });
-  const text = extractText(finalCandidate) || "(no reply)";
+  // Offered no tools, a model can still answer with a tool call and no text
+  // (seen live). Keep only the prose — an unanswered call in history breaks the
+  // next request — and if there is none, say plainly what the map shows.
+  const text =
+    extractText(finalCandidate) ||
+    (mapPins.length
+      ? `I didn't get a written plan back, but these are on the map: ${mapPins
+          .map((p) => p.label ?? "an unnamed stop")
+          .join(", ")}. Ask again and I'll pick up from here.`
+      : "I didn't get a written answer back. Try asking again.");
+  contents.push({ role: "model", parts: [{ text }] });
   await reconcilePins(text);
   return { text, history: contents };
 }

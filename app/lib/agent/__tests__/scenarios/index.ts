@@ -32,4 +32,5 @@ export const scenarios: Scenario[] = [
   degradation.blockedPromptDegrades,
   degradation.emptyResearchFallsThroughToWrite,
   degradation.emptyWriteSaysSo,
+  degradation.writeCallThatToolCallsStaysAnAnswer,
 ];
