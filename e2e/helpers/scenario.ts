@@ -85,4 +85,11 @@ export async function stubNetwork(page: Page, opts: { basemap: Basemap }): Promi
   // failure as "no data", so cut it rather than leave an unmocked call in a test
   // that claims to be deterministic.
   await page.route("**api.open-meteo.com/**", (route) => route.abort());
+
+  // The canopy raster: the route corridor (A8d) and the map's canopy fill (A8f) both
+  // read it from a public research mirror. Cut, in both projects, for the same reason
+  // as open-meteo — and because a fill painted or not depending on that host's day
+  // would move the shadow pixel counts. Both consumers treat a failed read as "no
+  // canopy known here", which is what this run then tests.
+  await page.route("**data.source.coop/**", (route) => route.abort());
 }

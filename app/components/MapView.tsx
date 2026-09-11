@@ -9,6 +9,8 @@ import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFou
 import { escapeHtml, renderPlaceInfoHtml } from "./placePopup";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
+import { attachCanopyLayer, type CanopyLayerHandle, type CanopyLegendState } from "../lib/canopyRaster/canopyLayer";
+import CanopyLegend from "./CanopyLegend";
 
 export interface AccumulationOptions {
   enabled: boolean;
@@ -432,6 +434,12 @@ export default function MapView({
   const [sunViz, setSunViz] = useState<SunViz>({
     sunAz: 180, riseAz: null, setAz: null, bearing: 0,
   });
+  // Local UI state: whether the estimated-canopy fill is on screen, for its legend.
+  const [canopyLegend, setCanopyLegend] = useState<CanopyLegendState | null>(null);
+  const canopyRef = useRef<CanopyLayerHandle | null>(null);
+  // Read at map load, which can come after Sun Exposure was toggled — the mount-time
+  // `accumulation` prop would be stale by then.
+  const accumulationOnRef = useRef(accumulation.enabled);
 
   useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
   useEffect(() => { onSketchPointClickRef.current = onSketchPointClick; }, [onSketchPointClick]);
@@ -762,6 +770,14 @@ export default function MapView({
           map.on("pitchend", updateLabelDepth);
           updateLabelDepth();
         }
+
+        // Estimated canopy from the raster the route card already quotes (#275).
+        // Beneath the shadow layer, never above it — see `canopyLayer.ts`.
+        canopyRef.current = attachCanopyLayer(map, {
+          belowLayerId: maybeCustom.id,
+          enabled: !accumulationOnRef.current,
+          onChange: setCanopyLegend,
+        });
       }
 
       shadowLayer.on('idle', () => bringNavOverlaysToFront(map));
@@ -786,6 +802,8 @@ export default function MapView({
       if (shadowUpdateTimerRef.current) clearTimeout(shadowUpdateTimerRef.current);
       placePopupRef.current?.remove();
       placePopupRef.current = null;
+      canopyRef.current?.remove();
+      canopyRef.current = null;
       shadowRef.current?.remove();
       shadowRef.current = null;
       onShadowLayerReady?.(null);
@@ -848,6 +866,9 @@ export default function MapView({
   // Accumulation mode
   // -------------------------------------------------------------------------
   useEffect(() => {
+    // Sun Exposure's GeoTIFF export writes the canvas as drawn; keep the fill out of it.
+    accumulationOnRef.current = accumulation.enabled;
+    canopyRef.current?.setEnabled(!accumulation.enabled);
     if (!shadowRef.current) return;
     if (accumulation.enabled) {
       shadowRef.current.setSunExposure(true, {
@@ -1424,6 +1445,7 @@ export default function MapView({
     <div className="relative w-full h-full">
       <div ref={containerRef} className={`w-full h-full${mapClickActive ? ' cursor-crosshair' : ''}`} />
       <SunCompass sunViz={sunViz} showSunLines={showSunLines} />
+      <CanopyLegend state={canopyLegend} />
     </div>
   );
 }

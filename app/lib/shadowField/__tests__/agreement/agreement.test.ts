@@ -8,8 +8,9 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { CANOPY_FILL_OPACITY, CANOPY_FILL_RGB } from "../../../canopyRaster/canopyPaint";
 import { agreementFixtures, sunFor } from "./fixtures";
-import { disagreementsFor, formatReport, referenceFor, reportFor } from "./harness";
+import { BASEMAP_RGB, disagreementsFor, formatReport, referenceFor, reportFor } from "./harness";
 
 /**
  * Committed thresholds.
@@ -75,5 +76,44 @@ describe("shadow field vs pixel sampler", () => {
 
     expect(values.some((v) => v > 0.6)).toBe(true);
     expect(values.some((v) => v < 0.4)).toBe(true);
+  });
+});
+
+/**
+ * A3 re-measured under A8f's estimated-canopy fill (#275).
+ *
+ * The fill sits beneath the shadow layer, so on a treed street the pixel sampler reads
+ * building shadow composited over the fill rather than over the basemap. If shadow
+ * stays blue-dominant there and sunlit fill never becomes blue-dominant, the sampler
+ * reads exactly what it read before, and the corpus reports exactly the same numbers.
+ * Anything short of identical is invariant #5 breaking on tree-lined streets.
+ *
+ * Opacity 1 is the case where every pixel of the street is solid fill — the strongest
+ * the fill can get, and the value the colour itself was chosen against.
+ */
+describe("shadow field vs pixel sampler, under the canopy fill", () => {
+  const fixtures = agreementFixtures();
+  const reportOver = (basemap: readonly [number, number, number]) =>
+    reportFor(
+      disagreementsFor(fixtures, (fixture) => {
+        const sun = sunFor(fixture);
+        return referenceFor(fixture, sun, sun.altitudeFraction, basemap);
+      })
+    );
+  const underFill = (opacity: number) =>
+    BASEMAP_RGB.map((c, i) =>
+      Math.round(CANOPY_FILL_RGB[i] * opacity + c * (1 - opacity))
+    ) as [number, number, number];
+
+  const baseline = reportOver(BASEMAP_RGB);
+
+  it("reports the same agreement at the fill's own opacity", () => {
+    const report = reportOver(underFill(CANOPY_FILL_OPACITY));
+    console.log(`under canopy fill: ${formatReport(report)}`);
+    expect(report).toEqual(baseline);
+  });
+
+  it("reports the same agreement where the fill is solid", () => {
+    expect(reportOver(underFill(1))).toEqual(baseline);
   });
 });
