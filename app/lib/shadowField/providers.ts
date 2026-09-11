@@ -417,16 +417,17 @@ const RASTER_CACHE_ENTRIES = 2;
  *
  * `ShadowField.ready()` is awaited on the route-calculation path, beside the graph
  * fetch, so whatever it costs a route pays. A cold read of a route-sized area from
- * `source.coop` measured **3.4-9.7 s** in Chromium over a domestic connection across
- * the three A3 corpus cities (`docs/notes/canopy-raster-shadow-field-2026-09-10.md`),
- * and A8a already established why: the cost is ~150 sequential range requests rather
- * than bytes, because `geotiff.js` is opened with no block cache and no multi-range
- * batching. #290 is that fix, and it is what should make this budget irrelevant.
+ * `source.coop` measured **0.9-1.9 s** across the three A3 corpus cities once
+ * `geotiff.js` was given a block cache (#290) — it was 6-8.5 s without one — so the
+ * raster ordinarily lands inside this budget and reaches the first route over an area
+ * (`docs/notes/canopy-raster-shadow-field-2026-09-10.md`).
  *
- * So the wait is bounded and the read is not. Past the budget `load()` resolves, the
- * route calculates from whatever else can speak for the area, and the fetch keeps
- * running — the next query over that area finds it cached and answers instantly. What
- * this deliberately never does is let a research mirror decide how long a route takes.
+ * The budget stays because the read is still a public research mirror over whatever
+ * connection the user has, and the provider's largest area measured ~10 s even with
+ * the cache. Past the budget `load()` resolves, the route calculates from whatever
+ * else can speak for the area, and the fetch keeps running — the next query over that
+ * area finds it cached and answers instantly. What this deliberately never does is let
+ * a research mirror decide how long a route takes.
  */
 const READY_BUDGET_MS = 2500;
 
