@@ -68,14 +68,11 @@ export const emptySearchInventsNothing: Scenario = {
 
 export const noResearchNoPins: Scenario = {
   id: "no-research-no-pins",
-  intent: "an off-topic turn costs no tools and plots nothing",
+  intent: "an off-topic refusal costs one LLM call, no tools, and stands as written",
   userText: "What's the capital of France?",
-  script: [
-    { text: "draft answer from the research model" },
-    { text: "I only help plan a day around shadow and sun." },
-  ],
+  script: [{ text: "I only help plan a day around shadow and sun." }],
   decoys: ["Bryant Park"],
-  maxLlmCalls: 2,
+  maxLlmCalls: 1,
   maxToolCalls: 0,
   expect: {
     toolOrder: [],
@@ -87,15 +84,12 @@ export const noResearchNoPins: Scenario = {
 
 export const unknownLocationAsksInstead: Scenario = {
   id: "unknown-location-asks-instead",
-  intent: "with no located map the loop asks for an area rather than inventing one",
+  intent: "with no located map, the research model's question back reaches the user unrewritten",
   userText: "Somewhere shadowed, please",
   context: { locationKnown: false, zoom: 2, center: { lat: 0, lng: 0 } },
-  script: [
-    { text: "draft answer from the research model" },
-    { text: "Which city or neighbourhood should I plan around?" },
-  ],
+  script: [{ text: "Which city or neighbourhood should I plan around?" }],
   decoys: ["Bryant Park"],
-  maxLlmCalls: 2,
+  maxLlmCalls: 1,
   maxToolCalls: 0,
   expect: {
     toolOrder: [],

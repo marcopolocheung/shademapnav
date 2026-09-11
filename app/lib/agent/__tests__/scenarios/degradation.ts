@@ -38,11 +38,18 @@ export const emptyWriteSaysSo: Scenario = {
   id: "empty-write-says-so",
   intent: "a write call that returns nothing produces a plain retry message",
   userText: "Plan my afternoon in the shadow",
-  script: [{ text: "draft answer from the research model" }, { empty: true }],
-  maxLlmCalls: 2,
-  maxToolCalls: 0,
+  // Research has to call a tool first — a tool-free research answer never
+  // reaches the write call at all.
+  tools: { set_time: { ok: true, newLocalTime: "3:00 PM" } },
+  script: [
+    { calls: [{ name: "set_time", args: { time: "3:00 PM" } }] },
+    { text: "draft answer from the research model" },
+    { empty: true },
+  ],
+  maxLlmCalls: 3,
+  maxToolCalls: 1,
   expect: {
-    toolOrder: [],
+    toolOrder: ["set_time"],
     plotsBeforeWrite: false,
     pinLabels: [],
     answer: "I didn't get a response from the model. Try rephrasing.",

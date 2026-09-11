@@ -50,7 +50,7 @@ const MAX_PINS = 8;
 // a reasoning model handed those instructions with no tools available narrates
 // the calls it can't make (raw `{"name":...}` JSON) into the answer. This prompt
 // keeps the topic guardrail but tells it to synthesize only, never tool-call.
-const WRITE_SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shadow-aware itinerary with specific local times. Name only the places listed below as pinned on the map — never a place that isn't pinned, even if it came up earlier. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shadow advice you can from what is available. Stay on shadow/sun comfort only.`;
+const WRITE_SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shadow-aware itinerary with specific local times. Name only the places listed below as pinned on the map — never a place that isn't pinned, even if it came up earlier or you know it — and don't explain this rule or remark on what is or isn't pinned. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shadow advice you can from what is available. Stay on shadow/sun comfort only.`;
 
 export interface ToolEvent {
   name: string;
@@ -242,9 +242,12 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     if (calls.length === 0) {
       // Done researching.
       await plotFallbackPoints();
-      if (!separateWrite) {
-        // Same config for both roles → research model's answer IS the answer.
-        // Returning it here saves a full-context write call (TPD savings).
+      // Same config for both roles → research model's answer IS the answer, and
+      // returning it saves a full-context write call (TPD savings). So does a
+      // turn that called no tool at all — a refusal, or a question back to the
+      // user: there is nothing gathered for the write call to ground, and
+      // rewriting it turned "which area?" into generic advice in the live eval.
+      if (!separateWrite || step === 0) {
         contents.push({ role: candidate.role ?? "model", parts: candidate.parts });
         const text = extractText(candidate) || "(no reply)";
         await reconcilePins(text);
@@ -279,7 +282,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // which is the list the write prompt tells it to stay inside.
   const pinnedLine = mapPins?.length
     ? `\n\nMap state guarantee: these pins are on the map, and they are the only places you may name: ${plottedPointSummary(mapPins)}.`
-    : "\n\nNo places are pinned on the map, so name no specific place.";
+    : "\n\nNothing is pinned on the map, so name no specific place.";
 
   // --- Write phase: final answer on the "response" model, no tools. ---
   const finalRes = await callModel(
