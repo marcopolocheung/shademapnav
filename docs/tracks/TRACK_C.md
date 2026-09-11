@@ -12,30 +12,19 @@ run in parallel with any other.
 
 ## Current state
 
-- **Active checkpoint:** C2 (ground the write phase) — C1 landed as PR #191.
-- **Done:** C1 — 18 scenarios plus a sabotage suite at `app/lib/agent/__tests__/`, replayed
-  through the real `runAgent` with the model and tool executors stubbed — but see "What's
-  already true": the 2026-07 project review's complaints are **partly stale**; re-verify
-  before acting on them.
-- **Open PRs:** none in this track. Filed alongside C1: #192 (the multi-call-per-turn path has
-  no coverage), #193 (`MAX_STEPS` is duplicated in the harness and will drift).
-- **Decisions made:** scenarios are data (`__tests__/scenarios/*.ts`), the runner is one file —
-  `vi.mock` is hoisted per test file, so a per-scenario test file would duplicate the mocks.
-  Assertions read a `Trace`, never the answer's wording; the only string check is *which
-  scripted turn came back*. `groundingViolations` searches only the names a scenario declares
-  (`grounded`/`decoys`), so it can't decay into prose matching.
-- **Blocked on:** nothing. C3 still needs Track A's `ShadowField` (A2/A6) — stub when you get
-  there.
-- **Next action:** C2 — use the harness to find where plot-before-answer leaks, then close #59
-  by observation in `npm run dev`.
-- **C4 was re-scoped on 2026-09-07** — multi-stop already shipped; the missing piece is the
-  completion contract. The checkpoint below carries the detail.
-- **C12 was added on 2026-09-08** — visual evidence and the budget-matched baseline. It is the
-  track's *multimodal agent* checkpoint and it is deliberately cheap: the corpus is geotagged
-  photos from one walk, not Wave 4's pose-accurate seasonal panoramas. Read its two verified
-  provider facts before designing anything against it.
-- **Last verified:** 2026-09-07, 439 tests / 36 files green on this branch merged with `main` (main baseline
-  was 411/35)
+- **Active checkpoint:** C2 in review — PR #305 (loop), #306 (live eval, stacked on #305),
+  #307 (search_places walking radius, independent). Next after merge: C3, or C6 if #302's
+  cost matters more.
+- **Done:** C1 (#191). C2 is implemented and cold-reviewed; every review finding is a scenario.
+- **#59 stays open** — pins now land in the real app, but the journey is still not calculated
+  (#302: 8 steps run out before `plan_shadowed_route`) and the 10-stop route is flaky (#303).
+- **Cerebras is down for us (#301):** every key 402s, `zai-glm-4.7` is archived. Live numbers
+  so far are Fireworks `deepseek-v4-flash-0731`, the only Fireworks model the owner allows,
+  under a $5 total cap. The free-tier invariant needs an owner decision.
+- **Live eval:** `npm run eval:agent` — see `docs/notes/agent-live-eval-2026-09-11.md`. On one
+  instrument, main grounded 22/38 live turns and C2 38/38; both spend ~7 LLM calls a turn.
+- **Open issues:** #192, #193, #237, #301, #302, #304.
+- **Last verified:** 2026-09-11, 789 tests / 59 files green on #305 (node@24).
 
 ---
 

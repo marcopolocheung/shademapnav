@@ -14,7 +14,7 @@
  * No network, no key, no clock dependence — the mocks are injected by the test
  * file (vi.mock is hoisted per-file, so it cannot live here).
  */
-import type { LlmContent, LlmRequest, LlmResponse } from "../llmClient";
+import type { LlmContent, LlmRequest, LlmResponse, ModelRole } from "../llmClient";
 import type { AgentContext, AssistantPin } from "../tools";
 
 // ---------------------------------------------------------------------------
@@ -68,6 +68,20 @@ export interface Scenario {
     pinCount?: number;
     /** Which scripted text the loop must return. */
     answer: string;
+  };
+}
+
+/**
+ * A geocoder over a fixed gazetteer: a query naming one of `places` finds it.
+ * Scripts pass coordinates straight to the tools they call; a real model looks
+ * the user's places up first, so a scenario whose user names a place should be
+ * able to answer that lookup.
+ */
+export function gazetteer(places: { name: string; lat: number; lng: number }[]): ToolStub {
+  return (args) => {
+    const query = String(args.query ?? "").toLowerCase();
+    const results = places.filter((p) => query.includes(p.name.toLowerCase()));
+    return results.length > 0 ? { results } : { results: [], note: "No matches found." };
   };
 }
 
@@ -226,23 +240,15 @@ function turnToResponse(turn: ScriptedTurn): LlmResponse {
   };
 }
 
+/** Where the model's replies come from: the scenario's script, or a real model. */
+type Responder = (req: LlmRequest, role?: ModelRole) => Promise<LlmResponse>;
+
 export async function runScenario(
   scenario: Scenario,
   runAgent: RunAgentFn,
   mocks: HarnessMocks,
   sabotage?: Sabotage
 ): Promise<Trace> {
-  const trace: Trace = {
-    llmRequests: [],
-    writeIndex: -1,
-    toolCalls: [],
-    contextReads: 0,
-    toolEvents: [],
-    plottedPins: scenario.mapPins ?? [],
-    answer: "",
-    history: [],
-  };
-
   const script = [...scenario.script];
   if (sabotage === "answer-invents-place") {
     // Name the scenario's own decoy — the place it declared no tool returns.
@@ -260,10 +266,7 @@ export async function runScenario(
   }
 
   let cursor = 0;
-  mocks.callModel.mockImplementation(async (req: LlmRequest) => {
-    const index = trace.llmRequests.length;
-    trace.llmRequests.push(req);
-    if (!req.tools) trace.writeIndex = index;
+  const scripted: Responder = async () => {
     const turn = script[cursor++];
     if (!turn) {
       throw new Error(
@@ -272,6 +275,47 @@ export async function runScenario(
       );
     }
     return turnToResponse(turn);
+  };
+  return replay(scenario, runAgent, mocks, scripted, sabotage);
+}
+
+/**
+ * The same replay against a real model: the scenario's tools and map context,
+ * but every model turn comes from `callModel` itself. The script is ignored, so
+ * the trace shows what a real model does with the world the scenario describes.
+ */
+export function runLiveScenario(
+  scenario: Scenario,
+  runAgent: RunAgentFn,
+  mocks: HarnessMocks,
+  realCallModel: Responder
+): Promise<Trace> {
+  return replay(scenario, runAgent, mocks, realCallModel);
+}
+
+async function replay(
+  scenario: Scenario,
+  runAgent: RunAgentFn,
+  mocks: HarnessMocks,
+  respond: Responder,
+  sabotage?: Sabotage
+): Promise<Trace> {
+  const trace: Trace = {
+    llmRequests: [],
+    writeIndex: -1,
+    toolCalls: [],
+    contextReads: 0,
+    toolEvents: [],
+    plottedPins: scenario.mapPins ?? [],
+    answer: "",
+    history: [],
+  };
+
+  mocks.callModel.mockImplementation(async (req: LlmRequest, role?: ModelRole) => {
+    const index = trace.llmRequests.length;
+    trace.llmRequests.push(req);
+    if (!req.tools) trace.writeIndex = index;
+    return respond(req, role);
   });
 
   mocks.rolesShareConfig.mockImplementation(() => scenario.sharedModel === true);
