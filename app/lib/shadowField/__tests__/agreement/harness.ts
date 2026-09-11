@@ -107,22 +107,27 @@ const SHADOW_NOON_RGB: [number, number, number] = [0x22, 0x46, 0x7f];
 const SHADOW_ALPHA = 0.7;
 
 /** A mid-grey basemap, roughly what MapTiler's outdoor-v2 reads as under a street. */
-const BASEMAP_RGB: [number, number, number] = [232, 228, 220];
+export const BASEMAP_RGB: [number, number, number] = [232, 228, 220];
 
 /**
  * The shadow colour the renderer would paint at this sun altitude, composited over
  * the basemap. `LocalShadowAdapter.computeShadowColor` interpolates base→noon by
  * `altitude / noonAltitude` and MapLibre composites the premultiplied result, so
  * `out = shadow × α + basemap × (1 − α)`.
+ *
+ * `basemap` is whatever the shadow lands on — A8f's canopy fill, where there is one.
  */
-export function shadowPixelAt(altitudeFraction: number): [number, number, number] {
+export function shadowPixelAt(
+  altitudeFraction: number,
+  basemap: readonly [number, number, number] = BASEMAP_RGB
+): [number, number, number] {
   const t = Math.min(1, Math.max(0, altitudeFraction));
   const blended = SHADOW_BASE_RGB.map(
     (base, i) => base + t * (SHADOW_NOON_RGB[i] - base)
   ) as [number, number, number];
 
   return blended.map((c, i) =>
-    Math.round(c * SHADOW_ALPHA + BASEMAP_RGB[i] * (1 - SHADOW_ALPHA))
+    Math.round(c * SHADOW_ALPHA + basemap[i] * (1 - SHADOW_ALPHA))
   ) as [number, number, number];
 }
 
@@ -184,12 +189,13 @@ export function paintShadowCanvas(
   centre: [number, number],
   sun: { azimuth: number; altitude: number },
   altitudeFraction: number,
-  opts: CanvasOpts
+  opts: CanvasOpts,
+  basemap: readonly [number, number, number] = BASEMAP_RGB
 ): SyntheticCanvas {
   const { widthPx, heightPx, metresPerPixel, dpr } = opts;
   const imageData = makeImageData(widthPx, heightPx);
   const { mPerLat, mPerLng } = metersPerDegree(centre[1]);
-  const [shadowR, shadowG, shadowB] = shadowPixelAt(altitudeFraction);
+  const [shadowR, shadowG, shadowB] = shadowPixelAt(altitudeFraction, basemap);
 
   const daytime = sun.altitude > 0;
   const triangles: BoundedTriangle[] = [];
@@ -239,9 +245,9 @@ export function paintShadowCanvas(
       }
 
       const idx = (py * widthPx + px) * 4;
-      imageData.data[idx] = shadowed ? shadowR : BASEMAP_RGB[0];
-      imageData.data[idx + 1] = shadowed ? shadowG : BASEMAP_RGB[1];
-      imageData.data[idx + 2] = shadowed ? shadowB : BASEMAP_RGB[2];
+      imageData.data[idx] = shadowed ? shadowR : basemap[0];
+      imageData.data[idx + 1] = shadowed ? shadowG : basemap[1];
+      imageData.data[idx + 2] = shadowed ? shadowB : basemap[2];
       imageData.data[idx + 3] = 255;
     }
   }
@@ -314,11 +320,12 @@ function canvasOptsFor(edge: EdgeRef): CanvasOpts {
 export function referenceFor(
   fixture: AgreementFixture,
   sun: { azimuth: number; altitude: number },
-  altitudeFraction: number
+  altitudeFraction: number,
+  basemap: readonly [number, number, number] = BASEMAP_RGB
 ): { left: number; right: number } {
   const { centre, distanceM } = edgeMetrics(fixture.edge);
   const canvas = paintShadowCanvas(
-    fixture.prisms.prisms, centre, sun, altitudeFraction, canvasOptsFor(fixture.edge)
+    fixture.prisms.prisms, centre, sun, altitudeFraction, canvasOptsFor(fixture.edge), basemap
   );
 
   return sampleBothSidewalks(
