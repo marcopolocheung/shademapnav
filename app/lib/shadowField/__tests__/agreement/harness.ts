@@ -116,10 +116,14 @@ export const BASEMAP_RGB: [number, number, number] = [232, 228, 220];
  * `out = shadow × α + basemap × (1 − α)`.
  *
  * `basemap` is whatever the shadow lands on — A8f's canopy fill, where there is one.
+ * `coverage` is the share of the pixel the shadow covers: below 1 on a shadow's
+ * anti-aliased rim, where the renderer's supersampled edge scales colour and alpha
+ * together.
  */
 export function shadowPixelAt(
   altitudeFraction: number,
-  basemap: readonly [number, number, number] = BASEMAP_RGB
+  basemap: readonly [number, number, number] = BASEMAP_RGB,
+  coverage = 1
 ): [number, number, number] {
   const t = Math.min(1, Math.max(0, altitudeFraction));
   const blended = SHADOW_BASE_RGB.map(
@@ -127,7 +131,7 @@ export function shadowPixelAt(
   ) as [number, number, number];
 
   return blended.map((c, i) =>
-    Math.round(c * SHADOW_ALPHA + basemap[i] * (1 - SHADOW_ALPHA))
+    Math.round(c * SHADOW_ALPHA * coverage + basemap[i] * (1 - SHADOW_ALPHA * coverage))
   ) as [number, number, number];
 }
 

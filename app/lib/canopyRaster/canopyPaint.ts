@@ -24,17 +24,22 @@
  * on the fill instead of the basemap, and has to stay recognisable there.
  *
  * Compositing is linear, and each of the predicate's three tests is a half-space, so
- * for a given sun the backgrounds that shadow stays detectable over form a convex set.
- * A fill that is itself inside that set at both ends of the shadow colour's range —
- * the dark dawn blue and the lighter noon blue — keeps any background that was already
- * inside it inside, at any opacity, on any edge pixel. What that demands of the fill
- * is a small warmth, `(r + g) / 2 − b`: below ~28 or the dawn blue stops reading as
- * blue over it. A yellow-green — the obvious tree colour — fails that outright, so
- * the fill is a cool sea green. `canopyPaint.test.ts` pins both ends, and the A3
- * agreement harness is re-run over it.
+ * for a given sun the backgrounds that a *fully covered* shadow pixel stays detectable
+ * over form a convex set. A fill that is itself inside that set at both ends of the
+ * shadow colour's range — the dark dawn blue and the lighter noon blue — keeps any
+ * background that was already inside it inside, at any opacity. What that demands of
+ * the fill is a small warmth, `(r + g) / 2 − b`: below ~28 or the dawn blue stops
+ * reading as blue over it. A yellow-green — the obvious tree colour — fails that
+ * outright, so the fill is a cool sea green. `canopyPaint.test.ts` pins both ends, and
+ * the A3 agreement harness is re-run over it.
+ *
+ * The argument stops at a shadow's anti-aliased rim, where a pixel is only partly
+ * covered: there the fill moves the coverage at which the pixel starts to count, by
+ * under a fifth of a pixel either way at this opacity — also pinned by a test.
  *
  * The fill's warmth is also kept at or above zero, so it can never *create* a
- * blue-dominant pixel: sunlit canopy does not read as shadow.
+ * blue-dominant pixel over the surfaces it lands on: sunlit canopy does not read as
+ * shadow.
  */
 
 import { inLeaf } from "../shadowField/canopy";
@@ -209,8 +214,6 @@ export interface CanopyImage {
  *
  * A pixel is painted only where the model produced an answer *and* that answer is at
  * least `CANOPY_PAINT_MIN_HEIGHT_M`. Nodata is left clear, never read as bare ground.
- * Clear pixels still carry the fill's colour, at zero alpha, so a linearly filtered
- * edge fades the fill out rather than towards black.
  */
 export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
   if (patches.length === 0) return null;
@@ -232,11 +235,6 @@ export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
   const rgba = new Uint8ClampedArray(width * height * 4);
   let painted = 0;
   const [r, g, b] = CANOPY_FILL_RGB;
-  for (let i = 0; i < rgba.length; i += 4) {
-    rgba[i] = r;
-    rgba[i + 1] = g;
-    rgba[i + 2] = b;
-  }
 
   for (const { patch, ...box } of placed) {
     const x0 = Math.round((box.minX - minX) / res);
@@ -252,7 +250,11 @@ export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
         const source = row + Math.min(patch.width - 1, Math.floor((x - x0 + 0.5) * scaleX));
         const valid = patch.valid === null || patch.valid[source] === 1;
         if (valid && patch.heights[source] >= CANOPY_PAINT_MIN_HEIGHT_M) {
-          rgba[(y * width + x) * 4 + 3] = 255;
+          const i = (y * width + x) * 4;
+          rgba[i] = r;
+          rgba[i + 1] = g;
+          rgba[i + 2] = b;
+          rgba[i + 3] = 255;
           painted += 1;
         }
       }

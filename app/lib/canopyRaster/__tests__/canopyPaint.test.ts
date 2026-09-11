@@ -101,6 +101,27 @@ describe("the canopy fill and the shadow predicate (invariant #5)", () => {
     }
   });
 
+  it("moves a shadow's anti-aliased edge by under a fifth of a pixel", () => {
+    // The convexity argument covers pixels a shadow covers fully. On the rim, where
+    // the renderer's supersampling leaves a pixel part-covered, the fill shifts the
+    // coverage at which that pixel starts to count as shadow — inward at a low sun,
+    // outward at a high one. Bound it rather than claim it away.
+    const firstCounted = (t: number, surface: Rgb) => {
+      for (let step = 0; step <= 200; step++) {
+        if (detectedAsShadow(shadowPixelAt(t, surface, step / 200))) return step / 200;
+      }
+      return null;
+    };
+    for (const [name, surface] of Object.entries(SURFACES)) {
+      for (let t = 0; t <= 1.0001; t += 0.05) {
+        const bare = firstCounted(t, surface);
+        const filled = firstCounted(t, underFill(surface, CANOPY_FILL_OPACITY));
+        if (bare === null || filled === null) continue;
+        expect({ name, t, shift: Math.abs(filled - bare) < 0.2 }).toEqual({ name, t, shift: true });
+      }
+    }
+  });
+
   it("recovers the dawn shadow on wood that the bare basemap already loses", () => {
     // Not a goal, a consequence worth pinning: outdoor-v2's wood is warm enough that
     // the dawn blue over it fails the predicate on `main`. The fill is cooler, so a
@@ -141,11 +162,6 @@ describe("paintPatches", () => {
     expect(alphas(image?.rgba ?? new Uint8ClampedArray())).toEqual([255, 0, 255]);
   });
 
-  it("gives clear pixels the fill's colour, so a filtered edge fades rather than darkens", () => {
-    const image = paintPatches([rowPatch([0, 30])]);
-    expect(Array.from(image?.rgba.slice(0, 3) ?? [])).toEqual([...CANOPY_FILL_RGB]);
-  });
-
   it("counts what it painted, so a view with no canopy in it can say so", () => {
     expect(paintPatches([rowPatch([0, 30, 30], [1, 1, 0])])?.painted).toBe(1);
     expect(paintPatches([rowPatch([0, 1, 2])])?.painted).toBe(0);
@@ -169,9 +185,13 @@ const SEAM: [number, number] = [-3.8671875, 40.4469470596005];
 /** Height varies with the world pixel, so a misplaced tile shows up as a wrong image. */
 const heightAt = (worldX: number, worldY: number) => (worldX * 7 + worldY * 3) % 11;
 
-/** A fake COG host. `unpublished` quadkeys 404, as open ocean does on `source.coop`. */
-function fakeSource(unpublished: Set<string> = new Set()) {
+/**
+ * A fake COG host. `unpublished` quadkeys 404, as open ocean does on `source.coop`;
+ * `gate`, when given, holds every range read open until it resolves.
+ */
+function fakeSource(unpublished: Set<string> = new Set(), gate?: Promise<void>) {
   const opened: string[] = [];
+  const fetchSignals: (AbortSignal | undefined)[] = [];
   const source: CanopyTileSource = {
     async open(quadkey) {
       opened.push(quadkey);
@@ -190,7 +210,9 @@ function fakeSource(unpublished: Set<string> = new Set()) {
         async grid() {
           return { width: 4096, height: 4096, blockSize: BLOCK };
         },
-        async read(_level, window) {
+        async read(_level, window, signal) {
+          fetchSignals.push(signal);
+          if (gate) await gate;
           const width = window[2] - window[0];
           const height = window[3] - window[1];
           const heights = new Uint8Array(width * height);
@@ -205,11 +227,11 @@ function fakeSource(unpublished: Set<string> = new Set()) {
       return handle;
     },
   };
-  return { source, opened };
+  return { source, opened, fetchSignals };
 }
 
-function storeOver(unpublished?: Set<string>) {
-  const fake = fakeSource(unpublished);
+function storeOver(unpublished?: Set<string>, gate?: Promise<void>) {
+  const fake = fakeSource(unpublished, gate);
   const store = createCanopyTileStore({ source: fake.source, sleep: async () => {} });
   return { ...fake, store };
 }
@@ -261,12 +283,21 @@ describe("reading the viewport", () => {
     expect(opened.filter((q) => q === missing).length).toBeGreaterThan(0);
   });
 
-  it("rejects when superseded, so a stale read cannot repaint the map", async () => {
-    const { store } = storeOver();
+  it("cancels the fetch when superseded, and rejects so a stale read cannot repaint", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { store, fetchSignals } = storeOver(undefined, gate);
     const controller = new AbortController();
     const pending = readViewport(store, overSeam, controller.signal);
+    while (fetchSignals.length === 0) await new Promise((r) => setTimeout(r, 0));
+
     controller.abort();
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    // The store cancelled the range reads themselves — nobody else was waiting.
+    expect(fetchSignals.every((signal) => signal?.aborted)).toBe(true);
+    release();
   });
 });
 

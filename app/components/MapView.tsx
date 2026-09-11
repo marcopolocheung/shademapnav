@@ -437,6 +437,9 @@ export default function MapView({
   // Local UI state: whether the estimated-canopy fill is on screen, for its legend.
   const [canopyLegend, setCanopyLegend] = useState<CanopyLegendState | null>(null);
   const canopyRef = useRef<CanopyLayerHandle | null>(null);
+  // Read at map load, which can come after Sun Exposure was toggled — the mount-time
+  // `accumulation` prop would be stale by then.
+  const accumulationOnRef = useRef(accumulation.enabled);
 
   useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
   useEffect(() => { onSketchPointClickRef.current = onSketchPointClick; }, [onSketchPointClick]);
@@ -772,7 +775,7 @@ export default function MapView({
         // Beneath the shadow layer, never above it — see `canopyLayer.ts`.
         canopyRef.current = attachCanopyLayer(map, {
           belowLayerId: maybeCustom.id,
-          enabled: !accumulation.enabled,
+          enabled: !accumulationOnRef.current,
           onChange: setCanopyLegend,
         });
       }
@@ -863,7 +866,8 @@ export default function MapView({
   // Accumulation mode
   // -------------------------------------------------------------------------
   useEffect(() => {
-    // Sun Exposure's colours are the data; a fill beneath them would tint the reading.
+    // Sun Exposure's GeoTIFF export writes the canvas as drawn; keep the fill out of it.
+    accumulationOnRef.current = accumulation.enabled;
     canopyRef.current?.setEnabled(!accumulation.enabled);
     if (!shadowRef.current) return;
     if (accumulation.enabled) {

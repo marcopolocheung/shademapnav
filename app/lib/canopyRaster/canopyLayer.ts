@@ -25,8 +25,9 @@ import {
   readViewport,
   targetGroundResFor,
 } from "./canopyPaint";
-import type { LonLatBbox } from "./tiles";
+import type { CanopyTileStore } from "./canopyTileStore";
 import { sharedCanopyTileStore } from "./sharedStore";
+import type { LonLatBbox } from "./tiles";
 
 export const CANOPY_SOURCE_ID = "canopy-estimate";
 export const CANOPY_LAYER_ID = "canopy-estimate-fill";
@@ -40,17 +41,19 @@ export interface CanopyLegendState {
  * The layer the fill goes directly beneath: the basemap's first water layer.
  *
  * Everything drawn after it — water, roads, bridges, buildings — covers the fill, and
- * that is deliberate. Water is the one basemap colour that fails the shadow predicate
- * *only by being too bright* (outdoor-v2's ~(164, 209, 244) sums past 600); darkening
- * it by any amount would make sunlit water read as shadow. Under it, the fill only
- * ever composites with the landcover and landuse greens and greys, none of which it
- * can turn blue-dominant. Covering by buildings is also what `ShadowField` does: it
- * subtracts the footprints from the raster before marching it.
+ * that is deliberate. Water is the one basemap surface blue enough to sit at or past
+ * the shadow predicate on its own: outdoor-v2's street-zoom water, ~(149, 201, 242),
+ * already passes it, sunlit, on `main`. A fill mixed into it would be measured against
+ * a surface that is already a false shadow, and no colour choice fixes that. Under the
+ * water, the fill only composites with the landcover and landuse greens and greys the
+ * colour was checked against (`canopyPaint.test.ts`). Covering by buildings is also
+ * what `ShadowField` does: it subtracts the footprints from the raster before marching
+ * it.
  *
  * `fallback` — the shadow layer — is for a style with no water layer. The fill must
  * never be drawn above the shadow layer while the camera is flat.
  */
-function beforeIdFor(map: maplibregl.Map, fallback: string): string {
+function beforeIdFor(map: CanopyMap, fallback: string): string {
   for (const id of map.getLayersOrder()) {
     const sourceLayer = map.getLayer(id)?.sourceLayer;
     if (sourceLayer === "water" || sourceLayer === "waterway") return id;
@@ -59,26 +62,50 @@ function beforeIdFor(map: maplibregl.Map, fallback: string): string {
 }
 
 export interface CanopyLayerHandle {
-  /** Off while another layer's colours are the data — Sun Exposure mode. */
+  /**
+   * Off in Sun Exposure mode, whose GeoTIFF export writes the canvas out as it is
+   * drawn: the fill stays out of an export it was never part of.
+   */
   setEnabled(enabled: boolean): void;
   remove(): void;
 }
 
+/** The slice of `maplibregl.Map` the layer uses — what the tests fake. */
+type CanopyMap = Pick<
+  maplibregl.Map,
+  | "on"
+  | "off"
+  | "getZoom"
+  | "getBounds"
+  | "getCenter"
+  | "getSource"
+  | "addSource"
+  | "addLayer"
+  | "getLayer"
+  | "getLayersOrder"
+  | "setLayoutProperty"
+>;
+
 export function attachCanopyLayer(
-  map: maplibregl.Map,
+  map: CanopyMap,
   opts: {
     belowLayerId: string;
     enabled: boolean;
     onChange: (state: CanopyLegendState | null) => void;
+    /** Injected by tests; the app reads through the one shared store. */
+    getStore?: () => Promise<Pick<CanopyTileStore, "read">>;
+    /** Injected by tests, which have no canvas; the app encodes a PNG object URL. */
+    encode?: (image: CanopyImage) => Promise<string>;
   },
 ): CanopyLayerHandle {
+  const getStore = opts.getStore ?? sharedCanopyTileStore;
+  const encode = opts.encode ?? toObjectUrl;
   let enabled = opts.enabled;
   let controller: AbortController | null = null;
   let objectUrl: string | null = null;
   /** What is on the map now, so a move inside it at the same resolution costs nothing. */
   let onMap: { bbox: LonLatBbox; targetGroundRes: number; painted: number } | null = null;
   let legendKey: string | null = null;
-  const canvas = document.createElement("canvas");
 
   /**
    * Tell the legend, only when what it says changed — every `moveend` would otherwise
@@ -156,7 +183,7 @@ export function attachCanopyLayer(
     const ctrl = new AbortController();
     controller = ctrl;
     try {
-      const store = await sharedCanopyTileStore();
+      const store = await getStore();
       const image = paintPatches(await readViewport(store, bbox, ctrl.signal));
       if (ctrl.signal.aborted) return;
       // No quadkey answered — open ocean, or the host is unreachable. A legend over
@@ -165,7 +192,7 @@ export function attachCanopyLayer(
         hide();
         return;
       }
-      const url = await toObjectUrl(canvas, image);
+      const url = await encode(image);
       if (ctrl.signal.aborted) {
         URL.revokeObjectURL(url);
         return;
@@ -200,8 +227,12 @@ function contains(outer: LonLatBbox, inner: LonLatBbox): boolean {
   return outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
 }
 
+let scratch: HTMLCanvasElement | null = null;
+
 /** Encode the image for an image source, reusing one scratch canvas. */
-async function toObjectUrl(canvas: HTMLCanvasElement, image: CanopyImage): Promise<string> {
+async function toObjectUrl(image: CanopyImage): Promise<string> {
+  scratch ??= document.createElement("canvas");
+  const canvas = scratch;
   canvas.width = image.width;
   canvas.height = image.height;
   const context = canvas.getContext("2d");
