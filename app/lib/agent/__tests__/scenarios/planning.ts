@@ -2,7 +2,7 @@
  * The paths a working shadow-planning turn takes. Each one pins down the tool
  * sequence and the plot-before-answer guarantee, not the wording.
  */
-import type { Scenario } from "../harness";
+import { gazetteer, type Scenario } from "../harness";
 
 const BRYANT = { name: "Bryant Park", lat: 40.7536, lng: -73.9832 };
 const GRACE = { name: "Grace Plaza", lat: 40.752, lng: -73.985 };
@@ -70,7 +70,7 @@ export const modelPlotsItselfNoDuplicate: Scenario = {
   id: "model-plots-itself-no-duplicate",
   intent: "a model-issued plot_points suppresses the fallback plot",
   userText: "Show me Bryant Park",
-  tools: { plot_points: { ok: true, plotted: 1 } },
+  tools: { geocode_place: gazetteer([BRYANT]), plot_points: { ok: true, plotted: 1 } },
   script: [
     {
       calls: [
@@ -168,6 +168,7 @@ export const routePlanningPlotsEndpoints: Scenario = {
   intent: "a planned route's endpoints become the fallback pins",
   userText: "Walk me from Bryant Park to Madison Square Park in the shadow",
   tools: {
+    geocode_place: gazetteer([BRYANT, MADISON]),
     plan_shadowed_route: { ok: true, note: "Calculating a shadow-aware route." },
     plot_points: { ok: true, plotted: 2 },
   },
