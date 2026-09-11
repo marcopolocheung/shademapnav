@@ -20,6 +20,9 @@ import baseConfig from "./playwright.config";
 export default defineConfig({
   ...baseConfig,
   testDir: "e2e/bench",
+  // Canopy has a separate live-network config. Without an explicit match, adding
+  // those specs made the keyless route command wait on source.coop before G2 ran.
+  testMatch: ["**/routeCalc.bench.spec.ts", "**/detourSweep.bench.spec.ts"],
   testIgnore: undefined,
   // The smoke config's project announcement must not run here: this config runs
   // neither `smoke` nor `smoke-live`, and saying otherwise in the output of a

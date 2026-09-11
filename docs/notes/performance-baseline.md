@@ -317,6 +317,35 @@ canvas read, not the search.
 strengths, which is why its dijkstra phase is two orders of magnitude larger (320–2690 ms) and
 why it returns a single route (`[Shortest]`) with no shadow-gain KPI at all.
 
+### A8 follow-up — cell readiness and dedicated building-mask fallback
+
+Measured 2026-09-11 after the time-aware canopy work, on the same machine and fixed G1
+fixture. The command targeted `e2e/bench/routeCalc.bench.spec.ts` explicitly after the initial
+`bench:route` invocation exposed that its config also discovered the live canopy COG specs;
+the canopy harness cannot load under the route benchmark's preview server and timed out
+before the route spec began. The config is now scoped to the route and detour specs, while
+live canopy measurements remain under `bench:canopy`. This table is one complete, zero-retry
+route-harness run and should be read against the 2–25% cross-session noise warning above.
+
+| Scenario | N | p50 total (ms) | p95 total (ms) | spread | graph fetch/readiness | composited canvas read | shadow sample | dijkstra |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2-point cold | 5 | 983.3 | 1018.7 | ±2.3% | 935.8 | 0.0 | 20.9 | 32.3 |
+| 2-point warm | 10 | 473.2 | 1012.8 | ±96.0% | 433.8 | 0.0 | 17.2 | 17.3 |
+| 5-point cold | 5 | 2395.6 | 2488.9 | ±24.3% | 928.2 | 0.0 | 27.7 | 1411.3 |
+| 5-point warm | 10 | 8357.2 | 10637.3 | ±45.6% | 2869.8 | 0.0 | 1298.9 | 3233.6 |
+
+The common 2-point path clears A8's acceptance threshold: cold median latency moved from
+2563.9 to 983.3 ms (**61.6% lower**) and warm from 3852.4 to 473.2 ms (**87.7% lower**),
+both comfortably beyond the benchmark's 25% noise floor. `canvasRead` was exactly 0.0 ms
+on all 30 calculations, and the median fallback share was 0.0% in every scenario. A genuine
+low-confidence fallback now reads the renderer's building-only mask and records that time in
+`dedicatedMaskRead`; canopy, water, static fill and basemap colours cannot enter that sample.
+
+The five-point warm result is a regression and highly variable, not a claimed win: its median
+moved from 5685.7 to 8357.2 ms and its within-run spread was ±45.6%. That branch repeatedly
+runs the per-leg Dijkstra path and should be profiled separately before any five-point
+performance claim. It does not change the stated A8 gate, which names common two-point routes.
+
 ### Detour budget sweep (#243)
 
 `paretoRoutes` prunes any label whose optimistic length exceeds
