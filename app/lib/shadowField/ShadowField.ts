@@ -21,6 +21,7 @@ import {
   type PrismSet,
   metersPerDegree,
 } from "./geometry";
+import type { CanopyHeightField, CanopyShade } from "./canopyRasterField";
 import {
   type IndexRegion,
   type ShadowCasters,
@@ -38,9 +39,16 @@ import {
  * 1 for a sun below the horizon (astronomically certain, no geometry needed) and
  * 0 for "no source covered this point", which is a request to fall back rather
  * than a claim of full sun. `"canvas"` is the pixel sampler, wired in by A4 as the
- * fallback. A7 filled in the last two: `"canopy"` means tagged tree canopy answered
- * and no building source could, `"mixed"` that a building source answered *and*
- * canopy geometry was present in the area to be blended with it.
+ * fallback. A7 filled in the last two: `"canopy"` means a canopy source answered and
+ * no building source could, `"mixed"` that a building source answered *and* canopy
+ * was present in the area to be blended with it.
+ *
+ * A8d's height raster is deliberately *not* a sixth member. It is canopy, it reports
+ * the same fraction, and `describeShadowProvenance` already says "from tree canopy"
+ * for it truthfully. Which canopy source a number came from is a different question,
+ * and the place it is owed an answer is #277 — where `EdgeShadow` learns to carry the
+ * canopy *share* so the cost model can weight it — not in a label the UI would have
+ * to explain.
  */
 export type ShadowSource = "tiles" | "overpass" | "canopy" | "mixed" | "canvas" | "none";
 
@@ -149,6 +157,26 @@ export interface CanopyProvider {
   load?(bbox: BBox): Promise<void>;
 }
 
+/**
+ * A canopy source that is a **height field** rather than a set of crowns (A8d).
+ *
+ * The Meta/WRI raster answers "vegetation this tall, here" over ~800k pixels for a
+ * route-sized area. Turning that into `BuildingPrism`s the way A7 turns a tagged tree
+ * into one would hand `buildShadowIndex` a caster set two orders of magnitude past
+ * what it was built for, to tessellate something that was already a heightfield. So
+ * this provider hands back the field itself and `canopyRasterField.ts` marches it.
+ *
+ * Third list rather than a second entry in `canopyProviders` because the two answer
+ * different shapes and are blended, not ranked: see `pointShadow`. Same two rules as
+ * every other provider — `null` for "I cannot speak for this area", never an empty
+ * answer, and `fieldFor` never reaches the network.
+ */
+export interface CanopyRasterProvider {
+  source: "canopy-raster";
+  fieldFor(bbox: BBox): CanopyHeightField | null;
+  load?(bbox: BBox): Promise<void>;
+}
+
 // ─── Tunables, all of them documented ─────────────────────────────────────────
 
 /** Below this, `shadowAt`'s answer is a hint; callers should consult another source. */
@@ -229,7 +257,9 @@ const LOW_SUN_ALTITUDE_RAD = (10 * Math.PI) / 180;
  * flat default (see issue #120). Neither is measured ground truth — these are
  * priors, and A3's agreement harness is what turns them into calibrated numbers.
  */
-const SOURCE_BASE_CONFIDENCE: Record<PrismProvider["source"] | "canopy", number> = {
+type SourceKey = PrismProvider["source"] | "canopy" | "canopy-raster";
+
+const SOURCE_BASE_CONFIDENCE: Record<SourceKey, number> = {
   tiles: 0.8,
   overpass: 0.7,
   /**
@@ -239,6 +269,22 @@ const SOURCE_BASE_CONFIDENCE: Record<PrismProvider["source"] | "canopy", number>
    * routing input. It only ever surfaces where no building source could speak.
    */
   canopy: 0.35,
+  /**
+   * The raster scores above OSM's tagged crowns and still below `LOW_CONFIDENCE`.
+   *
+   * Above, because it is a *presence* layer and OSM is not: the 2026-09-09 census
+   * found OSM holding ~23% of Madrid's inventoried street trees and ~1% of
+   * Singapore's, while the raster covers every pixel of both — and A8c measured that
+   * it is separable from buildings rather than reproducing them
+   * (`docs/notes/canopy-urban-confusion-2026-09-10.md`). Below, for the same reason
+   * `canopy` is: whatever it knows about trees, it knows nothing about the tower
+   * across the street, so canopy alone remains a request to consult another source.
+   *
+   * A prior, like every other number in this block, and one no corpus in this repo
+   * can yet calibrate — the agreement harness compares the field against a pixel
+   * sampler that cannot see a tree at all.
+   */
+  "canopy-raster": 0.45,
 };
 
 /** Applied when the covering source holds no buildings at all for the area. */
@@ -294,7 +340,7 @@ const CANOPY_MIX_FACTOR = 0.9;
  * treating it as a doubt would send almost every sunlit sample to the fallback path.
  */
 export function confidenceFor(
-  source: PrismProvider["source"] | "canopy",
+  source: SourceKey,
   sunAltitudeRad: number,
   prismsAvailable: number,
   completeness = 1
@@ -375,6 +421,15 @@ interface SunCell {
    * array's identity, so a concatenation built per call would miss it every time.
    */
   canopyIndex: ShadowIndex | null;
+  /**
+   * Canopy shade from the height raster for the same cell and moment (A8d).
+   *
+   * Not a `ShadowIndex`: nothing is triangulated or bucketed, because a heightfield
+   * is marched. It is built per (sun, moment) for the same reason the two indexes
+   * are — the march direction comes from the azimuth, the ray's climb from the
+   * altitude, and the crown's opacity from the date.
+   */
+  rasterShade: CanopyShade | null;
 }
 
 /**
@@ -510,7 +565,8 @@ function sunCellsAt(
   edgeCount: number,
   when: Date,
   casters: ShadowCasters | null,
-  canopyCasters: ShadowCasters | null
+  canopyCasters: ShadowCasters | null,
+  rasterField: CanopyHeightField | null
 ): SunCell[] {
   const out = new Array<SunCell>(edgeCount);
   for (const cell of plan.cells) {
@@ -523,7 +579,11 @@ function sunCellsAt(
         : null;
     const index = build(casters);
     const canopyIndex = build(canopyCasters);
-    for (const i of cell.members) out[i] = { sun, index, canopyIndex };
+    const rasterShade =
+      rasterField && sun.altitude > 0
+        ? rasterField.shadeFor(sun.azimuth, sun.altitude, when)
+        : null;
+    for (const i of cell.members) out[i] = { sun, index, canopyIndex, rasterShade };
   }
   return out;
 }
@@ -560,7 +620,8 @@ function preparedCastersFor(prisms: BuildingPrism[]): ShadowCasters {
  */
 export function createGeometryShadowField(
   providers: PrismProvider[],
-  canopyProviders: CanopyProvider[] = []
+  canopyProviders: CanopyProvider[] = [],
+  rasterProviders: CanopyRasterProvider[] = []
 ): ShadowField {
   function resolve(bbox: BBox): Resolved | null {
     for (const provider of providers) {
@@ -581,6 +642,37 @@ export function createGeometryShadowField(
     return null;
   }
 
+  /** The canopy height field for an area, unmasked. No date: a raster is not seasonal. */
+  function resolveRaster(bbox: BBox): CanopyHeightField | null {
+    for (const provider of rasterProviders) {
+      const field = provider.fieldFor(bbox);
+      if (field) return field;
+    }
+    return null;
+  }
+
+  /**
+   * The height field with the ground the buildings occupy subtracted (A8c, A8d).
+   *
+   * This is where footprint subtraction happens, and the reason it happens *here* is
+   * that this is the only place both sources are in hand: `CanopyTileStore` has no
+   * map, no Overpass and no camera, which is exactly what lets it be tested against a
+   * fake with no network, and a store that fetched buildings to answer a raster
+   * question would have re-acquired the coupling it exists to remove.
+   *
+   * A8c priced it: at most 17.4% of apparent canopy in Madrid and 0.0-4.5% elsewhere,
+   * so the mask cleans up rather than deletes. `masked` memoises on the prism array's
+   * identity — the same invalidation `PREPARED` uses, and for the same reason.
+   *
+   * With no building source, nothing is subtracted. That is the honest answer, and it
+   * only under-reports: unmasked canopy over a building shades ground the building
+   * already occupies, and the building's own shadow is not there to win the point.
+   */
+  function maskedRaster(raster: CanopyHeightField | null, resolved: Resolved | null) {
+    if (!raster || !resolved) return raster;
+    return raster.masked(resolved.set.prisms);
+  }
+
   /**
    * Is this exact point in shadow? One test, no neighbourhood.
    *
@@ -597,11 +689,25 @@ export function createGeometryShadowField(
   function pointShadow(
     index: ShadowIndex | null,
     canopyIndex: ShadowIndex | null,
+    rasterShade: CanopyShade | null,
     lng: number,
     lat: number
   ): number {
     if (index?.isShadowed(lng, lat)) return 1;
-    return canopyIndex ? canopyIndex.opacityAt(lng, lat) : 0;
+
+    // Two canopy sources combine by **maximum**, which is the rule `opacityAt`
+    // already applies between two overlapping crowns inside one index: the beam is
+    // either through a canopy or it is not, and compounding a tagged plane tree with
+    // the raster pixel that is the same plane tree would count it twice. Which source
+    // wins where — the raster as the presence layer, OSM and municipal inventories
+    // refining individual crowns — is A8e's fusion, and this is the placeholder it
+    // replaces.
+    let opacity = canopyIndex ? canopyIndex.opacityAt(lng, lat) : 0;
+    if (opacity < 1 && rasterShade) {
+      const fromRaster = rasterShade.opacityAt(lng, lat);
+      if (fromRaster > opacity) opacity = fromRaster;
+    }
+    return opacity;
   }
 
   /**
@@ -613,32 +719,71 @@ export function createGeometryShadowField(
    * it happened to give, and it lets `coverage()` report the same thing without
    * building any geometry — which is the one guarantee `coverage()` makes.
    */
+  /**
+   * What the canopy layer is worth on its own, or 0 when it contributed nothing.
+   *
+   * The better of the two canopy sources, not their product: they are alternative
+   * evidence about the same trees, so believing both a little less than either is
+   * backwards. The raster's own share of doubt is `validFraction` — a patch that is
+   * half nodata answered from half the evidence, and reading an unpopulated pixel as
+   * bare ground is the failure mode `CanopyPatch.valid` exists to prevent.
+   *
+   * **The raster handed in here must be the masked one wherever a masked one exists.**
+   * Canopy standing on a roof is subtracted before the march, so scoring the unmasked
+   * field would label an answer `"mixed"` and dock it `CANOPY_MIX_FACTOR` for evidence
+   * that was then removed — and `describeShadowProvenance` would tell the user "and
+   * tree canopy" over a corridor whose trees all sit on rooftops.
+   *
+   * The granularity is the **fetched patch**, not the query bbox: `maxHeightM` is a
+   * property of everything the provider cached for the area it was asked to load,
+   * which is a route corridor plus `QUERY_PAD_M`. That is the same coarseness A7's
+   * cached fetch areas already have, and it is deliberate — narrowing it would mean
+   * scanning a sub-window per query, which is exactly the work `coverage()` promises
+   * not to do.
+   */
+  function canopyConfidence(
+    canopy: PrismSet | null,
+    raster: CanopyHeightField | null,
+    sunAltitude: number
+  ): number {
+    let best = 0;
+    const canopyPrisms = canopy?.prisms.length ?? 0;
+    if (canopyPrisms > 0) best = confidenceFor("canopy", sunAltitude, canopyPrisms);
+    if (raster && raster.maxHeightM > 0) {
+      const fromRaster = confidenceFor("canopy-raster", sunAltitude, 1, raster.validFraction);
+      if (fromRaster > best) best = fromRaster;
+    }
+    return best;
+  }
+
   function scoreFor(
     resolved: Resolved | null,
     canopy: PrismSet | null,
+    raster: CanopyHeightField | null,
     sunAltitude: number
   ): { source: ShadowSource; confidence: number } {
-    const canopyPrisms = canopy?.prisms.length ?? 0;
+    const fromCanopy = canopyConfidence(canopy, raster, sunAltitude);
 
     if (!resolved) {
-      if (canopyPrisms === 0) return { source: "none", confidence: 0 };
-      return { source: "canopy", confidence: confidenceFor("canopy", sunAltitude, canopyPrisms) };
+      if (fromCanopy === 0) return { source: "none", confidence: 0 };
+      return { source: "canopy", confidence: fromCanopy };
     }
 
     const base = confidenceFor(
       resolved.source, sunAltitude, resolved.set.prisms.length, resolved.completeness,
     );
-    if (canopyPrisms === 0) return { source: resolved.source, confidence: base };
+    if (fromCanopy === 0) return { source: resolved.source, confidence: base };
     return { source: "mixed", confidence: base * CANOPY_MIX_FACTOR };
   }
 
   function sampleFor(
     resolved: Resolved | null,
     canopy: PrismSet | null,
+    raster: CanopyHeightField | null,
     shadow: number,
     sunAltitude: number
   ): ShadowSample {
-    return { shadow, ...scoreFor(resolved, canopy, sunAltitude) };
+    return { shadow, ...scoreFor(resolved, canopy, raster, sunAltitude) };
   }
 
   /**
@@ -653,12 +798,14 @@ export function createGeometryShadowField(
   function probe(
     resolved: Resolved | null,
     canopy: PrismSet | null,
+    raster: CanopyHeightField | null,
     lng: number,
     lat: number,
+    when: Date,
     sunAzimuth: number,
     sunAltitude: number
   ): ShadowSample {
-    if (!resolved && !canopy) return { shadow: 0, source: "none", confidence: 0 };
+    if (!resolved && !canopy && !raster) return { shadow: 0, source: "none", confidence: 0 };
 
     const { mPerLat, mPerLng } = metersPerDegree(lat);
     const offsets = POINT_OFFSETS_M.map(
@@ -671,13 +818,15 @@ export function createGeometryShadowField(
       );
     const index = resolved ? build(resolved.set.prisms) : null;
     const canopyIndex = canopy ? build(canopy.prisms) : null;
+    const masked = maskedRaster(raster, resolved);
+    const rasterShade = masked?.shadeFor(sunAzimuth, sunAltitude, when) ?? null;
 
     let shadowed = 0;
     for (const [sampleLng, sampleLat] of offsets) {
-      shadowed += pointShadow(index, canopyIndex, sampleLng, sampleLat);
+      shadowed += pointShadow(index, canopyIndex, rasterShade, sampleLng, sampleLat);
     }
 
-    return sampleFor(resolved, canopy, shadowed / POINT_OFFSETS_M.length, sunAltitude);
+    return sampleFor(resolved, canopy, masked, shadowed / POINT_OFFSETS_M.length, sunAltitude);
   }
 
   function shadowAt(lng: number, lat: number, when: Date): ShadowSample {
@@ -685,13 +834,17 @@ export function createGeometryShadowField(
     if (sun.altitude <= 0) return nightSample();
 
     const bbox = bboxAroundPoint(lng, lat, QUERY_PAD_M);
-    return probe(resolve(bbox), resolveCanopy(bbox, when), lng, lat, sun.azimuth, sun.altitude);
+    return probe(
+      resolve(bbox), resolveCanopy(bbox, when), resolveRaster(bbox),
+      lng, lat, when, sun.azimuth, sun.altitude
+    );
   }
 
   function sampleEdgesWithSun(
     edges: EdgeRef[],
     resolved: Resolved | null,
     canopy: PrismSet | null,
+    raster: CanopyHeightField | null,
     plan: BatchPlan,
     cells: SunCell[]
   ): EdgeShadow[] {
@@ -706,7 +859,7 @@ export function createGeometryShadowField(
 
       // Both sidewalks resolve the same providers over the same bbox, so the source
       // and the confidence are properties of the edge, not of a side of it.
-      const score = scoreFor(resolved, canopy, sun.altitude);
+      const score = scoreFor(resolved, canopy, raster, sun.altitude);
       if (score.source === "none") {
         return { left: 0, right: 0, source: score.source, confidence: score.confidence };
       }
@@ -723,6 +876,7 @@ export function createGeometryShadowField(
           sum += pointShadow(
             cell.index,
             cell.canopyIndex,
+            cell.rasterShade,
             edge.from[0] + t * (edge.to[0] - edge.from[0]) + offset[0],
             edge.from[1] + t * (edge.to[1] - edge.from[1]) + offset[1]
           );
@@ -743,12 +897,16 @@ export function createGeometryShadowField(
     const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
     const resolved = bbox ? resolve(bbox) : null;
     const canopy = bbox ? resolveCanopy(bbox, when) : null;
+    const raster = bbox ? resolveRaster(bbox) : null;
     const plan = planBatch(edges);
     const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
     const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
+    // The masked field is what is marched *and* what is scored: the label has to
+    // describe the evidence the number was actually computed from.
+    const masked = maskedRaster(raster, resolved);
     return sampleEdgesWithSun(
-      edges, resolved, canopy, plan,
-      sunCellsAt(plan, edges.length, when, casters, canopyCasters)
+      edges, resolved, canopy, masked, plan,
+      sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
     );
   }
 
@@ -770,7 +928,17 @@ export function createGeometryShadowField(
         return { source: night.source, confidence: night.confidence };
       }
 
-      return scoreFor(resolve(bbox), resolveCanopy(bbox, when), sun.altitude);
+      // `resolveRaster` rather than `maskedRaster`: masking rasterises footprints, and
+      // building no geometry is the one guarantee `coverage()` makes.
+      //
+      // So this is an **upper bound** on what `sampleEdges` will report, and the one
+      // case the two differ is a corridor whose canopy stands entirely on rooftops:
+      // here it reads "mixed", and sampling — which has the mask in hand — will drop
+      // back to the building source. Erring high is the right direction for the
+      // question this answers, which is whether the caller may skip a fallback path:
+      // a `"mixed"` that resolves to `"tiles"` costs nothing, and both are well above
+      // `LOW_CONFIDENCE` whenever the building source is.
+      return scoreFor(resolve(bbox), resolveCanopy(bbox, when), resolveRaster(bbox), sun.altitude);
     },
 
     sweep(edges, times) {
@@ -784,6 +952,11 @@ export function createGeometryShadowField(
       const resolved = bbox ? resolve(bbox) : null;
       const plan = planBatch(edges);
       const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
+      // The raster is geometry and geometry does not move, so it is resolved and
+      // masked once for the whole sweep; only the march direction and the crown's
+      // opacity are per-hour, and both live in `shadeFor`.
+      const raster = bbox ? resolveRaster(bbox) : null;
+      const masked = maskedRaster(raster, resolved);
       return times.map((when) => {
         // Canopy is resolved per time because its opacity is seasonal, and prepared
         // per resolution — but the provider hands back the same array for every time
@@ -791,21 +964,31 @@ export function createGeometryShadowField(
         const canopy = bbox ? resolveCanopy(bbox, when) : null;
         const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
         return sampleEdgesWithSun(
-          edges, resolved, canopy, plan,
-          sunCellsAt(plan, edges.length, when, casters, canopyCasters)
+          edges, resolved, canopy, masked, plan,
+          sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
         );
       });
     },
 
     async ready(bbox) {
       // Buildings first, canopy after — not one `Promise.all` over both. Every load
-      // here is a request to the same volunteer-run Overpass instance, and the caller
-      // is already fetching the routing graph from it in parallel; firing canopy
-      // alongside would take a route calculation from two concurrent requests to
-      // three. Serialising costs nothing in the common case, where the building
+      // on that chain is a request to the same volunteer-run Overpass instance, and
+      // the caller is already fetching the routing graph from it in parallel; firing
+      // canopy alongside would take a route calculation from two concurrent requests
+      // to three. Serialising costs nothing in the common case, where the building
       // provider declines the area on its radius cap and canopy starts immediately.
-      await Promise.all(providers.map((provider) => provider.load?.(bbox)));
-      await Promise.all(canopyProviders.map((provider) => provider.load?.(bbox)));
+      //
+      // The raster runs beside that chain rather than in it: it is byte-range reads
+      // against `source.coop`, which shares neither a host nor a rate limit with
+      // Overpass, so queueing it behind two Overpass calls would only make a route
+      // wait for nothing.
+      await Promise.all([
+        Promise.all(rasterProviders.map((provider) => provider.load?.(bbox))),
+        (async () => {
+          await Promise.all(providers.map((provider) => provider.load?.(bbox)));
+          await Promise.all(canopyProviders.map((provider) => provider.load?.(bbox)));
+        })(),
+      ]);
     },
   };
 }

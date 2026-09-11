@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>A8d canopy shadow field harness</title>
+<!--
+  A8d's live check, alongside A8a's and A8b's and for the same reason: what is being
+  measured is what a browser pays to read real canopy from `source.coop` and what the
+  ray-march then says about it, and loading MapLibre, the shadow renderer and React
+  around that would put a much larger, noisier request history underneath every number.
+
+  Served by the Vite dev server (see playwright.canopy.config.ts), so the modules under
+  test are the TypeScript in app/lib/, not a build artefact.
+-->
+<body>
+  <script type="module">
+    import { createRasterCanopyProvider } from "/app/lib/shadowField/providers.ts";
+    import {
+      QUERY_PAD_M,
+      bboxAroundEdges,
+      createGeometryShadowField,
+    } from "/app/lib/shadowField/ShadowField.ts";
+    window.__umbraCanopyField = {
+      createRasterCanopyProvider,
+      createGeometryShadowField,
+      bboxAroundEdges,
+      QUERY_PAD_M,
+      ready: true,
+    };
+  </script>
+</body>

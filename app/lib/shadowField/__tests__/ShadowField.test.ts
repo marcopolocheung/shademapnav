@@ -4,6 +4,7 @@ import {
   LOW_CONFIDENCE,
   type BBox,
   type CanopyProvider,
+  type CanopyRasterProvider,
   type EdgeRef,
   type PrismProvider,
   bboxAroundEdges,
@@ -17,6 +18,7 @@ import {
   staticCanopyProvider,
   staticPrismProvider,
 } from "../ShadowField";
+import type { CanopyHeightField } from "../canopyRasterField";
 import { type PrismSet, metersPerDegree } from "../geometry";
 
 // ─── A scene with a known sun ─────────────────────────────────────────────────
@@ -775,5 +777,268 @@ describe("canopy", () => {
     };
     await createGeometryShadowField([building], [trees]).ready(WIDE_COVERAGE);
     expect(loaded.sort()).toEqual(["canopy", "overpass"]);
+  });
+});
+
+// ─── Canopy from the raster (A8d) ─────────────────────────────────────────────
+
+describe("raster canopy", () => {
+  /** Far enough across the shadow direction that no building shadow reaches it. */
+  const GROVE = acrossShadow(300);
+  const RASTER_OPACITY = 0.9;
+
+  /** A 20 m edge through the middle of the grove, across the shadow direction. */
+  const underGrove: EdgeRef = {
+    from: [GROVE[0] - 10 / mPerLng, GROVE[1]],
+    to: [GROVE[0] + 10 / mPerLng, GROVE[1]],
+  };
+
+  const tiles = () => staticPrismProvider(oneBuilding(), WIDE_COVERAGE, "tiles");
+
+  /**
+   * A height field with no raster behind it.
+   *
+   * `canopyRasterField.test.ts` is where the march itself is pinned against known
+   * geometry. What `ShadowField` owns is the plumbing — which source wins a point,
+   * what the answer is labelled, what it is worth, and whether the footprints ever
+   * reach the mask — and a fake field states each of those without a patch of pixels
+   * standing between the assertion and the thing asserted.
+   */
+  function fakeField(opts?: {
+    opacity?: number;
+    maxHeightM?: number;
+    validFraction?: number;
+    shades?: (lng: number, lat: number) => boolean;
+    maskedWith?: Array<unknown>;
+    /** What `masked()` returns. Defaults to the field itself — nothing subtracted. */
+    afterMask?: () => CanopyHeightField;
+  }): CanopyHeightField {
+    const opacity = opts?.opacity ?? RASTER_OPACITY;
+    const shades = opts?.shades ?? (() => true);
+    const self: CanopyHeightField = {
+      validFraction: opts?.validFraction ?? 1,
+      maxHeightM: opts?.maxHeightM ?? 12,
+      masked(footprints) {
+        opts?.maskedWith?.push(footprints);
+        return opts?.afterMask ? opts.afterMask() : self;
+      },
+      // The sun and the moment are folded into the answer on purpose. A stub that
+      // ignored them would let the sweep-parity test below pass while `sweep` handed
+      // the raster the wrong hour — which is the one thing that test exists to catch.
+      shadeFor: (azimuth, altitude, when) => ({
+        opacityAt: (lng, lat) =>
+          shades(lng, lat)
+            ? opacity * (0.5 + 0.5 * Math.abs(Math.sin(azimuth + altitude + when.getTime() / 1e9)))
+            : 0,
+      }),
+    };
+    return self;
+  }
+
+  const raster = (field = fakeField()): CanopyRasterProvider => ({
+    source: "canopy-raster",
+    fieldFor: (bbox) => (bboxContains(WIDE_COVERAGE, bbox) ? field : null),
+  });
+
+  /**
+   * What `fakeField`'s stub reports for the sun over the grove — the blend's expected
+   * value. Over the grove, not over the scene origin: `ShadowField` fixes one sun per
+   * cell at the cell's own centroid, which for `underGrove` is `GROVE` itself.
+   */
+  const groveSun = SunCalc.getPosition(NOON, GROVE[1], GROVE[0]);
+  const expectedShade = (field = fakeField()) =>
+    field.shadeFor(groveSun.azimuth, groveSun.altitude, NOON).opacityAt(GROVE[0], GROVE[1]);
+
+  it("reports canopy shade where buildings report none", () => {
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const with_ = createGeometryShadowField([tiles()], [], [raster()]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+
+    expect(without.left).toBe(0);
+    expect(with_.left).toBeCloseTo(expectedShade(), 10);
+    expect(with_.right).toBeCloseTo(expectedShade(), 10);
+    // Below 1: a crown is not a wall, whatever the raster says about its height.
+    expect(with_.left).toBeLessThan(1);
+  });
+
+  it("lets an opaque building win outright where the two overlap", () => {
+    const inBuildingShadow: EdgeRef = { from: alongShadow(25), to: alongShadow(35) };
+    const [edge] = createGeometryShadowField([tiles()], [], [raster()]).sampleEdges(
+      [inBuildingShadow], NOON
+    );
+    expect(edge.left).toBe(1);
+  });
+
+  it("takes the darker of the two canopy sources, never their sum", () => {
+    // The same row of plane trees is in OSM and in the raster. Compounding 0.6 and 0.9
+    // into 0.96 would count one tree twice; the answer is the darker of the two, which
+    // is the rule `opacityAt` already applies between two crowns inside one index.
+    const thinCanopy: PrismSet = {
+      prisms: [
+        {
+          heightM: 9,
+          baseM: 3,
+          opacity: 0.6,
+          ring: [
+            [GROVE[0] - 0.001, GROVE[1] - 0.001],
+            [GROVE[0] + 0.001, GROVE[1] - 0.001],
+            [GROVE[0] + 0.001, GROVE[1] + 0.001],
+            [GROVE[0] - 0.001, GROVE[1] + 0.001],
+            [GROVE[0] - 0.001, GROVE[1] - 0.001],
+          ],
+        },
+      ],
+      maxHeightM: 9,
+    };
+    const [edge] = createGeometryShadowField(
+      [tiles()], [staticCanopyProvider(thinCanopy, WIDE_COVERAGE)], [raster()]
+    ).sampleEdges([underGrove], NOON);
+
+    expect(expectedShade()).toBeGreaterThan(0.6);
+    expect(edge.left).toBeCloseTo(expectedShade(), 10);
+  });
+
+  it("hands the building footprints to the mask, once per prism set", () => {
+    // A8c's footprint subtraction, and the only place both sources are in hand.
+    const maskedWith: Array<unknown> = [];
+    const field = createGeometryShadowField(
+      [tiles()], [], [raster(fakeField({ maskedWith }))]
+    );
+    field.sampleEdges([underGrove], NOON);
+
+    // One call for the whole batch, not one per edge, and it is the resolved
+    // building set that arrives — the same array `PREPARED` is keyed on.
+    expect(maskedWith).toHaveLength(1);
+    expect(maskedWith[0]).toEqual(oneBuilding().prisms);
+  });
+
+  it("does not label an answer canopy when every tree it had stood on a roof", () => {
+    // Footprint subtraction can leave nothing standing. The label and the dock must
+    // describe the evidence the number was computed from — the masked field — or the
+    // route card says "and tree canopy" over a street the raster contributed nothing to.
+    const rooftopsOnly = raster(
+      fakeField({ afterMask: () => fakeField({ maxHeightM: 0, shades: () => false }) })
+    );
+    const buildingsOnly = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const field = createGeometryShadowField([tiles()], [], [rooftopsOnly]);
+
+    expect(field.sampleEdges([underGrove], NOON)[0]).toEqual(buildingsOnly);
+    expect(field.shadowAt(GROVE[0], GROVE[1], NOON).source).toBe("tiles");
+
+    // `coverage()` cannot mask — it builds no geometry — so it stays the upper bound.
+    const area = bboxAroundEdges([underGrove], QUERY_PAD_M) as BBox;
+    expect(field.coverage(area, NOON).source).toBe("mixed");
+  });
+
+  it("does not rasterise footprints to answer coverage()", () => {
+    // `coverage()` promises to build no geometry — it is the cheap up-front check that
+    // decides whether A4b reads the map canvas at all.
+    const maskedWith: Array<unknown> = [];
+    const area = bboxAroundEdges([underGrove], QUERY_PAD_M) as BBox;
+    const result = createGeometryShadowField(
+      [tiles()], [], [raster(fakeField({ maskedWith }))]
+    ).coverage(area, NOON);
+
+    expect(maskedWith).toHaveLength(0);
+    expect(result.source).toBe("mixed");
+  });
+
+  it("scores the raster above OSM's crowns and still below LOW_CONFIDENCE alone", () => {
+    const fromRaster = createGeometryShadowField([], [], [raster()]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+
+    expect(fromRaster.source).toBe("canopy");
+    expect(fromRaster.confidence).toBeLessThan(LOW_CONFIDENCE);
+    expect(fromRaster.confidence).toBeGreaterThan(confidenceFor("canopy", sun.altitude, 1));
+  });
+
+  it("docks the answer for the share of the patch the raster never populated", () => {
+    const whole = createGeometryShadowField([], [], [raster()]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+    const holed = createGeometryShadowField(
+      [], [], [raster(fakeField({ validFraction: 0.5 }))]
+    ).sampleEdges([underGrove], NOON)[0];
+
+    expect(holed.confidence).toBeCloseTo(whole.confidence * 0.5, 10);
+  });
+
+  it("does not dock an area the raster covered and found bare", () => {
+    // Nothing standing in the patch is knowledge, not a gap: no shade, no label
+    // change, no confidence cost.
+    const bare = raster(fakeField({ maxHeightM: 0, shades: () => false }));
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const covered = createGeometryShadowField([tiles()], [], [bare]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+
+    expect(covered).toEqual(without);
+  });
+
+  it("changes nothing when the raster source cannot speak for the area", () => {
+    const elsewhere = bboxAroundPoint(LNG + 5, LAT, 100);
+    const declines: CanopyRasterProvider = {
+      source: "canopy-raster",
+      fieldFor: (bbox) => (bboxContains(elsewhere, bbox) ? fakeField() : null),
+    };
+    const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const declined = createGeometryShadowField([tiles()], [], [declines]).sampleEdges(
+      [underGrove], NOON
+    )[0];
+
+    expect(declined).toEqual(without);
+  });
+
+  it("blends the raster into a point probe too", () => {
+    const field = createGeometryShadowField([tiles()], [], [raster()]);
+    const sample = field.shadowAt(GROVE[0], GROVE[1], NOON);
+
+    expect(sample.shadow).toBeGreaterThan(0.5);
+    expect(sample.source).toBe("mixed");
+  });
+
+  it("sweeps N times to exactly what N samples produce", () => {
+    // A6's parity guarantee again, with the raster in play: the sweep resolves and
+    // masks the field once and rebuilds only the march, and it must still be the
+    // same floats.
+    const times = [4, 8, 12, 16, 20].map((hour) => new Date(Date.UTC(2026, 5, 21, hour, 0, 0)));
+    const field = createGeometryShadowField([tiles()], [], [raster()]);
+    const swept = field.sweep([underGrove], times);
+
+    times.forEach((when, i) => {
+      expect(swept[i]).toEqual(field.sampleEdges([underGrove], when));
+    });
+  });
+
+  it("preloads the raster beside the Overpass chain rather than behind it", async () => {
+    // The raster is byte-range reads against source.coop, which shares neither a host
+    // nor a rate limit with Overpass. Queueing it behind two Overpass calls would make
+    // a route wait for nothing.
+    const order: string[] = [];
+    let openGate = () => {};
+    const gate = new Promise<void>((resolve) => {
+      openGate = resolve;
+    });
+    const building: PrismProvider = {
+      source: "overpass",
+      prismsFor: () => null,
+      load: async () => {
+        await gate;
+        order.push("overpass");
+      },
+    };
+    const tiles: CanopyRasterProvider = {
+      source: "canopy-raster",
+      fieldFor: () => null,
+      load: async () => {
+        order.push("raster");
+        openGate();
+      },
+    };
+
+    await createGeometryShadowField([building], [], [tiles]).ready(WIDE_COVERAGE);
+    expect(order).toEqual(["raster", "overpass"]);
   });
 });

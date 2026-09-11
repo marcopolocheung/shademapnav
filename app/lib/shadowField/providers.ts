@@ -12,6 +12,10 @@
  * A tile provider asked about a bbox off-screen has no buildings *and no knowledge*,
  * and reporting the first without the second is how a route ends up confidently
  * promising shadow that isn't there.
+ *
+ * A7 added a canopy provider over Overpass's tagged trees and A8d one over the
+ * Meta/WRI height raster. Both obey the same rule, and the raster one is the reason
+ * this file is no longer only about prisms.
  */
 
 import {
@@ -20,9 +24,16 @@ import {
   fetchBuildingFootprintsAround,
   fetchCanopyAround,
 } from "../overpass";
-import type { BBox, CanopyProvider, PrismProvider } from "./ShadowField";
+import type { CanopyTileStore } from "../canopyRaster/canopyTileStore";
+import type {
+  BBox,
+  CanopyProvider,
+  CanopyRasterProvider,
+  PrismProvider,
+} from "./ShadowField";
 import { bboxContains } from "./ShadowField";
 import { prismsFromCanopy } from "./canopy";
+import { type CanopyHeightField, createCanopyHeightField } from "./canopyRasterField";
 import {
   type BuildingFeatureLike,
   type PrismSet,
@@ -381,4 +392,173 @@ export function createOverpassCanopyProvider(opts?: {
       return pending;
     },
   };
+}
+
+// ─── Canopy from the raster ───────────────────────────────────────────────────
+
+/**
+ * The largest area of interest the raster provider will ask the store for, as a
+ * radius in metres.
+ *
+ * `CanopyTileStore.read` throws rather than degrading when an area of interest
+ * exceeds its pixel guard, and a provider that fires a doomed read is worse than one
+ * that declines: `null` is already the contract's word for "I cannot speak for this".
+ * 4 km of half-diagonal is a ~5.7 km box, which at Singapore's 1.19 m ground pixel is
+ * ~23 MP — inside the store's 32 MP guard, and larger than any corridor the route
+ * graph will hand over.
+ */
+const MAX_RASTER_RADIUS_M = 4000;
+
+/** Fetched areas to keep. Each holds a decoded height field; two is a route and a pan. */
+const RASTER_CACHE_ENTRIES = 2;
+
+/**
+ * How long `load()` will make a caller wait for a cold read, in milliseconds.
+ *
+ * `ShadowField.ready()` is awaited on the route-calculation path, beside the graph
+ * fetch, so whatever it costs a route pays. A cold read of a route-sized area from
+ * `source.coop` measured **3.4-9.7 s** in Chromium over a domestic connection across
+ * the three A3 corpus cities (`docs/notes/canopy-raster-shadow-field-2026-09-10.md`),
+ * and A8a already established why: the cost is ~150 sequential range requests rather
+ * than bytes, because `geotiff.js` is opened with no block cache and no multi-range
+ * batching. #290 is that fix, and it is what should make this budget irrelevant.
+ *
+ * So the wait is bounded and the read is not. Past the budget `load()` resolves, the
+ * route calculates from whatever else can speak for the area, and the fetch keeps
+ * running — the next query over that area finds it cached and answers instantly. What
+ * this deliberately never does is let a research mirror decide how long a route takes.
+ */
+const READY_BUDGET_MS = 2500;
+
+interface RasterEntry {
+  coverage: BBox;
+  field: CanopyHeightField;
+}
+
+/**
+ * Canopy from the Meta/WRI height raster (A8d).
+ *
+ * Shaped like the two Overpass providers — `fieldFor` is synchronous and answers from
+ * the cache or declines, `load()` is the only path to the wire — for the same reason:
+ * sampling one route asks for the same area once per edge, and a provider that fetched
+ * from the synchronous path would fire a request per edge.
+ *
+ * What it hands back is a **height field**, not prisms. See `canopyRasterField.ts` for
+ * why a route-sized patch of raster is marched rather than tessellated, and
+ * `ShadowField` for where the building footprints are subtracted from it.
+ *
+ * The store is built on first use behind a dynamic import, so `geotiff.js` lands in
+ * its own chunk rather than in the bundle every visitor downloads. A caller that
+ * supplies its own store — every test does — never triggers it.
+ */
+export function createRasterCanopyProvider(opts?: {
+  store?: CanopyTileStore;
+  targetGroundRes?: number;
+  maxRadiusM?: number;
+  readyBudgetMs?: number;
+}): CanopyRasterProvider {
+  const maxRadiusM = opts?.maxRadiusM ?? MAX_RASTER_RADIUS_M;
+  const readyBudgetMs = opts?.readyBudgetMs ?? READY_BUDGET_MS;
+  const cache: RasterEntry[] = [];
+  const inFlight = new Map<string, Promise<void>>();
+  let store = opts?.store ?? null;
+
+  async function storeFor(): Promise<CanopyTileStore> {
+    if (!store) {
+      const { createCanopyTileStore } = await import("../canopyRaster/canopyTileStore");
+      store = createCanopyTileStore();
+    }
+    return store;
+  }
+
+  function lookup(bbox: BBox): CanopyHeightField | null {
+    for (let i = 0; i < cache.length; i++) {
+      if (bboxContains(cache[i].coverage, bbox)) {
+        const [entry] = cache.splice(i, 1);
+        cache.unshift(entry);
+        return entry.field;
+      }
+    }
+    return null;
+  }
+
+  /** The read itself, which runs to completion however long `load()` waits. */
+  function startRead(key: string, bbox: BBox): Promise<void> {
+    const pending = (async () => {
+      try {
+        const patch = await (await storeFor()).read(
+          [bbox.west, bbox.south, bbox.east, bbox.north],
+          { targetGroundRes: opts?.targetGroundRes }
+        );
+        cache.unshift({
+          // The patch covers whole pixels, so it contains the area asked for rather
+          // than equalling it — except at a tile edge, where the store clamps and
+          // `bboxContains` will decline. That is the honest outcome.
+          coverage: {
+            west: patch.bbox[0],
+            south: patch.bbox[1],
+            east: patch.bbox[2],
+            north: patch.bbox[3],
+          },
+          field: createCanopyHeightField(patch),
+        });
+        if (cache.length > RASTER_CACHE_ENTRIES) cache.length = RASTER_CACHE_ENTRIES;
+      } catch {
+        // Same rule as the two providers above: never cache a failure as "no canopy
+        // here". `fieldFor` keeps returning null and nothing claims the raster was
+        // consulted. Swallowing it here is also what keeps a read nobody is waiting
+        // for any more from surfacing as an unhandled rejection.
+      } finally {
+        inFlight.delete(key);
+      }
+    })();
+
+    inFlight.set(key, pending);
+    return pending;
+  }
+
+  return {
+    source: "canopy-raster",
+
+    fieldFor(bbox) {
+      return lookup(bbox);
+    },
+
+    async load(bbox) {
+      if (lookup(bbox)) return;
+      if (bboxRadiusM(bbox) > maxRadiusM) return;
+
+      // No padding, unlike the two Overpass providers. `ShadowField` already pads
+      // every query by `QUERY_PAD_M`, and the march is capped at the same distance —
+      // so the patch the caller asks for is exactly the patch the march can reach.
+      const key = [bbox.west, bbox.south, bbox.east, bbox.north]
+        .map((v) => v.toFixed(5))
+        .join(",");
+
+      // Bounded wait, unbounded read. See `READY_BUDGET_MS`.
+      await raceDeadline(inFlight.get(key) ?? startRead(key, bbox), readyBudgetMs);
+    },
+  };
+}
+
+/**
+ * `promise`, or `ms` elapsing — whichever is first, with the timer cleared either way.
+ *
+ * A bare `Promise.race` against a `setTimeout` would leave a live timer behind on
+ * every read that beats the deadline, and `load()` runs once per route calculation.
+ */
+function raceDeadline(promise: Promise<void>, ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    promise.then(
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      () => {
+        clearTimeout(timer);
+        resolve();
+      }
+    );
+  });
 }

@@ -8,11 +8,17 @@ import {
   createGeometryShadowField,
 } from "../ShadowField";
 import type { BuildingFeatureLike } from "../geometry";
+import type {
+  CanopyPatch,
+  CanopyTileStore,
+} from "../../canopyRaster/canopyTileStore";
+import type { LonLatBbox } from "../../canopyRaster/tiles";
 import {
   type TileMapLike,
   bboxRadiusM,
   createOverpassCanopyProvider,
   createOverpassPrismProvider,
+  createRasterCanopyProvider,
   createTilePrismProvider,
 } from "../providers";
 
@@ -343,6 +349,161 @@ describe("createOverpassCanopyProvider", () => {
     const set = provider.prismsFor(bbox, JULY);
     expect(set).not.toBeNull();
     expect(set?.prisms).toHaveLength(0);
+  });
+});
+
+describe("createRasterCanopyProvider", () => {
+  const bbox = bboxAroundPoint(LNG, LAT, 200);
+
+  /**
+   * A store that hands back one flat patch covering whatever it was asked for.
+   *
+   * The store's own behaviour — dedupe, cancellation, retry, stitching — is A8b's and
+   * is tested against a fake COG in `canopyTileStore.test.ts`. What this provider owns
+   * is the policy above it: never fetch from the synchronous path, never cache a
+   * failure as "no canopy", and decline an area too large to succeed.
+   */
+  function fakeStore(read: (aoi: LonLatBbox) => Promise<CanopyPatch>): CanopyTileStore {
+    return {
+      read: (aoi) => read(aoi),
+      stats: () => ({
+        cachedBlocks: 0, cachedBytes: 0, blockHits: 0, blockMisses: 0,
+        runsFetched: 0, retries: 0, evictions: 0,
+      }),
+      clear: () => {},
+    };
+  }
+
+  function flatPatch(aoi: LonLatBbox, heightM = 12): CanopyPatch {
+    return {
+      heights: new Uint8Array(16 * 16).fill(heightM),
+      valid: null,
+      width: 16,
+      height: 16,
+      // A real patch covers whole pixels, so it contains the area asked for. Widened
+      // a little here for the same reason, so `bboxContains` can succeed.
+      bbox: [aoi[0] - 1e-4, aoi[1] - 1e-4, aoi[2] + 1e-4, aoi[3] + 1e-4],
+      metresPerPixel: 2,
+      overviewIndex: 2,
+      quadkeys: ["0331110121"],
+    };
+  }
+
+  it("answers nothing before anything is loaded", () => {
+    const read = vi.fn();
+    expect(createRasterCanopyProvider({ store: fakeStore(read) }).fieldFor(bbox)).toBeNull();
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("answers from cache after load", async () => {
+    const read = vi.fn(async (aoi: LonLatBbox) => flatPatch(aoi));
+    const provider = createRasterCanopyProvider({ store: fakeStore(read) });
+
+    await provider.load?.(bbox);
+
+    expect(provider.fieldFor(bbox)?.maxHeightM).toBe(12);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches one area once, however many times it is asked for", async () => {
+    const read = vi.fn(async (aoi: LonLatBbox) => flatPatch(aoi));
+    const provider = createRasterCanopyProvider({ store: fakeStore(read) });
+
+    await Promise.all([provider.load?.(bbox), provider.load?.(bbox)]);
+    await provider.load?.(bbox);
+
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("declines an area too large for the store's pixel guard, without asking", async () => {
+    // `CanopyTileStore.read` throws rather than degrading, and a provider that fires a
+    // doomed read is worse than one that says it cannot speak for the area.
+    const read = vi.fn(async (aoi: LonLatBbox) => flatPatch(aoi));
+    const provider = createRasterCanopyProvider({ store: fakeStore(read) });
+    const continent = bboxAroundPoint(LNG, LAT, 50_000);
+
+    await provider.load?.(continent);
+
+    expect(read).not.toHaveBeenCalled();
+    expect(provider.fieldFor(continent)).toBeNull();
+  });
+
+  it("never caches a failed read as an area with no canopy", async () => {
+    const read = vi.fn(async () => {
+      throw new Error("source.coop said 504");
+    });
+    const provider = createRasterCanopyProvider({ store: fakeStore(read) });
+
+    await expect(provider.load?.(bbox)).resolves.toBeUndefined();
+
+    expect(provider.fieldFor(bbox)).toBeNull();
+    // And it is free to try again, rather than having cached the failure.
+    await provider.load?.(bbox);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops waiting on a slow read without abandoning it", async () => {
+    // `ready()` is awaited on the route-calculation path. A cold read from
+    // source.coop was measured at 3.4-9.7 s, and a route must not be made to wait
+    // that long — but throwing the read away would mean it never lands at all.
+    let land = () => {};
+    const slow = vi.fn(
+      (aoi: LonLatBbox) =>
+        new Promise<CanopyPatch>((resolve) => {
+          land = () => resolve(flatPatch(aoi));
+        }),
+    );
+    const provider = createRasterCanopyProvider({
+      store: fakeStore(slow),
+      readyBudgetMs: 5,
+    });
+
+    await provider.load?.(bbox);
+
+    expect(slow).toHaveBeenCalledTimes(1);
+    expect(provider.fieldFor(bbox)).toBeNull();
+
+    land();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(provider.fieldFor(bbox)?.maxHeightM).toBe(12);
+  });
+
+  it("joins a read still in flight rather than starting a second", async () => {
+    let land = () => {};
+    const slow = vi.fn(
+      (aoi: LonLatBbox) =>
+        new Promise<CanopyPatch>((resolve) => {
+          land = () => resolve(flatPatch(aoi));
+        }),
+    );
+    const provider = createRasterCanopyProvider({
+      store: fakeStore(slow),
+      readyBudgetMs: 5,
+    });
+
+    await provider.load?.(bbox);
+    await provider.load?.(bbox);
+
+    expect(slow).toHaveBeenCalledTimes(1);
+    land();
+  });
+
+  it("declines an area the patch does not fully cover", async () => {
+    // The store clamps a window to the image, so a read near an unpublished tile can
+    // come back covering less than was asked for. Half an answer is not an answer.
+    const clipped = vi.fn(async (aoi: LonLatBbox) => {
+      const patch = flatPatch(aoi);
+      patch.bbox = [aoi[0], aoi[1], (aoi[0] + aoi[2]) / 2, aoi[3]];
+      return patch;
+    });
+    const provider = createRasterCanopyProvider({ store: fakeStore(clipped) });
+
+    await provider.load?.(bbox);
+
+    expect(clipped).toHaveBeenCalledTimes(1);
+    expect(provider.fieldFor(bbox)).toBeNull();
   });
 });
 

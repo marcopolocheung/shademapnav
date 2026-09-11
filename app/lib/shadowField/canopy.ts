@@ -118,7 +118,7 @@ const DEFAULT_WOOD_HEIGHT_M = 12;
  * building shadow collapses. Modelling the crown from the ground instead would paint
  * shadow across that whole displacement, overstating it in the dangerous direction.
  */
-const CROWN_BASE_FRACTION = 0.35;
+export const CROWN_BASE_FRACTION = 0.35;
 
 /**
  * Vertices in the polygon standing in for a circular crown.
