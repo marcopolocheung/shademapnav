@@ -54,7 +54,7 @@ describe("provider policy", () => {
   });
 
   it("has both OSM proxies identifying themselves upstream", () => {
-    for (const proxy of ["api/nominatim.js", "api/overpass.js"]) {
+    for (const proxy of ["api/nominatim.js", "server/overpassProxy.js"]) {
       const src = readFileSync(join(ROOT, proxy), "utf8");
       expect(src, proxy).toMatch(/["']User-Agent["']\s*:\s*["']Umbra\//);
     }

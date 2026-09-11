@@ -128,7 +128,7 @@ out body geom;
   }
 
   if (!res.ok) {
-    if (res.status === 504) {
+    if ([429, 502, 503, 504].includes(res.status)) {
       throw new Error(
         "The map server is busy — try a smaller area or wait a moment and retry."
       );

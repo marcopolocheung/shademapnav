@@ -1,9 +1,21 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { handleOverpassRequest } from "./server/overpassProxy.js";
+
+function overpassDevProxy(): Plugin {
+  return {
+    name: "umbra-overpass-proxy",
+    configureServer(server) {
+      server.middlewares.use("/__overpass", (req, res) => {
+        void handleOverpassRequest(req, res);
+      });
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [overpassDevProxy(), react()],
   // Foursquare Places API does not allow browser CORS from arbitrary origins.
   // During local development, proxy through Vite so requests are same-origin.
   // In production, this should be handled by your hosting layer (reverse proxy
@@ -18,14 +30,6 @@ export default defineConfig({
         configure: (proxy) => {
 
         },
-      },
-      // Overpass: overpass-api.de returns CORS-less error responses under load.
-      // Route through the dev server so dev matches the prod /api/overpass proxy.
-      "/__overpass": {
-        target: "https://overpass-api.de",
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/__overpass/, "/api/interpreter"),
       },
       // Nominatim: the OSMF policy wants a User-Agent, which browsers forbid
       // setting. Route dev requests through Vite so a real one is attached
