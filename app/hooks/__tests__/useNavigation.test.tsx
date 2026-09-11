@@ -6,7 +6,9 @@ import type { SavedRoute } from "../../lib/savedRoutes";
 import { downloadBlob } from "../../lib/exportRoute";
 import { geocodeReverse } from "../../lib/nominatim";
 import { fetchRoutingGraph } from "../../lib/overpass";
-import { sampleBothSidewalks } from "../../lib/shadowSampling";
+import {
+  sampleBuildingMaskBothSidewalks,
+} from "../../lib/shadowSampling";
 import { useNavigation } from "../useNavigation";
 
 vi.mock("../../lib/nominatim", () => ({
@@ -30,6 +32,10 @@ const shadowStub = vi.hoisted(() => ({
   edgeShadow: [] as Array<{ left: number; right: number; source: string; confidence: number }>,
   readyError: null as Error | null,
   readyGate: null as Promise<void> | null,
+  readyCalls: [] as Array<{
+    kind: "broad" | "edges";
+    options?: { signal?: AbortSignal; deadlineAt?: number };
+  }>,
   sampledBatchSizes: [] as number[],
 }));
 
@@ -47,10 +53,31 @@ vi.mock("../../lib/shadowField/ShadowField", async () => {
         shadowStub.sampledBatchSizes.push(edges.length);
         return edges.map((_, i) => shadowStub.edgeShadow[i] ?? shadowStub.edgeShadow[0]);
       },
-      ready: async () => {
-        if (shadowStub.readyGate) await shadowStub.readyGate;
+      ready: async (_bbox: unknown, options?: { signal?: AbortSignal; deadlineAt?: number }) => {
+        shadowStub.readyCalls.push({ kind: "broad", options });
+        if (shadowStub.readyGate) {
+          await Promise.race([
+            shadowStub.readyGate,
+            new Promise<void>((resolve) =>
+              options?.signal?.addEventListener("abort", () => resolve(), { once: true }),
+            ),
+          ]);
+        }
         if (shadowStub.readyError) throw shadowStub.readyError;
       },
+      readyEdges: async (_edges: unknown, options?: { signal?: AbortSignal; deadlineAt?: number }) => {
+        shadowStub.readyCalls.push({ kind: "edges", options });
+        if (shadowStub.readyGate) {
+          await Promise.race([
+            shadowStub.readyGate,
+            new Promise<void>((resolve) =>
+              options?.signal?.addEventListener("abort", () => resolve(), { once: true }),
+            ),
+          ]);
+        }
+        if (shadowStub.readyError) throw shadowStub.readyError;
+      },
+      coverageEdges: () => shadowStub.coverage,
     }),
   };
 });
@@ -59,7 +86,10 @@ vi.mock("../../lib/shadowSampling", async () => {
   const actual = await vi.importActual<typeof import("../../lib/shadowSampling")>(
     "../../lib/shadowSampling",
   );
-  return { ...actual, sampleBothSidewalks: vi.fn(actual.sampleBothSidewalks) };
+  return {
+    ...actual,
+    sampleBuildingMaskBothSidewalks: vi.fn(actual.sampleBuildingMaskBothSidewalks),
+  };
 });
 
 vi.mock("../../lib/exportRoute", async () => {
@@ -329,6 +359,20 @@ async function runRouteWith(map: unknown) {
   const { result } = renderHook(() =>
     useNavigation({
       mapRef: { current: map as never },
+      shadowLayerRef: {
+        current: {
+          readBuildingShadowMask: () => {
+            (map as { getCanvas(): unknown }).getCanvas();
+            return {
+              data: new Uint8Array(64),
+              width: 8,
+              height: 8,
+              pixelRatioX: 1,
+              pixelRatioY: 1,
+            };
+          },
+        } as never,
+      },
       dateRef: { current: new Date("2026-08-16T04:00:00Z") },
       setDate: vi.fn(),
     }),
@@ -352,8 +396,9 @@ function resetShadowStub() {
   shadowStub.edgeShadow = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
   shadowStub.readyError = null;
   shadowStub.readyGate = null;
+  shadowStub.readyCalls = [];
   shadowStub.sampledBatchSizes = [];
-  vi.mocked(sampleBothSidewalks).mockClear();
+  vi.mocked(sampleBuildingMaskBothSidewalks).mockClear();
 }
 
 /** Three nodes in a line — two undirected edges, so "only that edge" is testable. */
@@ -487,7 +532,7 @@ describe("routing reads the shadow field (A4b)", () => {
     const result = await runRouteWith(map);
 
     expect(log.some((entry) => entry.startsWith("getCanvas@"))).toBe(false);
-    expect(vi.mocked(sampleBothSidewalks)).not.toHaveBeenCalled();
+    expect(vi.mocked(sampleBuildingMaskBothSidewalks)).not.toHaveBeenCalled();
     // The only fit is `fitMapToRoute` showing the finished route.
     expect(log.filter((entry) => entry === "fitBounds")).toHaveLength(1);
     expect(result.current.navRoutes.length).toBeGreaterThan(0);
@@ -526,7 +571,7 @@ describe("routing reads the shadow field (A4b)", () => {
 
     const result = await runRouteWith(map);
 
-    expect(vi.mocked(sampleBothSidewalks)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sampleBuildingMaskBothSidewalks)).toHaveBeenCalledTimes(1);
     expect(result.current.navRoutes[0].shadowSource?.bySource.canvas).toBeGreaterThan(0);
     expect(result.current.navRoutes[0].shadowSource?.bySource.tiles).toBeGreaterThan(0);
   });
@@ -566,6 +611,33 @@ describe("routing reads the shadow field (A4b)", () => {
     expect(result.current.navRoutes.length).toBeGreaterThan(0);
   });
 
+  it("passes one route signal and absolute deadline to both readiness phases", async () => {
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    await runRouteWith(map);
+
+    expect(shadowStub.readyCalls.map((call) => call.kind)).toEqual([
+      "broad",
+      "edges",
+    ]);
+    const [broad, edges] = shadowStub.readyCalls;
+    expect(broad.options?.signal).toBe(edges.options?.signal);
+    expect(broad.options?.deadlineAt).toBe(edges.options?.deadlineAt);
+    expect(broad.options?.deadlineAt).toBeGreaterThan(Date.now());
+  });
+
+  it("aborts readiness on graph failure without hiding the graph error", async () => {
+    shadowStub.readyGate = new Promise<void>(() => {});
+    vi.mocked(fetchRoutingGraph).mockRejectedValue(new Error("Overpass is down"));
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(shadowStub.readyCalls).toHaveLength(1);
+    expect(shadowStub.readyCalls[0].options?.signal?.aborted).toBe(true);
+    expect(result.current.navError).toBe("Overpass is down");
+  });
+
   it("writes nothing when cancelled during the geometry preload", async () => {
     let openGate: () => void = () => {};
     shadowStub.readyGate = new Promise<void>((resolve) => {
@@ -586,10 +658,13 @@ describe("routing reads the shadow field (A4b)", () => {
       result.current.handleCalculateRoute();
     });
 
+    await waitFor(() => expect(shadowStub.readyCalls.length).toBeGreaterThan(0));
+
     act(() => result.current.handleClearWaypointA());
-    await act(async () => {
-      openGate();
-    });
+    expect(
+      shadowStub.readyCalls.every((call) => call.options?.signal?.aborted),
+    ).toBe(true);
+    await act(async () => openGate());
 
     expect(result.current.navRoutes).toEqual([]);
     // Nothing was flattened, so the finally has no tilt to give back.

@@ -201,7 +201,8 @@ export default function Home() {
     mapRef, dateRef,
   } = shadow;
 
-  const nav = useNavigation({ mapRef, dateRef, setDate });
+  const shadowLayerRef = useRef<IShadowLayer | null>(null);
+  const nav = useNavigation({ mapRef, shadowLayerRef, dateRef, setDate });
   const {
     navMode, waypointA, waypointB, navRoutes, selectedRouteIndex,
     isCalculating, routeProgress, navError, routeSolarIntensity,
@@ -262,7 +263,6 @@ export default function Home() {
   // AI assistant (shadow-aware day-trip planner)
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPins, setAssistantPins] = useState<{ lng: number; lat: number; label?: string }[]>([]);
-  const shadowLayerRef = useRef<IShadowLayer | null>(null);
   const agent = useAgent({
     mapRef,
     shadowLayerRef,

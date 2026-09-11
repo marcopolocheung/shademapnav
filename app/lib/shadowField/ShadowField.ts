@@ -75,6 +75,10 @@ export interface EdgeShadow {
   right: number;
   source: ShadowSource;
   confidence: number;
+  /** Exact building provider used for this edge, independent of blended UI provenance. */
+  buildingSource?: PrismProvider["source"] | null;
+  /** Exact canopy evidence that survived footprint masking for this edge. */
+  canopySources?: { osm: boolean; raster: boolean };
 }
 
 export interface BBox {
@@ -98,15 +102,26 @@ export interface Coverage {
   confidence: number;
 }
 
+/** Cancellation and one absolute budget shared by every preload for a caller. */
+export interface ShadowReadyOptions {
+  signal?: AbortSignal;
+  /** Unix time in milliseconds after which optional readiness work must stop. */
+  deadlineAt?: number;
+}
+
 export interface ShadowField {
   shadowAt(lng: number, lat: number, when: Date): ShadowSample;
   sampleEdges(edges: EdgeRef[], when: Date): EdgeShadow[];
+  /** Preload the exact 2 km cells that `sampleEdges` will resolve. */
+  readyEdges(edges: EdgeRef[], options?: ShadowReadyOptions): Promise<void>;
+  /** Weakest provider coverage across the exact cells `sampleEdges` will use. */
+  coverageEdges(edges: EdgeRef[], when: Date): Coverage;
   /** Which source, if any, could answer for this whole bbox. No geometry is built. */
   coverage(bbox: BBox, when: Date): Coverage;
   /** N times in one pass. Naive today; A6 makes it cheaper than N× `sampleEdges`. */
   sweep(edges: EdgeRef[], times: Date[]): EdgeShadow[][];
   /** Preload geometry so subsequent synchronous queries can answer. */
-  ready(bbox: BBox): Promise<void>;
+  ready(bbox: BBox, options?: ShadowReadyOptions): Promise<void>;
 }
 
 /**
@@ -121,7 +136,7 @@ export interface ShadowField {
 export interface PrismProvider {
   source: "tiles" | "overpass";
   prismsFor(bbox: BBox): PrismSet | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
   /**
    * How complete this source's geometry is *right now*, as a 0–1 multiplier on its
    * base confidence. Absent means 1.
@@ -154,7 +169,7 @@ export interface PrismProvider {
 export interface CanopyProvider {
   source: "canopy";
   prismsFor(bbox: BBox, when: Date): PrismSet | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
 }
 
 /**
@@ -174,7 +189,7 @@ export interface CanopyProvider {
 export interface CanopyRasterProvider {
   source: "canopy-raster";
   fieldFor(bbox: BBox): CanopyHeightField | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
 }
 
 // ─── Tunables, all of them documented ─────────────────────────────────────────
@@ -193,6 +208,9 @@ export const LOW_CONFIDENCE = 0.5;
  * agreement number while keeping the index count small.
  */
 const SUN_CELL_M = 2000;
+
+/** Maximum wall time a route waits for all missing cell providers together. */
+const READY_EDGES_BUDGET_MS = 2500;
 
 /** Sidewalk offset, matching `shadowSampling.sampleBothSidewalks` so A3 compares like with like. */
 const SIDEWALK_OFFSET_M = 4.0;
@@ -430,6 +448,9 @@ interface SunCell {
    * altitude, and the crown's opacity from the date.
    */
   rasterShade: CanopyShade | null;
+  resolved: Resolved | null;
+  canopy: PrismSet | null;
+  raster: CanopyHeightField | null;
 }
 
 /**
@@ -448,6 +469,16 @@ interface SunCellPlan {
   mPerLat: number;
   mPerLng: number;
   region: IndexRegion;
+}
+
+/** Provider query for one cell, including every caster the cell's samples can reach. */
+function queryBboxForCell(cell: SunCellPlan): BBox {
+  return {
+    west: cell.region.west - QUERY_PAD_M / cell.mPerLng,
+    east: cell.region.east + QUERY_PAD_M / cell.mPerLng,
+    south: cell.region.south - QUERY_PAD_M / cell.mPerLat,
+    north: cell.region.north + QUERY_PAD_M / cell.mPerLat,
+  };
 }
 
 /** A batch of edges, with everything about it that no time changes (A6). */
@@ -564,12 +595,16 @@ function sunCellsAt(
   plan: BatchPlan,
   edgeCount: number,
   when: Date,
-  casters: ShadowCasters | null,
-  canopyCasters: ShadowCasters | null,
-  rasterField: CanopyHeightField | null
+  sources: Array<{
+    resolved: Resolved | null;
+    canopy: PrismSet | null;
+    raster: CanopyHeightField | null;
+  }>,
 ): SunCell[] {
   const out = new Array<SunCell>(edgeCount);
-  for (const cell of plan.cells) {
+  for (let cellIndex = 0; cellIndex < plan.cells.length; cellIndex++) {
+    const cell = plan.cells[cellIndex];
+    const source = sources[cellIndex];
     const sun = SunCalc.getPosition(when, cell.lat, cell.lng);
     const build = (from: ShadowCasters | null) =>
       from && sun.altitude > 0
@@ -577,13 +612,23 @@ function sunCellsAt(
             from, sun.azimuth, sun.altitude, cell.mPerLat, cell.mPerLng, cell.region
           )
         : null;
-    const index = build(casters);
-    const canopyIndex = build(canopyCasters);
+    const index = build(source.resolved ? preparedCastersFor(source.resolved.set.prisms) : null);
+    const canopyIndex = build(source.canopy ? preparedCastersFor(source.canopy.prisms) : null);
     const rasterShade =
-      rasterField && sun.altitude > 0
-        ? rasterField.shadeFor(sun.azimuth, sun.altitude, when)
+      source.raster && sun.altitude > 0
+        ? source.raster.shadeFor(sun.azimuth, sun.altitude, when)
         : null;
-    for (const i of cell.members) out[i] = { sun, index, canopyIndex, rasterShade };
+    for (const i of cell.members) {
+      out[i] = {
+        sun,
+        index,
+        canopyIndex,
+        rasterShade,
+        resolved: source.resolved,
+        canopy: source.canopy,
+        raster: source.raster,
+      };
+    }
   }
   return out;
 }
@@ -623,6 +668,14 @@ export function createGeometryShadowField(
   canopyProviders: CanopyProvider[] = [],
   rasterProviders: CanopyRasterProvider[] = []
 ): ShadowField {
+  let overpassTail = Promise.resolve();
+
+  function serializeOverpass(task: () => Promise<void>): Promise<void> {
+    const run = overpassTail.then(task, task);
+    overpassTail = run.catch(() => {});
+    return run;
+  }
+
   function resolve(bbox: BBox): Resolved | null {
     for (const provider of providers) {
       const set = provider.prismsFor(bbox);
@@ -842,9 +895,6 @@ export function createGeometryShadowField(
 
   function sampleEdgesWithSun(
     edges: EdgeRef[],
-    resolved: Resolved | null,
-    canopy: PrismSet | null,
-    raster: CanopyHeightField | null,
     plan: BatchPlan,
     cells: SunCell[]
   ): EdgeShadow[] {
@@ -859,9 +909,22 @@ export function createGeometryShadowField(
 
       // Both sidewalks resolve the same providers over the same bbox, so the source
       // and the confidence are properties of the edge, not of a side of it.
-      const score = scoreFor(resolved, canopy, raster, sun.altitude);
+      const score = scoreFor(cell.resolved, cell.canopy, cell.raster, sun.altitude);
+      const provenance = {
+        buildingSource: cell.resolved?.source ?? null,
+        canopySources: {
+          osm: (cell.canopy?.prisms.length ?? 0) > 0,
+          raster: (cell.raster?.maxHeightM ?? 0) > 0,
+        },
+      };
       if (score.source === "none") {
-        return { left: 0, right: 0, source: score.source, confidence: score.confidence };
+        return {
+          left: 0,
+          right: 0,
+          source: score.source,
+          confidence: score.confidence,
+          ...provenance,
+        };
       }
 
       const leftOffset = plan.left[edgeIndex];
@@ -889,30 +952,104 @@ export function createGeometryShadowField(
         right: walk(rightOffset),
         source: score.source,
         confidence: score.confidence,
+        ...provenance,
       };
     });
   }
 
   function sampleEdges(edges: EdgeRef[], when: Date): EdgeShadow[] {
-    const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
-    const resolved = bbox ? resolve(bbox) : null;
-    const canopy = bbox ? resolveCanopy(bbox, when) : null;
-    const raster = bbox ? resolveRaster(bbox) : null;
     const plan = planBatch(edges);
-    const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
-    const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
-    // The masked field is what is marched *and* what is scored: the label has to
-    // describe the evidence the number was actually computed from.
-    const masked = maskedRaster(raster, resolved);
+    const sources = plan.cells.map((cell) => {
+      const bbox = queryBboxForCell(cell);
+      const resolved = resolve(bbox);
+      const canopy = resolveCanopy(bbox, when);
+      return { resolved, canopy, raster: maskedRaster(resolveRaster(bbox), resolved) };
+    });
     return sampleEdgesWithSun(
-      edges, resolved, canopy, masked, plan,
-      sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
+      edges, plan, sunCellsAt(plan, edges.length, when, sources)
     );
+  }
+
+  function coverageEdges(edges: EdgeRef[], when: Date): Coverage {
+    const plan = planBatch(edges);
+    if (plan.cells.length === 0) return { source: "none", confidence: 1 };
+
+    let weakest: Coverage = { source: "none", confidence: 1 };
+    for (const cell of plan.cells) {
+      const sun = SunCalc.getPosition(when, cell.lat, cell.lng);
+      const score = sun.altitude <= 0
+        ? { source: nightSample().source, confidence: 1 }
+        : (() => {
+            const bbox = queryBboxForCell(cell);
+            const resolved = resolve(bbox);
+            const raster = maskedRaster(resolveRaster(bbox), resolved);
+            return scoreFor(resolved, resolveCanopy(bbox, when), raster, sun.altitude);
+          })();
+      if (score.confidence < weakest.confidence) weakest = score;
+    }
+    return weakest;
+  }
+
+  async function readyEdges(
+    edges: EdgeRef[],
+    options: ShadowReadyOptions = {},
+  ): Promise<void> {
+    const window = readinessWindow(options);
+    if (window.signal.aborted) {
+      window.cleanup();
+      return;
+    }
+    const cells = planBatch(edges).cells;
+    if (cells.length === 0) {
+      window.cleanup();
+      return;
+    }
+    const bboxes = cells.map(queryBboxForCell);
+
+    // Raster cells use the store's scheduler and may run together. The two OSM
+    // provider families stay on one serial chain so a route never bursts the
+    // volunteer Overpass service. Provider caches make these missing-only loads.
+    const raster = Promise.all(bboxes.map(async (bbox) => {
+      for (const provider of rasterProviders) {
+        if (provider.fieldFor(bbox)) break;
+        await provider.load?.(bbox, options.signal);
+        if (provider.fieldFor(bbox)) break;
+      }
+    }));
+    const overpass = serializeOverpass(async () => {
+      for (const bbox of bboxes) {
+        if (window.signal.aborted) return;
+        if (!resolve(bbox)) {
+          for (const provider of providers) {
+            if (provider.prismsFor(bbox)) break;
+            await provider.load?.(bbox, window.signal);
+            if (window.signal.aborted) return;
+          }
+        }
+        if (!resolveCanopy(bbox, new Date())) {
+          for (const provider of canopyProviders) {
+            if (provider.prismsFor(bbox, new Date())) break;
+            await provider.load?.(bbox, window.signal);
+            if (window.signal.aborted) return;
+          }
+        }
+      }
+    });
+
+    // Overpass waiters are cancelled at the absolute deadline. Raster waiters use
+    // only the caller signal: their shared scheduler may finish for later reuse.
+    await settleReadiness(
+      Promise.all([raster, overpass]).then(() => undefined),
+      window.signal,
+    );
+    window.cleanup();
   }
 
   return {
     shadowAt,
     sampleEdges,
+    readyEdges,
+    coverageEdges,
 
     coverage(bbox, when) {
       const lng = (bbox.west + bbox.east) / 2;
@@ -948,29 +1085,33 @@ export function createGeometryShadowField(
       // per hour is the sun position, the shadow shift, and the point queries —
       // which is why N hours cost far less than N samples. The results are the same
       // floats N separate `sampleEdges` calls produce, and a test pins that.
-      const bbox = bboxAroundEdges(edges, QUERY_PAD_M);
-      const resolved = bbox ? resolve(bbox) : null;
       const plan = planBatch(edges);
-      const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
-      // The raster is geometry and geometry does not move, so it is resolved and
-      // masked once for the whole sweep; only the march direction and the crown's
-      // opacity are per-hour, and both live in `shadeFor`.
-      const raster = bbox ? resolveRaster(bbox) : null;
-      const masked = maskedRaster(raster, resolved);
+      const stable = plan.cells.map((cell) => {
+        const bbox = queryBboxForCell(cell);
+        const resolved = resolve(bbox);
+        return { bbox, resolved, raster: maskedRaster(resolveRaster(bbox), resolved) };
+      });
       return times.map((when) => {
         // Canopy is resolved per time because its opacity is seasonal, and prepared
         // per resolution — but the provider hands back the same array for every time
         // in one leaf state, so both caches hit and a day's sweep prepares once.
-        const canopy = bbox ? resolveCanopy(bbox, when) : null;
-        const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
+        const sources = stable.map(({ bbox, resolved, raster }) => ({
+          resolved,
+          raster,
+          canopy: resolveCanopy(bbox, when),
+        }));
         return sampleEdgesWithSun(
-          edges, resolved, canopy, masked, plan,
-          sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
+          edges, plan, sunCellsAt(plan, edges.length, when, sources)
         );
       });
     },
 
-    async ready(bbox) {
+    async ready(bbox, options = {}) {
+      const window = readinessWindow(options);
+      if (window.signal.aborted) {
+        window.cleanup();
+        return;
+      }
       // Buildings first, canopy after — not one `Promise.all` over both. Every load
       // on that chain is a request to the same volunteer-run Overpass instance, and
       // the caller is already fetching the routing graph from it in parallel; firing
@@ -982,15 +1123,68 @@ export function createGeometryShadowField(
       // against `source.coop`, which shares neither a host nor a rate limit with
       // Overpass, so queueing it behind two Overpass calls would only make a route
       // wait for nothing.
-      await Promise.all([
-        Promise.all(rasterProviders.map((provider) => provider.load?.(bbox))),
-        (async () => {
-          await Promise.all(providers.map((provider) => provider.load?.(bbox)));
-          await Promise.all(canopyProviders.map((provider) => provider.load?.(bbox)));
-        })(),
-      ]);
+      await settleReadiness(Promise.all([
+        Promise.all(
+          rasterProviders.map((provider) => provider.load?.(bbox, options.signal)),
+        ),
+        serializeOverpass(async () => {
+          if (window.signal.aborted) return;
+          await Promise.all(
+            providers.map((provider) => provider.load?.(bbox, window.signal)),
+          );
+          if (window.signal.aborted) return;
+          await Promise.all(
+            canopyProviders.map((provider) => provider.load?.(bbox, window.signal)),
+          );
+        }),
+      ]).then(() => undefined), window.signal);
+      window.cleanup();
     },
   };
+}
+
+function readinessWindow(options: ShadowReadyOptions): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const deadlineAt = options.deadlineAt ?? Date.now() + READY_EDGES_BUDGET_MS;
+  const deadline = new AbortController();
+  const remainingMs = deadlineAt - Date.now();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (remainingMs <= 0) deadline.abort();
+  else timer = setTimeout(() => deadline.abort(), remainingMs);
+  return {
+    signal: options.signal
+      ? AbortSignal.any([options.signal, deadline.signal])
+      : deadline.signal,
+    cleanup: () => {
+      if (timer !== undefined) clearTimeout(timer);
+    },
+  };
+}
+
+function settleReadiness(
+  promise: Promise<void>,
+  signal: AbortSignal,
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    if (signal.aborted) {
+      finish();
+      return;
+    }
+    signal.addEventListener("abort", finish, { once: true });
+    promise.then(
+      finish,
+      finish,
+    );
+  });
 }
 
 /** No geometry is consulted when the sun is down, and none is needed. */

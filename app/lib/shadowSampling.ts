@@ -83,6 +83,48 @@ export function sampleBothSidewalks(
   };
 }
 
+/** Sample a renderer-owned building mask without classifying composited map colours. */
+export function sampleBuildingMaskBothSidewalks(
+  projectFn: (lng: number, lat: number) => [number, number],
+  mask: {
+    data: Uint8Array;
+    width: number;
+    height: number;
+    pixelRatioX: number;
+    pixelRatioY: number;
+  },
+  from: [number, number],
+  to: [number, number],
+  samples = 5,
+): { left: number; right: number } {
+  const sampleLine = (oLng: number, oLat: number): number => {
+    let shadow = 0;
+    let count = 0;
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples;
+      const [px, py] = projectFn(
+        from[0] + t * (to[0] - from[0]) + oLng,
+        from[1] + t * (to[1] - from[1]) + oLat,
+      );
+      const x = Math.round(px * mask.pixelRatioX);
+      const y = Math.round(py * mask.pixelRatioY);
+      if (x < 0 || y < 0 || x >= mask.width || y >= mask.height) continue;
+      shadow += mask.data[y * mask.width + x] / 255;
+      count++;
+    }
+    return count === 0 ? 0 : shadow / count;
+  };
+
+  const latMid = (from[1] + to[1]) / 2;
+  const cosLat = Math.max(1e-10, Math.cos((latMid * Math.PI) / 180));
+  const dx = (to[0] - from[0]) * cosLat;
+  const dy = to[1] - from[1];
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const oLng = len > 1e-10 ? (-dy / len) * (4 / (111195 * cosLat)) : 0;
+  const oLat = len > 1e-10 ? (dx / len) * (4 / 111195) : 0;
+  return { left: sampleLine(oLng, oLat), right: sampleLine(-oLng, -oLat) };
+}
+
 /**
  * Computes solar intensity (0–1) proportional to sin(solar elevation angle).
  * Returns 0 at/below the horizon, ~1 at solar noon zenith.

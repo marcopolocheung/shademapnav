@@ -1,5 +1,5 @@
 import SunCalc from "suncalc";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   LOW_CONFIDENCE,
   type BBox,
@@ -196,6 +196,8 @@ describe("sampleEdges", () => {
     expect(shadow.left).toBe(1);
     expect(shadow.right).toBe(1);
     expect(shadow.source).toBe("tiles");
+    expect(shadow.buildingSource).toBe("tiles");
+    expect(shadow.canopySources).toEqual({ osm: false, raster: false });
   });
 
   it("reports a fully sunlit edge as 0 on both sidewalks", () => {
@@ -410,6 +412,101 @@ describe("ready", () => {
 
     expect(loaded).toEqual([WIDE_COVERAGE]);
   });
+
+  describe("cancellation and absolute deadlines", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("shares one absolute budget and starts no cell work after it expires", async () => {
+      vi.useFakeTimers();
+      const signals: AbortSignal[] = [];
+      const load = vi.fn(
+        async (_bbox: BBox, signal?: AbortSignal) =>
+          new Promise<void>((resolve) => {
+            if (signal) signals.push(signal);
+            signal?.addEventListener("abort", () => resolve(), { once: true });
+          }),
+      );
+      const provider: PrismProvider = {
+        source: "overpass",
+        prismsFor: () => null,
+        load,
+      };
+      const field = createGeometryShadowField([provider]);
+      const deadlineAt = Date.now() + 25;
+      const options = { deadlineAt };
+
+      const broad = field.ready(WIDE_COVERAGE, options);
+      await vi.advanceTimersByTimeAsync(25);
+      await broad;
+      await field.readyEdges([
+        { from: [LNG, LAT], to: [LNG + 0.001, LAT] },
+      ], options);
+
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(signals[0].aborted).toBe(true);
+      expect(Date.now()).toBe(deadlineAt);
+    });
+
+    it("drops serialized Overpass work that expires while queued", async () => {
+      vi.useFakeTimers();
+      let finishFirst = () => {};
+      const firstGate = new Promise<void>((resolve) => {
+        finishFirst = resolve;
+      });
+      const load = vi.fn(async () => firstGate);
+      const provider: PrismProvider = {
+        source: "overpass",
+        prismsFor: () => null,
+        load,
+      };
+      const field = createGeometryShadowField([provider]);
+
+      const first = field.ready(WIDE_COVERAGE, {
+        deadlineAt: Date.now() + 1000,
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(load).toHaveBeenCalledTimes(1);
+
+      const queued = field.readyEdges([
+        { from: [LNG, LAT], to: [LNG + 0.001, LAT] },
+      ], { deadlineAt: Date.now() + 10 });
+      await vi.advanceTimersByTimeAsync(10);
+      await queued;
+
+      finishFirst();
+      await first;
+      await Promise.resolve();
+      expect(load).toHaveBeenCalledTimes(1);
+    });
+
+    it("lets raster work outlive readiness but keeps the route cancellation signal", async () => {
+      vi.useFakeTimers();
+      let rasterSignal: AbortSignal | undefined;
+      const raster: CanopyRasterProvider = {
+        source: "canopy-raster",
+        fieldFor: () => null,
+        load: async (_bbox, signal) => {
+          rasterSignal = signal;
+          return new Promise<void>(() => {});
+        },
+      };
+      const route = new AbortController();
+      const field = createGeometryShadowField([], [], [raster]);
+      const ready = field.ready(WIDE_COVERAGE, {
+        signal: route.signal,
+        deadlineAt: Date.now() + 10,
+      });
+
+      await vi.advanceTimersByTimeAsync(10);
+      await ready;
+      expect(rasterSignal).toBe(route.signal);
+      expect(rasterSignal?.aborted).toBe(false);
+
+      route.abort();
+      expect(rasterSignal?.aborted).toBe(true);
+    });
+  });
 });
 
 // ─── coverage ─────────────────────────────────────────────────────────────────
@@ -475,6 +572,51 @@ describe("coverage", () => {
     expect(result.confidence).toBeLessThan(LOW_CONFIDENCE);
   });
 });
+
+describe("edge-cell readiness and coverage", () => {
+  const near: EdgeRef = {
+    from: [LNG - 10 / mPerLng, LAT],
+    to: [LNG + 10 / mPerLng, LAT],
+  };
+  const far: EdgeRef = {
+    from: [LNG + 0.1 - 10 / mPerLng, LAT],
+    to: [LNG + 0.1 + 10 / mPerLng, LAT],
+  };
+
+  it("returns the same minimum confidence the per-cell samples later deliver", () => {
+    const provider: PrismProvider = {
+      source: "tiles",
+      prismsFor: (bbox) => ((bbox.west + bbox.east) / 2 < LNG + 0.05 ? oneBuilding() : null),
+    };
+    const field = createGeometryShadowField([provider]);
+    const samples = field.sampleEdges([near, far], NOON);
+    expect(field.coverageEdges([near, far], NOON).confidence).toBe(
+      Math.min(...samples.map((sample) => sample.confidence)),
+    );
+  });
+
+  it("loads each padded cell rather than one route-wide rectangle", async () => {
+    const loaded: BBox[] = [];
+    const provider: PrismProvider = {
+      source: "overpass",
+      prismsFor: () => null,
+      load: async (bbox) => {
+        loaded.push(bbox);
+      },
+    };
+    await createGeometryShadowField([provider]).readyEdges([near, far]);
+    expect(loaded).toHaveLength(2);
+    expect(loaded.every((bbox) => bboxRadiusForTest(bbox) < 1000)).toBe(true);
+  });
+});
+
+function bboxRadiusForTest(bbox: BBox): number {
+  const scale = metersPerDegree((bbox.south + bbox.north) / 2);
+  return Math.hypot(
+    ((bbox.east - bbox.west) * scale.mPerLng) / 2,
+    ((bbox.north - bbox.south) * scale.mPerLat) / 2,
+  );
+}
 
 // ─── Confidence ───────────────────────────────────────────────────────────────
 
@@ -681,6 +823,8 @@ describe("canopy", () => {
 
     expect(buildingsOnly.source).toBe("tiles");
     expect(edge.source).toBe("mixed");
+    expect(edge.buildingSource).toBe("tiles");
+    expect(edge.canopySources).toEqual({ osm: true, raster: false });
     expect(edge.confidence).toBeLessThan(buildingsOnly.confidence);
     // Still worth routing on: more information, not less.
     expect(edge.confidence).toBeGreaterThan(LOW_CONFIDENCE);
@@ -897,6 +1041,7 @@ describe("raster canopy", () => {
 
     expect(expectedShade()).toBeGreaterThan(0.6);
     expect(edge.left).toBeCloseTo(expectedShade(), 10);
+    expect(edge.canopySources).toEqual({ osm: true, raster: true });
   });
 
   it("hands the building footprints to the mask, once per prism set", () => {

@@ -147,7 +147,10 @@ export interface CanopyStoreStats {
 export interface CanopyReadOptions {
   targetGroundRes?: number;
   signal?: AbortSignal;
+  priority?: CanopyReadPriority;
 }
+
+export type CanopyReadPriority = "route" | "viewport" | "prefetch";
 
 export interface CanopyTileStore {
   read(aoi: LonLatBbox, options?: CanopyReadOptions): Promise<CanopyPatch>;
@@ -196,6 +199,11 @@ interface PendingRun {
   controller: AbortController;
   waiters: number;
   settled: boolean;
+  state: "queued" | "active";
+  priority: CanopyReadPriority;
+  sequence: number;
+  start: () => void;
+  cancelQueued: () => void;
 }
 
 /** One published quadkey's contribution to a single read. */
@@ -227,8 +235,37 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
   const inFlight = new Map<string, PendingRun>();
   const pins = new Map<string, number>();
   const handles = new Map<string, Promise<CanopyTileHandle>>();
+  const queue: PendingRun[] = [];
+  let activeRuns = 0;
+  let sequence = 0;
   let cachedBytes = 0;
   const counters = { blockHits: 0, blockMisses: 0, runsFetched: 0, retries: 0, evictions: 0 };
+
+  const priorityRank: Record<CanopyReadPriority, number> = {
+    route: 0,
+    viewport: 1,
+    prefetch: 2,
+  };
+
+  function pumpQueue(): void {
+    queue.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.sequence - b.sequence);
+    while (activeRuns < 4 && queue.length > 0) {
+      const pending = queue.shift()!;
+      if (pending.settled || pending.waiters <= 0) {
+        pending.cancelQueued();
+        continue;
+      }
+      pending.state = "active";
+      activeRuns++;
+      pending.start();
+    }
+  }
+
+  function promote(pending: PendingRun, priority: CanopyReadPriority): void {
+    if (pending.state === "queued" && priorityRank[priority] < priorityRank[pending.priority]) {
+      pending.priority = priority;
+    }
+  }
 
   // ─── Retry ──────────────────────────────────────────────────────────────────
 
@@ -330,6 +367,7 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
 
   async function read(aoi: LonLatBbox, readOptions: CanopyReadOptions = {}): Promise<CanopyPatch> {
     const { signal } = readOptions;
+    const priority = readOptions.priority ?? "prefetch";
     if (signal?.aborted) throw abortError();
 
     const centreLon = (aoi[0] + aoi[2]) / 2;
@@ -379,6 +417,7 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
         const pending = inFlight.get(block.key);
         if (pending) {
           counters.blockHits += 1;
+          promote(pending, priority);
           waitOn.add(pending);
           continue;
         }
@@ -390,11 +429,12 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
 
       for (const [plan, blocks] of missing) {
         for (const run of runsFor(blocks)) {
-          waitOn.add(startRun(plan, run));
+          waitOn.add(startRun(plan, run, priority));
         }
       }
 
       for (const pending of waitOn) pending.waiters += 1;
+      pumpQueue();
       try {
         await raceAbort(
           Promise.all([...waitOn].map((pending) => pending.promise)),
@@ -403,7 +443,10 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
       } finally {
         for (const pending of waitOn) {
           pending.waiters -= 1;
-          if (pending.waiters <= 0 && !pending.settled) pending.controller.abort();
+          if (pending.waiters <= 0 && !pending.settled) {
+            if (pending.state === "queued") pending.cancelQueued();
+            else pending.controller.abort();
+          }
         }
       }
 
@@ -474,38 +517,71 @@ export function createCanopyTileStore(options: CanopyTileStoreOptions = {}): Can
     return blocks;
   }
 
-  function startRun(plan: TilePlan, run: { row: number; firstCol: number; lastCol: number }): PendingRun {
+  function startRun(
+    plan: TilePlan,
+    run: { row: number; firstCol: number; lastCol: number },
+    priority: CanopyReadPriority,
+  ): PendingRun {
     const controller = new AbortController();
     const keys: string[] = [];
     for (let col = run.firstCol; col <= run.lastCol; col++) keys.push(blockKey(plan, col, run.row));
 
+    let resolvePromise!: () => void;
+    let rejectPromise!: (error: unknown) => void;
     const pending: PendingRun = {
-      promise: Promise.resolve(),
+      promise: new Promise<void>((resolve, reject) => {
+        resolvePromise = resolve;
+        rejectPromise = reject;
+      }),
       controller,
       waiters: 0,
       settled: false,
+      state: "queued",
+      priority,
+      sequence: sequence++,
+      start: () => {},
+      cancelQueued: () => {},
     };
-    pending.promise = (async () => {
-      const window = runWindow(run, plan.blockSize, plan.imageWidth, plan.imageHeight);
-      try {
-        counters.runsFetched += 1;
-        const pixels = await withRetry(
-          () => plan.handle.read(plan.levelIndex, window, controller.signal),
-          controller.signal,
-        );
-        storeRun(plan, run, window, pixels);
-      } finally {
-        pending.settled = true;
-        for (const key of keys) {
-          if (inFlight.get(key) === pending) inFlight.delete(key);
-        }
+    const finish = () => {
+      pending.settled = true;
+      for (const key of keys) {
+        if (inFlight.get(key) === pending) inFlight.delete(key);
       }
-    })();
+    };
+    pending.start = () => {
+      const window = runWindow(run, plan.blockSize, plan.imageWidth, plan.imageHeight);
+      void (async () => {
+        try {
+          counters.runsFetched += 1;
+          const pixels = await withRetry(
+            () => plan.handle.read(plan.levelIndex, window, controller.signal),
+            controller.signal,
+          );
+          storeRun(plan, run, window, pixels);
+          resolvePromise();
+        } catch (error) {
+          rejectPromise(error);
+        } finally {
+          finish();
+          activeRuns--;
+          pumpQueue();
+        }
+      })();
+    };
+    pending.cancelQueued = () => {
+      if (pending.settled) return;
+      const index = queue.indexOf(pending);
+      if (index >= 0) queue.splice(index, 1);
+      controller.abort();
+      finish();
+      rejectPromise(abortError());
+    };
     // Waiters get the rejection through their own continuation; this only stops an
     // abandoned run from surfacing as an unhandled rejection.
     pending.promise.catch(() => {});
 
     for (const key of keys) inFlight.set(key, pending);
+    queue.push(pending);
     return pending;
   }
 

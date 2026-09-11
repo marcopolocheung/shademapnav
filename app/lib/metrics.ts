@@ -18,7 +18,9 @@
 
 export interface RoutingPhaseMs {
   graphFetch: number; // fetchRoutingGraph (cache hit or network)
-  canvasRead: number; // blob → ImageBitmap → ImageData
+  canvasRead: number; // legacy composited-map read; production routing keeps this at 0
+  /** Readback of the renderer's building-only FBO; separate from composited canvas reads. */
+  dedicatedMaskRead?: number;
   shadowSample: number; // edge shadow-factor sampling loop
   dijkstra: number; // snap + all Dijkstra passes
   total: number; // wall-clock end-to-end
@@ -39,10 +41,14 @@ export interface RoutingRunMetrics {
   graphDirectedEdges: number;
   /**
    * Share of sampled edges (0–1) the geometric field could not answer confidently,
-   * so the pixel sampler answered instead. A4b demotes the canvas to a fallback;
-   * this is how you tell whether it actually got demoted on a given route.
+   * so the renderer's dedicated building mask answered instead. The legacy
+   * composited-map classifier is retained only by the agreement harness.
    */
   shadowFallbackShare: number;
+  /** Edge-count shares, recorded before path selection. */
+  buildingProviderShares?: Partial<Record<"tiles" | "overpass" | "dedicated-mask" | "none", number>>;
+  canopySourceShares?: Partial<Record<"osm" | "raster" | "both" | "none", number>>;
+  fallbackReason?: "low-confidence" | "mask-unavailable" | null;
   routes: RouteMetricSnapshot[];
 
   // ── Derived KPIs ──────────────────────────────────────────────────────────
@@ -92,6 +98,7 @@ export function recordRoutingRun(m: RoutingRunMetrics): void {
     console.table({
       "Graph fetch (ms)": phases.graphFetch.toFixed(1),
       "Canvas read (ms)": phases.canvasRead.toFixed(1),
+      "Building mask read (ms)": (phases.dedicatedMaskRead ?? 0).toFixed(1),
       "Canvas fallback (%)": (m.shadowFallbackShare * 100).toFixed(1),
       "Shadow sample (ms)": phases.shadowSample.toFixed(1),
       "Dijkstra (ms)": phases.dijkstra.toFixed(1),

@@ -43,6 +43,58 @@ import {
   prismsFromTileFeatures,
 } from "./geometry";
 
+interface PendingLoad {
+  controller: AbortController;
+  promise: Promise<void>;
+  settled: boolean;
+  waiters: number;
+}
+
+function abortError(): Error {
+  const error = new Error("Shadow provider load aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+/** Join one shared request without giving any waiter ownership of it. */
+function waitForPending(
+  pending: PendingLoad,
+  signal: AbortSignal | undefined,
+  onOrphaned: () => void,
+): Promise<void> {
+  pending.waiters++;
+  return new Promise<void>((resolve, reject) => {
+    let active = true;
+    const release = (aborted: boolean) => {
+      if (!active) return;
+      active = false;
+      signal?.removeEventListener("abort", onAbort);
+      pending.waiters--;
+      if (aborted && pending.waiters === 0 && !pending.settled) onOrphaned();
+    };
+    const onAbort = () => {
+      release(true);
+      reject(abortError());
+    };
+
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+    signal?.addEventListener("abort", onAbort, { once: true });
+    pending.promise.then(
+      () => {
+        release(false);
+        resolve();
+      },
+      (error) => {
+        release(false);
+        reject(error);
+      },
+    );
+  });
+}
+
 // ─── Tiles ────────────────────────────────────────────────────────────────────
 
 /** The slice of `maplibregl.Map` the tile provider needs. `Map` satisfies this structurally. */
@@ -220,7 +272,7 @@ export function createOverpassPrismProvider(opts?: {
   const fetchFootprints = opts?.fetchFootprints ?? fetchBuildingFootprintsAround;
   const maxRadiusM = opts?.maxFetchRadiusM ?? MAX_FETCH_RADIUS_M;
   const cache: CacheEntry[] = [];
-  const inFlight = new Map<string, Promise<void>>();
+  const inFlight = new Map<string, PendingLoad>();
 
   function lookup(bbox: BBox): PrismSet | null {
     for (let i = 0; i < cache.length; i++) {
@@ -241,8 +293,9 @@ export function createOverpassPrismProvider(opts?: {
       return lookup(bbox);
     },
 
-    async load(bbox) {
+    async load(bbox, signal) {
       if (lookup(bbox)) return;
+      if (signal?.aborted) throw abortError();
 
       // Pad the request past the requested bbox: a shadow is cast by buildings
       // *outside* the area it falls on, and a fetch that stops at the bbox edge
@@ -254,11 +307,27 @@ export function createOverpassPrismProvider(opts?: {
       const key = `${lng.toFixed(5)},${lat.toFixed(5)},${Math.round(radiusM)}`;
 
       const existing = inFlight.get(key);
-      if (existing) return existing;
+      if (existing) {
+        return waitForPending(existing, signal, () => {
+          if (inFlight.get(key) === existing) inFlight.delete(key);
+          existing.controller.abort();
+        });
+      }
 
-      const pending = (async () => {
+      const pending: PendingLoad = {
+        controller: new AbortController(),
+        promise: Promise.resolve(),
+        settled: false,
+        waiters: 0,
+      };
+      pending.promise = (async () => {
         try {
-          const footprints = await fetchFootprints(lng, lat, radiusM);
+          const footprints = await fetchFootprints(
+            lng,
+            lat,
+            radiusM,
+            pending.controller.signal,
+          );
           cache.unshift({
             coverage: coverageFor(lng, lat, radiusM),
             set: prismsFromFootprints(footprints),
@@ -270,12 +339,16 @@ export function createOverpassPrismProvider(opts?: {
           // and the signal for the caller to fall back. Never cache the failure as
           // "no buildings here".
         } finally {
-          inFlight.delete(key);
+          pending.settled = true;
+          if (inFlight.get(key) === pending) inFlight.delete(key);
         }
       })();
 
       inFlight.set(key, pending);
-      return pending;
+      return waitForPending(pending, signal, () => {
+        if (inFlight.get(key) === pending) inFlight.delete(key);
+        pending.controller.abort();
+      });
     },
   };
 }
@@ -320,7 +393,7 @@ export function createOverpassCanopyProvider(opts?: {
   }
 
   const cache: CanopyEntry[] = [];
-  const inFlight = new Map<string, Promise<void>>();
+  const inFlight = new Map<string, PendingLoad>();
 
   function lookup(bbox: BBox): CanopyEntry | null {
     for (let i = 0; i < cache.length; i++) {
@@ -356,8 +429,9 @@ export function createOverpassCanopyProvider(opts?: {
       return set;
     },
 
-    async load(bbox) {
+    async load(bbox, signal) {
       if (lookup(bbox)) return;
+      if (signal?.aborted) throw abortError();
 
       // Padded exactly as the building provider pads: a crown outside the bbox still
       // casts into it, and a fetch that stops at the edge reports a sunlit pavement
@@ -369,11 +443,27 @@ export function createOverpassCanopyProvider(opts?: {
       const key = `${lng.toFixed(5)},${lat.toFixed(5)},${Math.round(radiusM)}`;
 
       const existing = inFlight.get(key);
-      if (existing) return existing;
+      if (existing) {
+        return waitForPending(existing, signal, () => {
+          if (inFlight.get(key) === existing) inFlight.delete(key);
+          existing.controller.abort();
+        });
+      }
 
-      const pending = (async () => {
+      const pending: PendingLoad = {
+        controller: new AbortController(),
+        promise: Promise.resolve(),
+        settled: false,
+        waiters: 0,
+      };
+      pending.promise = (async () => {
         try {
-          const features = await fetchCanopy(lng, lat, radiusM);
+          const features = await fetchCanopy(
+            lng,
+            lat,
+            radiusM,
+            pending.controller.signal,
+          );
           cache.unshift({
             coverage: coverageFor(lng, lat, radiusM),
             features,
@@ -385,12 +475,16 @@ export function createOverpassCanopyProvider(opts?: {
           // here". `prismsFor` keeps returning null, the field reports the building
           // answer alone, and nothing claims canopy was considered.
         } finally {
-          inFlight.delete(key);
+          pending.settled = true;
+          if (inFlight.get(key) === pending) inFlight.delete(key);
         }
       })();
 
       inFlight.set(key, pending);
-      return pending;
+      return waitForPending(pending, signal, () => {
+        if (inFlight.get(key) === pending) inFlight.delete(key);
+        pending.controller.abort();
+      });
     },
   };
 }
@@ -464,7 +558,7 @@ export function createRasterCanopyProvider(opts?: {
   const maxRadiusM = opts?.maxRadiusM ?? MAX_RASTER_RADIUS_M;
   const readyBudgetMs = opts?.readyBudgetMs ?? READY_BUDGET_MS;
   const cache: RasterEntry[] = [];
-  const inFlight = new Map<string, Promise<void>>();
+  const inFlight = new Map<string, PendingLoad>();
   let store = opts?.store ?? null;
 
   async function storeFor(): Promise<CanopyTileStore> {
@@ -484,12 +578,22 @@ export function createRasterCanopyProvider(opts?: {
   }
 
   /** The read itself, which runs to completion however long `load()` waits. */
-  function startRead(key: string, bbox: BBox): Promise<void> {
-    const pending = (async () => {
+  function startRead(key: string, bbox: BBox): PendingLoad {
+    const pending: PendingLoad = {
+      controller: new AbortController(),
+      promise: Promise.resolve(),
+      settled: false,
+      waiters: 0,
+    };
+    pending.promise = (async () => {
       try {
         const patch = await (await storeFor()).read(
           [bbox.west, bbox.south, bbox.east, bbox.north],
-          { targetGroundRes: opts?.targetGroundRes }
+          {
+            targetGroundRes: opts?.targetGroundRes,
+            priority: "route",
+            signal: pending.controller.signal,
+          },
         );
         cache.unshift({
           // The patch covers whole pixels, so it contains the area asked for rather
@@ -510,7 +614,8 @@ export function createRasterCanopyProvider(opts?: {
         // consulted. Swallowing it here is also what keeps a read nobody is waiting
         // for any more from surfacing as an unhandled rejection.
       } finally {
-        inFlight.delete(key);
+        pending.settled = true;
+        if (inFlight.get(key) === pending) inFlight.delete(key);
       }
     })();
 
@@ -525,8 +630,9 @@ export function createRasterCanopyProvider(opts?: {
       return lookup(bbox);
     },
 
-    async load(bbox) {
+    async load(bbox, signal) {
       if (lookup(bbox)) return;
+      if (signal?.aborted) throw abortError();
       if (bboxRadiusM(bbox) > maxRadiusM) return;
 
       // No padding, unlike the two Overpass providers. `ShadowField` already pads
@@ -536,8 +642,16 @@ export function createRasterCanopyProvider(opts?: {
         .map((v) => v.toFixed(5))
         .join(",");
 
-      // Bounded wait, unbounded read. See `READY_BUDGET_MS`.
-      await raceDeadline(inFlight.get(key) ?? startRead(key, bbox), readyBudgetMs);
+      const pending = inFlight.get(key) ?? startRead(key, bbox);
+      const waiter = waitForPending(pending, signal, () => {
+        if (inFlight.get(key) === pending) inFlight.delete(key);
+        pending.controller.abort();
+      });
+
+      // Bounded wait, unbounded read. The waiter deliberately remains registered
+      // after this returns; a later route abort releases it, while an active route
+      // lets the shared scheduler finish and populate the cache. See `READY_BUDGET_MS`.
+      await raceDeadline(waiter, readyBudgetMs);
     },
   };
 }

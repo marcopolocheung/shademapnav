@@ -3,6 +3,16 @@ export interface ShadowPointQueryResult {
   source: "geometry-cache";
 }
 
+/** Top-left-origin, one-byte coverage read from the building-only shadow FBO. */
+export interface BuildingShadowMask {
+  data: Uint8Array;
+  width: number;
+  height: number;
+  /** FBO pixels per CSS pixel on each axis (the FBO dimension can be capped). */
+  pixelRatioX: number;
+  pixelRatioY: number;
+}
+
 export interface IShadowLayer {
   /** Called whenever the date/time changes (slider drag, play animation, TimeInput commit) */
   setDate(date: Date): void;
@@ -14,6 +24,8 @@ export interface IShadowLayer {
   setSunExposure(enabled: boolean, opts?: { startDate: Date; endDate: Date; iterations: number }): void;
   /** Register an event listener (e.g. 'idle' after render completes) */
   on(event: string, callback: () => void): void;
+  /** Read building coverage without basemap, water, canopy fill, or tree shadows. */
+  readBuildingShadowMask(): BuildingShadowMask | null;
   /**
    * Query shadow from currently loaded shadow geometry without moving the map.
    * Returns null when the layer cannot answer confidently and callers should

@@ -213,6 +213,57 @@ describe("createOverpassPrismProvider", () => {
     expect(fetchFootprints).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a shared request alive when only one waiter aborts", async () => {
+    let finish = () => {};
+    let upstreamSignal: AbortSignal | undefined;
+    const fetchFootprints = vi.fn(
+      async (_lng: number, _lat: number, _radiusM: number, signal?: AbortSignal) =>
+        new Promise<BuildingFootprint[]>((resolve, reject) => {
+          upstreamSignal = signal;
+          finish = () => resolve(footprints());
+          signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        }),
+    );
+    const provider = createOverpassPrismProvider({ fetchFootprints });
+    const first = new AbortController();
+    const second = new AbortController();
+
+    const firstLoad = provider.load?.(bbox, first.signal);
+    const secondLoad = provider.load?.(bbox, second.signal);
+    first.abort();
+
+    await expect(firstLoad).rejects.toMatchObject({ name: "AbortError" });
+    expect(upstreamSignal?.aborted).toBe(false);
+    finish();
+    await expect(secondLoad).resolves.toBeUndefined();
+    expect(provider.prismsFor(bbox)).not.toBeNull();
+  });
+
+  it("cancels upstream when the final waiter aborts and retries cleanly", async () => {
+    const signals: AbortSignal[] = [];
+    const fetchFootprints = vi
+      .fn()
+      .mockImplementationOnce(
+        async (_lng: number, _lat: number, _radiusM: number, signal?: AbortSignal) =>
+          new Promise<BuildingFootprint[]>((_resolve, reject) => {
+            if (signal) signals.push(signal);
+            signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+          }),
+      )
+      .mockResolvedValueOnce(footprints(20));
+    const provider = createOverpassPrismProvider({ fetchFootprints });
+    const controller = new AbortController();
+
+    const abandoned = provider.load?.(bbox, controller.signal);
+    controller.abort();
+    await expect(abandoned).rejects.toMatchObject({ name: "AbortError" });
+    expect(signals[0].aborted).toBe(true);
+
+    await expect(provider.load?.(bbox)).resolves.toBeUndefined();
+    expect(fetchFootprints).toHaveBeenCalledTimes(2);
+    expect(provider.prismsFor(bbox)?.prisms[0].heightM).toBe(20);
+  });
+
   it("declines an area too large for one Overpass call instead of issuing a doomed request", async () => {
     const fetchFootprints = vi.fn(async () => footprints());
     const provider = createOverpassPrismProvider({ fetchFootprints, maxFetchRadiusM: 500 });
@@ -320,6 +371,57 @@ describe("createOverpassCanopyProvider", () => {
     await Promise.all([provider.load?.(bbox), provider.load?.(bbox), provider.load?.(bbox)]);
 
     expect(fetchCanopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cancel shared canopy work when one waiter aborts", async () => {
+    let finish = () => {};
+    let upstreamSignal: AbortSignal | undefined;
+    const fetchCanopy = vi.fn(
+      async (_lng: number, _lat: number, _radiusM: number, signal?: AbortSignal) =>
+        new Promise<CanopyFeature[]>((resolve, reject) => {
+          upstreamSignal = signal;
+          finish = () => resolve(trees());
+          signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        }),
+    );
+    const provider = createOverpassCanopyProvider({ fetchCanopy });
+    const first = new AbortController();
+    const second = new AbortController();
+
+    const firstLoad = provider.load?.(bbox, first.signal);
+    const secondLoad = provider.load?.(bbox, second.signal);
+    first.abort();
+
+    await expect(firstLoad).rejects.toMatchObject({ name: "AbortError" });
+    expect(upstreamSignal?.aborted).toBe(false);
+    finish();
+    await expect(secondLoad).resolves.toBeUndefined();
+    expect(provider.prismsFor(bbox, JULY)).not.toBeNull();
+  });
+
+  it("cancels the final canopy waiter and permits a retry", async () => {
+    let firstSignal: AbortSignal | undefined;
+    const fetchCanopy = vi
+      .fn()
+      .mockImplementationOnce(
+        async (_lng: number, _lat: number, _radiusM: number, signal?: AbortSignal) =>
+          new Promise<CanopyFeature[]>((_resolve, reject) => {
+            firstSignal = signal;
+            signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+          }),
+      )
+      .mockResolvedValueOnce(trees());
+    const provider = createOverpassCanopyProvider({ fetchCanopy });
+    const controller = new AbortController();
+
+    const abandoned = provider.load?.(bbox, controller.signal);
+    controller.abort();
+    await expect(abandoned).rejects.toMatchObject({ name: "AbortError" });
+    expect(firstSignal?.aborted).toBe(true);
+
+    await provider.load?.(bbox);
+    expect(fetchCanopy).toHaveBeenCalledTimes(2);
+    expect(provider.prismsFor(bbox, JULY)).not.toBeNull();
   });
 
   it("declines an area too large for one Overpass call", async () => {
@@ -468,6 +570,33 @@ describe("createRasterCanopyProvider", () => {
     await Promise.resolve();
 
     expect(provider.fieldFor(bbox)?.maxHeightM).toBe(12);
+  });
+
+  it("releases a timed-out raster waiter when its route is superseded", async () => {
+    let upstreamSignal: AbortSignal | undefined;
+    const slow = vi.fn(
+      async (_aoi: LonLatBbox, signal?: AbortSignal) =>
+        new Promise<CanopyPatch>((_resolve, reject) => {
+          upstreamSignal = signal;
+          signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        }),
+    );
+    const store: CanopyTileStore = {
+      read: (aoi, options) => slow(aoi, options?.signal),
+      stats: () => ({
+        cachedBlocks: 0, cachedBytes: 0, blockHits: 0, blockMisses: 0,
+        runsFetched: 0, retries: 0, evictions: 0,
+      }),
+      clear: () => {},
+    };
+    const provider = createRasterCanopyProvider({ store, readyBudgetMs: 5 });
+    const route = new AbortController();
+
+    await provider.load?.(bbox, route.signal);
+    expect(upstreamSignal?.aborted).toBe(false);
+
+    route.abort();
+    await vi.waitFor(() => expect(upstreamSignal?.aborted).toBe(true));
   });
 
   it("joins a read still in flight rather than starting a second", async () => {
