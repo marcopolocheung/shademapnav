@@ -235,9 +235,10 @@ and answers 0% of edges (#259).
 
 ## What this does not do
 
-- **Paint anything.** The map still draws no canopy, so a route card can say "from tree
+- ~~**Paint anything.** The map still draws no canopy, so a route card can say "from tree
   canopy" over a street the renderer shows in full sun. That is **#275**, and it closes
-  at A8f, not here.
+  at A8f, not here.~~ A8f paints the raster's canopy extent; see
+  `canopy-paint-2026-09-10.md`.
 - **Say how much of a blended fraction was canopy.** `EdgeShadow` reports one number, so
   Track E still cannot apply the published 0.5 preference weight — **#277**.
 - **Correct for imagery vintage or age** — **#281**, A8e.

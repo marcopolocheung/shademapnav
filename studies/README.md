@@ -38,6 +38,7 @@ shared import every time.
 | | question | note |
 |---|---|---|
 | `canopy-urban-confusion.mjs` | Does the Meta/WRI CHM v2 canopy raster read *buildings* as canopy? (A8c, #279) | `docs/notes/canopy-urban-confusion-2026-09-10.md` |
+| `canopy-paint-predicate.mjs` | Does building shadow stay detectable by `isBlueDominantShadowPixel` where it lands on A8f's canopy fill, on the real canvas? (A8f, #275) | `docs/notes/canopy-paint-2026-09-10.md` |
 
 ## Not yet moved
 
