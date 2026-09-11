@@ -18,9 +18,9 @@ run in parallel with any other.
 - **Done:** C1 (#191). C2 is implemented and cold-reviewed; every review finding is a scenario.
 - **#59 stays open** — pins now land in the real app, but the journey is still not calculated
   (#302: 8 steps run out before `plan_shadowed_route`) and the 10-stop route is flaky (#303).
-- **Cerebras is down for us (#301):** every key 402s, `zai-glm-4.7` is archived. Live numbers
-  so far are Fireworks `deepseek-v4-flash-0731`, the only Fireworks model the owner allows,
-  under a $5 total cap. The free-tier invariant needs an owner decision.
+- **The LLM is now Google Gemini** (free tier, three-key pool; owner's decision 2026-09-11 after
+  Cerebras 402'd on every key, #301). The C2 live numbers were measured on Fireworks
+  `deepseek-v4-flash-0731` before the switch; `npm run eval:agent` now runs on Gemini.
 - **Live eval:** `npm run eval:agent` — see `docs/notes/agent-live-eval-2026-09-11.md`. On one
   instrument, main grounded 22/38 live turns and C2 38/38; both spend ~7 LLM calls a turn.
 - **Open issues:** #192, #193, #237, #301, #302, #304.
@@ -60,7 +60,7 @@ Also already built and worth knowing before you touch anything:
 
 ## Hard invariants that bite this track
 
-- **Free-tier only.** Cerebras, ~1M tokens/day per account, **5 requests/minute**. No new
+- **Free-tier only.** Google Gemini, capped per key per minute and per day. No new
   providers, no second key pool, no chatty calls. A 5-step turn can take over a minute purely
   on rate limits — that budget is a design constraint, not an inconvenience.
 - **The loop runs client-side** because its tools need the live map (canvas, camera, routing
@@ -241,9 +241,9 @@ navigation app" a sentence backed by an artifact.
 **Two provider facts that shape the whole design — verified at `f61371c`, do not re-litigate:**
 - `llmClient.ts:25` — `LlmPart` is `{ text?, functionCall?, functionResponse? }`. **There is no
   image part.** Adding one is small and clean; that is what the neutral IR is for.
-- `api/agent.js:36` — `DEFAULT_ALLOWED_MODELS = ["gpt-oss-120b", "zai-glm-4.7"]`. **Both are
-  text-only.** Cerebras serves no vision model we can use, and adding a provider that does is a
-  §2 anti-goal and breaks the free-tier guardrail.
+- `api/agent.js` — **superseded 2026-09-11:** the provider is now Gemini, whose allowlisted
+  models accept images on the same free tier. The text-only premise below predates the switch;
+  re-check C12's offline-perception plan against it before building.
 
 **So perception runs offline and the agent selects among its outputs.** That is not a
 consolation prize — it is roadmap §7's Tier 1, and it is the same shape as Google's IRL routing
@@ -310,7 +310,7 @@ is negative marketing.
 - **C1's scenarios are swarm-able** — each scenario is an independent fixture file. Write the
   harness solo, then fan out 3–4 builders on scenario batches in worktrees.
 - **C2, C5, C6 are solo** — they change loop control flow, where interactions bite.
-- **Scout** for provider questions ("does Cerebras honor `seed` on both current models?") —
+- **Scout** for provider questions ("does Gemini's free tier cap requests per key or per project?") —
   bounded and answerable from docs.
 - **Verifier on C2 and C6.** Both can look correct and quietly regress grounding or blow the
   rate budget.
@@ -321,7 +321,7 @@ is negative marketing.
    the archive. (This brief's "What's already true" is the correction; if it drifts, fix it.)
 2. **The eval harness measuring prose.** Asserting on wording makes the suite brittle and
    meaningless. Assert on *behavior*: which tools ran, in what order, with what arguments.
-3. **Rate-limit-shaped design failures.** 5 req/min means an "obviously better" extra
+3. **Rate-limit-shaped design failures.** A per-minute free-tier cap means an "obviously better" extra
    verification call can double turn latency. Every added call needs a C6 budget justification.
 4. **Scope creep toward a general chatbot.** The system prompt is deliberately narrow
    (shadow-day-planning only). Keep it that way — breadth is where Gemini wins and we can't.
@@ -331,6 +331,5 @@ is negative marketing.
 - Shadow math → **Track A**. Routing → **Track E**'s pipeline. Heat/UV → **Track D**.
 - Live position → **Track B** (C8 consumes it).
 - Anything that costs money, needs an account, or adds a provider → not this project. **This
-  includes a vision-capable LLM provider.** Both allowlisted Cerebras models are text-only
-  (`api/agent.js:36`); C12's answer is offline perception plus an agent that selects among its
-  outputs, not a provider swap.
+  includes a paid vision provider.** (The free Gemini models now allowlisted in `api/agent.js`
+  do accept images — see the C12 note above.)

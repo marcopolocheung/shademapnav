@@ -57,7 +57,7 @@ The project is free-tier only and local-first, and these are settled decisions, 
 questions:
 
 - No new paid services or API keys. Sanctioned sources are Open-Meteo, Overpass, Nominatim,
-  MapTiler free tier, Foursquare free tier, and Cerebras for the LLM — each needing caching
+  MapTiler free tier, Foursquare free tier, and Google Gemini's free tier for the LLM — each needing caching
   and a polite request rate.
 - No accounts, backend database, or sync service. No native app. No driving navigation.
 - No second LLM provider and no paid model.

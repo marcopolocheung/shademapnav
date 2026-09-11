@@ -60,24 +60,24 @@ and the browser sends no Foursquare credential at all. Foursquare service keys s
 origin restriction, so the key must not reach the bundle; the `import.meta.env.DEV` guard in
 `foursquare.ts` is what keeps it out). `VITE_SHADEMAP_API_KEY` / `VITE_TRANSITLAND_API_KEY` are vestigial — unused.
 
-AI assistant (Umbra Assistant, `app/lib/agent/`): uses a **free** LLM — **Cerebras only**
-(OpenAI-compatible, ~1M tokens/day **per account**, but only 5 req/min). Key:
-https://cloud.cerebras.ai. dev `VITE_CEREBRAS_API_KEY` (via the Vite `/__cerebras` proxy);
-prod `CEREBRAS_API_KEY` (server-only, via `api/agent.js`).
-- **One shared key pool.** List every account's key comma-separated in
-  `VITE_CEREBRAS_API_KEY` (and/or numbered `_1/_2/_3` dev, `_1.._9` prod) — the client (dev)
-  and `api/agent.js` (prod) round-robin across the pool and fail over to the next key on
-  429/5xx, so N accounts ≈ N×1M tokens/day. There is **no per-role key split** anymore — all
-  roles draw the one pool.
+AI assistant (Umbra Assistant, `app/lib/agent/`): uses a **free** LLM — **Google Gemini
+only**, free tier, through its OpenAI-compatible endpoint (Cerebras was dropped on 2026-09-11:
+every key 402'd, #301). Key: https://aistudio.google.com/apikey. dev `VITE_GEMINI_API_KEY`
+(via the Vite `/__gemini` proxy); prod `GEMINI_API_KEY` (server-only, via `api/agent.js`).
+- **One shared key pool.** List every key comma-separated in `VITE_GEMINI_API_KEY` (and/or
+  numbered `_1/_2/_3` dev, `_1.._9` prod) — the client (dev) and `api/agent.js` (prod)
+  round-robin across the pool and fail over to the next key on 429/5xx and on 401/403, so a
+  dead key never ends a turn. Each key brings its own free quota. All roles draw the one pool.
 - **Per-role model (not key):** the loop does its tool-use research with the "research" model,
-  then writes the final answer with the "response" model. `VITE_CEREBRAS_RESEARCH_MODEL`
-  (default `gpt-oss-120b`) / `VITE_CEREBRAS_RESPONSE_MODEL`; base default `VITE_CEREBRAS_MODEL`.
-  Current: research=`zai-glm-4.7`, response=`gpt-oss-120b`. If both resolve to the same model,
+  then writes the final answer with the "response" model. `VITE_GEMINI_RESEARCH_MODEL`
+  (default `gemini-3.5-flash-lite`) / `VITE_GEMINI_RESPONSE_MODEL` (default
+  `gemini-3.6-flash`); base override `VITE_GEMINI_MODEL`. If both resolve to the same model,
   `rolesShareConfig()` makes the loop skip the separate write call (the research answer IS the
-  answer). Note: both are reasoning models (emit a `reasoning` field; `fromOpenAI` reads
-  `content`). gpt-oss-120b is great at the write but its reasoning eats the token budget on
-  tool-calls — keep zai-glm-4.7 (or another non-reasoning-heavy model) for research.
-The loop is tuned for determinism: temperature 0, fixed `seed`, `parallel_tool_calls: false`,
+  answer). Prod accepts only the models in `api/agent.js`'s allowlist (+ `GEMINI_ALLOWED_MODELS`).
+- **Two Gemini quirks live in `llmClient.ts`:** the endpoint rejects `seed`, and Gemini 3
+  attaches a thought signature (`extra_content`) to every tool call that must be sent back
+  verbatim — the IR carries it as `functionCall.extra`. Drop it and every second tool step 400s.
+The loop is tuned for determinism: temperature 0, `parallel_tool_calls: false`,
 `MAX_STEPS` 8 (the happy path needs ~5 tool turns through plot_points — a lower cap strands the
 loop before pins reach the map), and a tightly-scoped system prompt (shadow-day-planning only).
 **Determinism by pre-injection:** `get_current_context` is NOT a tool — the map center / local
@@ -88,7 +88,8 @@ system prompt so a reasoning response model never narrates uncallable tools into
 The agent loop runs client-side (it orchestrates tools needing the live map canvas:
 geocoding, the solar model, on-canvas shadow sampling, time/camera, the routing pipeline).
 The loop speaks one neutral IR (`LlmContent`/`LlmPart`); `llmClient.ts` translates it to/from
-the OpenAI chat-completions shape Cerebras expects.
+the OpenAI chat-completions shape Gemini's compatible endpoint expects. `npm run eval:agent`
+replays the C1 scenarios against the real model (see `docs/notes/agent-live-eval-2026-09-11.md`).
 
 ## Hard invariants (breaking any of these breaks the app)
 
@@ -148,7 +149,7 @@ approach needs to change.
 | `app/lib/shadow/` | Local WebGL shadow renderer (CustomLayerInterface) | `.claude/rules/shadow-renderer.md` |
 | `app/services/` | Third-party API wrappers (Foursquare) | `.claude/rules/external-apis.md` |
 | `app/workers/` | `sunPosition.worker.ts` — sun-position worker used by the shadow renderer (Vite `?worker` import) | `.claude/rules/shadow-renderer.md` |
-| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, server-side key + prod CORS), Cerebras (`agent.js`, server-side key + model allowlist), Overpass (`overpass.js`), Nominatim (`nominatim.js`, server-side `User-Agent`) | `.claude/rules/external-apis.md` |
+| `api/` | Vercel serverless proxies: Foursquare (`fsq.js`, server-side key + prod CORS), Gemini (`agent.js`, server-side key pool + model allowlist), Overpass (`overpass.js`), Nominatim (`nominatim.js`, server-side `User-Agent`) | `.claude/rules/external-apis.md` |
 | `.claude/` | Agent config: enforced invariants (hooks), path-scoped rules, agents, skills | `.claude/README.md` |
 | ~~`tools/tailor/`~~ | Gone. The resume-tailor CLI was spec'd but never built; its leftover `@anthropic-ai/sdk`/`openai`/`commander` deps were dropped. `zod` is still declared but unimported. | — |
 

@@ -47,14 +47,14 @@ export default defineConfig({
           });
         },
       },
-      // Cerebras (agent LLM, OpenAI-compatible): route dev requests through Vite
-      // to sidestep CORS. The browser sends Authorization: Bearer
-      // <VITE_CEREBRAS_API_KEY> (dev only).
-      "/__cerebras": {
-        target: "https://api.cerebras.ai",
+      // Gemini (agent LLM, via its OpenAI-compatible endpoint): route dev
+      // requests through Vite to sidestep CORS. The browser sends
+      // Authorization: Bearer <VITE_GEMINI_API_KEY> (dev only).
+      "/__gemini": {
+        target: "https://generativelanguage.googleapis.com",
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/__cerebras/, ""),
+        rewrite: (path) => path.replace(/^\/__gemini/, ""),
       },
     },
   },

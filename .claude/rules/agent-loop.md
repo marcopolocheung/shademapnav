@@ -13,11 +13,11 @@ product; a fluent assistant that occasionally invents a street is worth less tha
 
 ## The budget is the design constraint
 
-The LLM is **Cerebras free tier only** — roughly 1M tokens/day per account, but only
-**5 requests per minute**. Every account's key goes into one comma-separated shared pool
-(`VITE_CEREBRAS_API_KEY`, numbered `_1/_2/_3` in dev, `_1..._9` in prod); the client in dev
-and `api/agent.js` in prod round-robin the pool and fail over on 429/5xx. There is no
-per-role key split — all roles draw the one pool.
+The LLM is **Google Gemini free tier only**, capped per key per minute and per day. Every key
+goes into one comma-separated shared pool (`VITE_GEMINI_API_KEY`, numbered `_1/_2/_3` in dev,
+`_1..._9` in prod); the client in dev and `api/agent.js` in prod round-robin the pool and fail
+over on 429/5xx and 401/403. There is no per-role key split — all roles draw the one pool.
+A real turn costs ~6–7 LLM calls (live eval, #302).
 
 **Adding an LLM round-trip is a real cost, not a refactor.** The 5/min ceiling is what makes
 latency user-visible.
@@ -35,12 +35,11 @@ follow that pattern rather than becoming another tool.
 
 ## Per-role models, one key pool
 
-Research runs with `VITE_CEREBRAS_RESEARCH_MODEL`, the final answer with
-`VITE_CEREBRAS_RESPONSE_MODEL` (currently `zai-glm-4.7` and `gpt-oss-120b`). If both resolve
+Research runs with `VITE_GEMINI_RESEARCH_MODEL`, the final answer with
+`VITE_GEMINI_RESPONSE_MODEL` (default `gemini-3.5-flash-lite` and `gemini-3.6-flash`). If both resolve
 to the same model, `rolesShareConfig()` skips the separate write call — the research answer
-*is* the answer. Both are reasoning models emitting a `reasoning` field while `fromOpenAI`
-reads `content`; `gpt-oss-120b` writes well but its reasoning eats the budget during
-tool-calls, which is why research uses a lighter model.
+*is* the answer. Research makes many small tool-calling turns, which is why it gets the
+lighter model; the one write call gets the stronger one.
 
 The write call uses a **separate, tool-free system prompt** so a reasoning model cannot
 narrate uncallable tools into the answer. Keep tool names out of it.
@@ -65,8 +64,9 @@ Only `locate_user` and `plot_points` legitimately move the map.
 The loop runs **client-side** — it orchestrates tools that need the live map canvas
 (geocoding, the solar model, on-canvas shadow sampling, time and camera control, the routing
 pipeline). It speaks one neutral IR (`LlmContent`/`LlmPart`); `llmClient.ts` translates to and
-from the OpenAI chat-completions shape Cerebras expects. Keep provider specifics inside
-`llmClient.ts` — the loop should not know what Cerebras is.
+from the OpenAI chat-completions shape Gemini's compatible endpoint expects — no `seed`, and
+each tool call's thought signature carried back as `functionCall.extra`. Keep provider
+specifics inside `llmClient.ts` — the loop should not know what Gemini is.
 
 Changes here need tests: `app/lib/__tests__/` already covers `agentLoop`, `agentTools` and
 `agentProxy`, and the suite is hermetic — no network, no env. Keep it that way.
