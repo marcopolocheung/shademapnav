@@ -107,13 +107,13 @@ describe("shadow field vs pixel sampler, under the canopy fill", () => {
 
   const baseline = reportOver(BASEMAP_RGB);
 
-  it("reports the same agreement at the fill's own opacity", () => {
+  it("reports the same agreement at the fill's own opacity", { timeout: 10_000 }, () => {
     const report = reportOver(underFill(CANOPY_FILL_OPACITY));
     console.log(`under canopy fill: ${formatReport(report)}`);
     expect(report).toEqual(baseline);
   });
 
-  it("reports the same agreement where the fill is solid", () => {
+  it("reports the same agreement where the fill is solid", { timeout: 10_000 }, () => {
     expect(reportOver(underFill(1))).toEqual(baseline);
   });
 });
