@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type JsonBody = Record<string, unknown>;
 
-function makePayload(model = "gpt-oss-120b") {
+function makePayload(model = "gemini-3.1-flash-lite") {
   return {
     model,
     messages: [{ role: "user", content: "plan shadow" }],
@@ -11,7 +11,7 @@ function makePayload(model = "gpt-oss-120b") {
 
 function makeReq({
   method = "POST",
-  body = { provider: "cerebras", payload: makePayload() },
+  body = { provider: "gemini", payload: makePayload() },
   headers = {},
   ip = "203.0.113.10",
 }: {
@@ -61,9 +61,9 @@ describe("api/agent proxy hardening", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllGlobals();
-    process.env.CEREBRAS_API_KEY = "key_one";
+    process.env.GEMINI_API_KEY = "key_one";
     process.env.AGENT_RATE_LIMIT_PER_MIN = "20";
-    delete process.env.CEREBRAS_ALLOWED_MODELS;
+    delete process.env.GEMINI_ALLOWED_MODELS;
     delete process.env.AGENT_ALLOWED_ORIGINS;
     delete process.env.AGENT_MAX_PAYLOAD_BYTES;
   });
@@ -75,7 +75,7 @@ describe("api/agent proxy hardening", () => {
     const res = makeRes();
 
     await handler(
-      makeReq({ body: { provider: "cerebras", payload: makePayload("not-a-real-model") } }),
+      makeReq({ body: { provider: "gemini", payload: makePayload("not-a-real-model") } }),
       res
     );
 
@@ -118,7 +118,7 @@ describe("api/agent proxy hardening", () => {
     expect(second.jsonBody?.error).toMatch(/Too many agent requests/);
   });
 
-  it("forwards valid Cerebras payloads with a server key", async () => {
+  it("forwards valid Gemini payloads with a server key", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       status: 200,
       text: async () => "{\"choices\":[]}",
@@ -133,12 +133,31 @@ describe("api/agent proxy hardening", () => {
     expect(res.headers["Content-Type"]).toBe("application/json");
     expect(res.sentBody).toBe("{\"choices\":[]}");
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.cerebras.ai/v1/chat/completions",
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ Authorization: "Bearer key_one" }),
         body: JSON.stringify(makePayload()),
       })
     );
+  });
+
+  it("fails over past a dead key to the next one in the pool", async () => {
+    process.env.GEMINI_API_KEY = "dead_key,live_key";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 403, text: async () => "{\"error\":{}}" })
+      .mockResolvedValueOnce({ status: 200, text: async () => "{\"choices\":[]}" });
+    vi.stubGlobal("fetch", fetchMock);
+    const handler = await loadHandler();
+    const res = makeRes();
+
+    await handler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(fetchMock.mock.calls.map(([, init]) => init.headers.Authorization)).toEqual([
+      "Bearer dead_key",
+      "Bearer live_key",
+    ]);
   });
 });

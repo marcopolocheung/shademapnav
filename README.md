@@ -94,7 +94,7 @@ npm run dev            # http://localhost:5173
 ```
 
 A MapTiler key is the only requirement. The other keys in `.env.example` are optional: Foursquare
-adds place details, Cerebras runs the assistant. [`CLAUDE.md`](CLAUDE.md) documents all of them,
+adds place details, Google Gemini runs the assistant. [`CLAUDE.md`](CLAUDE.md) documents all of them,
 including which ones must never reach the browser bundle.
 
 ## Repo guide

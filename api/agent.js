@@ -1,21 +1,21 @@
 /**
- * Vercel serverless proxy for the agent's LLM provider (Cerebras only).
+ * Vercel serverless proxy for the agent's LLM provider (Google Gemini, free tier).
  *
- * Keeps the API key(s) off the client. The browser builds a Cerebras-ready
- * (OpenAI chat-completions) request and POSTs { provider: "cerebras", payload };
- * we inject a key and forward to Cerebras, returning the JSON verbatim. (All
- * wire-format translation happens client-side in app/lib/agent/llmClient.ts;
- * this proxy validates the request, injects a key, and forwards upstream.)
+ * Keeps the API key(s) off the client. The browser builds an OpenAI
+ * chat-completions request and POSTs { provider: "gemini", payload }; we inject
+ * a key and forward to Gemini's OpenAI-compatible endpoint, returning the JSON
+ * verbatim. (All wire-format translation happens client-side in
+ * app/lib/agent/llmClient.ts; this proxy validates, injects a key, forwards.)
  *
- * Multiple keys: set CEREBRAS_API_KEY to a comma-separated list, and/or add
- * CEREBRAS_API_KEY_1..9 — one per account pools the ~1M-tokens/day budget.
- * Requests round-robin across the pool and fail over to the next key on 429/5xx.
+ * Multiple keys: set GEMINI_API_KEY to a comma-separated list, and/or add
+ * GEMINI_API_KEY_1..9 — each key brings its own free quota. Requests round-robin
+ * across the pool and fail over to the next key on 429/5xx, or 401/403.
  *
- * In dev there's no serverless runtime: the client calls Cerebras through the
- * Vite `/__cerebras` proxy instead. Free key (no card): https://cloud.cerebras.ai
+ * In dev there's no serverless runtime: the client calls Gemini through the
+ * Vite `/__gemini` proxy instead. Free key: https://aistudio.google.com/apikey
  */
 
-/** Collect a deduped key pool from `CEREBRAS_API_KEY` (may be comma-separated) + `_1..9`. */
+/** Collect a deduped key pool from `GEMINI_API_KEY` (may be comma-separated) + `_1..9`. */
 function collectKeys() {
   const out = [];
   const push = (v) => {
@@ -25,15 +25,15 @@ function collectKeys() {
       if (t) out.push(t);
     }
   };
-  push(process.env.CEREBRAS_API_KEY);
-  for (let i = 1; i <= 9; i++) push(process.env[`CEREBRAS_API_KEY_${i}`]);
+  push(process.env.GEMINI_API_KEY);
+  for (let i = 1; i <= 9; i++) push(process.env[`GEMINI_API_KEY_${i}`]);
   return [...new Set(out)];
 }
 
 // Round-robin cursor (persists within a warm serverless instance).
 let rr = 0;
 
-const DEFAULT_ALLOWED_MODELS = ["gpt-oss-120b", "zai-glm-4.7"];
+const DEFAULT_ALLOWED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 const MAX_PAYLOAD_BYTES = Number(process.env.AGENT_MAX_PAYLOAD_BYTES || 250_000);
 const RATE_LIMIT_PER_MIN = Number(process.env.AGENT_RATE_LIMIT_PER_MIN || 20);
 const recentRequestsByIp = new Map();
@@ -49,7 +49,7 @@ function splitCsv(value) {
 function allowedModels() {
   return new Set([
     ...DEFAULT_ALLOWED_MODELS,
-    ...splitCsv(process.env.CEREBRAS_ALLOWED_MODELS),
+    ...splitCsv(process.env.GEMINI_ALLOWED_MODELS),
   ]);
 }
 
@@ -113,7 +113,8 @@ function validatePayload(payload) {
 }
 
 /**
- * Try `makeReq(key)` across the pool: round-robin start, fail over on 429 / 5xx.
+ * Try `makeReq(key)` across the pool: round-robin start, fail over on 429 / 5xx
+ * and on 401 / 403 — a dead key must not end the request while another works.
  * Returns the first acceptable Response, or the last one if all keys failed.
  */
 async function forwardWithRotation(keys, makeReq) {
@@ -121,7 +122,7 @@ async function forwardWithRotation(keys, makeReq) {
   let last = null;
   for (let i = 0; i < keys.length; i++) {
     const res = await makeReq(keys[(start + i) % keys.length]);
-    if (res.status !== 429 && res.status < 500) return res;
+    if (![401, 403, 429].includes(res.status) && res.status < 500) return res;
     last = res;
   }
   return last;
@@ -152,7 +153,7 @@ export default async function handler(req, res) {
   }
   body = body || {};
 
-  if (body.provider && body.provider !== "cerebras") {
+  if (body.provider && body.provider !== "gemini") {
     res.status(400).json({ error: "Unsupported provider" });
     return;
   }
@@ -167,12 +168,12 @@ export default async function handler(req, res) {
   try {
     const keys = collectKeys();
     if (keys.length === 0) {
-      res.status(500).json({ error: "CEREBRAS_API_KEY is not configured on the server." });
+      res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
       return;
     }
 
     const makeReq = (key) =>
-      fetch("https://api.cerebras.ai/v1/chat/completions", {
+      fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify(payload),

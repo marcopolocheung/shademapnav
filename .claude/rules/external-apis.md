@@ -9,12 +9,12 @@ paths:
 # External data sources and the serverless proxies
 
 Everything runs client-side except the proxies in `api/` — `fsq.js` (Foursquare),
-`overpass.js`, `agent.js` (Cerebras, server-only key).
+`overpass.js`, `agent.js` (Gemini, server-only key pool).
 
 ## Free tier is a hard constraint
 
 Sanctioned sources: **Open-Meteo, Overpass, Nominatim, MapTiler free tier, Foursquare free
-tier**, and Cerebras for the LLM. No new paid services and no new keys — that is a settled
+tier**, and Google Gemini's free tier for the LLM. No new paid services and no new keys — that is a settled
 project decision, not a tradeoff to re-open. Each source needs caching and a polite request
 rate; the deployment target is the Vercel free tier.
 
@@ -43,8 +43,8 @@ The proxies exist for CORS and to keep server-only keys off the client; they are
 for logic. Keep them thin: validate input, forward, bound the wait, return. Do not let one
 grow into a service.
 
-`api/agent.js` holds the production Cerebras key pool and round-robins across it, failing over
-on 429/5xx. It must never leak a key into a response or a log line.
+`api/agent.js` holds the production Gemini key pool and round-robins across it, failing over
+on 429/5xx and 401/403. It must never leak a key into a response or a log line.
 
 `VITE_MAPTILER_API_KEY` is required; `VITE_FOURSQUARE_API_KEY` powers place popups.
 `VITE_SHADEMAP_API_KEY` and `VITE_TRANSITLAND_API_KEY` are vestigial and unused — do not build

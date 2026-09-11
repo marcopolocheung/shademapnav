@@ -39,7 +39,7 @@ Check, with `file:line` evidence:
   calling a tool it cannot reach. Check that the write prompt does not name tools.
 - **Degradation.** When a tool fails, times out, or returns nothing, does the answer say so,
   or does it proceed as if it had data? Silent degradation is an ungrounded claim.
-- **Budget.** Cerebras free tier is ~1M tokens/day per account but only **5 requests/minute**,
+- **Budget.** Gemini's free tier is capped per key per minute and per day,
   across one shared key pool. Determinism settings — temperature 0, fixed `seed`,
   `parallel_tool_calls: false`, `MAX_STEPS` 8 — are load-bearing. Flag anything that adds LLM
   round-trips. Note the existing design choice: `get_current_context` is deliberately *not* a

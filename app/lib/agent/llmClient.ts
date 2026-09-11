@@ -1,30 +1,37 @@
 /**
- * LLM client for the Umbra Assistant — Cerebras only (OpenAI-compatible).
+ * LLM client for the Umbra Assistant — Google Gemini (free tier), through its
+ * OpenAI-compatible chat-completions endpoint.
  *
- * Cerebras gives ~1M tokens/day per account and is OpenAI chat-completions
- * compatible. Supply several keys (one per account) as a comma-separated list in
- * VITE_CEREBRAS_API_KEY to pool the daily budget; requests round-robin across
- * the pool and fail over to the next key on a 429 / 5xx.
+ * Supply several AI Studio keys as a comma-separated list in VITE_GEMINI_API_KEY
+ * to pool the free per-key quota; requests round-robin across the pool and fail
+ * over to the next key on a 429 / 5xx, or on a 401 / 403 from a dead key.
  *
  * Wire format: the agent loop speaks one neutral IR (the `LlmContent`/`LlmPart`
  * shape below — function calls/responses as parts). We translate that to/from
  * the OpenAI chat-completions shape here, so the loop never sees provider quirks.
+ * Two of Gemini's live here: its endpoint rejects `seed`, and Gemini 3 attaches a
+ * thought signature to every tool call that must come back verbatim on the next
+ * request, or the second step of a tool turn fails.
  *
  * Transport:
- *  - DEV: called through the Vite dev proxy `/__cerebras` (sidesteps CORS).
- *    Keys come from `VITE_CEREBRAS_API_KEY` and are dev-only.
+ *  - DEV: called through the Vite dev proxy `/__gemini` (sidesteps CORS).
+ *    Keys come from `VITE_GEMINI_API_KEY` and are dev-only.
  *  - PROD: goes through the serverless proxy `/api/agent`, which holds the
- *    server-only `CEREBRAS_API_KEY` and forwards upstream. See api/agent.js.
+ *    server-only `GEMINI_API_KEY` and forwards upstream. See api/agent.js.
  *
  * Per-role model: the loop does its tool-use research with the "research" model,
  * then writes the final answer with the "response" model
- * (VITE_CEREBRAS_RESEARCH_MODEL / VITE_CEREBRAS_RESPONSE_MODEL). Both share the
- * one key pool.
+ * (VITE_GEMINI_RESEARCH_MODEL / VITE_GEMINI_RESPONSE_MODEL). Both share the one
+ * key pool.
  */
 
 export interface LlmPart {
   text?: string;
-  functionCall?: { name: string; args: Record<string, unknown> };
+  /**
+   * `extra` is provider data that must be echoed back with this call on the
+   * next request — Gemini 3's thought signature. Opaque to the loop.
+   */
+  functionCall?: { name: string; args: Record<string, unknown>; extra?: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
 }
 
@@ -52,20 +59,23 @@ export interface LlmResponse {
   error?: { message: string };
 }
 
-const CEREBRAS_MODEL: string =
-  (import.meta.env.VITE_CEREBRAS_MODEL as string | undefined) ?? "gpt-oss-120b";
-
-// Fixed seed for deterministic generations (same input → same output).
-const AGENT_SEED = 42;
-
 export type ModelRole = "research" | "response";
+
+// Two lite models, one per role: the live eval grounded 25/25 on this pair with
+// a 5 s median write call — gemini-3.6-flash took 29 s — and a separate write
+// model keeps the tool-free write prompt that carries the pin list.
+const DEFAULT_MODEL: Record<ModelRole, string> = {
+  research: "gemini-3.5-flash-lite",
+  response: "gemini-3.1-flash-lite",
+};
 
 function modelForRole(role: ModelRole): string {
   const m =
     role === "research"
-      ? (import.meta.env.VITE_CEREBRAS_RESEARCH_MODEL as string | undefined)
-      : (import.meta.env.VITE_CEREBRAS_RESPONSE_MODEL as string | undefined);
-  return m?.trim() || CEREBRAS_MODEL;
+      ? (import.meta.env.VITE_GEMINI_RESEARCH_MODEL as string | undefined)
+      : (import.meta.env.VITE_GEMINI_RESPONSE_MODEL as string | undefined);
+  const base = import.meta.env.VITE_GEMINI_MODEL as string | undefined;
+  return m?.trim() || base?.trim() || DEFAULT_MODEL[role];
 }
 
 function normalizeKey(raw: string | undefined): string | null {
@@ -80,7 +90,7 @@ function normalizeKey(raw: string | undefined): string | null {
 
 /**
  * Collect a deduped key pool. Each var may itself be a comma-separated list, so
- * `VITE_CEREBRAS_API_KEY="k1,k2"` and/or numbered `VITE_CEREBRAS_API_KEY_1/_2/_3`
+ * `VITE_GEMINI_API_KEY="k1,k2"` and/or numbered `VITE_GEMINI_API_KEY_1/_2/_3`
  * both work. (Vite only statically replaces literal `import.meta.env.X`, so the
  * numbered vars are referenced by name, not dynamically indexed.)
  */
@@ -96,12 +106,12 @@ function splitKeys(...vals: (string | undefined)[]): string[] {
   return Array.from(new Set(out));
 }
 
-function cerebrasKeys(): string[] {
+function geminiKeys(): string[] {
   return splitKeys(
-    import.meta.env.VITE_CEREBRAS_API_KEY as string | undefined,
-    import.meta.env.VITE_CEREBRAS_API_KEY_1 as string | undefined,
-    import.meta.env.VITE_CEREBRAS_API_KEY_2 as string | undefined,
-    import.meta.env.VITE_CEREBRAS_API_KEY_3 as string | undefined
+    import.meta.env.VITE_GEMINI_API_KEY as string | undefined,
+    import.meta.env.VITE_GEMINI_API_KEY_1 as string | undefined,
+    import.meta.env.VITE_GEMINI_API_KEY_2 as string | undefined,
+    import.meta.env.VITE_GEMINI_API_KEY_3 as string | undefined
   );
 }
 
@@ -126,9 +136,12 @@ function rrStart(tag: string, len: number): number {
 
 /**
  * Run the request across the key pool: round-robin start, then fail over to the
- * next key on 429 / 5xx. Returns the first acceptable Response, or the last one
- * if every key was rate-limited (so the caller still surfaces a real error).
+ * next key on 429 / 5xx, or 401 / 403 (a revoked or invalid key must not end the
+ * turn while another key would work). Returns the first acceptable Response, or
+ * the last one if every key failed (so the caller still surfaces a real error).
  */
+const FAIL_OVER = new Set([401, 403, 429]);
+
 async function fetchAcrossKeys(
   tag: string,
   keys: string[],
@@ -138,7 +151,7 @@ async function fetchAcrossKeys(
   let last: Response | null = null;
   for (let i = 0; i < keys.length; i++) {
     const res = await makeReq(keys[(start + i) % keys.length]);
-    if (res.status !== 429 && res.status < 500) return res;
+    if (!FAIL_OVER.has(res.status) && res.status < 500) return res;
     last = res;
   }
   return last!;
@@ -168,9 +181,14 @@ async function parseRetryMs(res: Response): Promise<number | null> {
   return null;
 }
 
+/** Waits before retrying a 503: Gemini's "high demand" is model-wide, so another key won't help. */
+const OVERLOAD_BACKOFF_MS = [2000, 6000];
+
 /**
  * Run `doFetch`, and on a 429 (rate limit) wait the suggested delay and retry,
- * so a transient TPM/RPM cap becomes a short pause instead of a failed turn.
+ * so a transient TPM/RPM cap becomes a short pause instead of a failed turn; a
+ * 503 (overload) gets a short fixed backoff. In the first live eval on Gemini,
+ * 34 of 183 requests were 503s and three turns died on them.
  * Caps the wait so we never hang the UI on an unrecoverable limit.
  */
 async function withRateLimitRetry(
@@ -178,8 +196,8 @@ async function withRateLimitRetry(
   maxRetries = 2
 ): Promise<Response> {
   let res = await doFetch();
-  for (let attempt = 0; attempt < maxRetries && res.status === 429; attempt++) {
-    const waitMs = await parseRetryMs(res);
+  for (let attempt = 0; attempt < maxRetries && (res.status === 429 || res.status === 503); attempt++) {
+    const waitMs = res.status === 503 ? OVERLOAD_BACKOFF_MS[attempt] : await parseRetryMs(res);
     if (waitMs == null || waitMs > 15000) break; // unknown / too long → give up
     await delay(waitMs + 250);
     res = await doFetch();
@@ -190,13 +208,15 @@ async function withRateLimitRetry(
 export class AgentConfigError extends Error {}
 
 // ---------------------------------------------------------------------------
-// OpenAI chat-completions translation (Cerebras speaks this shape)
+// OpenAI chat-completions translation (Gemini's compatible endpoint speaks it)
 // ---------------------------------------------------------------------------
 
 interface OpenAIToolCall {
   id: string;
   type: "function";
   function: { name: string; arguments: string };
+  /** Gemini: `{ google: { thought_signature } }`, echoed back verbatim. */
+  extra_content?: Record<string, unknown>;
 }
 interface OpenAIMessage {
   role: "system" | "user" | "assistant" | "tool";
@@ -235,6 +255,7 @@ function toOpenAIBody(req: LlmRequest, model: string): Record<string, unknown> {
               name: p.functionCall!.name,
               arguments: JSON.stringify(p.functionCall!.args ?? {}),
             },
+            ...(p.functionCall!.extra ? { extra_content: p.functionCall!.extra } : {}),
           };
         });
       }
@@ -267,13 +288,13 @@ function toOpenAIBody(req: LlmRequest, model: string): Record<string, unknown> {
       ? req.generationConfig.temperature
       : 0;
 
-  // Determinism: temperature 0 + fixed seed + top_p 1 → near-identical outputs.
+  // Determinism: temperature 0 + top_p 1. No `seed` — Gemini's endpoint
+  // rejects the whole request if one is present.
   const body: Record<string, unknown> = {
     model,
     messages,
     temperature,
     top_p: 1,
-    seed: AGENT_SEED,
   };
   if (tools && tools.length > 0) {
     body.tools = tools;
@@ -391,7 +412,13 @@ function fromOpenAI(data: OpenAIResponse): LlmResponse {
       } catch {
         args = {};
       }
-      parts.push({ functionCall: { name: tc.function.name, args } });
+      parts.push({
+        functionCall: {
+          name: tc.function.name,
+          args,
+          ...(tc.extra_content ? { extra: tc.extra_content } : {}),
+        },
+      });
     }
   } else {
     // No structured calls — recover any text-embedded ones.
@@ -412,7 +439,7 @@ function fromOpenAI(data: OpenAIResponse): LlmResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Cerebras call
+// Gemini call
 // ---------------------------------------------------------------------------
 
 export async function callModel(
@@ -423,17 +450,17 @@ export async function callModel(
 
   const doFetch = (): Promise<Response> => {
     if (import.meta.env.DEV) {
-      const keys = cerebrasKeys();
+      const keys = geminiKeys();
       if (keys.length === 0) {
         throw new AgentConfigError(
-          "Missing VITE_CEREBRAS_API_KEY. Get a free key (no card) at " +
-            "https://cloud.cerebras.ai and add it to .env. You can list several " +
-            "(comma-separated) to pool the per-account daily token budget."
+          "Missing VITE_GEMINI_API_KEY. Get a free key at " +
+            "https://aistudio.google.com/apikey and add it to .env. You can list " +
+            "several (comma-separated) to pool the free per-key quota."
         );
       }
-      // Dev: route through the Vite proxy (vite.config.ts → /__cerebras) for CORS.
-      return fetchAcrossKeys(`cerebras:${role}`, keys, (key) =>
-        fetch("/__cerebras/v1/chat/completions", {
+      // Dev: route through the Vite proxy (vite.config.ts → /__gemini) for CORS.
+      return fetchAcrossKeys(`gemini:${role}`, keys, (key) =>
+        fetch("/__gemini/v1beta/openai/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
           body: JSON.stringify(body),
@@ -443,7 +470,7 @@ export async function callModel(
     return fetch("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "cerebras", role, payload: body }),
+      body: JSON.stringify({ provider: "gemini", role, payload: body }),
     });
   };
 

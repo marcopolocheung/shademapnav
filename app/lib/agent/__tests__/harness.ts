@@ -133,8 +133,9 @@ export function researchPrompt(trace: Trace): string {
   return req?.systemInstruction?.parts[0].text ?? "";
 }
 
+/** Each pin's label and its first comma segment — "Bryant Park, Midtown" pins "Bryant Park". */
 function pinLabelSet(pins: AssistantPin[]): string[] {
-  return pins.map((p) => p.label ?? "").filter(Boolean);
+  return pins.flatMap((p) => (p.label ? [p.label, p.label.split(",")[0].trim()] : []));
 }
 
 /**

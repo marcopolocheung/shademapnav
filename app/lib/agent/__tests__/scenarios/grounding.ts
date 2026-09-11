@@ -431,3 +431,26 @@ export const onePlaceOnePin: Scenario = {
     answer: "Bryant Park, then Grace Plaza.",
   },
 };
+
+export const modelsBarePinsGetNamesAndTheCap: Scenario = {
+  id: "models-bare-pins-get-names-and-the-cap",
+  intent: "a model plotting twelve unlabelled pins gets eight, named after the places under them",
+  userText: "Show me every shadowed park nearby",
+  tools: { search_places: { results: MANY }, plot_points: { ok: true } },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    // Seen live on Gemini: every hit plotted, none labelled, no cap.
+    { calls: [{ name: "plot_points", args: { points: MANY.map((p) => ({ lat: p.lat, lng: p.lng })) } }] },
+    { text: "draft answer from the research model" },
+    { text: "Park 1 first, then Park 2." },
+  ],
+  grounded: [MANY[0].name, MANY[1].name],
+  maxLlmCalls: 4,
+  maxToolCalls: 2,
+  expect: {
+    toolOrder: ["search_places", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: MANY.slice(0, 8).map((p) => p.name),
+    answer: "Park 1 first, then Park 2.",
+  },
+};

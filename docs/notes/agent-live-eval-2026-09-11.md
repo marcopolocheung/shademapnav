@@ -6,8 +6,7 @@ from the real `callModel`, through the real OpenAI translation, tool-call salvag
 code. It is **not** part of `npm test` — it needs a key and spends requests.
 
 ```bash
-npm run eval:agent                                   # Cerebras, the app's own .env pool
-AGENT_EVAL_PROVIDER=fireworks npm run eval:agent     # FIREWORKS_KEY, one pinned model, $1 cap
+npm run eval:agent                                   # the app's own Gemini pool from .env
 AGENT_EVAL_ONLY=via-stops-become-pins,one-place-one-pin npm run eval:agent
 AGENT_EVAL_RESEARCH_MODEL=… AGENT_EVAL_RESPONSE_MODEL=… npm run eval:agent   # compare models
 AGENT_EVAL_OUT=/tmp/run npm run eval:agent           # also writes /tmp/run.md and /tmp/run.json
@@ -16,6 +15,25 @@ AGENT_EVAL_OUT=/tmp/run npm run eval:agent           # also writes /tmp/run.md a
 A grounding violation fails the scenario. The tool path, LLM-call budget and default-world
 calls are measured and reported, because a real model may reach a grounded answer by another
 route.
+
+> **Since superseded:** later on 2026-09-11 the app moved to Google Gemini's free tier, and the
+> eval now runs on the app's own Gemini pool. The Fireworks runs below are the C2 comparison.
+
+## On Gemini (after the switch)
+
+Same instrument, the C2 loop plus the Gemini fixes, the app's three-key pool.
+
+| research / write model | grounded | requests | median latency per request |
+|---|---|---|---|
+| 3.5-flash-lite / 3.6-flash, first run | 17 / 24 | 183 | 1.7 s research · **28.8 s write** |
+| same, targeted rerun of the 7 failures + 1 new, after fixes | 8 / 8 | 54 | — |
+| **3.5-flash-lite / 3.1-flash-lite** (the default) | **25 / 25** | 156 | 2.0 s research · 5.0 s write |
+| 3.5-flash-lite for both roles (no write call) | 25 / 25 | 169 | 1.0 s |
+
+The first run's 7 failures were not inventions: 3 turns died on Gemini 503 "high demand" (34
+of 183 requests — model-wide, so key rotation can't help; the client now backs off), and 4
+were Gemini plotting every hit itself with no labels and no cap (the loop now caps and names
+them) or a label check too literal for "Bryant Park, Midtown".
 
 ## Why Fireworks, not Cerebras
 
