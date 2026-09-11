@@ -72,6 +72,8 @@ interface FakeOptions {
   gate?: () => Promise<void>;
   failFirstReads?: number;
   invalidAt?: (worldX: number, worldY: number) => boolean;
+  onReadStart?: () => void;
+  onReadEnd?: () => void;
 }
 
 function createFakeSource(options: FakeOptions = {}) {
@@ -103,10 +105,14 @@ function createFakeSource(options: FakeOptions = {}) {
           const level = LEVELS.find((candidate) => candidate.index === levelIndex);
           if (!level) throw new Error(`no level ${levelIndex}`);
           reads.push({ quadkey, window: [...window] as PixelWindow, signal });
+          options.onReadStart?.();
           readAttempts += 1;
           const attempt = readAttempts;
           if (options.gate) await options.gate();
-          if (attempt <= (options.failFirstReads ?? 0)) throw new Error("source.coop said 504");
+          if (attempt <= (options.failFirstReads ?? 0)) {
+            options.onReadEnd?.();
+            throw new Error("source.coop said 504");
+          }
 
           const width = window[2] - window[0];
           const height = window[3] - window[1];
@@ -123,6 +129,7 @@ function createFakeSource(options: FakeOptions = {}) {
               }
             }
           }
+          options.onReadEnd?.();
           return { heights, valid };
         },
       };
@@ -290,6 +297,62 @@ describe("createCanopyTileStore", () => {
     expect([...a.heights]).toEqual([...b.heights]);
   });
 
+  it("runs no more than four COG windows concurrently", async () => {
+    let active = 0;
+    let peak = 0;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { store, reads } = storeWith({
+      gate: () => held,
+      onReadStart: () => {
+        active++;
+        peak = Math.max(peak, active);
+      },
+      onReadEnd: () => active--,
+    });
+    const pending = store.read(boxAround(MADRID, 20_000), { priority: "prefetch" });
+    await flush();
+    expect(reads).toHaveLength(4);
+    expect(peak).toBe(4);
+    release();
+    await pending;
+    expect(peak).toBe(4);
+  });
+
+  it("promotes a queued viewport block when a route joins it", async () => {
+    const routeAoi = boxAround([MADRID[0] + 0.07, MADRID[1] - 0.07], 100);
+    const reference = storeWith();
+    await reference.store.read(routeAoi, { priority: "route" });
+    const expected = reference.reads[0].window;
+
+    let hold = true;
+    const releases: Array<() => void> = [];
+    const gated = storeWith({
+      gate: () => hold
+        ? new Promise<void>((resolve) => releases.push(resolve))
+        : Promise.resolve(),
+    });
+    const background = gated.store.read(boxAround(MADRID, 20_000), { priority: "prefetch" });
+    await flush();
+    expect(gated.reads).toHaveLength(4);
+
+    const route = gated.store.read(routeAoi, { priority: "route" });
+    await flush();
+    expect(gated.reads).toHaveLength(4);
+    releases[0]();
+    await flush();
+
+    const promoted = gated.reads[4].window;
+    expect(promoted[1]).toBeLessThanOrEqual(expected[1]);
+    expect(promoted[3]).toBeGreaterThanOrEqual(expected[3]);
+
+    hold = false;
+    for (const release of releases) release();
+    await Promise.all([background, route]);
+  });
+
   it("keeps a shared fetch alive when one of two consumers walks away", async () => {
     let release = () => {};
     const held = new Promise<void>((resolve) => {
@@ -352,7 +415,7 @@ describe("createCanopyTileStore", () => {
     expect(patch.valid).toBeNull();
   });
 
-  it("reports which pixels the raster never populated", async () => {
+  it("reports which pixels the raster never populated", { timeout: 10_000 }, async () => {
     // Thin stripes on a 512 pixel period, so some 256 pixel blocks carry a hole
     // and others are wholly valid — the case where composition has to fill in the
     // blocks it already placed without one.

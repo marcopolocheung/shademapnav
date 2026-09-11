@@ -489,7 +489,7 @@ export function createRasterCanopyProvider(opts?: {
       try {
         const patch = await (await storeFor()).read(
           [bbox.west, bbox.south, bbox.east, bbox.north],
-          { targetGroundRes: opts?.targetGroundRes }
+          { targetGroundRes: opts?.targetGroundRes, priority: "route" }
         );
         cache.unshift({
           // The patch covers whole pixels, so it contains the area asked for rather
