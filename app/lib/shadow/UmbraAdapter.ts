@@ -30,4 +30,8 @@ export class UmbraAdapter implements IShadowLayer {
   on(event: string, callback: () => void) {
     this.instance.on?.(event, callback);
   }
+
+  readBuildingShadowMask() {
+    return null;
+  }
 }

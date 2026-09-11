@@ -16,7 +16,12 @@ import { createRoute, getRoutes, getFolders, updateRoute, deleteRoute } from "..
 import type { SavedRoute, SavedFolder } from "../lib/savedRoutes";
 import { routeToGPX, routeToGeoJSON, downloadBlob } from "../lib/exportRoute";
 import { fetchTrainGraph, findBestTrainRoute, matchEntranceToTrainStation, TRAIN_SUN_EXPOSURE, buildTrainDrawData } from "../lib/trainGraph";
-import { sampleBothSidewalks, computeSolarIntensity, pickClosestEntrance } from "../lib/shadowSampling";
+import {
+  sampleBuildingMaskBothSidewalks,
+  computeSolarIntensity,
+  pickClosestEntrance,
+} from "../lib/shadowSampling";
+import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
 import {
   LOW_CONFIDENCE, QUERY_PAD_M, bboxAroundEdges, createGeometryShadowField, edgeSampleCount,
 } from "../lib/shadowField/ShadowField";
@@ -80,13 +85,49 @@ function waitForMapIdle(map: maplibregl.Map): Promise<void> {
   });
 }
 
+function routingEdgeBatch(graph: RoutingGraph): {
+  refs: EdgeRef[];
+  keys: string[];
+  distances: number[];
+  directedCount: number;
+} {
+  const refs: EdgeRef[] = [];
+  const keys: string[] = [];
+  const distances: number[] = [];
+  const seen = new Set<string>();
+  let directedCount = 0;
+  for (const [fromId, edges] of graph.adj) {
+    if (fromId < 0) continue;
+    const fromNode = graph.nodes.get(fromId);
+    if (!fromNode) continue;
+    for (const edge of edges) {
+      if (edge.toId < 0) continue;
+      const toNode = graph.nodes.get(edge.toId);
+      if (!toNode) continue;
+      directedCount++;
+      const lo = Math.min(fromId, edge.toId);
+      const hi = Math.max(fromId, edge.toId);
+      const key = `${lo},${hi}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const loNode = fromId < edge.toId ? fromNode : toNode;
+      const hiNode = fromId < edge.toId ? toNode : fromNode;
+      keys.push(key);
+      distances.push(edge.distanceM);
+      refs.push({ from: [loNode.lon, loNode.lat], to: [hiNode.lon, hiNode.lat] });
+    }
+  }
+  return { refs, keys, distances, directedCount };
+}
+
 interface UseNavigationArgs {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
+  shadowLayerRef?: React.MutableRefObject<IShadowLayer | null>;
   dateRef: React.MutableRefObject<Date>;
   setDate: React.Dispatch<React.SetStateAction<Date>>;
 }
 
-export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
+export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseNavigationArgs) {
   // Navigation state
   const [navMode, setNavMode] = useState(false);
   const [waypointA, setWaypointA] = useState<[number, number] | null>(null);
@@ -638,12 +679,40 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       )!;
       const field = shadowFieldRef.current!;
 
-      const [graph] = await Promise.all([
-        fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east),
-        field.ready(shadowBbox).catch(() => {}),
+      const broadPreload = field.ready(shadowBbox).catch(() => {});
+      const graph = await fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east);
+
+      const sketchRefs: EdgeRef[] = [];
+      const sketchEdges: GraphEdge[][] = [];
+      const sketchDistances: number[] = [];
+      const sketchSeen = new Map<string, number>();
+      for (const [fromId, edges] of graph.adj) {
+        const fromNode = graph.nodes.get(fromId);
+        if (!fromNode) continue;
+        for (const edge of edges) {
+          const toNode = graph.nodes.get(edge.toId);
+          if (!toNode) continue;
+          const key = `${Math.min(fromId, edge.toId)},${Math.max(fromId, edge.toId)}`;
+          const existing = sketchSeen.get(key);
+          if (existing !== undefined) {
+            sketchEdges[existing].push(edge);
+            continue;
+          }
+          const loNode = fromId < edge.toId ? fromNode : toNode;
+          const hiNode = fromId < edge.toId ? toNode : fromNode;
+          sketchSeen.set(key, sketchRefs.length);
+          sketchEdges.push([edge]);
+          sketchDistances.push(edge.distanceM);
+          sketchRefs.push({ from: [loNode.lon, loNode.lat], to: [hiNode.lon, hiNode.lat] });
+        }
+      }
+      await Promise.all([
+        broadPreload,
+        field.readyEdges?.(sketchRefs).catch(() => {}),
       ]);
 
-      const coverage = field.coverage(shadowBbox, dateRef.current);
+      const coverage = field.coverageEdges?.(sketchRefs, dateRef.current)
+        ?? field.coverage(shadowBbox, dateRef.current);
       const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
 
       if (needsCanvas) {
@@ -674,18 +743,10 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         );
       }
 
-      let imageData: ImageData | null = null;
-      let dpr = 1;
+      let buildingMask: ReturnType<IShadowLayer["readBuildingShadowMask"]> = null;
       if (needsCanvas) {
         setRouteProgress({ message: "Reading shadow layer" });
-        const canvas = map.getCanvas();
-        const tmp = document.createElement("canvas");
-        tmp.width = canvas.width;
-        tmp.height = canvas.height;
-        const ctx2d = tmp.getContext("2d")!;
-        ctx2d.drawImage(canvas, 0, 0);
-        imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
-        dpr = window.devicePixelRatio || 1;
+        buildingMask = shadowLayerRef?.current?.readBuildingShadowMask() ?? null;
       }
 
       // MapLibre transform — correct under rotation/tilt (see calculateRoute).
@@ -699,41 +760,12 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // `shadowFactor` — so there is no provenance to surface here. The source still
       // has to be the same one `calculateRoute` uses: two definitions of shadow in one
       // app is worse than a sketch card without a label.
-      const sketchRefs: EdgeRef[] = [];
-      const sketchEdges: GraphEdge[][] = [];
-      const sketchDistances: number[] = [];
-      const sketchSeen = new Map<string, number>();
-
-      for (const [fromId, edges] of graph.adj) {
-        const fromNode = graph.nodes.get(fromId);
-        if (!fromNode) continue;
-        for (const edge of edges) {
-          const toNode = graph.nodes.get(edge.toId);
-          if (!toNode) continue;
-          const key = `${Math.min(fromId, edge.toId)},${Math.max(fromId, edge.toId)}`;
-          const existing = sketchSeen.get(key);
-          if (existing !== undefined) {
-            sketchEdges[existing].push(edge);
-            continue;
-          }
-          const loNode = fromId < edge.toId ? fromNode : toNode;
-          const hiNode = fromId < edge.toId ? toNode : fromNode;
-          sketchSeen.set(key, sketchRefs.length);
-          sketchEdges.push([edge]);
-          sketchDistances.push(edge.distanceM);
-          sketchRefs.push({
-            from: [loNode.lon, loNode.lat],
-            to: [hiNode.lon, hiNode.lat],
-          });
-        }
-      }
-
       const sketchShadow = sketchRefs.length > 0 ? field.sampleEdges(sketchRefs, dateRef.current) : [];
       for (let i = 0; i < sketchRefs.length; i++) {
         let { left, right } = sketchShadow[i];
-        if (sketchShadow[i].confidence < LOW_CONFIDENCE && imageData) {
-          ({ left, right } = sampleBothSidewalks(
-            projectToScreen, imageData, dpr,
+        if (sketchShadow[i].confidence < LOW_CONFIDENCE && buildingMask) {
+          ({ left, right } = sampleBuildingMaskBothSidewalks(
+            projectToScreen, buildingMask,
             sketchRefs[i].from, sketchRefs[i].to,
             edgeSampleCount(sketchDistances[i]),
           ));
@@ -808,7 +840,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       setRouteProgress(null);
     }
   }, [
-    sketchPoints, mapRef, dateRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
+    sketchPoints, mapRef, shadowLayerRef, dateRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
     flattenForShadowReadback, restorePitchAfterShadowReadback,
   ]);
 
@@ -1017,7 +1049,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
     const t0 = performance.now();
     let graphFetchMs = 0;
-    let canvasReadMs = 0;
+    const canvasReadMs = 0;
+    let dedicatedMaskReadMs = 0;
     let shadowSampleMs = 0;
     let dijkstraMs = 0;
 
@@ -1049,11 +1082,18 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       )!;
       const field = shadowFieldRef.current!;
 
-      const [graph] = await Promise.all([
-        fetchRoutingGraph(south, west, north, east, calcSignal),
-        // A failed preload is not a failed route — Overpass rate-limits, and the
-        // answer to that is low coverage and the canvas, not an error.
-        field.ready(shadowBbox).catch(() => {}),
+      const broadPreload = field.ready(shadowBbox).catch(() => {});
+      const graph = await fetchRoutingGraph(south, west, north, east, calcSignal);
+      // Enumerate as soon as the graph arrives. These exact cells, rather than the
+      // graph's large enclosing rectangle, are what sampling and confidence use.
+      const edgeBatch = routingEdgeBatch(graph);
+      const edgeRefs = edgeBatch.refs;
+      const edgeKeys = edgeBatch.keys;
+      const edgeDistances = edgeBatch.distances;
+      const directedEdgeCount = edgeBatch.directedCount;
+      await Promise.all([
+        broadPreload,
+        field.readyEdges?.(edgeRefs).catch(() => {}),
       ]);
       graphFetchMs = performance.now() - tFetch;
       if (myGen !== calcGenRef.current) return;
@@ -1062,11 +1102,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // whole point of A4b: when geometry can answer, the mid-calculation `fitBounds`
       // jump and the full-canvas readback are both pure cost. The camera work stays
       // exactly as PR #160 left it on the path that still needs pixels.
-      const coverage = field.coverage(shadowBbox, dateRef.current);
+      const coverage = field.coverageEdges?.(edgeRefs, dateRef.current)
+        ?? field.coverage(shadowBbox, dateRef.current);
       const needsCanvas = coverage.confidence < LOW_CONFIDENCE;
 
-      let imageData: ImageData | null = null;
-      let dpr = 1;
+      let buildingMask: ReturnType<IShadowLayer["readBuildingShadowMask"]> = null;
 
       if (needsCanvas) {
         // Flatten before reading the bounds: a tilted camera sees further, so the
@@ -1090,15 +1130,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
 
         const tCanvas = performance.now();
         updateProgress({ message: "Reading shadow layer" });
-        const canvas = map.getCanvas();
-        const tmp = document.createElement("canvas");
-        tmp.width = canvas.width;
-        tmp.height = canvas.height;
-        const ctx2d = tmp.getContext("2d")!;
-        ctx2d.drawImage(canvas, 0, 0);
-        imageData = ctx2d.getImageData(0, 0, tmp.width, tmp.height);
-        dpr = window.devicePixelRatio || 1;
-        canvasReadMs = performance.now() - tCanvas;
+        buildingMask = shadowLayerRef?.current?.readBuildingShadowMask() ?? null;
+        dedicatedMaskReadMs = performance.now() - tCanvas;
       }
 
       // Project lng/lat → CSS pixels with MapLibre's transform so shadow sampling
@@ -1117,7 +1150,6 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       if (myGen !== calcGenRef.current) return;
 
       const tShadow = performance.now();
-      let directedEdgeCount = 0;
       const edgeShadowCache = new Map<
         string,
         { left: number; right: number; source: ShadowSource; confidence: number }
@@ -1129,36 +1161,6 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // region-filtered shadow index per cell, so slicing this up here would only
       // rebuild those indices and re-triangulate every prism whose shadow straddles
       // a slice boundary.
-      const edgeRefs: EdgeRef[] = [];
-      const edgeKeys: string[] = [];
-      const edgeDistances: number[] = [];
-      const seenEdges = new Set<string>();
-
-      for (const [fromId, edges] of graph.adj) {
-        if (fromId < 0) continue;
-        const fromNode = graph.nodes.get(fromId);
-        if (!fromNode) continue;
-        for (const edge of edges) {
-          if (edge.toId < 0) continue;
-          const toNode = graph.nodes.get(edge.toId);
-          if (!toNode) continue;
-          directedEdgeCount++;
-          const lo = Math.min(fromId, edge.toId);
-          const hi = Math.max(fromId, edge.toId);
-          const key = `${lo},${hi}`;
-          if (seenEdges.has(key)) continue;
-          seenEdges.add(key);
-          const loNode = fromId < edge.toId ? fromNode : toNode;
-          const hiNode = fromId < edge.toId ? toNode : fromNode;
-          edgeKeys.push(key);
-          edgeDistances.push(edge.distanceM);
-          edgeRefs.push({
-            from: [loNode.lon, loNode.lat],
-            to: [hiNode.lon, hiNode.lat],
-          });
-        }
-      }
-
       updateProgress({
         message: "Sampling street shadow",
         current: 0,
@@ -1172,18 +1174,28 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       // keeps the field's answer and its real confidence, and the route says so
       // rather than pretending to a certainty nothing measured.
       let canvasFallbackEdges = 0;
+      const buildingProviders: Array<"tiles" | "overpass" | "dedicated-mask" | "none"> = [];
+      const canopyProviders: Array<"osm" | "raster" | "both" | "none"> = [];
       for (let i = 0; i < edgeRefs.length; i++) {
         const sample = fieldShadow[i];
-        if (sample.confidence >= LOW_CONFIDENCE || !imageData) {
+        if (sample.confidence >= LOW_CONFIDENCE || !buildingMask) {
           edgeShadowCache.set(edgeKeys[i], {
             left: sample.left,
             right: sample.right,
             source: sample.source,
             confidence: sample.confidence,
           });
+          buildingProviders.push(sample.buildingSource ?? "none");
+          const osmCanopy = sample.canopySources?.osm ?? false;
+          const rasterCanopy = sample.canopySources?.raster ?? false;
+          canopyProviders.push(
+            osmCanopy && rasterCanopy
+              ? "both"
+              : osmCanopy ? "osm" : rasterCanopy ? "raster" : "none",
+          );
         } else {
-          const pixels = sampleBothSidewalks(
-            projectToScreen, imageData, dpr,
+          const pixels = sampleBuildingMaskBothSidewalks(
+            projectToScreen, buildingMask,
             edgeRefs[i].from, edgeRefs[i].to,
             edgeSampleCount(edgeDistances[i]),
           );
@@ -1193,6 +1205,8 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
             confidence: CANVAS_CONFIDENCE,
           });
           canvasFallbackEdges++;
+          buildingProviders.push("dedicated-mask");
+          canopyProviders.push("none");
         }
         const done = i + 1;
         if (done === edgeRefs.length || done % 100 === 0) {
@@ -1206,6 +1220,11 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         }
       }
       shadowSampleMs = performance.now() - tShadow;
+
+      const shareOf = <T,>(values: T[], value: T) =>
+        edgeRefs.length === 0
+          ? 0
+          : values.filter((entry) => entry === value).length / edgeRefs.length;
 
       const tDijkstra = performance.now();
       updateProgress({ message: "Building shadow-aware graph" });
@@ -1599,6 +1618,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         phases: {
           graphFetch: graphFetchMs,
           canvasRead: canvasReadMs,
+          dedicatedMaskRead: dedicatedMaskReadMs,
           shadowSample: shadowSampleMs,
           dijkstra: dijkstraMs,
           total: performance.now() - t0,
@@ -1606,6 +1626,21 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
         graphNodeCount: graph.nodes.size,
         graphDirectedEdges: directedEdgeCount,
         shadowFallbackShare: edgeRefs.length > 0 ? canvasFallbackEdges / edgeRefs.length : 0,
+        buildingProviderShares: {
+          tiles: shareOf(buildingProviders, "tiles"),
+          overpass: shareOf(buildingProviders, "overpass"),
+          "dedicated-mask": shareOf(buildingProviders, "dedicated-mask"),
+          none: shareOf(buildingProviders, "none"),
+        },
+        canopySourceShares: {
+          osm: shareOf(canopyProviders, "osm"),
+          raster: shareOf(canopyProviders, "raster"),
+          both: shareOf(canopyProviders, "both"),
+          none: shareOf(canopyProviders, "none"),
+        },
+        fallbackReason: needsCanvas
+          ? (buildingMask ? "low-confidence" : "mask-unavailable")
+          : null,
         routes: routeSnapshots,
         routeComputeMs: performance.now() - t0,
         shadowCoverageGainPp,
@@ -1638,7 +1673,7 @@ export function useNavigation({ mapRef, dateRef, setDate }: UseNavigationArgs) {
       }
     }
   }, [
-    additionalWaypoints, mapRef, dateRef, fitMapToRoute,
+    additionalWaypoints, mapRef, shadowLayerRef, dateRef, fitMapToRoute,
     flattenForShadowReadback, restorePitchAfterShadowReadback,
   ]);
 

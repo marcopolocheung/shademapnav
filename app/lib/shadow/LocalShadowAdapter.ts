@@ -1,6 +1,6 @@
 import type maplibregl from 'maplibre-gl';
 import SunCalc from 'suncalc';
-import type { IShadowLayer } from './IShadowLayer';
+import type { BuildingShadowMask, IShadowLayer } from './IShadowLayer';
 import {
   type CacheAnchor,
   coversPoint,
@@ -359,6 +359,39 @@ export class LocalShadowAdapter implements IShadowLayer, maplibregl.CustomLayerI
   on(event: string, callback: () => void) {
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
     this.listeners.get(event)!.add(callback);
+  }
+
+  readBuildingShadowMask(): BuildingShadowMask | null {
+    const gl = this.gl as WebGL2RenderingContext | null;
+    if (!gl || !this.fbo || this.fboWidth <= 0 || this.fboHeight <= 0) return null;
+
+    const previous = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const rgba = new Uint8Array(this.fboWidth * this.fboHeight * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.readPixels(0, 0, this.fboWidth, this.fboHeight, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, previous);
+
+    // WebGL readback is bottom-left origin; map.project and ImageData are top-left.
+    // Normalize the renderer's visual alpha back to physical building coverage.
+    const data = new Uint8Array(this.fboWidth * this.fboHeight);
+    const alphaScale = 1 / LocalShadowAdapter.SHADOW_ALPHA;
+    for (let y = 0; y < this.fboHeight; y++) {
+      const sourceRow = this.fboHeight - 1 - y;
+      for (let x = 0; x < this.fboWidth; x++) {
+        const alpha = rgba[(sourceRow * this.fboWidth + x) * 4 + 3];
+        data[y * this.fboWidth + x] = Math.min(255, Math.round(alpha * alphaScale));
+      }
+    }
+    const canvas = this.map?.getCanvas();
+    const cssWidth = canvas?.clientWidth || canvas?.width || this.fboWidth;
+    const cssHeight = canvas?.clientHeight || canvas?.height || this.fboHeight;
+    return {
+      data,
+      width: this.fboWidth,
+      height: this.fboHeight,
+      pixelRatioX: this.fboWidth / cssWidth,
+      pixelRatioY: this.fboHeight / cssHeight,
+    };
   }
 
   queryPointShadow(lng: number, lat: number, opts?: { date?: Date }) {

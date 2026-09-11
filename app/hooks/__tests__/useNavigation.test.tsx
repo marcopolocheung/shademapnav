@@ -6,7 +6,9 @@ import type { SavedRoute } from "../../lib/savedRoutes";
 import { downloadBlob } from "../../lib/exportRoute";
 import { geocodeReverse } from "../../lib/nominatim";
 import { fetchRoutingGraph } from "../../lib/overpass";
-import { sampleBothSidewalks } from "../../lib/shadowSampling";
+import {
+  sampleBuildingMaskBothSidewalks,
+} from "../../lib/shadowSampling";
 import { useNavigation } from "../useNavigation";
 
 vi.mock("../../lib/nominatim", () => ({
@@ -51,6 +53,11 @@ vi.mock("../../lib/shadowField/ShadowField", async () => {
         if (shadowStub.readyGate) await shadowStub.readyGate;
         if (shadowStub.readyError) throw shadowStub.readyError;
       },
+      readyEdges: async () => {
+        if (shadowStub.readyGate) await shadowStub.readyGate;
+        if (shadowStub.readyError) throw shadowStub.readyError;
+      },
+      coverageEdges: () => shadowStub.coverage,
     }),
   };
 });
@@ -59,7 +66,10 @@ vi.mock("../../lib/shadowSampling", async () => {
   const actual = await vi.importActual<typeof import("../../lib/shadowSampling")>(
     "../../lib/shadowSampling",
   );
-  return { ...actual, sampleBothSidewalks: vi.fn(actual.sampleBothSidewalks) };
+  return {
+    ...actual,
+    sampleBuildingMaskBothSidewalks: vi.fn(actual.sampleBuildingMaskBothSidewalks),
+  };
 });
 
 vi.mock("../../lib/exportRoute", async () => {
@@ -329,6 +339,20 @@ async function runRouteWith(map: unknown) {
   const { result } = renderHook(() =>
     useNavigation({
       mapRef: { current: map as never },
+      shadowLayerRef: {
+        current: {
+          readBuildingShadowMask: () => {
+            (map as { getCanvas(): unknown }).getCanvas();
+            return {
+              data: new Uint8Array(64),
+              width: 8,
+              height: 8,
+              pixelRatioX: 1,
+              pixelRatioY: 1,
+            };
+          },
+        } as never,
+      },
       dateRef: { current: new Date("2026-08-16T04:00:00Z") },
       setDate: vi.fn(),
     }),
@@ -353,7 +377,7 @@ function resetShadowStub() {
   shadowStub.readyError = null;
   shadowStub.readyGate = null;
   shadowStub.sampledBatchSizes = [];
-  vi.mocked(sampleBothSidewalks).mockClear();
+  vi.mocked(sampleBuildingMaskBothSidewalks).mockClear();
 }
 
 /** Three nodes in a line — two undirected edges, so "only that edge" is testable. */
@@ -487,7 +511,7 @@ describe("routing reads the shadow field (A4b)", () => {
     const result = await runRouteWith(map);
 
     expect(log.some((entry) => entry.startsWith("getCanvas@"))).toBe(false);
-    expect(vi.mocked(sampleBothSidewalks)).not.toHaveBeenCalled();
+    expect(vi.mocked(sampleBuildingMaskBothSidewalks)).not.toHaveBeenCalled();
     // The only fit is `fitMapToRoute` showing the finished route.
     expect(log.filter((entry) => entry === "fitBounds")).toHaveLength(1);
     expect(result.current.navRoutes.length).toBeGreaterThan(0);
@@ -526,7 +550,7 @@ describe("routing reads the shadow field (A4b)", () => {
 
     const result = await runRouteWith(map);
 
-    expect(vi.mocked(sampleBothSidewalks)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sampleBuildingMaskBothSidewalks)).toHaveBeenCalledTimes(1);
     expect(result.current.navRoutes[0].shadowSource?.bySource.canvas).toBeGreaterThan(0);
     expect(result.current.navRoutes[0].shadowSource?.bySource.tiles).toBeGreaterThan(0);
   });

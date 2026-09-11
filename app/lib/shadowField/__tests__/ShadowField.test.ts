@@ -196,6 +196,8 @@ describe("sampleEdges", () => {
     expect(shadow.left).toBe(1);
     expect(shadow.right).toBe(1);
     expect(shadow.source).toBe("tiles");
+    expect(shadow.buildingSource).toBe("tiles");
+    expect(shadow.canopySources).toEqual({ osm: false, raster: false });
   });
 
   it("reports a fully sunlit edge as 0 on both sidewalks", () => {
@@ -476,6 +478,51 @@ describe("coverage", () => {
   });
 });
 
+describe("edge-cell readiness and coverage", () => {
+  const near: EdgeRef = {
+    from: [LNG - 10 / mPerLng, LAT],
+    to: [LNG + 10 / mPerLng, LAT],
+  };
+  const far: EdgeRef = {
+    from: [LNG + 0.1 - 10 / mPerLng, LAT],
+    to: [LNG + 0.1 + 10 / mPerLng, LAT],
+  };
+
+  it("returns the same minimum confidence the per-cell samples later deliver", () => {
+    const provider: PrismProvider = {
+      source: "tiles",
+      prismsFor: (bbox) => ((bbox.west + bbox.east) / 2 < LNG + 0.05 ? oneBuilding() : null),
+    };
+    const field = createGeometryShadowField([provider]);
+    const samples = field.sampleEdges([near, far], NOON);
+    expect(field.coverageEdges([near, far], NOON).confidence).toBe(
+      Math.min(...samples.map((sample) => sample.confidence)),
+    );
+  });
+
+  it("loads each padded cell rather than one route-wide rectangle", async () => {
+    const loaded: BBox[] = [];
+    const provider: PrismProvider = {
+      source: "overpass",
+      prismsFor: () => null,
+      load: async (bbox) => {
+        loaded.push(bbox);
+      },
+    };
+    await createGeometryShadowField([provider]).readyEdges([near, far]);
+    expect(loaded).toHaveLength(2);
+    expect(loaded.every((bbox) => bboxRadiusForTest(bbox) < 1000)).toBe(true);
+  });
+});
+
+function bboxRadiusForTest(bbox: BBox): number {
+  const scale = metersPerDegree((bbox.south + bbox.north) / 2);
+  return Math.hypot(
+    ((bbox.east - bbox.west) * scale.mPerLng) / 2,
+    ((bbox.north - bbox.south) * scale.mPerLat) / 2,
+  );
+}
+
 // ─── Confidence ───────────────────────────────────────────────────────────────
 
 describe("confidenceFor", () => {
@@ -681,6 +728,8 @@ describe("canopy", () => {
 
     expect(buildingsOnly.source).toBe("tiles");
     expect(edge.source).toBe("mixed");
+    expect(edge.buildingSource).toBe("tiles");
+    expect(edge.canopySources).toEqual({ osm: true, raster: false });
     expect(edge.confidence).toBeLessThan(buildingsOnly.confidence);
     // Still worth routing on: more information, not less.
     expect(edge.confidence).toBeGreaterThan(LOW_CONFIDENCE);
@@ -897,6 +946,7 @@ describe("raster canopy", () => {
 
     expect(expectedShade()).toBeGreaterThan(0.6);
     expect(edge.left).toBeCloseTo(expectedShade(), 10);
+    expect(edge.canopySources).toEqual({ osm: true, raster: true });
   });
 
   it("hands the building footprints to the mask, once per prism set", () => {
