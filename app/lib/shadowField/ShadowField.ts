@@ -102,11 +102,18 @@ export interface Coverage {
   confidence: number;
 }
 
+/** Cancellation and one absolute budget shared by every preload for a caller. */
+export interface ShadowReadyOptions {
+  signal?: AbortSignal;
+  /** Unix time in milliseconds after which optional readiness work must stop. */
+  deadlineAt?: number;
+}
+
 export interface ShadowField {
   shadowAt(lng: number, lat: number, when: Date): ShadowSample;
   sampleEdges(edges: EdgeRef[], when: Date): EdgeShadow[];
   /** Preload the exact 2 km cells that `sampleEdges` will resolve. */
-  readyEdges(edges: EdgeRef[]): Promise<void>;
+  readyEdges(edges: EdgeRef[], options?: ShadowReadyOptions): Promise<void>;
   /** Weakest provider coverage across the exact cells `sampleEdges` will use. */
   coverageEdges(edges: EdgeRef[], when: Date): Coverage;
   /** Which source, if any, could answer for this whole bbox. No geometry is built. */
@@ -114,7 +121,7 @@ export interface ShadowField {
   /** N times in one pass. Naive today; A6 makes it cheaper than N× `sampleEdges`. */
   sweep(edges: EdgeRef[], times: Date[]): EdgeShadow[][];
   /** Preload geometry so subsequent synchronous queries can answer. */
-  ready(bbox: BBox): Promise<void>;
+  ready(bbox: BBox, options?: ShadowReadyOptions): Promise<void>;
 }
 
 /**
@@ -129,7 +136,7 @@ export interface ShadowField {
 export interface PrismProvider {
   source: "tiles" | "overpass";
   prismsFor(bbox: BBox): PrismSet | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
   /**
    * How complete this source's geometry is *right now*, as a 0–1 multiplier on its
    * base confidence. Absent means 1.
@@ -162,7 +169,7 @@ export interface PrismProvider {
 export interface CanopyProvider {
   source: "canopy";
   prismsFor(bbox: BBox, when: Date): PrismSet | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
 }
 
 /**
@@ -182,7 +189,7 @@ export interface CanopyProvider {
 export interface CanopyRasterProvider {
   source: "canopy-raster";
   fieldFor(bbox: BBox): CanopyHeightField | null;
-  load?(bbox: BBox): Promise<void>;
+  load?(bbox: BBox, signal?: AbortSignal): Promise<void>;
 }
 
 // ─── Tunables, all of them documented ─────────────────────────────────────────
@@ -983,9 +990,20 @@ export function createGeometryShadowField(
     return weakest;
   }
 
-  async function readyEdges(edges: EdgeRef[]): Promise<void> {
+  async function readyEdges(
+    edges: EdgeRef[],
+    options: ShadowReadyOptions = {},
+  ): Promise<void> {
+    const window = readinessWindow(options);
+    if (window.signal.aborted) {
+      window.cleanup();
+      return;
+    }
     const cells = planBatch(edges).cells;
-    if (cells.length === 0) return;
+    if (cells.length === 0) {
+      window.cleanup();
+      return;
+    }
     const bboxes = cells.map(queryBboxForCell);
 
     // Raster cells use the store's scheduler and may run together. The two OSM
@@ -994,30 +1012,37 @@ export function createGeometryShadowField(
     const raster = Promise.all(bboxes.map(async (bbox) => {
       for (const provider of rasterProviders) {
         if (provider.fieldFor(bbox)) break;
-        await provider.load?.(bbox);
+        await provider.load?.(bbox, options.signal);
         if (provider.fieldFor(bbox)) break;
       }
     }));
     const overpass = serializeOverpass(async () => {
       for (const bbox of bboxes) {
+        if (window.signal.aborted) return;
         if (!resolve(bbox)) {
           for (const provider of providers) {
             if (provider.prismsFor(bbox)) break;
-            await provider.load?.(bbox);
+            await provider.load?.(bbox, window.signal);
+            if (window.signal.aborted) return;
           }
         }
         if (!resolveCanopy(bbox, new Date())) {
           for (const provider of canopyProviders) {
             if (provider.prismsFor(bbox, new Date())) break;
-            await provider.load?.(bbox);
+            await provider.load?.(bbox, window.signal);
+            if (window.signal.aborted) return;
           }
         }
       }
     });
 
-    // One route-wide budget. Work is intentionally not cancelled at the deadline;
-    // a later route or viewport can use the blocks when they finish.
-    await raceReadyBudget(Promise.all([raster, overpass]).then(() => undefined));
+    // Overpass waiters are cancelled at the absolute deadline. Raster waiters use
+    // only the caller signal: their shared scheduler may finish for later reuse.
+    await settleReadiness(
+      Promise.all([raster, overpass]).then(() => undefined),
+      window.signal,
+    );
+    window.cleanup();
   }
 
   return {
@@ -1081,7 +1106,12 @@ export function createGeometryShadowField(
       });
     },
 
-    async ready(bbox) {
+    async ready(bbox, options = {}) {
+      const window = readinessWindow(options);
+      if (window.signal.aborted) {
+        window.cleanup();
+        return;
+      }
       // Buildings first, canopy after — not one `Promise.all` over both. Every load
       // on that chain is a request to the same volunteer-run Overpass instance, and
       // the caller is already fetching the routing graph from it in parallel; firing
@@ -1093,29 +1123,66 @@ export function createGeometryShadowField(
       // against `source.coop`, which shares neither a host nor a rate limit with
       // Overpass, so queueing it behind two Overpass calls would only make a route
       // wait for nothing.
-      await raceReadyBudget(Promise.all([
-        Promise.all(rasterProviders.map((provider) => provider.load?.(bbox))),
+      await settleReadiness(Promise.all([
+        Promise.all(
+          rasterProviders.map((provider) => provider.load?.(bbox, options.signal)),
+        ),
         serializeOverpass(async () => {
-          await Promise.all(providers.map((provider) => provider.load?.(bbox)));
-          await Promise.all(canopyProviders.map((provider) => provider.load?.(bbox)));
+          if (window.signal.aborted) return;
+          await Promise.all(
+            providers.map((provider) => provider.load?.(bbox, window.signal)),
+          );
+          if (window.signal.aborted) return;
+          await Promise.all(
+            canopyProviders.map((provider) => provider.load?.(bbox, window.signal)),
+          );
         }),
-      ]).then(() => undefined));
+      ]).then(() => undefined), window.signal);
+      window.cleanup();
     },
   };
 }
 
-function raceReadyBudget(promise: Promise<void>): Promise<void> {
+function readinessWindow(options: ShadowReadyOptions): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const deadlineAt = options.deadlineAt ?? Date.now() + READY_EDGES_BUDGET_MS;
+  const deadline = new AbortController();
+  const remainingMs = deadlineAt - Date.now();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (remainingMs <= 0) deadline.abort();
+  else timer = setTimeout(() => deadline.abort(), remainingMs);
+  return {
+    signal: options.signal
+      ? AbortSignal.any([options.signal, deadline.signal])
+      : deadline.signal,
+    cleanup: () => {
+      if (timer !== undefined) clearTimeout(timer);
+    },
+  };
+}
+
+function settleReadiness(
+  promise: Promise<void>,
+  signal: AbortSignal,
+): Promise<void> {
   return new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, READY_EDGES_BUDGET_MS);
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    if (signal.aborted) {
+      finish();
+      return;
+    }
+    signal.addEventListener("abort", finish, { once: true });
     promise.then(
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
+      finish,
+      finish,
     );
   });
 }

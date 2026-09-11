@@ -32,6 +32,10 @@ const shadowStub = vi.hoisted(() => ({
   edgeShadow: [] as Array<{ left: number; right: number; source: string; confidence: number }>,
   readyError: null as Error | null,
   readyGate: null as Promise<void> | null,
+  readyCalls: [] as Array<{
+    kind: "broad" | "edges";
+    options?: { signal?: AbortSignal; deadlineAt?: number };
+  }>,
   sampledBatchSizes: [] as number[],
 }));
 
@@ -49,12 +53,28 @@ vi.mock("../../lib/shadowField/ShadowField", async () => {
         shadowStub.sampledBatchSizes.push(edges.length);
         return edges.map((_, i) => shadowStub.edgeShadow[i] ?? shadowStub.edgeShadow[0]);
       },
-      ready: async () => {
-        if (shadowStub.readyGate) await shadowStub.readyGate;
+      ready: async (_bbox: unknown, options?: { signal?: AbortSignal; deadlineAt?: number }) => {
+        shadowStub.readyCalls.push({ kind: "broad", options });
+        if (shadowStub.readyGate) {
+          await Promise.race([
+            shadowStub.readyGate,
+            new Promise<void>((resolve) =>
+              options?.signal?.addEventListener("abort", () => resolve(), { once: true }),
+            ),
+          ]);
+        }
         if (shadowStub.readyError) throw shadowStub.readyError;
       },
-      readyEdges: async () => {
-        if (shadowStub.readyGate) await shadowStub.readyGate;
+      readyEdges: async (_edges: unknown, options?: { signal?: AbortSignal; deadlineAt?: number }) => {
+        shadowStub.readyCalls.push({ kind: "edges", options });
+        if (shadowStub.readyGate) {
+          await Promise.race([
+            shadowStub.readyGate,
+            new Promise<void>((resolve) =>
+              options?.signal?.addEventListener("abort", () => resolve(), { once: true }),
+            ),
+          ]);
+        }
         if (shadowStub.readyError) throw shadowStub.readyError;
       },
       coverageEdges: () => shadowStub.coverage,
@@ -376,6 +396,7 @@ function resetShadowStub() {
   shadowStub.edgeShadow = [{ left: 1, right: 1, source: "tiles", confidence: 0.8 }];
   shadowStub.readyError = null;
   shadowStub.readyGate = null;
+  shadowStub.readyCalls = [];
   shadowStub.sampledBatchSizes = [];
   vi.mocked(sampleBuildingMaskBothSidewalks).mockClear();
 }
@@ -590,6 +611,33 @@ describe("routing reads the shadow field (A4b)", () => {
     expect(result.current.navRoutes.length).toBeGreaterThan(0);
   });
 
+  it("passes one route signal and absolute deadline to both readiness phases", async () => {
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    await runRouteWith(map);
+
+    expect(shadowStub.readyCalls.map((call) => call.kind)).toEqual([
+      "broad",
+      "edges",
+    ]);
+    const [broad, edges] = shadowStub.readyCalls;
+    expect(broad.options?.signal).toBe(edges.options?.signal);
+    expect(broad.options?.deadlineAt).toBe(edges.options?.deadlineAt);
+    expect(broad.options?.deadlineAt).toBeGreaterThan(Date.now());
+  });
+
+  it("aborts readiness on graph failure without hiding the graph error", async () => {
+    shadowStub.readyGate = new Promise<void>(() => {});
+    vi.mocked(fetchRoutingGraph).mockRejectedValue(new Error("Overpass is down"));
+    const { map } = fakeMap({ pitch: 0, boundsAtPitch: wideBounds });
+
+    const result = await runRouteWith(map);
+
+    expect(shadowStub.readyCalls).toHaveLength(1);
+    expect(shadowStub.readyCalls[0].options?.signal?.aborted).toBe(true);
+    expect(result.current.navError).toBe("Overpass is down");
+  });
+
   it("writes nothing when cancelled during the geometry preload", async () => {
     let openGate: () => void = () => {};
     shadowStub.readyGate = new Promise<void>((resolve) => {
@@ -610,10 +658,13 @@ describe("routing reads the shadow field (A4b)", () => {
       result.current.handleCalculateRoute();
     });
 
+    await waitFor(() => expect(shadowStub.readyCalls.length).toBeGreaterThan(0));
+
     act(() => result.current.handleClearWaypointA());
-    await act(async () => {
-      openGate();
-    });
+    expect(
+      shadowStub.readyCalls.every((call) => call.options?.signal?.aborted),
+    ).toBe(true);
+    await act(async () => openGate());
 
     expect(result.current.navRoutes).toEqual([]);
     // Nothing was flattened, so the finally has no tilt to give back.

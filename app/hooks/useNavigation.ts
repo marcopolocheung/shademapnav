@@ -62,6 +62,9 @@ function prefersReducedMotion(): boolean {
 /** How long to let the camera settle before reading the canvas anyway. */
 const CAMERA_SETTLE_TIMEOUT_MS = 1500;
 
+/** One wall-clock budget shared by broad and exact-cell shadow readiness. */
+const ROUTE_READINESS_BUDGET_MS = 2500;
+
 /**
  * Wait for the map to settle before the readback — but not forever. The timeline's
  * play mode advances the date every 50 ms, and each advance repaints the shadow
@@ -659,19 +662,31 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
     const map = mapRef.current;
     if (!map) { setNavError("Map not ready"); return; }
 
+    const myGen = ++calcGenRef.current;
+    calcAbortRef.current?.abort();
+    calcAbortRef.current = new AbortController();
+    const calcSignal = calcAbortRef.current.signal;
+    const updateProgress = (progress: RouteCalculationProgress) => {
+      if (calcGenRef.current === myGen && !calcSignal.aborted) {
+        setRouteProgress(progress);
+      }
+    };
+    let readinessAbort: AbortController | null = null;
+
     setIsCalculating(true);
-    setRouteProgress({ message: "Preparing sketch route" });
+    updateProgress({ message: "Preparing sketch route" });
     setNavError(null);
     setNavWarning(null);
 
     await new Promise<void>((r) => setTimeout(r, 0));
+    if (calcGenRef.current !== myGen || calcSignal.aborted) return;
 
     try {
       const simplified = simplifyPolyline(coords, 30);
       setSimplifiedWaypoints(simplified);
 
       const bbox = sketchBoundingBox(simplified, 0.005);
-      setRouteProgress({ message: "Fetching walk network" });
+      updateProgress({ message: "Fetching walk network" });
 
       const shadowBbox = bboxAroundEdges(
         [{ from: [bbox.west, bbox.south], to: [bbox.east, bbox.north] }],
@@ -679,8 +694,30 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
       )!;
       const field = shadowFieldRef.current!;
 
-      const broadPreload = field.ready(shadowBbox).catch(() => {});
-      const graph = await fetchRoutingGraph(bbox.south, bbox.west, bbox.north, bbox.east);
+      readinessAbort = new AbortController();
+      const readinessSignal = AbortSignal.any([
+        calcSignal,
+        readinessAbort.signal,
+      ]);
+      const readyOptions = {
+        signal: readinessSignal,
+        deadlineAt: Date.now() + ROUTE_READINESS_BUDGET_MS,
+      };
+
+      const broadPreload = field.ready(shadowBbox, readyOptions).catch(() => {});
+      let graph: RoutingGraph;
+      try {
+        graph = await fetchRoutingGraph(
+          bbox.south,
+          bbox.west,
+          bbox.north,
+          bbox.east,
+          calcSignal,
+        );
+      } catch (error) {
+        readinessAbort.abort();
+        throw error;
+      }
 
       const sketchRefs: EdgeRef[] = [];
       const sketchEdges: GraphEdge[][] = [];
@@ -708,8 +745,9 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
       }
       await Promise.all([
         broadPreload,
-        field.readyEdges?.(sketchRefs).catch(() => {}),
+        field.readyEdges?.(sketchRefs, readyOptions).catch(() => {}),
       ]);
+      if (calcGenRef.current !== myGen || calcSignal.aborted) return;
 
       const coverage = field.coverageEdges?.(sketchRefs, dateRef.current)
         ?? field.coverage(shadowBbox, dateRef.current);
@@ -733,6 +771,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
           );
         }
         if (!bboxInView || flattened) await waitForMapIdle(map);
+        if (calcGenRef.current !== myGen || calcSignal.aborted) return;
       }
 
       const gaps = findSketchGaps(simplified, graph);
@@ -745,7 +784,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
 
       let buildingMask: ReturnType<IShadowLayer["readBuildingShadowMask"]> = null;
       if (needsCanvas) {
-        setRouteProgress({ message: "Reading shadow layer" });
+        updateProgress({ message: "Reading shadow layer" });
         buildingMask = shadowLayerRef?.current?.readBuildingShadowMask() ?? null;
       }
 
@@ -755,7 +794,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
         return [p.x, p.y];
       };
 
-      setRouteProgress({ message: "Sampling street shadow" });
+      updateProgress({ message: "Sampling street shadow" });
       // Sketch routing has no per-sidewalk graph — it folds both sides into one
       // `shadowFactor` — so there is no provenance to surface here. The source still
       // has to be the same one `calculateRoute` uses: two definitions of shadow in one
@@ -774,7 +813,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
         for (const edge of sketchEdges[i]) edge.shadowFactor = shadowFactor;
       }
 
-      setRouteProgress({ message: "Finding route choices" });
+      updateProgress({ message: "Finding route choices" });
       const sketchGraph = cloneRoutingGraph(graph);
       const { snappedIds } = snapSketchWaypoints(simplified, sketchGraph, map);
 
@@ -829,15 +868,20 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
         throw new Error("No walkable path found along your sketch. Try drawing closer to streets.");
       }
 
+      if (calcGenRef.current !== myGen || calcSignal.aborted) return;
       setNavRoutes(options);
       setSelectedRouteIndex(0);
       fitMapToRoute(options[0]);
     } catch (e) {
+      readinessAbort?.abort();
+      if (calcGenRef.current !== myGen || calcSignal.aborted) return;
       setNavError(e instanceof Error ? e.message : "Route calculation failed");
     } finally {
-      restorePitchAfterShadowReadback(mapRef.current);
-      setIsCalculating(false);
-      setRouteProgress(null);
+      if (calcGenRef.current === myGen) {
+        restorePitchAfterShadowReadback(mapRef.current);
+        setIsCalculating(false);
+        setRouteProgress(null);
+      }
     }
   }, [
     sketchPoints, mapRef, shadowLayerRef, dateRef, cloneRoutingGraph, snapSketchWaypoints, fitMapToRoute,
@@ -1053,6 +1097,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
     let dedicatedMaskReadMs = 0;
     let shadowSampleMs = 0;
     let dijkstraMs = 0;
+    let readinessAbort: AbortController | null = null;
 
     try {
       const straightLineDistM = haversineMeters(a, b);
@@ -1082,8 +1127,24 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
       )!;
       const field = shadowFieldRef.current!;
 
-      const broadPreload = field.ready(shadowBbox).catch(() => {});
-      const graph = await fetchRoutingGraph(south, west, north, east, calcSignal);
+      readinessAbort = new AbortController();
+      const readinessSignal = AbortSignal.any([
+        calcSignal,
+        readinessAbort.signal,
+      ]);
+      const readyOptions = {
+        signal: readinessSignal,
+        deadlineAt: Date.now() + ROUTE_READINESS_BUDGET_MS,
+      };
+
+      const broadPreload = field.ready(shadowBbox, readyOptions).catch(() => {});
+      let graph: RoutingGraph;
+      try {
+        graph = await fetchRoutingGraph(south, west, north, east, calcSignal);
+      } catch (error) {
+        readinessAbort.abort();
+        throw error;
+      }
       // Enumerate as soon as the graph arrives. These exact cells, rather than the
       // graph's large enclosing rectangle, are what sampling and confidence use.
       const edgeBatch = routingEdgeBatch(graph);
@@ -1093,10 +1154,10 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
       const directedEdgeCount = edgeBatch.directedCount;
       await Promise.all([
         broadPreload,
-        field.readyEdges?.(edgeRefs).catch(() => {}),
+        field.readyEdges?.(edgeRefs, readyOptions).catch(() => {}),
       ]);
       graphFetchMs = performance.now() - tFetch;
-      if (myGen !== calcGenRef.current) return;
+      if (myGen !== calcGenRef.current || calcSignal.aborted) return;
 
       // Does the field cover this route? Asking before touching the camera is the
       // whole point of A4b: when geometry can answer, the mid-calculation `fitBounds`
@@ -1659,6 +1720,7 @@ export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseN
       setSimplifiedWaypoints(null);
       fitMapToRoute(options[0]);
     } catch (e) {
+      readinessAbort?.abort();
       if (e instanceof DOMException && e.name === "AbortError") return;
       if (calcSignal.aborted) return;
       setNavError(e instanceof Error ? e.message : "Routing failed");
