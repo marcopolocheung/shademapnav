@@ -298,3 +298,135 @@ export const sharedModelAnswerIsReconciled: Scenario = {
     answer: "Bryant Park first, then Grace Plaza.",
   },
 };
+
+// ---------------------------------------------------------------------------
+// C2 review: what reconcilePins must not do, and a turn that isn't the first.
+// ---------------------------------------------------------------------------
+
+export const followUpTurnKnowsEarlierPins: Scenario = {
+  id: "follow-up-turn-knows-earlier-pins",
+  intent: "a follow-up turn that plots nothing still tells the write call what is on the map",
+  userText: "What about at 5pm?",
+  mapPins: [{ lat: BRYANT.lat, lng: BRYANT.lng, label: BRYANT.name }],
+  tools: { set_time: { ok: true, newLocalTime: "5:00 PM" } },
+  script: [
+    { calls: [{ name: "set_time", args: { time: "5:00 PM" } }] },
+    { text: "draft answer from the research model" },
+    { text: "At 5 PM Bryant Park is fully shaded." },
+  ],
+  grounded: [BRYANT.name],
+  maxLlmCalls: 3,
+  maxToolCalls: 1,
+  expect: {
+    toolOrder: ["set_time"],
+    plotsBeforeWrite: false,
+    pinLabels: [BRYANT.name],
+    answer: "At 5 PM Bryant Park is fully shaded.",
+  },
+};
+
+export const partialNamesAreNotPlaces: Scenario = {
+  id: "partial-names-are-not-places",
+  intent: '"Park 12" does not name "Park 1", and a house number is not a place',
+  userText: "The quietest park nearby",
+  tools: {
+    search_places: {
+      results: [MANY[0], MANY[11], { name: "350, Fifth Avenue", lat: 40.7484, lng: -73.9857 }],
+    },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    {
+      calls: [
+        {
+          name: "plot_points",
+          args: { points: [{ lat: MANY[11].lat, lng: MANY[11].lng, label: MANY[11].name }] },
+        },
+      ],
+    },
+    { text: "draft answer from the research model" },
+    { text: "Park 12 is the quietest, a 350 m walk." },
+  ],
+  grounded: [MANY[11].name],
+  maxLlmCalls: 4,
+  maxToolCalls: 2,
+  expect: {
+    toolOrder: ["search_places", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: [MANY[11].name],
+    answer: "Park 12 is the quietest, a 350 m walk.",
+  },
+};
+
+export const evictionSparesNamedPins: Scenario = {
+  id: "eviction-spares-named-pins",
+  intent: "making room for a named place never evicts a pin the answer also names",
+  userText: "Show me every shadowed park nearby",
+  tools: { search_places: { results: MANY }, plot_points: { ok: true } },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    {
+      calls: [
+        {
+          name: "plot_points",
+          // The model's own labels, over the search hits' coordinates.
+          args: {
+            points: MANY.slice(0, 8).map((p, i) => ({ lat: p.lat, lng: p.lng, label: `Stop ${i + 1}` })),
+          },
+        },
+      ],
+    },
+    { text: "draft answer from the research model" },
+    { text: "Park 8 is closest; Park 12 is the quietest." },
+  ],
+  grounded: [MANY[11].name],
+  maxLlmCalls: 4,
+  maxToolCalls: 3,
+  expect: {
+    toolOrder: ["search_places", "plot_points", "plot_points"],
+    plotsBeforeWrite: true,
+    // "Stop 8" sits on Park 8, which the answer names, so "Stop 7" makes room instead.
+    pinLabels: ["Stop 1", "Stop 2", "Stop 3", "Stop 4", "Stop 5", "Stop 6", "Stop 8", MANY[11].name],
+    answer: "Park 8 is closest; Park 12 is the quietest.",
+  },
+};
+
+export const onePlaceOnePin: Scenario = {
+  id: "one-place-one-pin",
+  intent: "a place already pinned under another label, or listed twice, is not pinned again",
+  userText: "Two shadowed places to sit",
+  tools: {
+    search_places: {
+      results: [
+        // The model's own pin below rounds these coordinates and relabels the place.
+        { name: "Bryant Park, Midtown", lat: 40.753612, lng: -73.983201 },
+        GRACE,
+        { name: "Grace Plaza", lat: 40.76, lng: -73.97 },
+      ],
+    },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "plazas" } }] },
+    {
+      calls: [
+        {
+          name: "plot_points",
+          args: { points: [{ lat: 40.7536, lng: -73.9832, label: "Bryant Park (north lawn)" }] },
+        },
+      ],
+    },
+    { text: "draft answer from the research model" },
+    { text: "Bryant Park, then Grace Plaza." },
+  ],
+  grounded: [GRACE.name],
+  maxLlmCalls: 4,
+  maxToolCalls: 3,
+  expect: {
+    toolOrder: ["search_places", "plot_points", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: ["Bryant Park (north lawn)", GRACE.name],
+    answer: "Bryant Park, then Grace Plaza.",
+  },
+};

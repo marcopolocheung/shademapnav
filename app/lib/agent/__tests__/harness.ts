@@ -45,6 +45,8 @@ export interface Scenario {
   script: ScriptedTurn[];
   /** Tool results by name. A name with no stub returns an error result. */
   tools?: Record<string, ToolStub>;
+  /** Pins an earlier turn left on the map. */
+  mapPins?: AssistantPin[];
   /** Overrides for the pre-injected map context (defaults to a located map). */
   context?: Record<string, unknown>;
   /** Place names the stubbed tools genuinely returned. */
@@ -99,7 +101,7 @@ export interface Trace {
   contextReads: number;
   /** Tool names surfaced to the UI via `onToolEvent`. */
   toolEvents: string[];
-  /** Pins from the last successful `plot_points`. */
+  /** Pins on the map at the end: the last successful `plot_points`, else the scenario's `mapPins`. */
   plottedPins: AssistantPin[];
   answer: string;
   history: LlmContent[];
@@ -171,6 +173,7 @@ export interface HarnessMocks {
 
 export type RunAgentFn = (opts: {
   history: LlmContent[];
+  pins?: AssistantPin[];
   userText: string;
   ctx: AgentContext;
   onToolEvent?: (e: { name: string; args: Record<string, unknown> }) => void;
@@ -235,7 +238,7 @@ export async function runScenario(
     toolCalls: [],
     contextReads: 0,
     toolEvents: [],
-    plottedPins: [],
+    plottedPins: scenario.mapPins ?? [],
     answer: "",
     history: [],
   };
@@ -297,6 +300,7 @@ export async function runScenario(
 
   const { text, history } = await runAgent({
     history: [],
+    pins: scenario.mapPins,
     userText: scenario.userText,
     ctx: makeScenarioContext(),
     onToolEvent: (e) => trace.toolEvents.push(e.name),

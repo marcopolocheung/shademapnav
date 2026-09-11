@@ -59,6 +59,8 @@ export interface ToolEvent {
 
 export interface RunAgentOptions {
   history: LlmContent[];
+  /** Pins already on the map from earlier turns. */
+  pins?: AssistantPin[];
   userText: string;
   ctx: AgentContext;
   /** Called when the agent decides to invoke a tool (for UI activity display). */
@@ -135,12 +137,23 @@ function primaryName(label: string | undefined): string {
   return label?.split(",")[0].trim() ?? "";
 }
 
-/** Whether the answer names this place — as a whole name, so "Park 1" is not found in "Park 12". */
+/** Whether the answer names this place as a whole name, so "Park 1" is not found in "Park 12". */
 function namesPlace(answer: string, label: string | undefined): boolean {
-  const name = primaryName(label);
-  if (name.length < 3) return false;
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "iu").test(answer);
+  const name = primaryName(label).toLowerCase();
+  // A name needs letters: "350, Fifth Avenue" must not match "a 350 m walk".
+  if (!/\p{L}{3}/u.test(name)) return false;
+  const text = answer.toLowerCase();
+  // A manual boundary scan, not a lookbehind — Safari before 16.4 throws on those.
+  const isWordChar = (ch: string | undefined) => !!ch && /[\p{L}\p{N}]/u.test(ch);
+  for (let i = text.indexOf(name); i !== -1; i = text.indexOf(name, i + 1)) {
+    if (!isWordChar(text[i - 1]) && !isWordChar(text[i + name.length])) return true;
+  }
+  return false;
+}
+
+/** Within ~30 m: one place, however differently a tool and the model rounded or labelled it. */
+function samePlace(a: AssistantPin, b: AssistantPin): boolean {
+  return Math.abs(a.lat - b.lat) < 0.0003 && Math.abs(a.lng - b.lng) < 0.0003;
 }
 
 function plottedPointSummary(pins: AssistantPin[]): string {
@@ -178,21 +191,25 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // wasted tokens — the research model's own final answer is the answer.
   const separateWrite = !rolesShareConfig();
   const pointCandidates: AssistantPin[] = [];
-  /** Pins from the last successful plot — null until one lands. */
-  let mapPins: AssistantPin[] | null = null;
+  /** What the map shows: earlier turns' pins until this turn plots. */
+  let mapPins: AssistantPin[] = opts.pins ?? [];
+  let plottedThisTurn = false;
 
   const plot = async (pins: AssistantPin[]): Promise<void> => {
     onToolEvent?.({ name: "plot_points", args: { points: pins } });
     try {
       const result = await executeTool("plot_points", { points: pins }, ctx);
-      if (!result.error) mapPins = pins;
+      if (!result.error) {
+        mapPins = pins;
+        plottedThisTurn = true;
+      }
     } catch {
       /* the answer's pin line reports whatever did land */
     }
   };
 
   const plotFallbackPoints = async (): Promise<void> => {
-    if (mapPins || pointCandidates.length === 0) return;
+    if (plottedThisTurn || pointCandidates.length === 0) return;
     await plot(pointCandidates.slice(0, MAX_PINS));
   };
 
@@ -201,20 +218,23 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // returned has no coordinates, so against pure invention the prompt is all
   // there is.
   const reconcilePins = async (answer: string): Promise<void> => {
-    const pinned = mapPins ?? [];
     const sameName = (a: AssistantPin, b: AssistantPin) =>
       !!a.label && primaryName(a.label).toLowerCase() === primaryName(b.label).toLowerCase();
     const missing: AssistantPin[] = [];
     for (const c of pointCandidates) {
       if (!namesPlace(answer, c.label)) continue;
-      const onMap = pinned.some((p) => pinKey(p.lat, p.lng) === pinKey(c.lat, c.lng) || sameName(c, p));
+      const onMap = mapPins.some((p) => samePlace(c, p) || sameName(c, p));
       if (!onMap && !missing.some((m) => sameName(c, m))) missing.push(c);
     }
     if (missing.length === 0) return;
+    // A pin is mentioned if its label is, or if a named place sits under it.
+    const mentioned = (p: AssistantPin) =>
+      namesPlace(answer, p.label) ||
+      pointCandidates.some((c) => samePlace(c, p) && namesPlace(answer, c.label));
     // Make room under the cap by dropping, last first, pins the answer never mentions.
-    const keep = [...pinned];
+    const keep = [...mapPins];
     for (let i = keep.length - 1; i >= 0 && keep.length + missing.length > MAX_PINS; i--) {
-      if (!namesPlace(answer, keep[i].label)) keep.splice(i, 1);
+      if (!mentioned(keep[i])) keep.splice(i, 1);
     }
     await plot([...keep, ...missing].slice(0, MAX_PINS));
   };
@@ -269,7 +289,10 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
       } catch (err) {
         result = { error: err instanceof Error ? err.message : "Tool failed." };
       }
-      if (fc.name === "plot_points" && !result.error) mapPins = parsePins(fc.args?.points);
+      if (fc.name === "plot_points" && !result.error) {
+        mapPins = parsePins(fc.args?.points);
+        plottedThisTurn = true;
+      }
       collectPointCandidates(fc.name, fc.args ?? {}, result, pointCandidates);
       responseParts.push({ functionResponse: { name: fc.name, response: result } });
     }
@@ -280,7 +303,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
 
   // Always state what the map shows — including pins the model placed itself,
   // which is the list the write prompt tells it to stay inside.
-  const pinnedLine = mapPins?.length
+  const pinnedLine = mapPins.length
     ? `\n\nMap state guarantee: these pins are on the map, and they are the only places you may name: ${plottedPointSummary(mapPins)}.`
     : "\n\nNothing is pinned on the map, so name no specific place.";
 

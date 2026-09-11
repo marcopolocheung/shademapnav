@@ -24,7 +24,11 @@ import {
 } from "./harness";
 import { scenarios } from "./scenarios";
 import { sharedModelSkipsWriteCall } from "./scenarios/budget";
-import { emptySearchInventsNothing, toolErrorStaysHonest } from "./scenarios/grounding";
+import {
+  emptySearchInventsNothing,
+  followUpTurnKnowsEarlierPins,
+  toolErrorStaysHonest,
+} from "./scenarios/grounding";
 import { fallbackPlotWhenModelForgets, happyPathShadowedAfternoon } from "./scenarios/planning";
 
 vi.mock("../llmClient", () => ({
@@ -147,6 +151,13 @@ describe("plot-before-answer guarantee", () => {
   it("tells the write call about pins the model plotted for itself", async () => {
     const trace = await run(happyPathShadowedAfternoon);
     expect(writePrompt(trace)).toContain("1. Bryant Park (40.75360, -73.98320)");
+  });
+
+  it("tells a follow-up turn's write call about the pins an earlier turn left", async () => {
+    const trace = await run(followUpTurnKnowsEarlierPins);
+    const prompt = writePrompt(trace);
+    expect(prompt).toContain("1. Bryant Park (40.75360, -73.98320)");
+    expect(prompt).not.toContain("Nothing is pinned");
   });
 
   it("skips the write call entirely on the shared-model path", async () => {
