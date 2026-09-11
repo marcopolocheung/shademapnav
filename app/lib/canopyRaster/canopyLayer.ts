@@ -23,7 +23,9 @@ import {
   imageryAt,
   paintPatches,
   readViewport,
+  targetGroundResFor,
 } from "./canopyPaint";
+import type { LonLatBbox } from "./tiles";
 import { sharedCanopyTileStore } from "./sharedStore";
 
 export const CANOPY_SOURCE_ID = "canopy-estimate";
@@ -56,20 +58,50 @@ function beforeIdFor(map: maplibregl.Map, fallback: string): string {
   return fallback;
 }
 
+export interface CanopyLayerHandle {
+  /** Off while another layer's colours are the data — Sun Exposure mode. */
+  setEnabled(enabled: boolean): void;
+  remove(): void;
+}
+
 export function attachCanopyLayer(
   map: maplibregl.Map,
-  opts: { belowLayerId: string; onChange: (state: CanopyLegendState | null) => void },
-): () => void {
+  opts: {
+    belowLayerId: string;
+    enabled: boolean;
+    onChange: (state: CanopyLegendState | null) => void;
+  },
+): CanopyLayerHandle {
+  let enabled = opts.enabled;
   let controller: AbortController | null = null;
   let objectUrl: string | null = null;
+  /** What is on the map now, so a move inside it at the same resolution costs nothing. */
+  let onMap: { bbox: LonLatBbox; targetGroundRes: number; painted: number } | null = null;
+  let legendKey: string | null = null;
   const canvas = document.createElement("canvas");
+
+  /**
+   * Tell the legend, only when what it says changed — every `moveend` would otherwise
+   * re-render the map component for nothing.
+   *
+   * It is shown when there is fill to explain, or when the imagery was leaf-off: in
+   * Madrid an empty map is *not* evidence of no trees, and that is worth saying.
+   */
+  function emit(painted: number, imagery: CanopyImagery | null): void {
+    const state = painted > 0 || imagery?.leafOff ? { imagery } : null;
+    const key = JSON.stringify(state);
+    if (key === legendKey) return;
+    legendKey = key;
+    opts.onChange(state);
+  }
 
   function hide(): void {
     if (map.getLayer(CANOPY_LAYER_ID)) map.setLayoutProperty(CANOPY_LAYER_ID, "visibility", "none");
-    opts.onChange(null);
+    onMap = null;
+    emit(0, null);
   }
 
-  function show(url: string, image: CanopyImage, imagery: CanopyImagery | null): void {
+  function show(url: string, image: CanopyImage, targetGroundRes: number, imagery: CanopyImagery | null): void {
     const [west, south, east, north] = image.bbox;
     const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [
       [west, north],
@@ -96,19 +128,18 @@ export function attachCanopyLayer(
     // The previous image is decoded, or its load was just aborted by `updateImage`.
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = url;
-    opts.onChange({ imagery });
+    onMap = { bbox: image.bbox, targetGroundRes, painted: image.painted };
+    emit(image.painted, imagery);
   }
 
   async function refresh(): Promise<void> {
     controller?.abort();
     controller = null;
-    if (map.getZoom() < MIN_CANOPY_ZOOM) {
+    if (!enabled || map.getZoom() < MIN_CANOPY_ZOOM) {
       hide();
       return;
     }
 
-    const ctrl = new AbortController();
-    controller = ctrl;
     const bounds = map.getBounds();
     const centre = map.getCenter();
     const bbox = clampAround(
@@ -116,7 +147,14 @@ export function attachCanopyLayer(
       [centre.lng, centre.lat],
       MAX_VIEW_HALF_M,
     );
+    const targetGroundRes = targetGroundResFor(bbox);
+    if (onMap && onMap.targetGroundRes === targetGroundRes && contains(onMap.bbox, bbox)) {
+      emit(onMap.painted, imageryAt(centre.lng, centre.lat));
+      return;
+    }
 
+    const ctrl = new AbortController();
+    controller = ctrl;
     try {
       const store = await sharedCanopyTileStore();
       const image = paintPatches(await readViewport(store, bbox, ctrl.signal));
@@ -132,7 +170,7 @@ export function attachCanopyLayer(
         URL.revokeObjectURL(url);
         return;
       }
-      show(url, image, imageryAt(centre.lng, centre.lat));
+      show(url, image, targetGroundRes, imageryAt(centre.lng, centre.lat));
     } catch {
       // Superseded by a newer read — which owns the map now — or the store's chunk
       // failed to load, which the next `moveend` retries.
@@ -143,12 +181,23 @@ export function attachCanopyLayer(
   map.on("moveend", refresh);
   void refresh();
 
-  return () => {
-    controller?.abort();
-    map.off("moveend", refresh);
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-    objectUrl = null;
+  return {
+    setEnabled(next) {
+      if (next === enabled) return;
+      enabled = next;
+      void refresh();
+    },
+    remove() {
+      controller?.abort();
+      map.off("moveend", refresh);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    },
   };
+}
+
+function contains(outer: LonLatBbox, inner: LonLatBbox): boolean {
+  return outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
 }
 
 /** Encode the image for an image source, reusing one scratch canvas. */

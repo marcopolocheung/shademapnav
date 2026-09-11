@@ -9,7 +9,7 @@ import { getFoursquareApiStatus, getPlaceDetails, getPlaceInfoFromAddress, isFou
 import { escapeHtml, renderPlaceInfoHtml } from "./placePopup";
 import { createShadowLayer } from "../lib/shadow/createShadowLayer";
 import type { IShadowLayer } from "../lib/shadow/IShadowLayer";
-import { attachCanopyLayer, type CanopyLegendState } from "../lib/canopyRaster/canopyLayer";
+import { attachCanopyLayer, type CanopyLayerHandle, type CanopyLegendState } from "../lib/canopyRaster/canopyLayer";
 import CanopyLegend from "./CanopyLegend";
 
 export interface AccumulationOptions {
@@ -436,7 +436,7 @@ export default function MapView({
   });
   // Local UI state: whether the estimated-canopy fill is on screen, for its legend.
   const [canopyLegend, setCanopyLegend] = useState<CanopyLegendState | null>(null);
-  const detachCanopyRef = useRef<(() => void) | null>(null);
+  const canopyRef = useRef<CanopyLayerHandle | null>(null);
 
   useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
   useEffect(() => { onSketchPointClickRef.current = onSketchPointClick; }, [onSketchPointClick]);
@@ -770,8 +770,9 @@ export default function MapView({
 
         // Estimated canopy from the raster the route card already quotes (#275).
         // Beneath the shadow layer, never above it — see `canopyLayer.ts`.
-        detachCanopyRef.current = attachCanopyLayer(map, {
+        canopyRef.current = attachCanopyLayer(map, {
           belowLayerId: maybeCustom.id,
+          enabled: !accumulation.enabled,
           onChange: setCanopyLegend,
         });
       }
@@ -798,8 +799,8 @@ export default function MapView({
       if (shadowUpdateTimerRef.current) clearTimeout(shadowUpdateTimerRef.current);
       placePopupRef.current?.remove();
       placePopupRef.current = null;
-      detachCanopyRef.current?.();
-      detachCanopyRef.current = null;
+      canopyRef.current?.remove();
+      canopyRef.current = null;
       shadowRef.current?.remove();
       shadowRef.current = null;
       onShadowLayerReady?.(null);
@@ -862,6 +863,8 @@ export default function MapView({
   // Accumulation mode
   // -------------------------------------------------------------------------
   useEffect(() => {
+    // Sun Exposure's colours are the data; a fill beneath them would tint the reading.
+    canopyRef.current?.setEnabled(!accumulation.enabled);
     if (!shadowRef.current) return;
     if (accumulation.enabled) {
       shadowRef.current.setSunExposure(true, {

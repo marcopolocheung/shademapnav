@@ -55,7 +55,9 @@ dawn `#01112f` and the noon `#22467f` — keeps every background that was alread
 inside, at any opacity, including every anti-aliased edge pixel. What that demands is a small
 *warmth*, `(r + g) / 2 − b`: under ~28, or the dawn blue stops reading as blue. The obvious tree
 colour is a yellow-green, and it fails that outright, so the fill is **sea green `#2e8b57`**
-(warmth 5.5) at **0.45**. Warmth ≥ 0 is the other half: the fill can never *create* a
+(warmth 5.5) at **0.55**. Opacity is legibility alone, since the predicate holds at any value;
+it went up from 0.45 after the interface review, which put the fill at ~1.5:1 against bare
+ground under a rough glare model. Warmth ≥ 0 is the other half: the fill can never *create* a
 blue-dominant pixel, so sunlit canopy does not read as shadow.
 
 **And it goes under the basemap's first water layer**, not merely under the shadow layer.
@@ -69,6 +71,9 @@ consequences, both deliberate:
   green on both sides of a white road rather than green across it.
 - **Crowns over roofs are hidden by the building fill**, which is also what `ShadowField` does
   — it subtracts footprints from the raster before marching.
+
+The fill is also off in **Sun Exposure** mode, whose colours are the data; a tint beneath them
+would shift the reading.
 
 No shadow colour changed. Building shadow looks the same over the basemap and a different,
 bluer teal where it lands on the fill, the way it already looked different over a park.
@@ -98,7 +103,7 @@ The agreement corpus re-run with the synthetic canvas painted over the fill inst
 | basemap | cases | mean | p90 | worst | severe |
 |---|---:|---:|---:|---:|---:|
 | grey, as A3 shipped | 150 | 2.6 pp | 0.0 pp | 62.5 pp | 3.3% |
-| under the fill at 0.45 | 150 | 2.6 pp | 0.0 pp | 62.5 pp | 3.3% |
+| under the fill at 0.55 | 150 | 2.6 pp | 0.0 pp | 62.5 pp | 3.3% |
 | under solid fill | 150 | 2.6 pp | 0.0 pp | 62.5 pp | 3.3% |
 
 **Identical, not merely within the ceilings**, and the test asserts equality: if the predicate
@@ -154,6 +159,9 @@ store refcounts fetches, so that abort cannot cancel a corridor read waiting on 
 blocks — A8b's tests pin that property, and nothing here routes around it. `clear()` is never
 called (#287).
 
+A `moveend` that stays inside the painted image at the same resolution reads nothing, and the
+legend only re-renders the map component when what it says changes.
+
 A zoomed-in viewport reads at the corridor's own 2 m target (`CORRIDOR_GROUND_RES_M`, held
 equal to `TARGET_GROUND_RES_M` by a test, because importing it would pull `geotiff.js` into the
 map chunk), which is when the two actually share blocks. A wider view reads coarser, keeping
@@ -182,15 +190,25 @@ it is skipped; the viewport pays that where the corridor rarely did.
 
 ## Saying what it is
 
-`CanopyLegend` is on screen whenever the fill is: *"Estimated tree canopy — Satellite height
-model, 3 m and taller. Not a tree survey."* Where the build knows the imagery date and it was
-flown out of leaf season — by `canopy.ts`'s own calendar — it adds *"Imagery from Feb 2020,
-trees bare: shows fewer than stand."* Only the three A3 corpus tiles are indexed
-(`acqDate.ts`), so elsewhere the legend says nothing about dates rather than implying they are
-fine. Madrid's leaf-off extent is not corrected (A8e); it is stated.
+`CanopyLegend` is on screen whenever there is fill to explain: *"Estimated tree canopy
+(satellite)"*, and on desktop a second line, *"Modelled heights, 3 m and taller. Not a tree
+survey."* Where the build knows the imagery date and it was flown out of leaf season — by
+`canopy.ts`'s own calendar — it adds *"Feb 2020 imagery, trees bare: undercounts"*, and then it
+shows even over a view with no fill, because in Madrid an empty map is not evidence of no
+trees. Only the three A3 corpus tiles are indexed (`acqDate.ts`), so elsewhere the legend says
+nothing about dates rather than implying they are fine. Madrid's leaf-off extent is not
+corrected (A8e); it is stated.
 
 When no quadkey answers — open ocean, or the host unreachable — the fill and the legend both
 go, rather than a legend claiming the canopy here was assessed and found absent.
+
+**Where it sits** came out of the interface review. On a phone it is one line (two with the
+leaf-off caveat) under the search bar and the shadow legend. On desktop it is bottom-left above
+the timeline, *past* the 408 px sidebar: the map container spans the sidebar, so a plate
+centred on it slid under the sidebar at any width below ~1,100 px, which is exactly when a
+route card is quoting canopy. It fits between the open sidebar and the route cards at 1,024 px;
+narrower than ~1,000 px, with both open, the map itself has almost no room — an existing
+layout squeeze, not this plate's.
 
 ## What this does not do
 

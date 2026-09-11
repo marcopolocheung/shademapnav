@@ -146,6 +146,11 @@ describe("paintPatches", () => {
     expect(Array.from(image?.rgba.slice(0, 3) ?? [])).toEqual([...CANOPY_FILL_RGB]);
   });
 
+  it("counts what it painted, so a view with no canopy in it can say so", () => {
+    expect(paintPatches([rowPatch([0, 30, 30], [1, 1, 0])])?.painted).toBe(1);
+    expect(paintPatches([rowPatch([0, 1, 2])])?.painted).toBe(0);
+  });
+
   it("paints nothing when no quadkey answered", () => {
     expect(paintPatches([])).toBeNull();
   });

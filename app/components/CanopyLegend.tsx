@@ -21,11 +21,14 @@ const imageryMonth = (date: string) =>
   });
 
 /**
- * Says what the green fill is, whenever it is on screen.
+ * Says what the green fill is, whenever there is fill to explain.
  *
  * It is a model's estimate from satellite imagery, and the UI rule is that every
  * claim states its uncertainty. Where the imagery was flown with the trees bare
- * (#281), it says that too, because the fill there shows fewer trees than stand.
+ * (#281), it says that too — and then shows even over an empty map, because there
+ * the absence of green is not evidence of no trees.
+ *
+ * Kept to one line on a phone: it is permanent and sits over the map being read.
  */
 export default function CanopyLegend({ state }: { state: CanopyLegendState | null }) {
   if (!state) return null;
@@ -33,11 +36,11 @@ export default function CanopyLegend({ state }: { state: CanopyLegendState | nul
 
   return (
     <div
-      // Phone: under the search bar and the shadow legend. Desktop: centred above the
-      // timeline, because the sidebar covers the top-left whenever it is open — which
-      // is exactly when a route card is quoting canopy — and the route cards hold the
-      // right.
-      className="pointer-events-none absolute left-4 top-36 z-10 max-w-[min(18rem,calc(100%-6rem))] rounded-lg border px-3 py-2 text-xs shadow-lg md:top-auto md:bottom-36 md:left-1/2 md:-translate-x-1/2"
+      // Phone: under the search bar and the shadow legend. Desktop: bottom-left above
+      // the timeline, but past the 408 px sidebar (`AppShell.tsx`), which covers the
+      // map's left edge whenever it is open — exactly when a route card is quoting
+      // canopy. The map container spans the sidebar, so a centred plate slid under it.
+      className="pointer-events-none absolute left-4 top-36 z-10 max-w-[calc(100%-2rem)] rounded-lg border px-3 py-1.5 text-xs shadow-lg md:top-auto md:bottom-36 md:left-[calc(408px+1rem)] md:max-w-[15.5rem]"
       style={{
         background: "rgba(255,255,255,0.94)",
         borderColor: "var(--md-outline-variant)",
@@ -53,14 +56,14 @@ export default function CanopyLegend({ state }: { state: CanopyLegendState | nul
           style={{ background: SWATCH, borderColor: "rgba(15,23,42,0.28)" }}
           aria-hidden="true"
         />
-        Estimated tree canopy
+        Estimated tree canopy (satellite)
       </div>
-      <p className="mt-0.5 leading-snug" style={{ color: "var(--md-on-surface-variant)" }}>
-        Satellite height model, {CANOPY_PAINT_MIN_HEIGHT_M} m and taller. Not a tree survey.
+      <p className="mt-0.5 hidden leading-snug md:block" style={{ color: "var(--md-on-surface-variant)" }}>
+        Modelled heights, {CANOPY_PAINT_MIN_HEIGHT_M} m and taller. Not a tree survey.
       </p>
       {imagery?.leafOff && (
         <p className="mt-0.5 leading-snug font-medium" style={{ color: "#92400e" }}>
-          Imagery from {imageryMonth(imagery.date)}, trees bare: shows fewer than stand.
+          {imageryMonth(imagery.date)} imagery, trees bare: undercounts
         </p>
       )}
     </div>

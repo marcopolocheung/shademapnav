@@ -64,8 +64,12 @@ export const CANOPY_PAINT_MIN_HEIGHT_M = 3;
 /** Sea green, `#2e8b57`. Warmth `(r + g) / 2 − b` = 5.5; see the module comment. */
 export const CANOPY_FILL_RGB: readonly [number, number, number] = [46, 139, 87];
 
-/** How strongly the fill covers the basemap. The predicate holds at any value. */
-export const CANOPY_FILL_OPACITY = 0.45;
+/**
+ * How strongly the fill covers the basemap. The predicate holds at any value, so this
+ * is legibility alone: at 0.45 the fill measured ~1.5:1 against bare ground under a
+ * rough glare model, and 0.55 buys back some of what bright sun takes.
+ */
+export const CANOPY_FILL_OPACITY = 0.55;
 
 /**
  * Below this zoom the layer paints nothing and reads nothing.
@@ -191,6 +195,8 @@ export interface CanopyImage {
   width: number;
   height: number;
   bbox: LonLatBbox;
+  /** Pixels painted as canopy. Zero is a real answer: the model saw none here. */
+  painted: number;
 }
 
 /**
@@ -224,6 +230,7 @@ export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
   const height = Math.round((maxY - minY) / res);
 
   const rgba = new Uint8ClampedArray(width * height * 4);
+  let painted = 0;
   const [r, g, b] = CANOPY_FILL_RGB;
   for (let i = 0; i < rgba.length; i += 4) {
     rgba[i] = r;
@@ -246,6 +253,7 @@ export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
         const valid = patch.valid === null || patch.valid[source] === 1;
         if (valid && patch.heights[source] >= CANOPY_PAINT_MIN_HEIGHT_M) {
           rgba[(y * width + x) * 4 + 3] = 255;
+          painted += 1;
         }
       }
     }
@@ -253,7 +261,7 @@ export function paintPatches(patches: CanopyPatch[]): CanopyImage | null {
 
   const [west, south] = mercatorToLonLat(minX, minY);
   const [east, north] = mercatorToLonLat(maxX, maxY);
-  return { rgba, width, height, bbox: [west, south, east, north] };
+  return { rgba, width, height, bbox: [west, south, east, north], painted };
 }
 
 /** When the imagery under a point was taken, and whether its trees were bare. */
