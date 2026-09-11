@@ -68,6 +68,26 @@ describe("fetchRoutingGraph — XML error detection", () => {
   });
 });
 
+describe("fetchRoutingGraph — transient proxy failures", () => {
+  it.each([429, 502, 503, 504])(
+    "shows the actionable busy-service message for HTTP %s",
+    async (status) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status,
+          statusText: "upstream detail",
+        })
+      );
+
+      await expect(fetchRoutingGraph(...nextBbox())).rejects.toThrow(
+        "The map server is busy — try a smaller area or wait a moment and retry."
+      );
+    }
+  );
+});
+
 describe("fetchBuildingFootprintsAround", () => {
   it("fetches way building footprints with parsed heights through the Overpass proxy", async () => {
     const building = {
