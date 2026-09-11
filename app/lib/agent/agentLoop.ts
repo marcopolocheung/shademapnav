@@ -283,17 +283,29 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     for (const part of calls) {
       const fc = part.functionCall!;
       onToolEvent?.({ name: fc.name, args: fc.args ?? {} });
+      let args = fc.args ?? {};
+      // The model's own plot obeys the pin cap too, and a bare pin sitting on a
+      // place a tool returned takes that place's name — Gemini plotted twelve
+      // unlabelled pins in the live eval, so the answer named places no pin did.
+      if (fc.name === "plot_points") {
+        const points = parsePins(args.points)
+          .slice(0, MAX_PINS)
+          .map((p) =>
+            p.label ? p : { ...p, label: pointCandidates.find((c) => c.label && samePlace(c, p))?.label }
+          );
+        args = { ...args, points };
+      }
       let result: Record<string, unknown>;
       try {
-        result = await executeTool(fc.name, fc.args ?? {}, ctx);
+        result = await executeTool(fc.name, args, ctx);
       } catch (err) {
         result = { error: err instanceof Error ? err.message : "Tool failed." };
       }
       if (fc.name === "plot_points" && !result.error) {
-        mapPins = parsePins(fc.args?.points);
+        mapPins = parsePins(args.points);
         plottedThisTurn = true;
       }
-      collectPointCandidates(fc.name, fc.args ?? {}, result, pointCandidates);
+      collectPointCandidates(fc.name, args, result, pointCandidates);
       responseParts.push({ functionResponse: { name: fc.name, response: result } });
     }
     contents.push({ role: "user", parts: responseParts });

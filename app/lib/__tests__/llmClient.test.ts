@@ -74,4 +74,22 @@ describe("llmClient against Gemini", () => {
       "Bearer live",
     ]);
   });
+
+  it("waits out a 503 overload and retries rather than failing the turn", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_GEMINI_API_KEY", "k1");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ...reply({}), ok: false, status: 503 })
+      .mockResolvedValueOnce(reply({ role: "assistant", content: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = callModel({ contents: [{ role: "user", parts: [{ text: "hi" }] }] });
+    await vi.advanceTimersByTimeAsync(3000);
+    const res = await pending;
+    vi.useRealTimers();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(res.candidates![0].content.parts[0].text).toBe("ok");
+  });
 });

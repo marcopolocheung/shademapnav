@@ -54,6 +54,8 @@ const mocks: HarnessMocks = {
 const MIN_GAP_MS = 2000;
 
 const usage = { requests: 0, input: 0, output: 0, models: new Set<string>() };
+/** Wall-clock milliseconds per request, by model — where a slow turn's time goes. */
+const latencyMs = new Map<string, number[]>();
 
 // Compare models without touching .env: override either role for this run.
 if (process.env.AGENT_EVAL_RESEARCH_MODEL) {
@@ -79,10 +81,12 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
 
   const requested = (JSON.parse(String(init?.body)) as { model?: string }).model ?? "?";
   requestedModels.add(requested);
+  const startedAt = Date.now();
   const res = await realFetch(
     `https://generativelanguage.googleapis.com${url.slice("/__gemini".length)}`,
     init
   );
+  latencyMs.set(requested, [...(latencyMs.get(requested) ?? []), Date.now() - startedAt]);
 
   usage.requests++;
   if (!res.ok) {
@@ -254,6 +258,12 @@ describe("live agent eval — gemini", () => {
     }
     const row = summarize(scenario, trace, error);
     rows.push(row);
+    // One line per scenario as it lands — vitest itself prints nothing until the end.
+    process.stdout.write(
+      `[${rows.length}/${liveScenarios.length}] ${scenario.id}: ` +
+        `${row.error ? "error" : row.violations.length ? "VIOLATION" : "grounded"}, ` +
+        `${row.llmCalls} LLM calls, ${usage.requests} requests so far\n`
+    );
     expect(row.error, "the turn threw").toBeUndefined();
     expect(row.violations).toEqual([]);
   });
@@ -294,6 +304,12 @@ afterAll(() => {
       `needed default world: ${count((r) => r.stubMisses.length > 0)}`,
     `Requests: ${usage.requests} · tokens in/out: ${usage.input}/${usage.output}`,
   ];
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  lines.push(
+    `Latency (median / max per request): ${[...latencyMs]
+      .map(([model, xs]) => `${model} ${(median(xs) / 1000).toFixed(1)} s / ${(Math.max(...xs) / 1000).toFixed(1)} s over ${xs.length}`)
+      .join(" · ")}`
+  );
   if (providerErrors.length) {
     lines.push(
       "",

@@ -26,6 +26,7 @@ export const scenarios: Scenario[] = [
   grounding.partialNamesAreNotPlaces,
   grounding.evictionSparesNamedPins,
   grounding.onePlaceOnePin,
+  grounding.modelsBarePinsGetNamesAndTheCap,
   budget.stepBudgetExhaustedStillPlots,
   budget.candidatesOverflowCapAtEightPins,
   budget.sharedModelSkipsWriteCall,

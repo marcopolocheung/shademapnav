@@ -180,9 +180,14 @@ async function parseRetryMs(res: Response): Promise<number | null> {
   return null;
 }
 
+/** Waits before retrying a 503: Gemini's "high demand" is model-wide, so another key won't help. */
+const OVERLOAD_BACKOFF_MS = [2000, 6000];
+
 /**
  * Run `doFetch`, and on a 429 (rate limit) wait the suggested delay and retry,
- * so a transient TPM/RPM cap becomes a short pause instead of a failed turn.
+ * so a transient TPM/RPM cap becomes a short pause instead of a failed turn; a
+ * 503 (overload) gets a short fixed backoff. In the first live eval on Gemini,
+ * 34 of 183 requests were 503s and three turns died on them.
  * Caps the wait so we never hang the UI on an unrecoverable limit.
  */
 async function withRateLimitRetry(
@@ -190,8 +195,8 @@ async function withRateLimitRetry(
   maxRetries = 2
 ): Promise<Response> {
   let res = await doFetch();
-  for (let attempt = 0; attempt < maxRetries && res.status === 429; attempt++) {
-    const waitMs = await parseRetryMs(res);
+  for (let attempt = 0; attempt < maxRetries && (res.status === 429 || res.status === 503); attempt++) {
+    const waitMs = res.status === 503 ? OVERLOAD_BACKOFF_MS[attempt] : await parseRetryMs(res);
     if (waitMs == null || waitMs > 15000) break; // unknown / too long → give up
     await delay(waitMs + 250);
     res = await doFetch();
