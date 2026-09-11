@@ -10,7 +10,9 @@
 
 ## Current state
 
-- **Active checkpoint:** A7c (the UI slice) or A5. **A7a+A7b are landed** — canopy is fetched,
+- **Active checkpoint:** A8f (paint the raster canopy, closes #275), then A8e or A5. **A8a–A8d
+  are landed** — see the A8 bullet below. **A7c is deprioritised** — the census says painting OSM's
+  tree points would misrepresent what Umbra knows, so #275 closes at A8f instead. **A7a+A7b are landed** — canopy is fetched,
   modelled and blended into the field, and the coverage census that decides #275 is in
   `docs/notes/canopy-coverage-2026-09-09.md`. See the A7 note below for what the census found
   and what it changes. **A6 is landed** — see its own note below; it did not meet its
@@ -36,7 +38,8 @@
   play and they imply different fixes. #259 lists the two cheap steps that settle it — a pure
   Node test and surfacing `EdgeShadow.source` in the metrics. **Do both before writing A5.**
 - **Done and on `main`:** A1 (#123 / PR #134), A2 (#125 / PR #135), A3 (#129 / PR #136),
-  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6, A7a+A7b (#276, #244).
+  A4a (#126 / PR #137), A6's index prerequisite (#122 / PR #164), A4b, A6, A7a+A7b (#276, #244),
+  A8a (PR #282), A8b (PR #286), A8c (PR #285), A8d (PR #291), and #290's block cache (PR #292).
 - **A7's census is the finding, and it is worse than the checkpoint assumed.** OSM holds
   **at most ~23% of Madrid's inventoried street trees and ~1.0% of Singapore's**, and
   `diameter_crown` and `height` are tagged on **under 1% of trees in Madrid and 0% in
@@ -46,7 +49,24 @@
   `docs/notes/canopy-coverage-2026-09-09.md`; reproduce with `node scripts/canopy-census.mjs`.
   **#275 has its answer on this data: do not paint canopy yet** — 23% of a street's trees
   rendered reads as a bug, where none rendered reads as "the map does not draw trees", and a
-  number can carry a confidence where a paint stroke cannot. Revisit against A8's raster.
+  number can carry a confidence where a paint stroke cannot. **#275 closes at A8f, not A7c.**
+- **A8 is promoted out of "stretch" and inverted: the raster is the presence layer, A7's OSM
+  trees are enrichment.** Its feasibility is measured, not assumed —
+  `docs/notes/canopy-raster-feasibility-2026-09-09.md`: Meta/WRI **CHM v2** is a real COG
+  (v1 is not), a 5 km route corridor costs a few hundred KB of byte-range reads, heights are
+  **uint8 whole metres**, and `source.coop` republishes the COGs CORS-open, so the browser
+  reads them direct with no proxy. See the A8 section for the full slice list.
+- **A8a–A8d are landed, and the raster now changes routing answers.** A8a reads the COGs
+  browser-direct and indexes `acq_date` offline; A8b's `CanopyTileStore` dedupes, caches and
+  cancels; A8c's urban confusion gate **passed** — the model does not read buildings as canopy
+  (#279; `docs/notes/canopy-urban-confusion-2026-09-10.md`); A8d marches the building-masked
+  raster inside `ShadowField`. #292 gave `geotiff.js` a block cache (#290), so a cold
+  route-sized read is 0.9–1.9 s and lands inside `READY_BUDGET_MS`
+  (`docs/notes/canopy-raster-shadow-field-2026-09-10.md`). **The cost is #275, now live
+  everywhere:** nearly every route through a treed city reports `"mixed"` and quotes canopy
+  shade over a map that paints no tree, which is A8f. Still open: **#281**, the Madrid tile's
+  imagery is 2020-02, leaf-off in a deciduous city, so the raster under-reports there — no
+  vintage correction is applied, deliberately, and it lands on A8e.
 - **A6 landed with its acceptance criterion unmet, and the measurement is the deliverable.**
   A 14-hour sweep over a 3 km route was to cost *"< 2× a single-hour sample"*. It costs
   **~21×**, and on `main` it cost ~17× — **the ratio got worse while every absolute number
@@ -530,10 +550,70 @@ sequencing A7/A8 before H3. Keep the two numbers separate: 0.5 is a **route-choi
 weight**, the ~10%/~70% leaf-on/leaf-off figure is **transmittance**. Also **#245** (a one-hour
 max-shadow window, adopt deliberately or decline in writing).
 
-### A8 — Canopy v2 + height fallback *(stretch)*
-Meta/WRI 1 m global canopy height (free, AWS/GEE, updated 2026, MAE 2.8 m) where tiles can be
-served; Overture Buildings heights where OSM `building:levels` is missing — the leading cause
-of "the app says sun and I'm standing in shadow". Both are raster/tile plumbing, not new math.
+### A8 — Canopy from the raster *(promoted out of "stretch" on 2026-09-09)*
+
+**A7's census inverted this checkpoint's role.** A8 was a stretch goal that would fill in
+OSM's gaps. It is now the **presence layer**, and A7's OSM trees are demoted to *enrichment*:
+absence of an OSM tree is not absence of a tree, and in Singapore it is not even weak evidence.
+Ask the raster whether canopy exists; ask OSM and municipal inventories what is known about a
+particular tree. **A8f, not A7c, is what closes #275** — painting A7's sparse points would
+imply "these are the trees Umbra believes exist", which the census disproves. A8f can honestly
+paint *estimated canopy coverage*, which is what the source is.
+
+**Overture building heights are a separate concern** and stay on this checkpoint only as a
+note; they belong with #120 (height reconciliation), not with canopy.
+
+**Feasibility is measured, not assumed** — `docs/notes/canopy-raster-feasibility-2026-09-09.md`.
+The four facts that shape everything below:
+- **Use v2, not v1.** `forests/v2/global/dinov3_global_chm_v2_ml3` is a real COG (tiled
+  512×512, seven overview levels). v1 is striped BigTIFF with no overviews and would need a
+  preprocessing pipeline; v2 does not.
+- **Route-sized.** 0.91 m/px ground at Madrid, a 1.82 m/px overview, and **41 KB / 260 KB /
+  1.4 MB** for a 0.5 / 2 / 5 km box read from the real Madrid tile's byte counts. Whole tiles
+  are 85–272 MB, so range reads are mandatory rather than an optimisation.
+- **Browser-direct, no proxy.** Meta's own S3 sends no CORS headers, but `source.coop`
+  republishes the identical objects (verified byte-for-byte over the Madrid tile) with
+  `access-control-allow-origin: *` and range support:
+  `https://data.source.coop/tge-labs/meta-chm-v2/chm/<quadkey>.tif`. `geotiff.js` reads them
+  straight from the page. A byte-range `api/canopy.js` against Meta's S3 stays on the shelf as
+  the fallback if that republication goes away (**#280**) — insurance, not a build item.
+- **Height is uint8 — whole metres.** Not sub-metre, whatever v1's `_float` path suggests.
+
+**Slices. A8c is a gate, not a step.**
+
+| | | |
+|---|---|---|
+| **A8a** | Transport prototype | Browser-direct COG reads from `source.coop` via `geotiff.js` — overview selection, tile-range fetch, decode. One AOI. Plus `acq_date` metadata. Measure requested vs transferred bytes, decode time, peak memory. **No routing effect.** Note the metadata GeoJSONs are 4.7–24.4 MB per tile for a handful of polygons — reading one date costs more than reading the canopy, and A8a owes an answer. |
+| **A8b** | `CanopyTileStore` | The viewport and the **route corridor** are independent consumers with independent lifecycles; dedupe, cache decoded tiles, cancel stale reads. This is live debt: `useNavigation` already `fitBounds`es a route into view before sampling, and canopy must not inherit that coupling. |
+| **A8c** | **Urban confusion gate** | Does the model read *buildings* as canopy? See below. **Routing gate.** |
+| **A8d** | Height field → `ShadowField` | Building-masked raster, ray-march against `rayHeight(d) = d·tan(alt)`, **not** thousands of synthetic prisms. Keep canopy *obstruction* separate from *transmissivity*: the raster says "vegetation this tall", never "this blocks 90% of the beam". |
+| **A8e** | Source fusion | Spatial, not whole-dataset: CHM baseline everywhere, municipal inventories *replacing* it where they exist, OSM *refining* individual crowns. This is where A7 earns its keep. |
+| **A8f** | Raster canopy rendering | Estimated-canopy fill from a height threshold; optionally distinguish inventoried trees from inferred canopy so the map shows the uncertainty structure. Closes **#275**. |
+
+**A8c — what the gate actually measures.** Not a single correlation coefficient. Rasterize the
+existing building geometry onto the CHM grid across all three A3 cities and report: share of
+building-footprint pixels classified as canopy at >2/>3/>5 m; share of predicted canopy area
+falling inside footprints; CHM height vs building height, **stratified by building height**
+(a 3% overall overlap hiding 42% on buildings over 30 m would still wreck downtown routing);
+contamination in 0–2 m and 2–5 m rings outside footprints, which separates model error from
+registration error; and a **canopy retention ratio** — how much predicted canopy survives an
+exact footprint mask, a +1 m dilation and a +2 m dilation. Retention says whether masking
+cleans up contamination or deletes the dataset.
+
+Footprint subtraction is a principled mitigation here, not just a hack: the part of a crown
+that overhangs a building is not shading walkable ground, because the building already occupies
+it. The rings exist because registration error will put false canopy just *outside* a footprint.
+
+**A8c must also check the imagery vintage against the season it is being asked about.** The
+Madrid tile's imagery is **all 2020-02** — winter, in a city planted with deciduous planes. A
+canopy model reading bare crowns under-detects exactly what A7 exists to find, silently, since
+the raster reports a height and not a confidence. Kent's is 2019-07/08 (leaf-on); Singapore's
+tile is a mosaic of 30 polygons spanning 2015–2019, so a per-*tile* date is wrong. Multiplying
+`canopy.ts`'s leaf-on transmittance onto a winter-derived crown extent would be wrong twice.
+
+**If A8c fails, that is a result, not a failure.** "Free global CHM is not reliable enough in
+dense urban morphology" is publishable, and it is a far better position than having bought
+LiDAR on the assumption that free data would not work. A8a–A8c commit Umbra to nothing.
 
 ### A9 — Beyond binary *(stretch, feeds Track D)*
 Export the ingredients of a radiant load, not just a fraction: sky view factor per sample, sun
