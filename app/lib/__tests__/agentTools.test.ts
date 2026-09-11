@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { executeTool, toolDeclarations } from "../agent/tools";
 import type { AgentContext } from "../agent/tools";
+import { geocodeNear } from "../nominatim";
+
+vi.mock("../nominatim", () => ({ geocodeForward: vi.fn(), geocodeNear: vi.fn() }));
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -118,5 +121,57 @@ describe("agent route tools", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(ctx.setDate).not.toHaveBeenCalled();
+  });
+});
+
+// Bryant Park, the anchor every search below is made from.
+const ANCHOR = { lat: 40.7536, lng: -73.9832 };
+const hit = (name: string, lat: number, lng: number) => ({
+  display_name: `${name}, Manhattan, New York`,
+  lat: String(lat),
+  lon: String(lng),
+});
+
+describe("search_places", () => {
+  afterEach(() => {
+    vi.mocked(geocodeNear).mockReset();
+  });
+
+  it("lists the nearest hits first, each with its distance from the anchor", async () => {
+    vi.mocked(geocodeNear).mockResolvedValueOnce([
+      hit("Rockefeller Plaza", 40.7587, -73.9787), // ~680 m
+      hit("Grace Plaza", 40.7545, -73.9845), // ~150 m
+    ] as any);
+
+    const result = await executeTool("search_places", { query: "plaza", ...ANCHOR }, makeCtx());
+    const results = result.results as { name: string; distanceM: number }[];
+
+    expect(results.map((r) => r.name.split(",")[0])).toEqual(["Grace Plaza", "Rockefeller Plaza"]);
+    expect(results[0].distanceM).toBeGreaterThan(100);
+    expect(results[0].distanceM).toBeLessThan(200);
+    expect(results[1].distanceM).toBeGreaterThan(600);
+  });
+
+  it("searches walking distance first — not the whole city", async () => {
+    vi.mocked(geocodeNear).mockResolvedValueOnce([hit("Grace Plaza", 40.7545, -73.9845)] as any);
+
+    await executeTool("search_places", { query: "plaza", ...ANCHOR }, makeCtx());
+
+    const radiusDeg = vi.mocked(geocodeNear).mock.calls[0][3];
+    // Half-width of the search box, in metres of latitude.
+    expect((radiusDeg ?? Infinity) * 111_000).toBeLessThanOrEqual(2000);
+  });
+
+  it("widens once when nothing is within walking distance, and says how far it looked", async () => {
+    vi.mocked(geocodeNear)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([hit("Riverside Park", 40.8, -73.97)] as any);
+
+    const result = await executeTool("search_places", { query: "park", ...ANCHOR }, makeCtx());
+
+    const [first, second] = vi.mocked(geocodeNear).mock.calls;
+    expect(second[3]).toBeGreaterThan(first[3] ?? Infinity);
+    expect((result.results as { name: string }[]).map((r) => r.name.split(",")[0])).toEqual(["Riverside Park"]);
+    expect(result.searchRadiusKm).toBeGreaterThan(2);
   });
 });
