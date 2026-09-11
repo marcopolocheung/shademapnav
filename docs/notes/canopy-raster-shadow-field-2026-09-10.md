@@ -140,9 +140,28 @@ with no block cache and no multi-range batching. That is **#290**.
 
 So A8d bounds the wait and not the read. `READY_BUDGET_MS` is 2500 ms; past it `load()`
 resolves, the route calculates from whatever else can speak for the area, and the fetch
-keeps running so the next query over that area finds it cached. **The raster therefore
-misses the first calculation over any new area**, every time, until #290 lands. That is
-a stated cost, not an accident.
+keeps running so the next query over that area finds it cached. As A8d shipped, **the
+raster therefore missed the first calculation over any new area**.
+
+**#290 fixed the read, and with it that caveat.** `cogTileSource.ts` now opens each COG
+with a 64 KiB block cache, which folds the tiny offset reads and the IFD walk into a
+handful of block-aligned ranges. Measured live on 2026-09-10, cold, with Chromium's HTTP
+cache disabled:
+
+| | no block cache | 64 KiB blocks | pixels |
+|---|---:|---:|---|
+| Madrid, route-sized area | 6.2–7.3 s · 43 requests | 1.6–1.9 s · 5 requests | identical |
+| Kent, route-sized area | 6.6–6.9 s · 43 requests | 1.6–1.8 s · 6 requests | identical |
+| Singapore CBD, route-sized area | 7.9–8.5 s · 55 requests | 0.9–1.5 s · 5 requests | identical |
+| Singapore CBD, the provider's largest area (4738²) | 107.1 s · 679 requests | 10.0 s · 41 requests | identical |
+| Madrid, the provider's largest area (3111²) | 21.0 s · 313 requests | 5.9 s · 32 requests | identical |
+| two overlapping Kent reads, first aborted | 806 requests | 92 requests | second matches a fresh read |
+
+It costs ~2–3x the bytes on a route-sized read (~320 KB against 100–185 KB), which
+does not matter when the cost is round trips. The route-sized reads now land inside the
+budget — `ready()` waited 1.2–1.9 s in the bench below — so the raster reaches the first
+route over an area. The budget stays for the largest areas and for slower connections
+than this one.
 
 ## Measured, 2026-09-10
 
@@ -158,6 +177,9 @@ building source** — so these are the raster alone.
 | Madrid A3 | 2501.6 ms | 6688.3 ms | 0.1 ms | 100.00% | 19 m |
 | Kent, WA A3 | 2501.3 ms | 6352.3 ms | 0.0 ms | 100.00% | 35 m |
 | Singapore CBD | 2500.7 ms | 9157.5 ms | 0.1 ms | 100.00% | 19 m |
+| *after #290:* Madrid A3 | 1856.0 ms | inside the budget | 0.0 ms | 100.00% | 19 m |
+| *after #290:* Kent, WA A3 | 1241.1 ms | inside the budget | 0.0 ms | 100.00% | 35 m |
+| *after #290:* Singapore CBD | 1288.0 ms | inside the budget | 0.1 ms | 100.00% | 19 m |
 
 Mean canopy shade over the line, and the confidence reported with it:
 
@@ -220,4 +242,5 @@ and answers 0% of edges (#259).
   Track E still cannot apply the published 0.5 preference weight — **#277**.
 - **Correct for imagery vintage or age** — **#281**, A8e.
 - **Fuse the two canopy sources spatially** — A8e.
-- **Make the first route over a new area see the raster** — **#290**.
+- ~~**Make the first route over a new area see the raster** — **#290**.~~ Fixed by #290
+  for route-sized areas; see *What a route waits for*.

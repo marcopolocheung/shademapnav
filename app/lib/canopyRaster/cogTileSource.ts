@@ -16,7 +16,13 @@
  * ones), and the consumer that needs it is the one being built on top of this.
  */
 
-import { type GeoTIFF, type GeoTIFFImage, fromUrl } from "geotiff";
+import {
+  type BlockedSourceOptions,
+  type GeoTIFF,
+  type GeoTIFFImage,
+  type RemoteSourceOptions,
+  fromUrl,
+} from "geotiff";
 import { CANOPY_COG_BASE_URL, listCanopyLevels } from "./canopyCog";
 import type { MercatorBbox, OverviewCandidate, PixelWindow } from "./tiles";
 
@@ -56,6 +62,42 @@ export interface CanopyTileHandle {
   ): Promise<CanopyWindowPixels>;
 }
 
+/**
+ * How `geotiff.js` fetches bytes: in aligned 64 KiB blocks, through its own cache (#290).
+ *
+ * Left unset, `fromUrl` hands back an unwrapped remote source, and every read the
+ * library makes becomes its own HTTP range request — including the two **4-byte**
+ * reads of `TileOffsets[i]` and `TileByteCounts[i]` it makes before every tile, and
+ * each hop of the IFD chain on open. A route-sized read was 43-55 sequential requests
+ * moving 100-185 KB, and it took 6-8.5 s because each one costs a round trip to
+ * `source.coop`. Blocked, neighbouring reads land in the same block and consecutive
+ * missing blocks are fetched as one range, so the same read is **5-6 requests and
+ * 0.9-1.9 s** for ~2-3x the bytes, with byte-identical pixels
+ * (`docs/notes/canopy-raster-shadow-field-2026-09-10.md`).
+ *
+ * 64 KiB is the library's own default block, and it measured faster than 16 KiB:
+ * fewer, larger requests win when the cost is latency rather than bandwidth.
+ *
+ * `cacheSize` is in blocks, and it is not a tuning knob so much as a floor. Every
+ * `BlockedSource.fetch` clears the blocks evicted during the previous one, so a
+ * single read whose blocks outnumber the cache can lose one it still needs to a read
+ * starting alongside it, and fail. The largest area `createRasterCanopyProvider`
+ * will ask for — a ~5.7 km square at Singapore's 1.19 m pixel — fetched ~3.1 MB,
+ * about 48 blocks, against these 100. The cache holds compressed bytes that
+ * `CanopyTileStore` also holds decoded, so the duplication is real but ~7x smaller
+ * than the store's own budget, and it is what the offsets arrays and IFDs are
+ * re-read from on every later read of the same tile.
+ *
+ * Typed as the intersection because `fromUrl`'s published signature names only
+ * `RemoteSourceOptions`, while its runtime forwards the rest to `BlockedSource` —
+ * `makeFetchSource` spreads them into `maybeWrapInBlockedSource` (geotiff 3.0.5). That
+ * gap in the typings is how an untyped `{}` read as the complete set of options.
+ */
+const COG_FETCH_OPTIONS: RemoteSourceOptions & BlockedSourceOptions = {
+  blockSize: 64 * 1024,
+  cacheSize: 100,
+};
+
 /** Where `CanopyTileStore` gets its tiles. Faked wholesale in the store's tests. */
 export interface CanopyTileSource {
   open(quadkey: string, signal?: AbortSignal): Promise<CanopyTileHandle>;
@@ -66,7 +108,7 @@ export function createCogTileSource(opts: { baseUrl?: string } = {}): CanopyTile
 
   return {
     async open(quadkey, signal) {
-      const tiff = await fromUrl(`${baseUrl}/${quadkey}.tif`, {}, signal);
+      const tiff = await fromUrl(`${baseUrl}/${quadkey}.tif`, COG_FETCH_OPTIONS, signal);
       const { tileBbox, heights, masks } = await listCanopyLevels(tiff);
       return createHandle(tiff, quadkey, tileBbox, heights, masks);
     },
