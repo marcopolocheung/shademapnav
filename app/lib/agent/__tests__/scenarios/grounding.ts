@@ -139,6 +139,7 @@ export const fallbackPinsCapAtEight: Scenario = {
 };
 
 const BRYANT = { name: "Bryant Park", lat: 40.7536, lng: -73.9832 };
+const GRACE = { name: "Grace Plaza", lat: 40.752, lng: -73.985 };
 
 export const duplicateHitsBecomeOnePin: Scenario = {
   id: "duplicate-hits-become-one-pin",
@@ -168,5 +169,138 @@ export const duplicateHitsBecomeOnePin: Scenario = {
     plotsBeforeWrite: true,
     pinLabels: [BRYANT.name, "Grace Plaza"],
     answer: "Bryant Park, then Grace Plaza.",
+  },
+};
+
+// ---------------------------------------------------------------------------
+// C2 — the leaks. Each is a way a place could reach the answer without reaching
+// the map; each ends with every named place pinned.
+// ---------------------------------------------------------------------------
+
+export const viaStopsBecomePins: Scenario = {
+  id: "via-stops-become-pins",
+  intent: "a multi-stop route's intermediate stops are pinned, not just its endpoints",
+  userText: "Walk me from Bryant Park to Madison Square Park via Grace Plaza, in the shadow",
+  tools: {
+    plan_shadowed_route: { ok: true, viaStops: 1 },
+    plot_points: { ok: true, plotted: 3 },
+  },
+  script: [
+    {
+      calls: [
+        {
+          name: "plan_shadowed_route",
+          args: {
+            fromLat: BRYANT.lat,
+            fromLng: BRYANT.lng,
+            fromLabel: BRYANT.name,
+            toLat: MADISON.lat,
+            toLng: MADISON.lng,
+            toLabel: MADISON.name,
+            via: [{ lat: GRACE.lat, lng: GRACE.lng, label: GRACE.name }],
+          },
+        },
+      ],
+    },
+    { text: "draft answer from the research model" },
+    { text: "Bryant Park, then Grace Plaza, then Madison Square Park." },
+  ],
+  grounded: [BRYANT.name, GRACE.name, MADISON.name],
+  maxLlmCalls: 3,
+  maxToolCalls: 2,
+  expect: {
+    toolOrder: ["plan_shadowed_route", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: [BRYANT.name, GRACE.name, MADISON.name],
+    answer: "Bryant Park, then Grace Plaza, then Madison Square Park.",
+  },
+};
+
+export const partialPlotIsCompletedAfterAnswer: Scenario = {
+  id: "partial-plot-is-completed-after-answer",
+  intent: "a place the model found but left off its own plot is pinned once the answer names it",
+  userText: "Two shadowed places to sit this afternoon",
+  tools: {
+    search_places: { results: [BRYANT, GRACE] },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    {
+      calls: [
+        {
+          name: "plot_points",
+          args: { points: [{ lat: BRYANT.lat, lng: BRYANT.lng, label: BRYANT.name }] },
+        },
+      ],
+    },
+    { text: "draft answer from the research model" },
+    { text: "Bryant Park first, then Grace Plaza." },
+  ],
+  grounded: [BRYANT.name, GRACE.name],
+  maxLlmCalls: 4,
+  maxToolCalls: 3,
+  expect: {
+    toolOrder: ["search_places", "plot_points", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: [BRYANT.name, GRACE.name],
+    answer: "Bryant Park first, then Grace Plaza.",
+  },
+};
+
+export const cappedPlaceNamedGetsPinned: Scenario = {
+  id: "capped-place-named-gets-pinned",
+  intent: "a search hit the 8-pin cap dropped is pinned if the answer names it anyway",
+  userText: "Show me every shadowed park nearby",
+  tools: {
+    search_places: { results: MANY },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    { text: "draft answer from the research model" },
+    { text: "Start at Park 1; Park 12 is the quietest." },
+  ],
+  grounded: [MANY[0].name, MANY[11].name],
+  maxLlmCalls: 3,
+  maxToolCalls: 3,
+  expect: {
+    toolOrder: ["search_places", "plot_points", "plot_points"],
+    plotsBeforeWrite: true,
+    // Still eight: the last pin the answer never mentions makes room for Park 12.
+    pinLabels: [...MANY.slice(0, 7).map((p) => p.name), MANY[11].name],
+    answer: "Start at Park 1; Park 12 is the quietest.",
+  },
+};
+
+export const sharedModelAnswerIsReconciled: Scenario = {
+  id: "shared-model-answer-is-reconciled",
+  intent: "with no write call to instruct, code still pins what the research answer names",
+  userText: "Two shadowed places to sit",
+  sharedModel: true,
+  tools: {
+    search_places: { results: [BRYANT, GRACE] },
+    plot_points: { ok: true },
+  },
+  script: [
+    { calls: [{ name: "search_places", args: { query: "parks" } }] },
+    {
+      calls: [
+        {
+          name: "plot_points",
+          args: { points: [{ lat: BRYANT.lat, lng: BRYANT.lng, label: BRYANT.name }] },
+        },
+      ],
+    },
+    { text: "Bryant Park first, then Grace Plaza." },
+  ],
+  grounded: [BRYANT.name, GRACE.name],
+  maxLlmCalls: 3,
+  maxToolCalls: 3,
+  expect: {
+    toolOrder: ["search_places", "plot_points", "plot_points"],
+    plotsBeforeWrite: true,
+    pinLabels: [BRYANT.name, GRACE.name],
+    answer: "Bryant Park first, then Grace Plaza.",
   },
 };

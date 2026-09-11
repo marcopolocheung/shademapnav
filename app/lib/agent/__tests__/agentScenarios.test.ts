@@ -23,6 +23,7 @@ import {
   type Trace,
 } from "./harness";
 import { scenarios } from "./scenarios";
+import { sharedModelSkipsWriteCall } from "./scenarios/budget";
 import { emptySearchInventsNothing, toolErrorStaysHonest } from "./scenarios/grounding";
 import { fallbackPlotWhenModelForgets, happyPathShadowedAfternoon } from "./scenarios/planning";
 
@@ -143,13 +144,13 @@ describe("plot-before-answer guarantee", () => {
     expect(prompt).toContain("2. Grace Plaza (40.75200, -73.98500)");
   });
 
-  it("adds no guarantee line when the model plotted for itself", async () => {
+  it("tells the write call about pins the model plotted for itself", async () => {
     const trace = await run(happyPathShadowedAfternoon);
-    expect(writePrompt(trace)).not.toContain("Map state guarantee");
+    expect(writePrompt(trace)).toContain("1. Bryant Park (40.75360, -73.98320)");
   });
 
   it("skips the write call entirely on the shared-model path", async () => {
-    const trace = await run(scenarios.find((s) => s.sharedModel)!);
+    const trace = await run(sharedModelSkipsWriteCall);
     expect(trace.writeIndex).toBe(-1);
     expect(trace.llmRequests).toHaveLength(2);
   });

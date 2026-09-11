@@ -10,7 +10,8 @@ vi.mock("../agent/llmClient", () => ({
   rolesShareConfig: vi.fn(),
 }));
 
-vi.mock("../agent/tools", () => ({
+vi.mock("../agent/tools", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../agent/tools")>()),
   executeTool: vi.fn(),
   toolDeclarations: [],
 }));
