@@ -25,6 +25,7 @@ import {
   fetchCanopyAround,
 } from "../overpass";
 import type { CanopyTileStore } from "../canopyRaster/canopyTileStore";
+import { sharedCanopyTileStore } from "../canopyRaster/sharedStore";
 import type {
   BBox,
   CanopyProvider,
@@ -448,9 +449,11 @@ interface RasterEntry {
  * why a route-sized patch of raster is marched rather than tessellated, and
  * `ShadowField` for where the building footprints are subtracted from it.
  *
- * The store is built on first use behind a dynamic import, so `geotiff.js` lands in
- * its own chunk rather than in the bundle every visitor downloads. A caller that
- * supplies its own store — every test does — never triggers it.
+ * The store is `sharedCanopyTileStore()` — the same instance A8f's map layer reads
+ * through, so the corridor and the viewport dedupe against each other — built on
+ * first use behind a dynamic import, so `geotiff.js` lands in its own chunk rather
+ * than in the bundle every visitor downloads. A caller that supplies its own store —
+ * every test does — never triggers it.
  */
 export function createRasterCanopyProvider(opts?: {
   store?: CanopyTileStore;
@@ -465,10 +468,7 @@ export function createRasterCanopyProvider(opts?: {
   let store = opts?.store ?? null;
 
   async function storeFor(): Promise<CanopyTileStore> {
-    if (!store) {
-      const { createCanopyTileStore } = await import("../canopyRaster/canopyTileStore");
-      store = createCanopyTileStore();
-    }
+    if (!store) store = await sharedCanopyTileStore();
     return store;
   }
 
