@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type JsonBody = Record<string, unknown>;
 
-function makePayload(model = "gemini-3.6-flash") {
+function makePayload(model = "gemini-3.1-flash-lite") {
   return {
     model,
     messages: [{ role: "user", content: "plan shadow" }],

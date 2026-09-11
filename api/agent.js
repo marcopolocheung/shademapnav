@@ -33,7 +33,7 @@ function collectKeys() {
 // Round-robin cursor (persists within a warm serverless instance).
 let rr = 0;
 
-const DEFAULT_ALLOWED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.6-flash"];
+const DEFAULT_ALLOWED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 const MAX_PAYLOAD_BYTES = Number(process.env.AGENT_MAX_PAYLOAD_BYTES || 250_000);
 const RATE_LIMIT_PER_MIN = Number(process.env.AGENT_RATE_LIMIT_PER_MIN || 20);
 const recentRequestsByIp = new Map();

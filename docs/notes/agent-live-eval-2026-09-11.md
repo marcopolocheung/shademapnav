@@ -19,6 +19,22 @@ route.
 > **Since superseded:** later on 2026-09-11 the app moved to Google Gemini's free tier, and the
 > eval now runs on the app's own Gemini pool. The Fireworks runs below are the C2 comparison.
 
+## On Gemini (after the switch)
+
+Same instrument, the C2 loop plus the Gemini fixes, the app's three-key pool.
+
+| research / write model | grounded | requests | median latency per request |
+|---|---|---|---|
+| 3.5-flash-lite / 3.6-flash, first run | 17 / 24 | 183 | 1.7 s research · **28.8 s write** |
+| same, targeted rerun of the 7 failures + 1 new, after fixes | 8 / 8 | 54 | — |
+| **3.5-flash-lite / 3.1-flash-lite** (the default) | **25 / 25** | 156 | 2.0 s research · 5.0 s write |
+| 3.5-flash-lite for both roles (no write call) | 25 / 25 | 169 | 1.0 s |
+
+The first run's 7 failures were not inventions: 3 turns died on Gemini 503 "high demand" (34
+of 183 requests — model-wide, so key rotation can't help; the client now backs off), and 4
+were Gemini plotting every hit itself with no labels and no cap (the loop now caps and names
+them) or a label check too literal for "Bryant Park, Midtown".
+
 ## Why Fireworks, not Cerebras
 
 Every Cerebras key in the pool returns 402 `payment_required` on `gpt-oss-120b` and

@@ -61,11 +61,12 @@ export interface LlmResponse {
 
 export type ModelRole = "research" | "response";
 
-// Research makes many small tool-calling turns, so it gets the fast lite model;
-// the one write call gets the stronger one.
+// Two lite models, one per role: the live eval grounded 25/25 on this pair with
+// a 5 s median write call — gemini-3.6-flash took 29 s — and a separate write
+// model keeps the tool-free write prompt that carries the pin list.
 const DEFAULT_MODEL: Record<ModelRole, string> = {
   research: "gemini-3.5-flash-lite",
-  response: "gemini-3.6-flash",
+  response: "gemini-3.1-flash-lite",
 };
 
 function modelForRole(role: ModelRole): string {

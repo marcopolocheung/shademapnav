@@ -36,7 +36,7 @@ follow that pattern rather than becoming another tool.
 ## Per-role models, one key pool
 
 Research runs with `VITE_GEMINI_RESEARCH_MODEL`, the final answer with
-`VITE_GEMINI_RESPONSE_MODEL` (default `gemini-3.5-flash-lite` and `gemini-3.6-flash`). If both resolve
+`VITE_GEMINI_RESPONSE_MODEL` (default `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite`). If both resolve
 to the same model, `rolesShareConfig()` skips the separate write call — the research answer
 *is* the answer. Research makes many small tool-calling turns, which is why it gets the
 lighter model; the one write call gets the stronger one.

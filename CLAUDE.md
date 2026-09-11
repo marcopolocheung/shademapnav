@@ -71,7 +71,8 @@ every key 402'd, #301). Key: https://aistudio.google.com/apikey. dev `VITE_GEMIN
 - **Per-role model (not key):** the loop does its tool-use research with the "research" model,
   then writes the final answer with the "response" model. `VITE_GEMINI_RESEARCH_MODEL`
   (default `gemini-3.5-flash-lite`) / `VITE_GEMINI_RESPONSE_MODEL` (default
-  `gemini-3.6-flash`); base override `VITE_GEMINI_MODEL`. If both resolve to the same model,
+  `gemini-3.1-flash-lite` — it grounded 25/25 live; `gemini-3.6-flash` took 29 s a call); base
+  override `VITE_GEMINI_MODEL`. If both resolve to the same model,
   `rolesShareConfig()` makes the loop skip the separate write call (the research answer IS the
   answer). Prod accepts only the models in `api/agent.js`'s allowlist (+ `GEMINI_ALLOWED_MODELS`).
 - **Two Gemini quirks live in `llmClient.ts`:** the endpoint rejects `seed`, and Gemini 3
