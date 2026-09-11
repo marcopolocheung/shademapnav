@@ -12,7 +12,8 @@
  */
 import type maplibregl from "maplibre-gl";
 import type { IShadowLayer } from "../shadow/IShadowLayer";
-import { geocodeForward, geocodeNear } from "../nominatim";
+import { geocodeForward, geocodeNear, type NominatimResult } from "../nominatim";
+import { haversineMeters } from "../routing";
 import { computeSolarIntensity } from "../shadowSampling";
 import { queryOffscreenBuildingShadow } from "../shadow/offscreenShadow";
 import { fromMapLocal, toMapLocal } from "../timezone";
@@ -79,6 +80,12 @@ function waitForIdle(map: maplibregl.Map, timeoutMs = 4000): Promise<void> {
 }
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+// search_places box half-widths, in degrees: walking distance (~1.7 km) first,
+// then one wider look for sparse areas. Nominatim ranks inside the box by
+// importance, not distance, so a city-sized box answers "cafés near Bryant
+// Park" with Queens — and the model burns its step budget re-searching.
+const SEARCH_RADII_DEG = [0.015, 0.06];
 
 /** Ask the browser for the user's GPS position. Resolves [lng, lat] or null. */
 function requestBrowserLocation(): Promise<[number, number] | null> {
@@ -341,14 +348,29 @@ export async function executeTool(
         };
       }
 
-      const results = await geocodeNear(q, center[1], center[0]);
+      let results: NominatimResult[] = [];
+      let radiusDeg = SEARCH_RADII_DEG[0];
+      for (radiusDeg of SEARCH_RADII_DEG) {
+        results = await geocodeNear(q, center[1], center[0], radiusDeg);
+        if (results.length > 0) break;
+      }
+      const anchor = center;
       return {
         searchedNear: { lat: +center[1].toFixed(5), lng: +center[0].toFixed(5) },
-        results: results.slice(0, 4).map((r) => ({
-          name: r.display_name.split(",").slice(0, 2).join(", ").trim(),
-          lat: +parseFloat(r.lat).toFixed(6),
-          lng: +parseFloat(r.lon).toFixed(6),
-        })),
+        searchRadiusKm: +((radiusDeg * 111_320) / 1000).toFixed(1),
+        results: results
+          .map((r) => {
+            const lat = +parseFloat(r.lat).toFixed(6);
+            const lng = +parseFloat(r.lon).toFixed(6);
+            return {
+              name: r.display_name.split(",").slice(0, 2).join(", ").trim(),
+              lat,
+              lng,
+              distanceM: Math.round(haversineMeters(anchor, [lng, lat])),
+            };
+          })
+          .sort((a, b) => a.distanceM - b.distanceM)
+          .slice(0, 4),
         note:
           results.length === 0
             ? "No matches in that area. Try a broader query or a different anchor."
