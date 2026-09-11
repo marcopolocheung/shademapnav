@@ -536,11 +536,29 @@ export function createRasterCanopyProvider(opts?: {
         .join(",");
 
       // Bounded wait, unbounded read. See `READY_BUDGET_MS`.
-      await Promise.race([inFlight.get(key) ?? startRead(key, bbox), sleep(readyBudgetMs)]);
+      await raceDeadline(inFlight.get(key) ?? startRead(key, bbox), readyBudgetMs);
     },
   };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * `promise`, or `ms` elapsing — whichever is first, with the timer cleared either way.
+ *
+ * A bare `Promise.race` against a `setTimeout` would leave a live timer behind on
+ * every read that beats the deadline, and `load()` runs once per route calculation.
+ */
+function raceDeadline(promise: Promise<void>, ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    promise.then(
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      () => {
+        clearTimeout(timer);
+        resolve();
+      }
+    );
+  });
 }

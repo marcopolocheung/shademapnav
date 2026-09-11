@@ -109,7 +109,25 @@ individual crowns.
   a request to consult another source, not a routing input.
 
 It is multiplied by `validFraction`, and blending it with a building source still costs
-`CANOPY_MIX_FACTOR`. Like every other number in that block it is a **prior**, not a
+`CANOPY_MIX_FACTOR`.
+
+**What decides that an answer is `"mixed"` is the fetched patch, not the query.** The
+field counts as canopy evidence when the *masked* patch has anything standing in it —
+masked, so a corridor whose trees all stand on roofs reports the building source and is
+not docked. But the patch is the whole route corridor plus `QUERY_PAD_M`, and unlike
+A7's Overpass fetch, which was often empty, a city-sized patch of raster almost never
+is. So **in practice every route through a treed city now reports `"mixed"`** and pays
+the 0.9 dock. That is A7's rule applied to a source that is never empty, and it has one
+routing consequence worth naming: the dock carries a tile-backed answer below
+`LOW_CONFIDENCE` when the sun is between roughly **4.6° and 5.6°** (5.9°–7.1° for
+Overpass), so routes calculated in that narrow band near sunrise and sunset, which
+answered from geometry on `main`, will now take the canvas fallback.
+
+`coverage()` cannot mask, because it promises to build no geometry, so it reads the
+unmasked patch and is an **upper bound** on what sampling reports. The one case they
+differ is the rooftop-only corridor, where `coverage()` says `"mixed"` and sampling says
+`"tiles"` — the safe direction for a check whose only job is deciding whether a
+fallback may be skipped. Like every other number in that block it is a **prior**, not a
 measurement, and no corpus in this repo can calibrate it — A3's agreement harness
 compares the field against a pixel sampler that cannot see a tree at all.
 

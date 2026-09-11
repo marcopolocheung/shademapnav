@@ -727,6 +727,19 @@ export function createGeometryShadowField(
    * backwards. The raster's own share of doubt is `validFraction` — a patch that is
    * half nodata answered from half the evidence, and reading an unpopulated pixel as
    * bare ground is the failure mode `CanopyPatch.valid` exists to prevent.
+   *
+   * **The raster handed in here must be the masked one wherever a masked one exists.**
+   * Canopy standing on a roof is subtracted before the march, so scoring the unmasked
+   * field would label an answer `"mixed"` and dock it `CANOPY_MIX_FACTOR` for evidence
+   * that was then removed — and `describeShadowProvenance` would tell the user "and
+   * tree canopy" over a corridor whose trees all sit on rooftops.
+   *
+   * The granularity is the **fetched patch**, not the query bbox: `maxHeightM` is a
+   * property of everything the provider cached for the area it was asked to load,
+   * which is a route corridor plus `QUERY_PAD_M`. That is the same coarseness A7's
+   * cached fetch areas already have, and it is deliberate — narrowing it would mean
+   * scanning a sub-window per query, which is exactly the work `coverage()` promises
+   * not to do.
    */
   function canopyConfidence(
     canopy: PrismSet | null,
@@ -805,15 +818,15 @@ export function createGeometryShadowField(
       );
     const index = resolved ? build(resolved.set.prisms) : null;
     const canopyIndex = canopy ? build(canopy.prisms) : null;
-    const rasterShade = maskedRaster(raster, resolved)?.shadeFor(sunAzimuth, sunAltitude, when)
-      ?? null;
+    const masked = maskedRaster(raster, resolved);
+    const rasterShade = masked?.shadeFor(sunAzimuth, sunAltitude, when) ?? null;
 
     let shadowed = 0;
     for (const [sampleLng, sampleLat] of offsets) {
       shadowed += pointShadow(index, canopyIndex, rasterShade, sampleLng, sampleLat);
     }
 
-    return sampleFor(resolved, canopy, raster, shadowed / POINT_OFFSETS_M.length, sunAltitude);
+    return sampleFor(resolved, canopy, masked, shadowed / POINT_OFFSETS_M.length, sunAltitude);
   }
 
   function shadowAt(lng: number, lat: number, when: Date): ShadowSample {
@@ -888,9 +901,12 @@ export function createGeometryShadowField(
     const plan = planBatch(edges);
     const casters = resolved ? preparedCastersFor(resolved.set.prisms) : null;
     const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
+    // The masked field is what is marched *and* what is scored: the label has to
+    // describe the evidence the number was actually computed from.
+    const masked = maskedRaster(raster, resolved);
     return sampleEdgesWithSun(
-      edges, resolved, canopy, raster, plan,
-      sunCellsAt(plan, edges.length, when, casters, canopyCasters, maskedRaster(raster, resolved))
+      edges, resolved, canopy, masked, plan,
+      sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
     );
   }
 
@@ -912,10 +928,16 @@ export function createGeometryShadowField(
         return { source: night.source, confidence: night.confidence };
       }
 
-      // `resolveRaster` rather than `maskedRaster`: masking rasterises footprints,
-      // and building no geometry is the one guarantee `coverage()` makes. It changes
-      // nothing here — whether a canopy source covered the area is not a question the
-      // mask can answer differently.
+      // `resolveRaster` rather than `maskedRaster`: masking rasterises footprints, and
+      // building no geometry is the one guarantee `coverage()` makes.
+      //
+      // So this is an **upper bound** on what `sampleEdges` will report, and the one
+      // case the two differ is a corridor whose canopy stands entirely on rooftops:
+      // here it reads "mixed", and sampling — which has the mask in hand — will drop
+      // back to the building source. Erring high is the right direction for the
+      // question this answers, which is whether the caller may skip a fallback path:
+      // a `"mixed"` that resolves to `"tiles"` costs nothing, and both are well above
+      // `LOW_CONFIDENCE` whenever the building source is.
       return scoreFor(resolve(bbox), resolveCanopy(bbox, when), resolveRaster(bbox), sun.altitude);
     },
 
@@ -942,7 +964,7 @@ export function createGeometryShadowField(
         const canopy = bbox ? resolveCanopy(bbox, when) : null;
         const canopyCasters = canopy ? preparedCastersFor(canopy.prisms) : null;
         return sampleEdgesWithSun(
-          edges, resolved, canopy, raster, plan,
+          edges, resolved, canopy, masked, plan,
           sunCellsAt(plan, edges.length, when, casters, canopyCasters, masked)
         );
       });

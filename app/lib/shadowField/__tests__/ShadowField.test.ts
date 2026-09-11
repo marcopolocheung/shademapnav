@@ -810,6 +810,8 @@ describe("raster canopy", () => {
     validFraction?: number;
     shades?: (lng: number, lat: number) => boolean;
     maskedWith?: Array<unknown>;
+    /** What `masked()` returns. Defaults to the field itself — nothing subtracted. */
+    afterMask?: () => CanopyHeightField;
   }): CanopyHeightField {
     const opacity = opts?.opacity ?? RASTER_OPACITY;
     const shades = opts?.shades ?? (() => true);
@@ -818,9 +820,17 @@ describe("raster canopy", () => {
       maxHeightM: opts?.maxHeightM ?? 12,
       masked(footprints) {
         opts?.maskedWith?.push(footprints);
-        return self;
+        return opts?.afterMask ? opts.afterMask() : self;
       },
-      shadeFor: () => ({ opacityAt: (lng, lat) => (shades(lng, lat) ? opacity : 0) }),
+      // The sun and the moment are folded into the answer on purpose. A stub that
+      // ignored them would let the sweep-parity test below pass while `sweep` handed
+      // the raster the wrong hour — which is the one thing that test exists to catch.
+      shadeFor: (azimuth, altitude, when) => ({
+        opacityAt: (lng, lat) =>
+          shades(lng, lat)
+            ? opacity * (0.5 + 0.5 * Math.abs(Math.sin(azimuth + altitude + when.getTime() / 1e9)))
+            : 0,
+      }),
     };
     return self;
   }
@@ -830,6 +840,15 @@ describe("raster canopy", () => {
     fieldFor: (bbox) => (bboxContains(WIDE_COVERAGE, bbox) ? field : null),
   });
 
+  /**
+   * What `fakeField`'s stub reports for the sun over the grove — the blend's expected
+   * value. Over the grove, not over the scene origin: `ShadowField` fixes one sun per
+   * cell at the cell's own centroid, which for `underGrove` is `GROVE` itself.
+   */
+  const groveSun = SunCalc.getPosition(NOON, GROVE[1], GROVE[0]);
+  const expectedShade = (field = fakeField()) =>
+    field.shadeFor(groveSun.azimuth, groveSun.altitude, NOON).opacityAt(GROVE[0], GROVE[1]);
+
   it("reports canopy shade where buildings report none", () => {
     const without = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
     const with_ = createGeometryShadowField([tiles()], [], [raster()]).sampleEdges(
@@ -837,8 +856,10 @@ describe("raster canopy", () => {
     )[0];
 
     expect(without.left).toBe(0);
-    expect(with_.left).toBeCloseTo(RASTER_OPACITY, 10);
-    expect(with_.right).toBeCloseTo(RASTER_OPACITY, 10);
+    expect(with_.left).toBeCloseTo(expectedShade(), 10);
+    expect(with_.right).toBeCloseTo(expectedShade(), 10);
+    // Below 1: a crown is not a wall, whatever the raster says about its height.
+    expect(with_.left).toBeLessThan(1);
   });
 
   it("lets an opaque building win outright where the two overlap", () => {
@@ -874,7 +895,8 @@ describe("raster canopy", () => {
       [tiles()], [staticCanopyProvider(thinCanopy, WIDE_COVERAGE)], [raster()]
     ).sampleEdges([underGrove], NOON);
 
-    expect(edge.left).toBeCloseTo(RASTER_OPACITY, 10);
+    expect(expectedShade()).toBeGreaterThan(0.6);
+    expect(edge.left).toBeCloseTo(expectedShade(), 10);
   });
 
   it("hands the building footprints to the mask, once per prism set", () => {
@@ -889,6 +911,24 @@ describe("raster canopy", () => {
     // building set that arrives — the same array `PREPARED` is keyed on.
     expect(maskedWith).toHaveLength(1);
     expect(maskedWith[0]).toEqual(oneBuilding().prisms);
+  });
+
+  it("does not label an answer canopy when every tree it had stood on a roof", () => {
+    // Footprint subtraction can leave nothing standing. The label and the dock must
+    // describe the evidence the number was computed from — the masked field — or the
+    // route card says "and tree canopy" over a street the raster contributed nothing to.
+    const rooftopsOnly = raster(
+      fakeField({ afterMask: () => fakeField({ maxHeightM: 0, shades: () => false }) })
+    );
+    const buildingsOnly = createGeometryShadowField([tiles()]).sampleEdges([underGrove], NOON)[0];
+    const field = createGeometryShadowField([tiles()], [], [rooftopsOnly]);
+
+    expect(field.sampleEdges([underGrove], NOON)[0]).toEqual(buildingsOnly);
+    expect(field.shadowAt(GROVE[0], GROVE[1], NOON).source).toBe("tiles");
+
+    // `coverage()` cannot mask — it builds no geometry — so it stays the upper bound.
+    const area = bboxAroundEdges([underGrove], QUERY_PAD_M) as BBox;
+    expect(field.coverage(area, NOON).source).toBe("mixed");
   });
 
   it("does not rasterise footprints to answer coverage()", () => {
@@ -955,7 +995,7 @@ describe("raster canopy", () => {
     const field = createGeometryShadowField([tiles()], [], [raster()]);
     const sample = field.shadowAt(GROVE[0], GROVE[1], NOON);
 
-    expect(sample.shadow).toBeCloseTo(RASTER_OPACITY, 10);
+    expect(sample.shadow).toBeGreaterThan(0.5);
     expect(sample.source).toBe("mixed");
   });
 

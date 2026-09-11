@@ -164,14 +164,10 @@ describe("canopy height field — what the opacity is", () => {
     const summer = field.shadeFor(0, Math.PI / 4, JULY).opacityAt(...offset(12));
     const winter = field.shadeFor(0, Math.PI / 4, JANUARY).opacityAt(...offset(12));
 
-    // `crownOpacity`'s published transmittance pair, applied to the raster's extent.
+    // `crownOpacity`'s published transmittance pair, applied to the raster's extent —
+    // not a second opacity model. If this module ever grows its own number, this fails.
     expect(summer).toBeCloseTo(0.9, 10);
     expect(winter).toBeCloseTo(0.3, 10);
-  });
-
-  it("never reports a shadow as opaque as a building", () => {
-    const field = createCanopyHeightField(oneTallPixel());
-    expect(field.shadeFor(0, Math.PI / 4, JULY).opacityAt(...offset(12))).toBeLessThan(1);
   });
 });
 
