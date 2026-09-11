@@ -49,6 +49,9 @@ export function useAgent(args: UseAgentArgs) {
   userLocationRef.current = args.userLocation;
 
   const historyRef = useRef<LlmContent[]>([]);
+  // Pins outlive a turn, so the next turn's write call has to know what is
+  // already on the map.
+  const pinsRef = useRef<AssistantPin[]>([]);
 
   // AgentContext is stable across renders; it reads through refs/callbacks.
   const ctxRef = useRef<AgentContext>({
@@ -70,7 +73,10 @@ export function useAgent(args: UseAgentArgs) {
   ctxRef.current.setWaypointB = args.setWaypointB;
   ctxRef.current.setAdditionalWaypoints = args.setAdditionalWaypoints;
   ctxRef.current.calculateRoute = args.calculateRoute;
-  ctxRef.current.setPins = args.setPins;
+  ctxRef.current.setPins = (pins) => {
+    pinsRef.current = pins;
+    args.setPins(pins);
+  };
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -86,6 +92,7 @@ export function useAgent(args: UseAgentArgs) {
       const { runAgent } = await import("../lib/agent/agentLoop");
       const result = await runAgent({
         history: historyRef.current,
+        pins: pinsRef.current,
         userText: trimmed,
         ctx: ctxRef.current,
         onToolEvent: (e) => {

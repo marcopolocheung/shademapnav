@@ -233,6 +233,19 @@ const num = (v: unknown): number | null =>
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v.trim() ? v : undefined;
 
+/** The pins a `plot_points` call actually places — entries without a numeric lat/lng are dropped. */
+export function parsePins(points: unknown): AssistantPin[] {
+  const pins: AssistantPin[] = [];
+  for (const item of Array.isArray(points) ? points : []) {
+    const o = (item ?? {}) as Record<string, unknown>;
+    const lat = num(o.lat);
+    const lng = num(o.lng);
+    if (lat == null || lng == null) continue;
+    pins.push({ lng, lat, label: str(o.label) });
+  }
+  return pins;
+}
+
 export async function executeTool(
   name: string,
   args: Args,
@@ -407,15 +420,7 @@ export async function executeTool(
     }
 
     case "plot_points": {
-      const raw = Array.isArray(args.points) ? args.points : [];
-      const pins: AssistantPin[] = [];
-      for (const item of raw) {
-        const o = (item ?? {}) as Record<string, unknown>;
-        const lat = num(o.lat);
-        const lng = num(o.lng);
-        if (lat == null || lng == null) continue;
-        pins.push({ lng, lat, label: str(o.label) });
-      }
+      const pins = parsePins(args.points);
       ctx.setPins(pins);
 
       if (map && pins.length === 1) {

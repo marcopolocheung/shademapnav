@@ -23,7 +23,12 @@ import {
   type Trace,
 } from "./harness";
 import { scenarios } from "./scenarios";
-import { emptySearchInventsNothing, toolErrorStaysHonest } from "./scenarios/grounding";
+import { sharedModelSkipsWriteCall } from "./scenarios/budget";
+import {
+  emptySearchInventsNothing,
+  followUpTurnKnowsEarlierPins,
+  toolErrorStaysHonest,
+} from "./scenarios/grounding";
 import { fallbackPlotWhenModelForgets, happyPathShadowedAfternoon } from "./scenarios/planning";
 
 vi.mock("../llmClient", () => ({
@@ -130,6 +135,8 @@ describe("agent scenarios", () => {
       // call the model actually made in the turn before it. An orphaned
       // functionResponse is rejected by the OpenAI wire format llmClient emits.
       expect(orphanedToolResponses(trace)).toEqual([]);
+      // ...and the turn the next request starts from is not an unanswered call.
+      expect(trace.history.at(-1)?.parts.some((p) => p.functionCall)).toBe(false);
     });
   });
 });
@@ -143,13 +150,20 @@ describe("plot-before-answer guarantee", () => {
     expect(prompt).toContain("2. Grace Plaza (40.75200, -73.98500)");
   });
 
-  it("adds no guarantee line when the model plotted for itself", async () => {
+  it("tells the write call about pins the model plotted for itself", async () => {
     const trace = await run(happyPathShadowedAfternoon);
-    expect(writePrompt(trace)).not.toContain("Map state guarantee");
+    expect(writePrompt(trace)).toContain("1. Bryant Park (40.75360, -73.98320)");
+  });
+
+  it("tells a follow-up turn's write call about the pins an earlier turn left", async () => {
+    const trace = await run(followUpTurnKnowsEarlierPins);
+    const prompt = writePrompt(trace);
+    expect(prompt).toContain("1. Bryant Park (40.75360, -73.98320)");
+    expect(prompt).not.toContain("Nothing is pinned");
   });
 
   it("skips the write call entirely on the shared-model path", async () => {
-    const trace = await run(scenarios.find((s) => s.sharedModel)!);
+    const trace = await run(sharedModelSkipsWriteCall);
     expect(trace.writeIndex).toBe(-1);
     expect(trace.llmRequests).toHaveLength(2);
   });

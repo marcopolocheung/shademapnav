@@ -14,7 +14,13 @@ import {
   type LlmContent,
   type LlmPart,
 } from "./llmClient";
-import { executeTool, toolDeclarations, type AgentContext, type AssistantPin } from "./tools";
+import {
+  executeTool,
+  parsePins,
+  toolDeclarations,
+  type AgentContext,
+  type AssistantPin,
+} from "./tools";
 
 const SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. You ONLY plan a day or outing around shadow and sun comfort: shadowed walks, where to sit or eat out of the sun at a given hour, and shadow-aware routes. If asked anything else, reply in one sentence that you only help plan around shadow, and stop. Do not answer off-topic questions.
 
@@ -28,7 +34,7 @@ Procedure (follow in order):
 5. Call plot_points with the FULL ordered list of stops (numbered pins, map auto-framed).
 6. Optionally plan_shadowed_route through the ordered stops; pass intermediate stops in via.
 
-Rules: stay in the user's area; sequence stops by time of day (shadow moves with the sun); keep answers short and concrete.`;
+Rules: stay in the user's area; sequence stops by time of day (shadow moves with the sun); keep answers short and concrete; in your final answer, name only places you plotted.`;
 
 // The happy path needs 6 tool-emitting turns (get_current_context, locate_user,
 // set_time, search_places, check_shadow×N, plot_points). A lower cap strands the
@@ -36,12 +42,15 @@ Rules: stay in the user's area; sequence stops by time of day (shadow moves with
 // for an extra check_shadow per candidate.
 const MAX_STEPS = 8;
 
+/** The most pins one answer puts on the map. */
+const MAX_PINS = 8;
+
 // System prompt for the final write call. The write call has NO tools, so it
 // must NOT reuse the research procedure (which orders the model to "call X"):
 // a reasoning model handed those instructions with no tools available narrates
 // the calls it can't make (raw `{"name":...}` JSON) into the answer. This prompt
 // keeps the topic guardrail but tells it to synthesize only, never tool-call.
-const WRITE_SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shadow-aware itinerary with specific local times and place names. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shadow advice you can from what is available. Stay on shadow/sun comfort only.`;
+const WRITE_SYSTEM_PROMPT = `You are the Umbra Assistant in a sun/shadow mapping app. Using ONLY the information already gathered earlier in this conversation, write the final answer: a short, concrete shadow-aware itinerary with specific local times. Name only the places listed below as pinned on the map — never a place that isn't pinned, even if it came up earlier or you know it — and don't explain this rule or remark on what is or isn't pinned. Do NOT call, mention, narrate, or emit any tools, function calls, or JSON. If little was gathered, give the best brief shadow advice you can from what is available. Stay on shadow/sun comfort only.`;
 
 export interface ToolEvent {
   name: string;
@@ -50,6 +59,8 @@ export interface ToolEvent {
 
 export interface RunAgentOptions {
   history: LlmContent[];
+  /** Pins already on the map from earlier turns. */
+  pins?: AssistantPin[];
   userText: string;
   ctx: AgentContext;
   /** Called when the agent decides to invoke a tool (for UI activity display). */
@@ -105,18 +116,44 @@ function collectPointCandidates(
 
   if (toolName === "plan_shadowed_route") {
     add(args.fromLat, args.fromLng, args.fromLabel);
+    for (const stop of parsePins(args.via)) add(stop.lat, stop.lng, stop.label);
     add(args.toLat, args.toLng, args.toLabel);
     return;
   }
 
+  // Every hit is kept, not just the first eight: one past the pin cap is still
+  // a place the answer can name, and reconcilePins needs its coordinates.
   if (toolName === "geocode_place" || toolName === "search_places") {
     const results = Array.isArray(result.results) ? result.results : [];
     for (const item of results) {
       const o = (item ?? {}) as Record<string, unknown>;
       add(o.lat, o.lng, o.name);
-      if (candidates.length >= 8) break;
     }
   }
+}
+
+/** "Bryant Park, Midtown" → "Bryant Park": tools label places with two segments, answers use one. */
+function primaryName(label: string | undefined): string {
+  return label?.split(",")[0].trim() ?? "";
+}
+
+/** Whether the answer names this place as a whole name, so "Park 1" is not found in "Park 12". */
+function namesPlace(answer: string, label: string | undefined): boolean {
+  const name = primaryName(label).toLowerCase();
+  // A name needs letters: "350, Fifth Avenue" must not match "a 350 m walk".
+  if (!/\p{L}{3}/u.test(name)) return false;
+  const text = answer.toLowerCase();
+  // A manual boundary scan, not a lookbehind — Safari before 16.4 throws on those.
+  const isWordChar = (ch: string | undefined) => !!ch && /[\p{L}\p{N}]/u.test(ch);
+  for (let i = text.indexOf(name); i !== -1; i = text.indexOf(name, i + 1)) {
+    if (!isWordChar(text[i - 1]) && !isWordChar(text[i + name.length])) return true;
+  }
+  return false;
+}
+
+/** Within ~30 m: one place, however differently a tool and the model rounded or labelled it. */
+function samePlace(a: AssistantPin, b: AssistantPin): boolean {
+  return Math.abs(a.lat - b.lat) < 0.0003 && Math.abs(a.lng - b.lng) < 0.0003;
 }
 
 function plottedPointSummary(pins: AssistantPin[]): string {
@@ -154,21 +191,52 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // wasted tokens — the research model's own final answer is the answer.
   const separateWrite = !rolesShareConfig();
   const pointCandidates: AssistantPin[] = [];
-  let plottedPoints = false;
-  let fallbackPlotLine = "";
+  /** What the map shows: earlier turns' pins until this turn plots. */
+  let mapPins: AssistantPin[] = opts.pins ?? [];
+  let plottedThisTurn = false;
 
-  const plotFallbackPoints = async (): Promise<string> => {
-    if (plottedPoints || pointCandidates.length === 0) return "";
-    const pins = pointCandidates.slice(0, 8);
+  const plot = async (pins: AssistantPin[]): Promise<void> => {
     onToolEvent?.({ name: "plot_points", args: { points: pins } });
     try {
       const result = await executeTool("plot_points", { points: pins }, ctx);
-      if (result.error) return "";
-      plottedPoints = true;
-      return `\n\nMap state guarantee: the app already plotted these itinerary pins before answering: ${plottedPointSummary(pins)}.`;
+      if (!result.error) {
+        mapPins = pins;
+        plottedThisTurn = true;
+      }
     } catch {
-      return "";
+      /* the answer's pin line reports whatever did land */
     }
+  };
+
+  const plotFallbackPoints = async (): Promise<void> => {
+    if (plottedThisTurn || pointCandidates.length === 0) return;
+    await plot(pointCandidates.slice(0, MAX_PINS));
+  };
+
+  // The write prompt's rule, enforced in code: a place a tool returned that the
+  // answer names but the map doesn't show is pinned now. A place no tool
+  // returned has no coordinates, so against pure invention the prompt is all
+  // there is.
+  const reconcilePins = async (answer: string): Promise<void> => {
+    const sameName = (a: AssistantPin, b: AssistantPin) =>
+      !!a.label && primaryName(a.label).toLowerCase() === primaryName(b.label).toLowerCase();
+    const missing: AssistantPin[] = [];
+    for (const c of pointCandidates) {
+      if (!namesPlace(answer, c.label)) continue;
+      const onMap = mapPins.some((p) => samePlace(c, p) || sameName(c, p));
+      if (!onMap && !missing.some((m) => sameName(c, m))) missing.push(c);
+    }
+    if (missing.length === 0) return;
+    // A pin is mentioned if its label is, or if a named place sits under it.
+    const mentioned = (p: AssistantPin) =>
+      namesPlace(answer, p.label) ||
+      pointCandidates.some((c) => samePlace(c, p) && namesPlace(answer, c.label));
+    // Make room under the cap by dropping, last first, pins the answer never mentions.
+    const keep = [...mapPins];
+    for (let i = keep.length - 1; i >= 0 && keep.length + missing.length > MAX_PINS; i--) {
+      if (!mentioned(keep[i])) keep.splice(i, 1);
+    }
+    await plot([...keep, ...missing].slice(0, MAX_PINS));
   };
 
   // --- Research phase: tool-use loop on the "research" model. ---
@@ -193,12 +261,17 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     const calls = candidate.parts.filter((p) => p.functionCall);
     if (calls.length === 0) {
       // Done researching.
-      fallbackPlotLine ||= await plotFallbackPoints();
-      if (!separateWrite) {
-        // Same config for both roles → research model's answer IS the answer.
-        // Returning it here saves a full-context write call (TPD savings).
+      await plotFallbackPoints();
+      // Same config for both roles → research model's answer IS the answer, and
+      // returning it saves a full-context write call (TPD savings). So does a
+      // turn that called no tool at all — a refusal, or a question back to the
+      // user: there is nothing gathered for the write call to ground, and
+      // rewriting it turned "which area?" into generic advice in the live eval.
+      if (!separateWrite || step === 0) {
         contents.push({ role: candidate.role ?? "model", parts: candidate.parts });
-        return { text: extractText(candidate) || "(no reply)", history: contents };
+        const text = extractText(candidate) || "(no reply)";
+        await reconcilePins(text);
+        return { text, history: contents };
       }
       // Roles differ → discard this draft; the response model writes below.
       break;
@@ -216,20 +289,29 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
       } catch (err) {
         result = { error: err instanceof Error ? err.message : "Tool failed." };
       }
-      if (fc.name === "plot_points" && !result.error) plottedPoints = true;
+      if (fc.name === "plot_points" && !result.error) {
+        mapPins = parsePins(fc.args?.points);
+        plottedThisTurn = true;
+      }
       collectPointCandidates(fc.name, fc.args ?? {}, result, pointCandidates);
       responseParts.push({ functionResponse: { name: fc.name, response: result } });
     }
     contents.push({ role: "user", parts: responseParts });
   }
 
-  fallbackPlotLine ||= await plotFallbackPoints();
+  await plotFallbackPoints();
+
+  // Always state what the map shows — including pins the model placed itself,
+  // which is the list the write prompt tells it to stay inside.
+  const pinnedLine = mapPins.length
+    ? `\n\nMap state guarantee: these pins are on the map, and they are the only places you may name: ${plottedPointSummary(mapPins)}.`
+    : "\n\nNothing is pinned on the map, so name no specific place.";
 
   // --- Write phase: final answer on the "response" model, no tools. ---
   const finalRes = await callModel(
     {
       contents,
-      systemInstruction: { parts: [{ text: WRITE_SYSTEM_PROMPT + ctxLine + fallbackPlotLine }] },
+      systemInstruction: { parts: [{ text: WRITE_SYSTEM_PROMPT + ctxLine + pinnedLine }] },
       generationConfig: { temperature: 0 },
     },
     "response"
@@ -246,6 +328,17 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     };
   }
 
-  contents.push({ role: finalCandidate.role ?? "model", parts: finalCandidate.parts });
-  return { text: extractText(finalCandidate) || "(no reply)", history: contents };
+  // Offered no tools, a model can still answer with a tool call and no text
+  // (seen live). Keep only the prose — an unanswered call in history breaks the
+  // next request — and if there is none, say plainly what the map shows.
+  const text =
+    extractText(finalCandidate) ||
+    (mapPins.length
+      ? `I didn't get a written plan back, but these are on the map: ${mapPins
+          .map((p) => p.label ?? "an unnamed stop")
+          .join(", ")}. Ask again and I'll pick up from here.`
+      : "I didn't get a written answer back. Try asking again.");
+  contents.push({ role: "model", parts: [{ text }] });
+  await reconcilePins(text);
+  return { text, history: contents };
 }
