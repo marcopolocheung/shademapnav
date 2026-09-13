@@ -1,0 +1,23 @@
+{
+  "id": "egg2008",
+  "url": "https://www.isgeoid.polimi.it/Geoid/Europe/europe2008_g.html",
+  "capturedAt": "2026-09-12T20:57:01.845805+00:00",
+  "status": 200,
+  "finalUrl": "https://www.isgeoid.polimi.it/Geoid/Europe/europe2008_g.html",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:57:03 GMT",
+    "Server": "Apache",
+    "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+    "Last-Modified": "Thu, 02 Apr 2026 11:57:04 GMT",
+    "Accept-Ranges": "bytes",
+    "Content-Length": "15447",
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-XSS-Protection": "1; mode=block",
+    "X-Content-Type-Options": "nosniff",
+    "Keep-Alive": "timeout=15, max=100",
+    "Connection": "Keep-Alive",
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "bytes": 15447,
+  "sha256": "fda892c1458c8f55f9c485284c8a5d925c4cbb282b3c32bb18dec3e67bb3a92c"
+}

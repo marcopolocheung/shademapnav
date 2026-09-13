@@ -1,0 +1,707 @@
+{
+  "pyproj": "3.8.0",
+  "proj": "9.8.1",
+  "networkEnabled": false,
+  "note": "Discovery only, no heights transformed. EPSG:7409 is ETRS89+EVRF2000; absence of operations does not prove mathematical impossibility.",
+  "rows": [
+    {
+      "name": "kent",
+      "source": "NAD83 + NAVD88 height",
+      "target": "WGS 84 + EGM96 height",
+      "best_available": false,
+      "available": [],
+      "unavailable": [
+        {
+          "name": "NAD83 to NAD83(HARN) (47) + Inverse of NAD83(HARN) to NAVD88 height (1) + NAD83(HARN) to WGS 84 (3) + WGS 84 to EGM96 height (1)",
+          "accuracy": 2.1,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_g1999u01.tif",
+              "url": "https://cdn.proj.org/us_noaa_g1999u01.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(HARN) (28) + Inverse of NAD83(HARN) to NAVD88 height (1) + NAD83(HARN) to WGS 84 (3) + WGS 84 to EGM96 height (1)",
+          "accuracy": 2.1,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_WO.tif",
+              "url": "https://cdn.proj.org/us_noaa_WO.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_g1999u01.tif",
+              "url": "https://cdn.proj.org/us_noaa_g1999u01.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + NAD83(HARN) to WGS 84 (3) + WGS 84 to EGM96 height (1)",
+          "accuracy": 2.14,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(HARN) (47) + Inverse of NAD83(HARN) to NAVD88 height (1) + NAD83(HARN) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.1,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_g1999u01.tif",
+              "url": "https://cdn.proj.org/us_noaa_g1999u01.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(HARN) (28) + Inverse of NAD83(HARN) to NAVD88 height (1) + NAD83(HARN) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.1,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_WO.tif",
+              "url": "https://cdn.proj.org/us_noaa_WO.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_g1999u01.tif",
+              "url": "https://cdn.proj.org/us_noaa_g1999u01.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(2011) (NADCON5, CONUS) + Inverse of NAD83(2011) to NAVD88 height (3) + NAD83(2011) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.115,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_g2018u0.tif",
+              "url": "https://cdn.proj.org/us_noaa_g2018u0.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_2007_nad83_2011_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_2007_nad83_2011_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(NSRS2007) (NADCON5, CONUS) + Inverse of NAD83(NSRS2007) to NAVD88 height (1) + NAD83(NSRS2007) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.14,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid09_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid09_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + NAD83(FBN) to NAD83(NSRS2007) (1) + NAD83(NSRS2007) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.14,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + NAD83(HARN) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.14,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + NAD83(FBN) to NAD83(NSRS2007) (1) + NAD83(NSRS2007) to NAD83(2011) (1) + NAD83(2011) to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.19,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_2007_nad83_2011_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_2007_nad83_2011_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_fbn_nad83_2007_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + NAD83 to WGS 84 (41) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.19,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_WO.tif",
+              "url": "https://cdn.proj.org/us_noaa_WO.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to WGS 84 (33) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.34,
+          "grids": [
+            {
+              "name": "ca_nrc_ntv2_0.tif",
+              "url": "https://cdn.proj.org/ca_nrc_ntv2_0.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to NAD83 (1) + NAD83 to WGS 84 (41) + WGS 84 to EGM96 height (1)",
+          "accuracy": 3.49,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_WO.tif",
+              "url": "https://cdn.proj.org/us_noaa_WO.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + NAD83 to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 5.19,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to WGS 84 (79) + WGS 84 to EGM96 height (1)",
+          "accuracy": 6.34,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to WGS 84 (6) + WGS 84 to EGM96 height (1)",
+          "accuracy": 8.34,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to WGS 84 (4) + WGS 84 to EGM96 height (1)",
+          "accuracy": 11.34,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "NAD83 to NAD83(FBN) (NADCON5, CONUS) + Inverse of NAD83(FBN) to NAVD88 height (1) + Inverse of NAD83(HARN) to NAD83(FBN) (1) + Inverse of NAD83 to NAD83(HARN) (47) + Inverse of NAD27 to NAD83 (7) + NAD27 to WGS 84 (3) + WGS 84 to EGM96 height (1)",
+          "accuracy": 21.34,
+          "grids": [
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_geoid03_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_geoid03_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad27_nad83_1986_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_1986_nad83_harn_conus.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "url": "https://cdn.proj.org/us_noaa_nadcon5_nad83_harn_nad83_fbn_conus.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "madrid",
+      "source": "ETRS89 + EVRF2000 height",
+      "target": "WGS 84 + EGM96 height",
+      "best_available": false,
+      "available": [],
+      "unavailable": [
+        {
+          "name": "Inverse of Alicante height to EVRF2000 height (1) + Inverse of ETRS89 to Alicante height (1) + ETRS89 to WGS 84 (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 2.15,
+          "grids": [
+            {
+              "name": "es_ign_egm08-rednap.tif",
+              "url": "https://cdn.proj.org/es_ign_egm08-rednap.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "copdem",
+      "source": "WGS 84 + EGM2008 height",
+      "target": "WGS 84 + EGM96 height",
+      "best_available": false,
+      "available": [],
+      "unavailable": [
+        {
+          "name": "Inverse of WGS 84 to EGM2008 height (1) + WGS 84 to EGM96 height (1)",
+          "accuracy": 1.113,
+          "grids": [
+            {
+              "name": "us_nga_egm08_25.tif",
+              "url": "https://cdn.proj.org/us_nga_egm08_25.tif",
+              "available": false,
+              "open_license": true
+            },
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        },
+        {
+          "name": "Inverse of WGS 84 to EGM2008 height (2) + WGS 84 to EGM96 height (1)",
+          "accuracy": 1.11,
+          "grids": [
+            {
+              "name": "Und_min1x1_egm2008_isw=82_WGS84_TideFree",
+              "url": "",
+              "available": false,
+              "open_license": false
+            },
+            {
+              "name": "us_nga_egm96_15.tif",
+              "url": "https://cdn.proj.org/us_nga_egm96_15.tif",
+              "available": false,
+              "open_license": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

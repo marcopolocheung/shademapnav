@@ -1,0 +1,116 @@
+{
+  "method": "Spherical Web Mercator tile coverage; byte arithmetic. Prices are scenarios before account-wide free allowances.",
+  "region": {
+    "bbox": [
+      -3.72,
+      40.405,
+      -3.69,
+      40.427
+    ],
+    "z": 18,
+    "tileColumns": 23,
+    "tileRows": 22,
+    "tiles": 506,
+    "cells": 33161216,
+    "spacingMetresAtCentre": 0.45464997390112516,
+    "fullTileAreaKm2Approx": 6.854642170380724,
+    "six32BitBandsBytes": 795869184,
+    "gzipWithRecipesBytesScenario": 13306362.959999999,
+    "leafBoundsFourFloat64Bytes": 16192,
+    "r2StorageUSDPerMonthScenario": 0.00019959544439999996,
+    "r2ClassAUSDScenario": 0.0022770000000000004,
+    "processingUSDPerHourScenarioFrom02b": 0.04470833333333333,
+    "runtime": "UNMEASURED",
+    "exclusions": "Bounds expansion outside bbox, object metadata, masks/provenance tables, retries, raw source retention, geoid grids, scratch, labour, egress from compute provider."
+  },
+  "terrainZooms": [
+    {
+      "z": 0,
+      "projectedSpacingMetres": 156543.03392804097,
+      "madridGroundSpacingMetres": 119183.76275833655
+    },
+    {
+      "z": 1,
+      "projectedSpacingMetres": 78271.51696402048,
+      "madridGroundSpacingMetres": 59591.88137916828
+    },
+    {
+      "z": 2,
+      "projectedSpacingMetres": 39135.75848201024,
+      "madridGroundSpacingMetres": 29795.94068958414
+    },
+    {
+      "z": 3,
+      "projectedSpacingMetres": 19567.87924100512,
+      "madridGroundSpacingMetres": 14897.97034479207
+    },
+    {
+      "z": 4,
+      "projectedSpacingMetres": 9783.93962050256,
+      "madridGroundSpacingMetres": 7448.985172396035
+    },
+    {
+      "z": 5,
+      "projectedSpacingMetres": 4891.96981025128,
+      "madridGroundSpacingMetres": 3724.4925861980173
+    },
+    {
+      "z": 6,
+      "projectedSpacingMetres": 2445.98490512564,
+      "madridGroundSpacingMetres": 1862.2462930990087
+    },
+    {
+      "z": 7,
+      "projectedSpacingMetres": 1222.99245256282,
+      "madridGroundSpacingMetres": 931.1231465495043
+    },
+    {
+      "z": 8,
+      "projectedSpacingMetres": 611.49622628141,
+      "madridGroundSpacingMetres": 465.56157327475216
+    },
+    {
+      "z": 9,
+      "projectedSpacingMetres": 305.748113140705,
+      "madridGroundSpacingMetres": 232.78078663737608
+    },
+    {
+      "z": 10,
+      "projectedSpacingMetres": 152.8740565703525,
+      "madridGroundSpacingMetres": 116.39039331868804
+    },
+    {
+      "z": 11,
+      "projectedSpacingMetres": 76.43702828517625,
+      "madridGroundSpacingMetres": 58.19519665934402
+    },
+    {
+      "z": 12,
+      "projectedSpacingMetres": 38.21851414258813,
+      "madridGroundSpacingMetres": 29.09759832967201
+    },
+    {
+      "z": 13,
+      "projectedSpacingMetres": 19.109257071294063,
+      "madridGroundSpacingMetres": 14.548799164836005
+    },
+    {
+      "z": 14,
+      "projectedSpacingMetres": 9.554628535647032,
+      "madridGroundSpacingMetres": 7.2743995824180026
+    },
+    {
+      "z": 15,
+      "projectedSpacingMetres": 4.777314267823516,
+      "madridGroundSpacingMetres": 3.6371997912090013
+    }
+  ],
+  "chm": {
+    "baseDimension": 32768,
+    "baseU8Bytes": 1073741824,
+    "packedBaseMaskBytes": 134217728,
+    "sampledMadridObjectBytes": 84604237,
+    "projectedSpacingMetres": 1.194328566955879,
+    "madridGroundSpacingMetres": 0.9092999478022503
+  }
+}

@@ -1,0 +1,111 @@
+--- /home/wslunusn/ShadeMapNavigation/app/lib/shadowField/__tests__/agreement/harness.ts	2026-09-11 12:36:33.484528289 -0500
++++ /tmp/umbra-02c-JMATjA/harness.ts	2026-09-12 15:05:52.012009880 -0500
+@@ -1,3 +1,11 @@
++import {sunFor as sunForRaw} from "/home/wslunusn/ShadeMapNavigation/app/lib/shadowField/__tests__/agreement/fixtures.ts";
++import fs from 'node:fs';
++import * as core from "/home/wslunusn/ShadeMapNavigation/docs/shadow-engine-v2/evidence/02c/core.mjs";
++const z=Number(process.env.LATTICE_Z);
++const rasters=new WeakMap();
++const referenceRows=new WeakMap();
++const rawRuns=[];
++function grid(f){let g=rasters.get(f.prisms);if(!g){g=core.rasterize(f.prisms.prisms,z);rasters.set(f.prisms,g);}return g;}
+ /**
+  * The agreement harness (Track A, checkpoint A3).
+  *
+@@ -39,7 +47,7 @@
+   createGeometryShadowField,
+   edgeSampleCount,
+   staticPrismProvider,
+-} from "../../ShadowField";
++} from "/home/wslunusn/ShadeMapNavigation/app/lib/shadowField/ShadowField";
+ import {
+   type BuildingPrism,
+   type PrismSet,
+@@ -47,8 +55,8 @@
+   metersPerDegree,
+   pointInPolygon,
+   pointInTriangle,
+-} from "../../geometry";
+-import { sampleBothSidewalks } from "../../../shadowSampling";
++} from "/home/wslunusn/ShadeMapNavigation/app/lib/shadowField/geometry";
++import { sampleBothSidewalks } from "/home/wslunusn/ShadeMapNavigation/app/lib/shadowSampling";
+ 
+ // ─── Fixture format ───────────────────────────────────────────────────────────
+ 
+@@ -332,14 +340,26 @@
+     fixture.prisms.prisms, centre, sun, altitudeFraction, canvasOptsFor(fixture.edge), basemap
+   );
+ 
+-  return sampleBothSidewalks(
+-    canvas.project,
++  const g=grid(fixture),points=[];
++  const maskedProject=(lng,lat)=>{
++    const p=core.project(lng,lat,z),valid=core.validGround(g,p),xy=canvas.project(lng,lat);
++    const x=Math.round(xy[0]*canvas.dpr),y=Math.round(xy[1]*canvas.dpr),i=(y*canvas.imageData.width+x)*4;
++    points.push({lng,lat,grid:p,valid,pixel:[x,y],rgb:Array.from(canvas.imageData.data.slice(i,i+3))});
++    return valid?xy:[-1,-1];
++  };
++  const answer=sampleBothSidewalks(
++    maskedProject,
+     canvas.imageData,
+     canvas.dpr,
+     fixture.edge.from,
+     fixture.edge.to,
+     edgeSampleCount(distanceM)
+   );
++  const n=points.length/2;
++  if(!points.slice(0,n).some(p=>p.valid))answer.left=null;
++  if(!points.slice(n).some(p=>p.valid))answer.right=null;
++  referenceRows.set(fixture,{points,width:canvas.imageData.width,height:canvas.imageData.height});
++  return answer;
+ }
+ 
+ /** The field's answer for one fixture, over that fixture's own geometry. */
+@@ -347,26 +367,32 @@
+   const bbox = bboxAroundEdges([fixture.edge], 2000) ?? bboxAroundPoint(0, 0, 1);
+   const provider: PrismProvider = staticPrismProvider(fixture.prisms, bbox, "tiles");
+   const [shadow] = createGeometryShadowField([provider]).sampleEdges([fixture.edge], fixture.when);
+-  return { left: shadow.left, right: shadow.right };
++  return shadow;
+ }
+ 
+ export function disagreementsFor(
+   fixtures: AgreementFixture[],
+   referenceOf: (f: AgreementFixture) => { left: number; right: number }
+ ): Disagreement[] {
+-  return fixtures.map((fixture) => {
++  const rows=fixtures.map((fixture,i) => {
+     const reference = fixture.reference ?? referenceOf(fixture);
+     const field = fieldAnswerFor(fixture);
+     return {
+-      city: fixture.city,
+-      left: Math.abs(field.left - reference.left),
+-      right: Math.abs(field.right - reference.right),
++      i, city: fixture.city, when: fixture.when.toISOString(),edge:fixture.edge,sun:sunForRaw(fixture),
++      answer:field,reference,referenceSamples:referenceRows.get(fixture),
++      left: field.left===null||reference.left===null?null:Math.abs(field.left-reference.left),
++      right: field.right===null||reference.right===null?null:Math.abs(field.right-reference.right),
++      grid:{z,x0:grid(fixture).x0,y0:grid(fixture).y0,w:grid(fixture).w,h:grid(fixture).h},
++
+     };
+   });
++  rawRuns.push(rows);
++  fs.writeFileSync(process.env.RAW_OUTPUT,JSON.stringify({z,runs:rawRuns},null,2));
++  return rows;
+ }
+ 
+ export function reportFor(disagreements: Disagreement[]): AgreementReport {
+-  const all = disagreements.flatMap((d) => [d.left, d.right]);
++  const all = disagreements.flatMap((d) => [d.left, d.right]).filter(v=>v!==null);
+   if (all.length === 0) {
+     return { cases: 0, meanAbsolute: 0, p90: 0, worst: 0, severeShare: 0, byCity: {} };
+   }
+@@ -380,7 +406,7 @@
+   for (const city of new Set(disagreements.map((d) => d.city))) {
+     const cityValues = disagreements
+       .filter((d) => d.city === city)
+-      .flatMap((d) => [d.left, d.right]);
++      .flatMap((d) => [d.left, d.right]).filter(v=>v!==null);
+     byCity[city] = cityValues.reduce((sum, v) => sum + v, 0) / cityValues.length;
+   }
+ 

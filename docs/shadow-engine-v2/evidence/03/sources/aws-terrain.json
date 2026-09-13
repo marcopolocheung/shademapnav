@@ -1,0 +1,31 @@
+{
+  "id": "aws-terrain",
+  "url": "https://registry.opendata.aws/terrain-tiles/",
+  "capturedAt": "2026-09-12T20:56:59.708381+00:00",
+  "status": 200,
+  "finalUrl": "https://registry.opendata.aws/terrain-tiles/",
+  "headers": {
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Last-Modified": "Thu, 10 Sep 2026 18:11:00 GMT",
+    "x-amz-version-id": "Wlke4MQYFEEnECLbZXbAO3XC4s.jnu.V",
+    "Server": "AmazonS3",
+    "Strict-Transport-Security": "max-age= 63072000; includeSubdomains; preload",
+    "Content-Security-Policy": "default-src 'self' studiolab.sagemaker.aws assets.opendata.aws a0.awsstatic.com; object-src 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "same-origin",
+    "Content-Encoding": "gzip",
+    "Date": "Sat, 12 Sep 2026 20:57:01 GMT",
+    "ETag": "W/\"9eab63c22b9f92bbb40963c8627e5bfb\"",
+    "Vary": "Accept-Encoding",
+    "X-Cache": "RefreshHit from cloudfront",
+    "Via": "1.1 f1c3219e4eddb69c5dee8aea1c2473f2.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Pop": "IAH50-P4",
+    "X-Amz-Cf-Id": "VbK8uG7MNBY06gtIsFj8wUw0_JZOGsnQiAvs8dEDTSqBIMD3k0UdaA=="
+  },
+  "bytes": 12673,
+  "sha256": "5ac8eee49fda74a85f32faf347ad88990305ff99f32d482e897e7dfaaa5da896"
+}

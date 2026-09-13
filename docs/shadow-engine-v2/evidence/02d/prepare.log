@@ -1,0 +1,3 @@
+route {"roads":260,"edges":908,"nodes":820,"routeDistanceM":280.6492639245335,"routeNodes":20,"points":7314}
+madrid chm {"valid":null,"width":321,"height":320,"bbox":[-3.70788574218752,40.414541645611635,-3.7009978294372465,40.41976938144622],"metresPerPixel":1.8185902862583798,"overviewIndex":2,"quadkeys":["0331110121"]}
+kent chm {"valid":null,"width":321,"height":321,"bbox":[-122.23800659179689,47.3788099409611,-122.23111867904665,47.3834738721015],"metresPerPixel":1.6174030173935643,"overviewIndex":2,"quadkeys":["0212300320"]}

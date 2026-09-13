@@ -1,0 +1,510 @@
+[
+  {
+    "z": 17,
+    "report": {
+      "cases": 150,
+      "readings": 300,
+      "meanAbsolute": 0.032916666666666664,
+      "p90": 0.14285714285714285,
+      "worst": 0.75,
+      "severe": 9,
+      "severeShare": 0.03,
+      "byCity": {
+        "madrid": 0.04875,
+        "singapore": 0.020000000000000004,
+        "kent-wa": 0.03
+      }
+    },
+    "invalid": {
+      "overall": {
+        "total": 2020,
+        "excluded": 360,
+        "valid": 1660,
+        "invalidShare": 0.1782178217821782,
+        "margin": 0.07178217821782179,
+        "daytimeTotal": 1658,
+        "daytimeExcluded": 294,
+        "zeroValidSidewalks": 0
+      },
+      "madrid": {
+        "total": 860,
+        "excluded": 140,
+        "valid": 720,
+        "invalidShare": 0.16279069767441862,
+        "margin": 0.08720930232558138,
+        "daytimeTotal": 688,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "singapore": {
+        "total": 740,
+        "excluded": 140,
+        "valid": 600,
+        "invalidShare": 0.1891891891891892,
+        "margin": 0.0608108108108108,
+        "daytimeTotal": 592,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "kent-wa": {
+        "total": 420,
+        "excluded": 80,
+        "valid": 340,
+        "invalidShare": 0.19047619047619047,
+        "margin": 0.059523809523809534,
+        "daytimeTotal": 378,
+        "daytimeExcluded": 70,
+        "zeroValidSidewalks": 0
+      }
+    },
+    "worst": [
+      {
+        "i": 1,
+        "city": "madrid",
+        "when": "2026-06-21T13:00:00.000Z",
+        "edge": {
+          "from": [
+            -3.7047439162079803,
+            40.416440675530005
+          ],
+          "to": [
+            -3.70285608379202,
+            40.416440675530005
+          ]
+        },
+        "sun": {
+          "azimuth": 0.5481497229646011,
+          "altitude": 1.2347303167643346,
+          "altitudeFraction": 0.9688203853484579
+        },
+        "answer": {
+          "left": 0,
+          "right": 0,
+          "sidewalks": {
+            "left": {
+              "shadow": 0,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            },
+            "right": {
+              "shadow": 0,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            }
+          },
+          "validSampleFraction": {
+            "left": 1,
+            "right": 1
+          },
+          "source": "tiles",
+          "confidence": 0.8,
+          "buildingSource": "tiles",
+          "canopySources": {
+            "osm": false,
+            "raster": false
+          }
+        },
+        "reference": {
+          "left": 0,
+          "right": 0.75
+        },
+        "left": 0,
+        "right": 0.75
+      },
+      {
+        "i": 11,
+        "city": "madrid",
+        "when": "2026-06-21T13:00:00.000Z",
+        "edge": {
+          "from": [
+            -3.7047439162079803,
+            40.41715932447
+          ],
+          "to": [
+            -3.70285608379202,
+            40.41715932447
+          ]
+        },
+        "sun": {
+          "azimuth": 0.5481310123035943,
+          "altitude": 1.2347196115549683,
+          "altitudeFraction": 0.9688215194450331
+        },
+        "answer": {
+          "left": 0,
+          "right": 0,
+          "sidewalks": {
+            "left": {
+              "shadow": 0,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            },
+            "right": {
+              "shadow": 0,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            }
+          },
+          "validSampleFraction": {
+            "left": 1,
+            "right": 1
+          },
+          "source": "tiles",
+          "confidence": 0.8,
+          "buildingSource": "tiles",
+          "canopySources": {
+            "osm": false,
+            "raster": false
+          }
+        },
+        "reference": {
+          "left": 0,
+          "right": 0.75
+        },
+        "left": 0,
+        "right": 0.75
+      },
+      {
+        "i": 38,
+        "city": "madrid",
+        "when": "2026-12-21T13:00:00.000Z",
+        "edge": {
+          "from": [
+            -3.703292645038211,
+            40.41608135106001
+          ],
+          "to": [
+            -3.703292645038211,
+            40.417518648939996
+          ]
+        },
+        "sun": {
+          "azimuth": 0.20783314354222,
+          "altitude": 0.440118529889804,
+          "altitudeFraction": 0.9644802192572565
+        },
+        "answer": {
+          "left": 0.75,
+          "right": 0,
+          "sidewalks": {
+            "left": {
+              "shadow": 0.75,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            },
+            "right": {
+              "shadow": 0,
+              "source": "tiles",
+              "confidence": 0.8,
+              "validSampleFraction": 1,
+              "validSamples": 8,
+              "totalSamples": 8
+            }
+          },
+          "validSampleFraction": {
+            "left": 1,
+            "right": 1
+          },
+          "source": "tiles",
+          "confidence": 0.8,
+          "buildingSource": "tiles",
+          "canopySources": {
+            "osm": false,
+            "raster": false
+          }
+        },
+        "reference": {
+          "left": 0,
+          "right": 0
+        },
+        "left": 0.75,
+        "right": 0
+      }
+    ],
+    "margins": {
+      "mean": 0.007083333333333337,
+      "p90": -0.09285714285714285,
+      "severe": 0.010000000000000002,
+      "cities": {
+        "madrid": 0.03125,
+        "singapore": 0.06,
+        "kent-wa": 0.05
+      }
+    }
+  },
+  {
+    "z": 18,
+    "report": {
+      "cases": 150,
+      "readings": 300,
+      "meanAbsolute": 0.02880952380952381,
+      "p90": 0,
+      "worst": 1,
+      "severe": 8,
+      "severeShare": 0.02666666666666667,
+      "byCity": {
+        "madrid": 0.03,
+        "singapore": 0.01142857142857143,
+        "kent-wa": 0.045
+      }
+    },
+    "invalid": {
+      "overall": {
+        "total": 2020,
+        "excluded": 370,
+        "valid": 1650,
+        "invalidShare": 0.18316831683168316,
+        "margin": 0.06683168316831684,
+        "daytimeTotal": 1658,
+        "daytimeExcluded": 302,
+        "zeroValidSidewalks": 0
+      },
+      "madrid": {
+        "total": 860,
+        "excluded": 140,
+        "valid": 720,
+        "invalidShare": 0.16279069767441862,
+        "margin": 0.08720930232558138,
+        "daytimeTotal": 688,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "singapore": {
+        "total": 740,
+        "excluded": 140,
+        "valid": 600,
+        "invalidShare": 0.1891891891891892,
+        "margin": 0.0608108108108108,
+        "daytimeTotal": 592,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "kent-wa": {
+        "total": 420,
+        "excluded": 90,
+        "valid": 330,
+        "invalidShare": 0.21428571428571427,
+        "margin": 0.035714285714285726,
+        "daytimeTotal": 378,
+        "daytimeExcluded": 78,
+        "zeroValidSidewalks": 0
+      }
+    },
+    "worst": [
+      {
+        "i": 144,
+        "city": "kent-wa",
+        "when": "2026-12-21T22:00:00.000Z",
+        "edge": {
+          "from": [
+            -122.23522453186642,
+            47.380612540423996
+          ],
+          "to": [
+            -122.23437546813359,
+            47.381187459576
+          ]
+        },
+        "sun": {
+          "azimuth": 0.46432218516111284,
+          "altitude": 0.2578427699556416,
+          "altitudeFraction": 0.7702481553899228
+        },
+        "answer": {
+          "left": 1,
+          "right": 1,
+          "sidewalks": {
+            "left": {
+              "shadow": 1,
+              "source": "tiles",
+              "confidence": 0.32000000000000006,
+              "validSampleFraction": 0.4,
+              "validSamples": 2,
+              "totalSamples": 5
+            },
+            "right": {
+              "shadow": 1,
+              "source": "tiles",
+              "confidence": 0.32000000000000006,
+              "validSampleFraction": 0.4,
+              "validSamples": 2,
+              "totalSamples": 5
+            }
+          },
+          "validSampleFraction": {
+            "left": 0.4,
+            "right": 0.4
+          },
+          "source": "tiles",
+          "confidence": 0.32000000000000006,
+          "buildingSource": "tiles",
+          "canopySources": {
+            "osm": false,
+            "raster": false
+          }
+        },
+        "reference": {
+          "left": 1,
+          "right": 0
+        },
+        "left": 0,
+        "right": 1
+      }
+    ],
+    "margins": {
+      "mean": 0.011190476190476192,
+      "p90": 0.05,
+      "severe": 0.013333333333333332,
+      "cities": {
+        "madrid": 0.05,
+        "singapore": 0.06857142857142857,
+        "kent-wa": 0.035
+      }
+    }
+  },
+  {
+    "z": 19,
+    "report": {
+      "cases": 150,
+      "readings": 300,
+      "meanAbsolute": 0.02630952380952381,
+      "p90": 0,
+      "worst": 1,
+      "severe": 9,
+      "severeShare": 0.03,
+      "byCity": {
+        "madrid": 0.03,
+        "singapore": 0.021428571428571432,
+        "kent-wa": 0.0275
+      }
+    },
+    "invalid": {
+      "overall": {
+        "total": 2020,
+        "excluded": 370,
+        "valid": 1650,
+        "invalidShare": 0.18316831683168316,
+        "margin": 0.06683168316831684,
+        "daytimeTotal": 1658,
+        "daytimeExcluded": 302,
+        "zeroValidSidewalks": 0
+      },
+      "madrid": {
+        "total": 860,
+        "excluded": 140,
+        "valid": 720,
+        "invalidShare": 0.16279069767441862,
+        "margin": 0.08720930232558138,
+        "daytimeTotal": 688,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "singapore": {
+        "total": 740,
+        "excluded": 140,
+        "valid": 600,
+        "invalidShare": 0.1891891891891892,
+        "margin": 0.0608108108108108,
+        "daytimeTotal": 592,
+        "daytimeExcluded": 112,
+        "zeroValidSidewalks": 0
+      },
+      "kent-wa": {
+        "total": 420,
+        "excluded": 90,
+        "valid": 330,
+        "invalidShare": 0.21428571428571427,
+        "margin": 0.035714285714285726,
+        "daytimeTotal": 378,
+        "daytimeExcluded": 78,
+        "zeroValidSidewalks": 0
+      }
+    },
+    "worst": [
+      {
+        "i": 144,
+        "city": "kent-wa",
+        "when": "2026-12-21T22:00:00.000Z",
+        "edge": {
+          "from": [
+            -122.23522453186642,
+            47.380612540423996
+          ],
+          "to": [
+            -122.23437546813359,
+            47.381187459576
+          ]
+        },
+        "sun": {
+          "azimuth": 0.46432218516111284,
+          "altitude": 0.2578427699556416,
+          "altitudeFraction": 0.7702481553899228
+        },
+        "answer": {
+          "left": 1,
+          "right": 1,
+          "sidewalks": {
+            "left": {
+              "shadow": 1,
+              "source": "tiles",
+              "confidence": 0.32000000000000006,
+              "validSampleFraction": 0.4,
+              "validSamples": 2,
+              "totalSamples": 5
+            },
+            "right": {
+              "shadow": 1,
+              "source": "tiles",
+              "confidence": 0.32000000000000006,
+              "validSampleFraction": 0.4,
+              "validSamples": 2,
+              "totalSamples": 5
+            }
+          },
+          "validSampleFraction": {
+            "left": 0.4,
+            "right": 0.4
+          },
+          "source": "tiles",
+          "confidence": 0.32000000000000006,
+          "buildingSource": "tiles",
+          "canopySources": {
+            "osm": false,
+            "raster": false
+          }
+        },
+        "reference": {
+          "left": 1,
+          "right": 0
+        },
+        "left": 0,
+        "right": 1
+      }
+    ],
+    "margins": {
+      "mean": 0.01369047619047619,
+      "p90": 0.05,
+      "severe": 0.010000000000000002,
+      "cities": {
+        "madrid": 0.05,
+        "singapore": 0.058571428571428566,
+        "kent-wa": 0.052500000000000005
+      }
+    }
+  }
+]

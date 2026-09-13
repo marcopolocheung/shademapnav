@@ -1,0 +1,29 @@
+{
+  "id": "r2-price",
+  "url": "https://developers.cloudflare.com/r2/pricing/",
+  "capturedAt": "2026-09-12T20:57:04.762610+00:00",
+  "status": 200,
+  "finalUrl": "https://developers.cloudflare.com/r2/pricing/",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:57:06 GMT",
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "CF-Cache-Status": "HIT",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Reporting-Endpoints": "cf-ewuhhsqrhzmwgxcd=\"https://csp-reporting.cloudflare.com/cdn-cgi/script_monitor/report?m=IZQVhBW4YubZGuPMMsJ37Uxyaxa3biwW_80JBmd_cNE-1789246626.2768607-1.0.1.1-lsKZeTDLvKA3no85So.RVuOneBbpAAvQM6L7dUlKkwwNqPBTJW57C2n8.p58S1mX.K_MzxN44gELxlwTkhl45HNZIC_HRmcund_A5K2jmAFHP3liK1LTAYCc3Ux1xZYVL6K2zMZ6R09HaZIjYbWQStdCs6XdjCh_dMGbdJxipQAGVftAuAKBM6kZwXD6fNYXikEpyzpo5IqrHR01HyC0WQ\"",
+    "Strict-Transport-Security": "max-age=15552000; preload",
+    "X-Content-Type-Options": "nosniff",
+    "Speculation-Rules": "\"/cdn-cgi/speculation\"",
+    "Vary": "accept-encoding",
+    "Content-Security-Policy": "form-action 'self'; frame-src 'self' company-target.com *.company-target.com cloudflarestream.com *.cloudflarestream.com youtube-nocookie.com *.youtube-nocookie.com videodelivery.net *.videodelivery.net cloudflare.com *.cloudflare.com; frame-ancestors 'self' cloudflare.com *.cloudflare.com; script-src 'self' cloudflarestream.com *.cloudflarestream.com cloudflareinsights.com *.cloudflareinsights.com cloudflare.com *.cloudflare.com google.com *.google.com demandbase.com *.demandbase.com bizible.com *.bizible.com jsdelivr.net *.jsdelivr.net 'wasm-unsafe-eval' 'unsafe-inline'; report-uri https://csp-reporting.cloudflare.com/cdn-cgi/script_monitor/report?m=IZQVhBW4YubZGuPMMsJ37Uxyaxa3biwW_80JBmd_cNE-1789246626.2768607-1.0.1.1-lsKZeTDLvKA3no85So.RVuOneBbpAAvQM6L7dUlKkwwNqPBTJW57C2n8.p58S1mX.K_MzxN44gELxlwTkhl45HNZIC_HRmcund_A5K2jmAFHP3liK1LTAYCc3Ux1xZYVL6K2zMZ6R09HaZIjYbWQStdCs6XdjCh_dMGbdJxipQAGVftAuAKBM6kZwXD6fNYXikEpyzpo5IqrHR01HyC0WQ; report-to cf-ewuhhsqrhzmwgxcd",
+    "Report-To": "{\"group\":\"cf-ewuhhsqrhzmwgxcd\",\"max_age\":86400,\"endpoints\":[{\"url\":\"https://csp-reporting.cloudflare.com/cdn-cgi/script_monitor/report?m=IZQVhBW4YubZGuPMMsJ37Uxyaxa3biwW_80JBmd_cNE-1789246626.2768607-1.0.1.1-lsKZeTDLvKA3no85So.RVuOneBbpAAvQM6L7dUlKkwwNqPBTJW57C2n8.p58S1mX.K_MzxN44gELxlwTkhl45HNZIC_HRmcund_A5K2jmAFHP3liK1LTAYCc3Ux1xZYVL6K2zMZ6R09HaZIjYbWQStdCs6XdjCh_dMGbdJxipQAGVftAuAKBM6kZwXD6fNYXikEpyzpo5IqrHR01HyC0WQ\"}]}",
+    "Content-Encoding": "br",
+    "Server": "cloudflare",
+    "CF-RAY": "a3a1d2963a0e6b88-DFW",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "bytes": 148297,
+  "sha256": "59d49428f5570d52eb5a54c662a060c1f402cb585f79e87e47951164a2556218"
+}

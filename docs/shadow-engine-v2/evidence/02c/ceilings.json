@@ -1,0 +1,12 @@
+{
+  "receiverVersion": "ground-validity-2026-09-12",
+  "maxInvalidSampleShare": 0.25,
+  "applyInvalidCeiling": ["overall", "each-city"],
+  "meanAbsolute": 0.04,
+  "p90": 0.05,
+  "severeShare": 0.04,
+  "severeThresholdExclusive": 0.25,
+  "cityMean": 0.08,
+  "retainedCases": 150,
+  "minimumCases": 100
+}

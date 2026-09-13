@@ -1,0 +1,25 @@
+{
+  "id": "arcticdem",
+  "url": "https://www.pgc.umn.edu/data/arcticdem/",
+  "capturedAt": "2026-09-12T20:57:04.961802+00:00",
+  "status": 200,
+  "finalUrl": "https://www.pgc.umn.edu/data/arcticdem/",
+  "headers": {
+    "Server": "nginx",
+    "Date": "Sat, 12 Sep 2026 20:57:06 GMT",
+    "Content-Type": "text/html; charset=UTF-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Keep-Alive": "timeout=20",
+    "Vary": "Accept-Encoding, Accept-Encoding,Cookie",
+    "Link": "<https://www.pgc.umn.edu/wp-json/>; rel=\"https://api.w.org/\", <https://www.pgc.umn.edu/wp-json/wp/v2/pages/1692>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://www.pgc.umn.edu/?p=1692>; rel=shortlink",
+    "X-Powered-By": "WP Engine",
+    "X-Cacheable": "SHORT",
+    "Cache-Control": "max-age=600, must-revalidate",
+    "X-Cache": "HIT: 1",
+    "X-Cache-Group": "normal",
+    "Content-Encoding": "gzip"
+  },
+  "bytes": 121793,
+  "sha256": "65991910c0fa55450dbdac854101272e6ad564b2a00ef5946b85bd270e907810"
+}

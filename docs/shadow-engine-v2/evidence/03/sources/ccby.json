@@ -1,0 +1,24 @@
+{
+  "id": "ccby",
+  "url": "https://creativecommons.org/licenses/by/4.0/legalcode.en",
+  "capturedAt": "2026-09-12T20:57:04.262952+00:00",
+  "status": 200,
+  "finalUrl": "https://creativecommons.org/licenses/by/4.0/legalcode.en",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:57:05 GMT",
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Server": "cloudflare",
+    "Last-Modified": "Tue, 09 Jun 2026 14:26:12 GMT",
+    "Content-Language": "en",
+    "Age": "5349",
+    "Vary": "Accept-Encoding",
+    "cf-cache-status": "HIT",
+    "Access-Control-Allow-Origin": "*",
+    "Content-Encoding": "br",
+    "CF-RAY": "a3a1d292ccd56b4c-DFW"
+  },
+  "bytes": 48970,
+  "sha256": "6d55b998ed5c54f43426d059a8c549ed58a3321e5463e6a6af1c6b56ab78c333"
+}

@@ -1,0 +1,31 @@
+dem-14-8021-6177.png 89797
+dem-14-8021-6176.png 87889
+dem-14-8021-6178.png 88866
+dem-14-8021-6179.png 83784
+dem-14-8022-6177.png 91931
+dem-14-8022-6176.png 91899
+Traceback (most recent call last):
+  File "/home/wslunusn/ShadeMapNavigation/docs/shadow-engine-v2/evidence/02d/capture.py", line 45, in <module>
+    list(pool.map(lambda t:fetch(*t),tasks))
+  File "/home/wslunusn/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wslunusn/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wslunusn/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wslunusn/miniconda3/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/home/wslunusn/miniconda3/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wslunusn/ShadeMapNavigation/docs/shadow-engine-v2/evidence/02d/capture.py", line 45, in <lambda>
+    list(pool.map(lambda t:fetch(*t),tasks))
+                           ^^^^^^^^^
+  File "/home/wslunusn/ShadeMapNavigation/docs/shadow-engine-v2/evidence/02d/capture.py", line 25, in fetch
+    r.raise_for_status()
+  File "/home/wslunusn/miniconda3/lib/python3.12/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 406 Client Error: Not Acceptable for url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A80%5D%3B%28way%5B%22highway%22~%22%5E%28footway%7Cpath%7Cpedestrian%7Cliving_street%7Cresidential%7Cunclassified%7Ctertiary%7Csecondary%7Cservice%7Ccycleway%7Csteps%7Ctrack%7Cbridleway%29%24%22%5D%5B%22area%22%21%3D%22yes%22%5D%2840.414%2C-3.709%2C40.418%2C-3.702%29%3Bway%5B%22building%22%5D%2840.405%2C-3.720%2C40.427%2C-3.690%29%3B%29%3Bout+body+geom%3B

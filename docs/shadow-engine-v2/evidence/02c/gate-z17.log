@@ -1,0 +1,47 @@
+
+ RUN  v4.1.11 /home/wslunusn/ShadeMapNavigation
+
+stdout | app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > reports the disagreement metric
+shadow-field agreement: 150 cases · mean 3.3pp · p90 14.3pp · worst 75.0pp · severe 3.0% · [madrid 4.9pp, singapore 2.0pp, kent-wa 3.0pp]
+
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > covers three city morphologies with a corpus worth trusting 2ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > reports the disagreement metric 1ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > stays under the committed mean threshold 0ms
+ × app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > stays under the committed p90 threshold 3ms
+   → expected 0.14285714285714285 to be less than or equal to 0.05
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > keeps the severe tail rare 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > agrees in every city, not just on average 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > is measuring something — the corpus contains real shadow and real sun 189ms
+stdout | app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement at the fill's own opacity
+under canopy fill: shadow-field agreement: 150 cases · mean 3.3pp · p90 14.3pp · worst 75.0pp · severe 3.0% · [madrid 4.9pp, singapore 2.0pp, kent-wa 3.0pp]
+
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement at the fill's own opacity 714ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement where the fill is solid 715ms
+stdout | ../../../tmp/umbra-02c-JMATjA/validity.test.ts > caps invalid receiver share overall and separately in every retained city
+{"city":"overall","invalid":360,"total":2020,"share":0.1782178217821782,"ceiling":0.25}
+{"city":"madrid","invalid":140,"total":860,"share":0.16279069767441862,"ceiling":0.25}
+{"city":"singapore","invalid":140,"total":740,"share":0.1891891891891892,"ceiling":0.25}
+{"city":"kent-wa","invalid":80,"total":420,"share":0.19047619047619047,"ceiling":0.25}
+
+ ✓ ../../../tmp/umbra-02c-JMATjA/validity.test.ts > caps invalid receiver share overall and separately in every retained city 837ms
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 9 passed (10)
+   Start at  15:05:55
+   Duration  4.59s (transform 203ms, setup 59ms, import 1.79s, tests 2.47s, environment 0ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > stays under the committed p90 threshold
+AssertionError: expected 0.14285714285714285 to be less than or equal to 0.05
+ ❯ app/lib/shadowField/__tests__/agreement/agreement.test.ts:53:24
+     51|
+     52|   it("stays under the committed p90 threshold", () => {
+     53|     expect(report.p90).toBeLessThanOrEqual(MAX_P90_DISAGREEMENT);
+       |                        ^
+     54|   });
+     55|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

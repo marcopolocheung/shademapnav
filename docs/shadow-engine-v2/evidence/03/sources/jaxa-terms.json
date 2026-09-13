@@ -1,0 +1,23 @@
+{
+  "id": "jaxa-terms",
+  "url": "https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/terms.htm",
+  "capturedAt": "2026-09-12T20:57:48.474563+00:00",
+  "status": 200,
+  "finalUrl": "https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/terms.htm",
+  "headers": {
+    "date": "Sat, 12 Sep 2026 20:57:51 GMT",
+    "last-modified": "Wed, 12 Oct 2022 07:53:08 GMT",
+    "etag": "\"12d3-5ead1aef66100\"",
+    "accept-ranges": "bytes",
+    "content-length": "4819",
+    "x-xss-protection": "1; mode=block",
+    "x-content-type-options": "nosniff",
+    "content-type": "text/html",
+    "strict-transport-security": "max-age=16070400; includeSubDomains",
+    "x-envoy-upstream-service-time": "444",
+    "x-volterra-location": "b-dal3-dal",
+    "server": "volt-adc"
+  },
+  "bytes": 4819,
+  "sha256": "cb08fb7ff3f00d20c5083d93be7b385a3f5f02a7826b72bc34a48e2d98a60bc0"
+}

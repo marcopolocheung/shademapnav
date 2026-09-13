@@ -1,0 +1,24 @@
+{
+  "id": "eudem-validation",
+  "url": "https://ec.europa.eu/eurostat/documents/7116161/7172326/Report-EU-DEM-statistical-validation-August2014.pdf",
+  "capturedAt": "2026-09-12T20:57:01.223485+00:00",
+  "status": 200,
+  "finalUrl": "https://ec.europa.eu/eurostat/documents/7116161/7172326/Report-EU-DEM-statistical-validation-August2014.pdf",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:57:02 GMT",
+    "Server": "Apache",
+    "X-OneAgent-JS-Injection": "true",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Last-Modified": "Tue, 23 Feb 2016 14:06:21 GMT",
+    "Cache-Control": "public, max-age=300",
+    "Content-Disposition": "inline; filename=\"Report-EU-DEM-statistical-validation-August2014.pdf\"",
+    "Content-Type": "application/pdf",
+    "Content-Length": "1568646",
+    "Server-Timing": "dtSInfo;desc=\"0\", dtRpid;desc=\"-2009792755\"",
+    "Connection": "keep-alive",
+    "Age": "0"
+  },
+  "bytes": 1568646,
+  "sha256": "a7bbd5d6ad96319de1806caf2ba77c5c819ab9c6782550f91a66f1b55e667989"
+}

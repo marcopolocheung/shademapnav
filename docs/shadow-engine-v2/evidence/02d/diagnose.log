@@ -1,0 +1,4 @@
+WebSocket server error: Port 24678 is already in use
+fixed4 {"cases":150,"meanAbsolute":0.02880952380952381,"p90":0,"worst":1,"severeShare":0.02666666666666667,"byCity":{"madrid":0.03,"singapore":0.011428571428571429,"kent-wa":0.045}}
+width-clamp {"cases":150,"meanAbsolute":0.02880952380952381,"p90":0,"worst":1,"severeShare":0.02666666666666667,"byCity":{"madrid":0.03,"singapore":0.011428571428571429,"kent-wa":0.045}}
+width-clamp-guard {"cases":150,"meanAbsolute":0.03214285714285714,"p90":0,"worst":1,"severeShare":0.03,"byCity":{"madrid":0.03,"singapore":0.011428571428571429,"kent-wa":0.055}}

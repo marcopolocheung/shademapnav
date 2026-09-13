@@ -1,0 +1,7 @@
+{
+  "id": "fabdem",
+  "url": "https://data.bris.ac.uk/data/dataset/25wfy0f9ukoge2gs7a5mqpq2j7",
+  "capturedAt": "2026-09-12T20:57:49.090921+00:00",
+  "error": "HTTPSConnectionPool(host='data.bris.ac.uk', port=443): Read timed out. (read timeout=40)",
+  "headers": {}
+}

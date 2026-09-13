@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-12T20:21:55.709641+00:00",
+  "python": "3.12.8 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:31:09) [GCC 11.2.0]",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "numpy": "2.2.3",
+  "shapely": "2.1.2",
+  "zstandard": "0.25.0",
+  "brotli": "1.0.9",
+  "demZoom": 14,
+  "latticeZoom": 18,
+  "codecs": [
+    "gzip6",
+    "zstd3",
+    "brotli5"
+  ],
+  "boundsScope": [
+    -3.72,
+    40.405,
+    -3.69,
+    40.427
+  ]
+}

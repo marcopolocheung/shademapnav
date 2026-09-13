@@ -1,0 +1,25 @@
+{
+  "id": "pgc-guide",
+  "url": "https://www.pgc.umn.edu/guides/stereo-derived-elevation-models/pgc-dem-products-arcticdem-rema-and-earthdem/",
+  "capturedAt": "2026-09-12T21:05:21.452199+00:00",
+  "status": 200,
+  "finalUrl": "https://www.pgc.umn.edu/guides/stereo-derived-elevation-models/pgc-dem-products-arcticdem-rema-and-earthdem/",
+  "headers": {
+    "Server": "nginx",
+    "Date": "Sat, 12 Sep 2026 21:05:23 GMT",
+    "Content-Type": "text/html; charset=UTF-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Keep-Alive": "timeout=20",
+    "Vary": "Accept-Encoding, Accept-Encoding,Cookie",
+    "Link": "<https://www.pgc.umn.edu/wp-json/>; rel=\"https://api.w.org/\", <https://www.pgc.umn.edu/wp-json/wp/v2/kbe_knowledgebase/3699>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://www.pgc.umn.edu/?p=3699>; rel=shortlink",
+    "X-Powered-By": "WP Engine",
+    "X-Cacheable": "SHORT",
+    "Cache-Control": "max-age=600, must-revalidate",
+    "X-Cache": "HIT: 1",
+    "X-Cache-Group": "normal",
+    "Content-Encoding": "gzip"
+  },
+  "bytes": 167836,
+  "sha256": "d96d2c8af30b0dc2b358b91372dfe959c6a2422193d7088f66af5faa4309c571"
+}

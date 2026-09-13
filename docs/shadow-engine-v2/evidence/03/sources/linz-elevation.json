@@ -1,0 +1,30 @@
+{
+  "id": "linz-elevation",
+  "url": "https://www.linz.govt.nz/products-services/data/types-linz-data/elevation-data/access-elevation-data",
+  "capturedAt": "2026-09-12T21:05:22.116997+00:00",
+  "status": 200,
+  "finalUrl": "https://www.linz.govt.nz/products-services/data/types-linz-data/elevation-data/access-elevation-data",
+  "headers": {
+    "Content-Type": "text/html; charset=UTF-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Date": "Sat, 12 Sep 2026 21:05:28 GMT",
+    "Last-Modified": "Sat, 12 Sep 2026 21:05:24 GMT",
+    "ETag": "\"1789247124\"",
+    "Server": "Apache/2.4.68 (Amazon Linux)",
+    "Cache-Control": "max-age=2700, public",
+    "Content-Language": "en",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Expires": "Sun, 19 Nov 1978 05:00:00 GMT",
+    "Content-Security-Policy": "default-src 'self' https://*.cognitoforms.com https://*.facebook.com https://*.facebook.net https://*.google-analytics.com https://*.google.com https://*.gstatic.com https://*.hotjar.com https://*.livestream.com https://*.monsido.com https://*.sharethis.com https://*.twitter.com https://maps.google.co.nz https://twitter.com https://www.youtube.com https://app.powerbi.com; connect-src 'self' https://*.cognitoforms.com/ https://*.hotjar.com https://*.hotjar.io https://*.monsido.com https://createsend.com https://edge.api.brightcove.com https://players.brightcove.net https://www.google-analytics.com wss://*.hotjar.com https://*.highcharts.com https://analytics.google.com https://*.dynamics.com/ https://*.azureedge.net https://*.microsoft.com https://vimeo.com/ https://www.googletagmanager.com; frame-src 'self' https://*.azurestaticapps.net https://webforms.landonline.govt.nz/ https://app.powerbi.com https://www.youtube.com https://staticcdn.co.nz https://*.vimeo.com; img-src 'self' https://shielded.co.nz https://*.linz.govt.nz https://*.akamaihd.net https://*.boltdns.net https://*.google-analytics.com https://*.google.com https://*.googleapis.com https://*.hotjar.com https://*.livestream.com https://*.monsido.com https://*.sharethis.com https://*.twimg.com https://livestream.com https://platform.twitter.com https://players.brightcove.net https://staticcdn.co.nz/ https://syndication.twitter.com https://*.openstreetmap.org data: https://*.azurestaticapps.net https://*.google.co.nz https://img.youtube.com https://www.google-analytics.com https://www.googletagmanager.com; media-src 'self' https://*.akafms.net https://*.akamaihd.net https://*.boltdns.net https://*.brightcovecdn.com https://*.cf.brightcove.com https://*.healthy.org.nz https://*.livestream.com https://*.llnw.net https://*.llnwd.net https://*.media.brightcove.com https://livestream.com https://player.vimeo.com https://*.vimeo.com; object-src 'none'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://*.cognitoforms.com https://*.healthy.org.nz https://*.sharethis.com https://*.twitter.com https://players.brightcove.net https://ton.twimg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; frame-ancestors 'self' https://*.dynamics.com/ https://*.azureedge.net https://*.microsoft.com",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Vary": "Cookie",
+    "X-Cache": "Miss from cloudfront",
+    "Via": "1.1 96c01154d1531e369d3852079162d222.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Pop": "IAH50-P4",
+    "X-Amz-Cf-Id": "7X_d_H80Tet-Mp693nfqre07o4t-T7OzbPnfIiIeBqH86tGQKT9VVQ=="
+  },
+  "bytes": 95247,
+  "sha256": "3835e172d3ba452c863546c6b4ab2ddf930df5f231250dff3bdbed298b34a9d4"
+}

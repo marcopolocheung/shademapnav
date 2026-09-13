@@ -1,0 +1,31 @@
+
+ RUN  v4.1.11 /home/wslunusn/ShadeMapNavigation
+
+stdout | app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > reports the disagreement metric
+shadow-field agreement: 150 cases · mean 2.9pp · p90 0.0pp · worst 100.0pp · severe 2.7% · [madrid 3.0pp, singapore 1.1pp, kent-wa 4.5pp]
+
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > covers three city morphologies with a corpus worth trusting 3ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > reports the disagreement metric 2ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > stays under the committed mean threshold 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > stays under the committed p90 threshold 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > keeps the severe tail rare 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > agrees in every city, not just on average 0ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler > is measuring something — the corpus contains real shadow and real sun 190ms
+stdout | app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement at the fill's own opacity
+under canopy fill: shadow-field agreement: 150 cases · mean 2.9pp · p90 0.0pp · worst 100.0pp · severe 2.7% · [madrid 3.0pp, singapore 1.1pp, kent-wa 4.5pp]
+
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement at the fill's own opacity 726ms
+ ✓ app/lib/shadowField/__tests__/agreement/agreement.test.ts > shadow field vs pixel sampler, under the canopy fill > reports the same agreement where the fill is solid 675ms
+stdout | ../../../tmp/umbra-02c-JMATjA/validity.test.ts > caps invalid receiver share overall and separately in every retained city
+{"city":"overall","invalid":370,"total":2020,"share":0.18316831683168316,"ceiling":0.25}
+{"city":"madrid","invalid":140,"total":860,"share":0.16279069767441862,"ceiling":0.25}
+{"city":"singapore","invalid":140,"total":740,"share":0.1891891891891892,"ceiling":0.25}
+{"city":"kent-wa","invalid":90,"total":420,"share":0.21428571428571427,"ceiling":0.25}
+
+ ✓ ../../../tmp/umbra-02c-JMATjA/validity.test.ts > caps invalid receiver share overall and separately in every retained city 915ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  15:06:00
+   Duration  4.65s (transform 205ms, setup 57ms, import 1.80s, tests 2.52s, environment 0ms)
+

@@ -1,0 +1,3 @@
+PASS: 50 terrain-bearing full-schema payloads recovered byte-for-byte; codec round trips verified during measurement; 12 corridor rows unique/nested; 150-case diagnostics retained; no null sidewalks.
+PASS: 55 raw source response bodies match captured SHA-256 hashes.
+PASS: all 31 prior 02c manifest entries unchanged; branch remains main; no app/ diff.

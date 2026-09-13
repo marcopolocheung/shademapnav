@@ -1,0 +1,2584 @@
+{
+  "rows": [
+    {
+      "name": "chm-madrid",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0331110121.tif",
+      "lat": 40.4168,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.19432856695588,
+            1.1943285669559032,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 53683249
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 212992
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 20368343
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 7012721
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 2208271
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 647021
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 176570
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 46486
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 53248
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 13312
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3328
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 832
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 208
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 52
+        }
+      ]
+    },
+    {
+      "name": "chm-kent",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0212300320.tif",
+      "lat": 47.3809,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.1943285669558463,
+            1.1943285669558463,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 175099904
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 212992
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 65106822
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 21991405
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 6622465
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 1873690
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 507711
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 134556
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 53248
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 13312
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3328
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 832
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 208
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 52
+        }
+      ]
+    },
+    {
+      "name": "chm-singapore",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/1322322311.tif",
+      "lat": 1.3521,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.1943285669559032,
+            1.1943285669558792,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 55796971
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 216582
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 20961272
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 7136126
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 2224288
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 651437
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 183191
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 50582
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 55036
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 14218
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3787
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 1059
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 340
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 104
+        }
+      ]
+    },
+    {
+      "name": "chm-nairobi",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3001101022.tif",
+      "lat": -1.2921,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.1943285669558747,
+            1.1943285669558792,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 130682801
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 212992
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 47583453
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 15407453
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 4580620
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 1278812
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 343003
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 89173
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 53248
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 13312
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3328
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 832
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 208
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 52
+        }
+      ]
+    },
+    {
+      "name": "chm-sao_paulo",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/2103111211.tif",
+      "lat": -23.5505,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.1943285669558747,
+            1.1943285669558605,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 184539611
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 213382
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 68043714
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 21908122
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 6319422
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 1740320
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 467232
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 123362
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 53447
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 13424
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3382
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 861
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 221
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 52
+        }
+      ]
+    },
+    {
+      "name": "chm-jakarta",
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3100121113.tif",
+      "lat": -6.2088,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 0,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1.1943285669558463,
+            1.1943285669558783,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 83126315
+        },
+        {
+          "index": 1,
+          "width": 32768,
+          "height": 32768,
+          "newSubfileType": 4,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 216794
+        },
+        {
+          "index": 2,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 30845629
+        },
+        {
+          "index": 3,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 10390064
+        },
+        {
+          "index": 4,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3207491
+        },
+        {
+          "index": 5,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 909675
+        },
+        {
+          "index": 6,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 239068
+        },
+        {
+          "index": 7,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 1,
+          "bits": [
+            8
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 59913
+        },
+        {
+          "index": 8,
+          "width": 16384,
+          "height": 16384,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 55152
+        },
+        {
+          "index": 9,
+          "width": 8192,
+          "height": 8192,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 14246
+        },
+        {
+          "index": 10,
+          "width": 4096,
+          "height": 4096,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3762
+        },
+        {
+          "index": 11,
+          "width": 2048,
+          "height": 2048,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 1046
+        },
+        {
+          "index": 12,
+          "width": 1024,
+          "height": 1024,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 327
+        },
+        {
+          "index": 13,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 5,
+          "bits": [
+            1
+          ],
+          "sampleFormat": [
+            1
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 94
+        }
+      ]
+    },
+    {
+      "name": "cop30",
+      "url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N40_00_W004_00_DEM/Copernicus_DSM_COG_10_N40_00_W004_00_DEM.tif",
+      "lat": 40.4168,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 3600,
+          "height": 3600,
+          "newSubfileType": 0,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 1024,
+          "tileHeight": 1024,
+          "modelPixelScale": [
+            0.0002777777777777778,
+            0.0002777777777777778,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 2,
+            "GTRasterTypeGeoKey": 2,
+            "GeographicTypeGeoKey": 4326,
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "GeogSemiMajorAxisGeoKey": 6378137,
+            "GeogInvFlatteningGeoKey": 298.257223563
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 30283245
+        },
+        {
+          "index": 1,
+          "width": 1800,
+          "height": 1800,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 1024,
+          "tileHeight": 1024,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 7933956
+        },
+        {
+          "index": 2,
+          "width": 900,
+          "height": 900,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 1024,
+          "tileHeight": 1024,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 2087804
+        },
+        {
+          "index": 3,
+          "width": 450,
+          "height": 450,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 1024,
+          "tileHeight": 1024,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 563183
+        }
+      ]
+    },
+    {
+      "name": "cop90",
+      "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_N40_00_W004_00_DEM/Copernicus_DSM_COG_30_N40_00_W004_00_DEM.tif",
+      "lat": 40.4168,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 1200,
+          "height": 1200,
+          "newSubfileType": 0,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 2048,
+          "tileHeight": 2048,
+          "modelPixelScale": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 2,
+            "GTRasterTypeGeoKey": 2,
+            "GeographicTypeGeoKey": 4326,
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "GeogSemiMajorAxisGeoKey": 6378137,
+            "GeogInvFlatteningGeoKey": 298.257223563
+          },
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 3674787
+        },
+        {
+          "index": 1,
+          "width": 600,
+          "height": 600,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 2048,
+          "tileHeight": 2048,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 997693
+        },
+        {
+          "index": 2,
+          "width": 300,
+          "height": 300,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 2048,
+          "tileHeight": 2048,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": null,
+          "compressedTileBytes": 278204
+        }
+      ]
+    },
+    {
+      "name": "aws-geotiff-madrid",
+      "url": "https://s3.amazonaws.com/elevation-tiles-prod/geotiff/13/4011/3088.tif",
+      "lat": 40.4168,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 512,
+          "height": 512,
+          "newSubfileType": 0,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 256,
+          "tileHeight": 256,
+          "modelPixelScale": [
+            9.554628535646998,
+            9.554628535643133,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 2,
+            "GTCitationGeoKey": "WGS 84 / Pseudo-Mercator",
+            "GeogCitationGeoKey": "WGS 84",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 3857,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": "<GDALMetadata>\n  <Item name=\"blockxsize\" domain=\"rio_creation_kwds\">256</Item>\n  <Item name=\"blockysize\" domain=\"rio_creation_kwds\">256</Item>\n  <Item name=\"compress\" domain=\"rio_creation_kwds\">deflate</Item>\n  <Item name=\"predictor\" domain=\"rio_creation_kwds\">3</Item>\n  <Item name=\"tiled\" domain=\"rio_creation_kwds\">True</Item>\n</GDALMetadata>\n\u0000",
+          "nodata": "-3.4028234663852886e+38\u0000",
+          "compressedTileBytes": 514265
+        }
+      ]
+    },
+    {
+      "name": "ign-egm08-rednap",
+      "url": "https://cdn.proj.org/es_ign_egm08-rednap.tif",
+      "lat": 40.4168,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 841,
+          "height": 541,
+          "newSubfileType": 0,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 256,
+          "tileHeight": 256,
+          "modelPixelScale": [
+            0.01666666,
+            0.01666666,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 2,
+            "GTRasterTypeGeoKey": 2,
+            "GeographicTypeGeoKey": 4258,
+            "VerticalCSTypeGeoKey": 4937
+          },
+          "gdalMetadata": "<GDALMetadata>\n  <Item name=\"area_of_use\">Spain - mainland and Balearic Islands</Item>\n  <Item name=\"target_crs_epsg_code\">5782</Item>\n  <Item name=\"TYPE\">VERTICAL_OFFSET_GEOGRAPHIC_TO_VERTICAL</Item>\n  <Item name=\"UNITTYPE\" sample=\"0\" role=\"unittype\">metre</Item>\n  <Item name=\"DESCRIPTION\" sample=\"0\" role=\"description\">geoid_undulation</Item>\n</GDALMetadata>\n\u0000",
+          "nodata": null,
+          "compressedTileBytes": 826778
+        }
+      ]
+    },
+    {
+      "name": "linz-dem-AS21",
+      "url": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/AS21.tiff",
+      "lat": -34.5,
+      "ifds": [
+        {
+          "index": 0,
+          "width": 24000,
+          "height": 36000,
+          "newSubfileType": 0,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "modelPixelScale": [
+            1,
+            1,
+            0
+          ],
+          "geoKeys": {
+            "GTModelTypeGeoKey": 1,
+            "GTRasterTypeGeoKey": 1,
+            "GTCitationGeoKey": "NZGD2000 / New Zealand Transverse Mercator 2000",
+            "GeogCitationGeoKey": "NZGD2000",
+            "GeogAngularUnitsGeoKey": 9102,
+            "ProjectedCSTypeGeoKey": 2193,
+            "ProjLinearUnitsGeoKey": 9001
+          },
+          "gdalMetadata": "<GDALMetadata>\n  <Item name=\"STATISTICS_MAXIMUM\" sample=\"0\">203.88200378418</Item>\n  <Item name=\"STATISTICS_MEAN\" sample=\"0\">4.2217995519059</Item>\n  <Item name=\"STATISTICS_MINIMUM\" sample=\"0\">-2.279000043869</Item>\n  <Item name=\"STATISTICS_STDDEV\" sample=\"0\">25.054011057902</Item>\n  <Item name=\"STATISTICS_VALID_PERCENT\" sample=\"0\">0.84</Item>\n  <Item name=\"MAX_Z_ERROR\" domain=\"IMAGE_STRUCTURE\">0.001</Item>\n  <Item name=\"MAX_Z_ERROR_OVERVIEW\" domain=\"IMAGE_STRUCTURE\">0.1</Item>\n</GDALMetadata>\n\u0000",
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 1557483
+        },
+        {
+          "index": 1,
+          "width": 12000,
+          "height": 18000,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 315636
+        },
+        {
+          "index": 2,
+          "width": 6000,
+          "height": 9000,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 120643
+        },
+        {
+          "index": 3,
+          "width": 3000,
+          "height": 4500,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 53454
+        },
+        {
+          "index": 4,
+          "width": 1500,
+          "height": 2250,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 31019
+        },
+        {
+          "index": 5,
+          "width": 750,
+          "height": 1125,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 19395
+        },
+        {
+          "index": 6,
+          "width": 375,
+          "height": 562,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 10598
+        },
+        {
+          "index": 7,
+          "width": 187,
+          "height": 281,
+          "newSubfileType": 1,
+          "bits": [
+            32
+          ],
+          "sampleFormat": [
+            3
+          ],
+          "tileWidth": 512,
+          "tileHeight": 512,
+          "geoKeys": null,
+          "gdalMetadata": null,
+          "nodata": "-9999\u0000",
+          "compressedTileBytes": 5547
+        }
+      ]
+    }
+  ],
+  "calls": [
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0331110121.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d58acf19fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/84604237",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:07 GMT",
+        "etag": "\"646643caf0320921bccba46a02f11a18\"",
+        "last-modified": "Wed, 03 Jun 2026 03:34:23 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=ernBTcoCImcJxxaNWsYsZH5otnldIzDIbjmRxmlRvizNBdXJWDmczIuwasaolHp2qyRYWdxSykMslbzeweO5gYdF4jdzXAYQWYwiT9M%2FKfM%2FZvaAn44Ciaven%2BjIYcESKcfn\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=285, dispatch;dur=285, backend;dur=268",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "+2VPW34+4BQwOtg8NFiwSemAJm2CYgY3v8kqiv2fYZXeigbdmUsUfvUR1AsQPqNn0auC/WtbsPiO0CLOZxINQz7S3rxw1Hls",
+        "x-amz-meta-mtime": "1767861141",
+        "x-amz-request-id": "FT2KEV3J1S7G32DX",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "UJW7f.N_uCVUmaSadmk6HwasxXF.yQQG",
+        "x-request-id": "a3a1d58acf19fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "52527d32e4f19d8c07551145850b351d9065f4b23fad01a3a3117749b60f2438",
+      "capturedAt": "2026-09-12T20:59:07.674Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0331110121.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d58d99defa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/84604237",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:08 GMT",
+        "etag": "\"646643caf0320921bccba46a02f11a18\"",
+        "last-modified": "Wed, 03 Jun 2026 03:34:23 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=AXv%2BJMItb%2BMHdPwpMlKdaW%2BpaSis4WNsHrU2Ry7FMDYsuS89kZdX4%2BRoWggDhgMC4wDysua%2FXs8teC3e70szhDmUQvtc2%2Fuh3w9eAI9Hn1gEZr5K%2Bsw1e6zaPiT0sHcu0BPe\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=260, dispatch;dur=260, backend;dur=250",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "c5UIi3jTVeebDXkyyW3fupfjk1BuSqB4pyNc85onVCM4cxp4b07mvSMajS3ncl4dbnoerw5dVsz4IL9KkZJgYTm6PMIlpNjq",
+        "x-amz-meta-mtime": "1767861141",
+        "x-amz-request-id": "FT2H7ACAHBDAATSS",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "UJW7f.N_uCVUmaSadmk6HwasxXF.yQQG",
+        "x-request-id": "a3a1d58d99defa6c"
+      },
+      "bytes": 65536,
+      "sha256": "44ccf2dce465bda177c9325e8931d895d5083c8ddea5cc71186c2716dcef5bcb",
+      "capturedAt": "2026-09-12T20:59:08.095Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0212300320.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d5902bb7fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/271798129",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:08 GMT",
+        "etag": "\"fad393d97bc271e7e9527a812dbc6a5e-9\"",
+        "last-modified": "Wed, 03 Jun 2026 02:59:58 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=osfHOHtDEUpj9er01or9PiIuA8qJTBIN3bzHGVafiFhNrmQEkiHDbMT38K1FEG5oWKP6TSng7zryuww9wbMz4C6DvgjsAhp%2Fxfjw0%2FP1%2B%2FQIeMobeOgaVxOQpsMQ90qHZrBY\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=358, dispatch;dur=358, backend;dur=345",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "eq8NiswAaww6fXqDnDVKUu09/SPr8zGAw1pzwsWn/LXaesGDc9mX+kMzbpCcTrcF2cOaP+IoNKg=",
+        "x-amz-meta-mtime": "1767737249",
+        "x-amz-request-id": "RCV2BX2XWPMGM4A8",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "0_sZZTbH9u6DOFoGtHauUGJML1KYf4wt",
+        "x-request-id": "a3a1d5902bb7fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "56c74c304417dae2488b8ce664f704e99c0eedbe9fad2bccf428f5b43fbe57fc",
+      "capturedAt": "2026-09-12T20:59:08.608Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/0212300320.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d5934862fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/271798129",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:08 GMT",
+        "etag": "\"fad393d97bc271e7e9527a812dbc6a5e-9\"",
+        "last-modified": "Wed, 03 Jun 2026 02:59:58 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=J90jQZ0137TAICevRnfyWD5xo19SYZTtZHnxSpKg9shS%2FexcM%2Bg%2FTa5XRTz1L5lLuvU4vfYhfPVM5E7ACMQ3NY2KpNOvo5WsXjVSqV0kghOhl%2Bebz%2Fd3M8mjEs68KVBhkn5f\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=239, dispatch;dur=239, backend;dur=229",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "LSOGPAa2PeAX5IQbyljCxyjXNiAjYbmy1LJs644tmeY4T0kJeWpGP1nA2Ea2L47UPBRHrWqcn5HUa6MyHXokyueF1tvpgTmu",
+        "x-amz-meta-mtime": "1767737249",
+        "x-amz-request-id": "RCVE6P2EG43VNKR4",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "0_sZZTbH9u6DOFoGtHauUGJML1KYf4wt",
+        "x-request-id": "a3a1d5934862fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "34b95cc0cfec1225f7a3b2ce586b0532954dad70a3689067b283dd65b0a1f77c",
+      "capturedAt": "2026-09-12T20:59:08.983Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/1322322311.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d595aa25fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/87472597",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:09 GMT",
+        "etag": "\"ea776778a02b954ce79e312081c69116\"",
+        "last-modified": "Wed, 03 Jun 2026 13:35:43 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=%2F91jMPzY9Z4WfXfKVSk5QnrNjjb%2BdkCN1SON66dT0J%2BClbRKYxTm2q1LEWu%2B1z4YevO2Z%2BmiNtZAjlVFWIwJqMNwM6R0KHeiU4V%2BUdbMlS7Mvua3gr2B5FiBwFlo3rOFMV7G\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=348, dispatch;dur=348, backend;dur=337",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "kVE/5Yduv5Dr8xxf7T/qZTxrzFP0BT72o1pkMoMXCeeILrUsH3qeDjIBOw3mKCgQ0gqEWpRNrHQ=",
+        "x-amz-meta-mtime": "1768404173",
+        "x-amz-request-id": "VJ8QVEMVEEWK7R67",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "X_OW1HQheGHM.7r1SLhFUpzbc_MQ36MZ",
+        "x-request-id": "a3a1d595aa25fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "56b7b79305adc34cca7c35d6aca32dfbb181793069818a66aeb524194a57c249",
+      "capturedAt": "2026-09-12T20:59:09.485Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/1322322311.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d598ce81fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/87472597",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:09 GMT",
+        "etag": "\"ea776778a02b954ce79e312081c69116\"",
+        "last-modified": "Wed, 03 Jun 2026 13:35:43 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=OBVsasz8CWKIAXqpQap7CfunLSF49QvFYf71F63v2SxMtSTxrDHri%2BFgcav6vduDqGyINOjEZOEXPdP8TAfMStU3nZ6peLq6hg5B140X6njhjU17Wm2HAGvCAS6Jx0fgyVpg\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=89, dispatch;dur=89, backend;dur=78",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "FKEtDGaqxcudK+VcRF6O/gbFmf4+yd9G4McF44A+vCVI+CUEqihGLFKsS3iW9TyRTxru4nNmY1ZV6Y4WZP7fx1a0NUBSH7pp",
+        "x-amz-meta-mtime": "1768404173",
+        "x-amz-request-id": "VJ8XC9MFRG1N3HE1",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "X_OW1HQheGHM.7r1SLhFUpzbc_MQ36MZ",
+        "x-request-id": "a3a1d598ce81fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "b9987f9a31fa03a89f2377acf287f33e1bfd0e5213d59d82b766f2fba1318bf7",
+      "capturedAt": "2026-09-12T20:59:09.663Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3001101022.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d599eb2cfa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/200426891",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:10 GMT",
+        "etag": "\"79c7bb2545f51c6f18b3fa9d00ffc782\"",
+        "last-modified": "Wed, 03 Jun 2026 03:26:58 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=PpKSbRKuS1bSq3GbdlpsL5FQu5XyOzkiOABVbes%2BnU8sB%2FBgTa%2FVjPWUSdmJJg6tWAqf%2Fy8VeMyINg6fST7uN3lkXzZcdIy8ToeXJoNQ4YyhbBvcYq3%2FW1ZVzapUfHt8T0wv\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=294, dispatch;dur=294, backend;dur=282",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "cqrHdNlYkfOB0/ru9NJfffDMK/XoPWIAH5crJliLnVgfYqgAP9yW5nri/CrKUUM7T4V7VZ75tFmpnMT/Jolp353yROhze16j",
+        "x-amz-meta-mtime": "1768457928",
+        "x-amz-request-id": "VJ8MTKHKXEJ79SN0",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "OnJDOyY8DPIi7nfCxyBhECine5h4LQKO",
+        "x-request-id": "a3a1d599eb2cfa6c"
+      },
+      "bytes": 65536,
+      "sha256": "60855ce4013582b5c5804ebfb17820bb9aeeeeda257abaef38eeff3278f5d1f7",
+      "capturedAt": "2026-09-12T20:59:10.071Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3001101022.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d59c6d41fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/200426891",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:10 GMT",
+        "etag": "\"79c7bb2545f51c6f18b3fa9d00ffc782\"",
+        "last-modified": "Wed, 03 Jun 2026 03:26:58 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=B%2BayFdwmTnUOn8EOduR65grVyzpX01dbTDhrpxsjPgTCtJXBscQci%2FjK91iRaUBVIzuiqCE7tk7Kyip%2FxFluAUQcz%2Fp3s1OwdXdxmbu0tluCqIyqrKtSKLjHfx%2FsLtRX1rnU\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=265, dispatch;dur=265, backend;dur=250",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "0b0Syw4jgALZQKiR7ydLB7hH+xyssfOK0bqaWnaR5mqrstpAvLILclp8NKEIaluzbuSTBcn05qs=",
+        "x-amz-meta-mtime": "1768457928",
+        "x-amz-request-id": "4DCE49H1WMM09N8H",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "OnJDOyY8DPIi7nfCxyBhECine5h4LQKO",
+        "x-request-id": "a3a1d59c6d41fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "953bc14921b60708444a9d5072a930a05b184c846b193baebfdb56698b5eb814",
+      "capturedAt": "2026-09-12T20:59:10.483Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/2103111211.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d59f083dfa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/283604156",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:10 GMT",
+        "etag": "\"9e2f86c6b7c06b2fe110860e0e9d5209-9\"",
+        "last-modified": "Wed, 03 Jun 2026 03:33:39 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=hdRZ8%2BE0fo76BB%2FgT9AhhiXeJG86fV%2B6h%2BAOM2%2BTe9aLk679IKz60Iji3cZ%2BCEFtfY8zeMI4FUMAyYGofXYbitHsO%2FJ6KISNYKxuWXgK%2FSW22ZHLOx5ezZAfycvEFDXDdPRi\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=220, dispatch;dur=220, backend;dur=211",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "5jh3UQ5oQa/3S4h0HnY1tab8XTx9Dk5Rb/p/PXUsOh3oUjP9ORsDUaZcyP4+P1GFXIIT0pqkwA0=",
+        "x-amz-meta-mtime": "1768437988",
+        "x-amz-request-id": "4DC2AX5GH9GYJA52",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "33Y6G2YOqpMVnKzCsQmTZdlRkqQqFZWH",
+        "x-request-id": "a3a1d59f083dfa6c"
+      },
+      "bytes": 65536,
+      "sha256": "e61252329152b8e4fb139a9654f66530403e0f0dee49e637ccba0bd675ee5835",
+      "capturedAt": "2026-09-12T20:59:10.814Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/2103111211.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d5a10805fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/283604156",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:10 GMT",
+        "etag": "\"9e2f86c6b7c06b2fe110860e0e9d5209-9\"",
+        "last-modified": "Wed, 03 Jun 2026 03:33:39 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=bw87bTzLsISLiTAjDcp5oh8YR%2FfVTNa6WmyGDRoi5XbHetfUpcPSRw4x%2FGIqfKr2%2Fi15N%2BRj%2Bklw%2FJa5NAqUm0rEtSdboKSMx%2FOd4G6Z0xQduvz15DSqfFsZ0Q%2FG%2BOcqHUkY\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=87, dispatch;dur=87, backend;dur=77",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "/ingZNCi59JJ/Yd/5VJVgRm/Pb0SjcZvOnVhnJKCHD3ooWDd2HJM/MPqRIR1AHTEzV3SlgSI9kAjsi0mt+Np9WlGHSgtiDJY",
+        "x-amz-meta-mtime": "1768437988",
+        "x-amz-request-id": "4DC5G78CEVSBT3VD",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "33Y6G2YOqpMVnKzCsQmTZdlRkqQqFZWH",
+        "x-request-id": "a3a1d5a10805fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "c8cc7ce4140a4f8c8b6da42d5103478e53f10699d7077187dbc4307de735b24a",
+      "capturedAt": "2026-09-12T20:59:10.946Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3100121113.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d5a1fb8afa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/129247180",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:11 GMT",
+        "etag": "\"da3aae1a8f4ce76aa36d4f4c55175c85\"",
+        "last-modified": "Wed, 03 Jun 2026 03:23:29 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=Km%2F8r44%2BU8TothzijsNMVobGXTbmmA%2FYEjzNbgk8rLOfQAWoM0ZumD7UlbscVaNlJ%2BpusLZYSuwd2DVs9wR09buirRI5GILZFAdjM4nKZN%2BIBGVSCxIlVIUxzjpeOkjk52Od\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=168, dispatch;dur=168, backend;dur=158",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "W0yKk9m9ds/xtr7Lb/S8deraDwC93uXSAS+h05G908TKtmfTNcgqpu3VzhdiLd1qBti1mQ2CsyA=",
+        "x-amz-meta-mtime": "1768471115",
+        "x-amz-request-id": "W6WNFS6WM3JEC7W4",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "errpT14i149TnZRwXTASDgDYOxKTMyY9",
+        "x-request-id": "a3a1d5a1fb8afa6c"
+      },
+      "bytes": 65536,
+      "sha256": "93c2854a33a02053bc4908cdf776de8d7b6ea8d24510ba8c16729177a39668d7",
+      "capturedAt": "2026-09-12T20:59:11.205Z"
+    },
+    {
+      "url": "https://data.source.coop/tge-labs/meta-chm-v2/chm/3100121113.tif",
+      "range": "bytes=65536-131071",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, PUT, POST, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1d5a3bc08fa6c-DFW",
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 65536-131071/129247180",
+        "content-type": "binary/octet-stream",
+        "date": "Sat, 12 Sep 2026 20:59:11 GMT",
+        "etag": "\"da3aae1a8f4ce76aa36d4f4c55175c85\"",
+        "last-modified": "Wed, 03 Jun 2026 03:23:29 GMT",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=ahAE1AYfcjaL3GMo2%2FxKnjAxN5KZOnZ4cfRaSz5XzRxw%2FkyBqO5Fi58H21V%2F7uWjBIaGXIw2Vynh4Hkt8uXotl2ryZmbjIIr2V%2B5hhvPwoy0GEMFh3V8Ss4aSG6IpIrpRzT8\"}]}",
+        "server": "cloudflare",
+        "server-timing": "total;dur=96, dispatch;dur=96, backend;dur=86",
+        "speculation-rules": "\"/cdn-cgi/speculation\"",
+        "x-amz-id-2": "Pz+SBRI2jFI+O/Z5L+IQ6rvLw+JEZfiL61NI0EPdoP39IjjNt+XOM+XePyEaLq+cNZvXW6vWGqU=",
+        "x-amz-meta-mtime": "1768471115",
+        "x-amz-request-id": "W6WPYKZ4JY9A3EYM",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "errpT14i149TnZRwXTASDgDYOxKTMyY9",
+        "x-request-id": "a3a1d5a3bc08fa6c"
+      },
+      "bytes": 65536,
+      "sha256": "28db404bb78913c5614c6fdf8511a10dfdf691d46f29c96551c2ab3756742540",
+      "capturedAt": "2026-09-12T20:59:11.347Z"
+    },
+    {
+      "url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N40_00_W004_00_DEM/Copernicus_DSM_COG_10_N40_00_W004_00_DEM.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/40869620",
+        "content-type": "image/tiff",
+        "date": "Sat, 12 Sep 2026 20:59:12 GMT",
+        "etag": "\"15e58eaf5057acf1705499c9298945ee\"",
+        "last-modified": "Mon, 09 May 2022 14:21:38 GMT",
+        "server": "AmazonS3",
+        "x-amz-id-2": "ZQqKgAJFfXX45OmC3CZOischnU5qLA3bH3k22z0htIrRsERTZ8lVFmQ2uwoKyPyiGMC4jNoo4ew=",
+        "x-amz-request-id": "W6WG2M7PA7927EXW",
+        "x-amz-version-id": "null"
+      },
+      "bytes": 65536,
+      "sha256": "5c10f702b74a2c039d6b6271d30de5d7e31d5747fac42ac5fc992f881527f88e",
+      "capturedAt": "2026-09-12T20:59:11.990Z"
+    },
+    {
+      "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_N40_00_W004_00_DEM/Copernicus_DSM_COG_30_N40_00_W004_00_DEM.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/4951630",
+        "content-type": "image/tiff",
+        "date": "Sat, 12 Sep 2026 20:59:13 GMT",
+        "etag": "\"7512e0affba57c906d7b0275045d452c\"",
+        "last-modified": "Mon, 09 May 2022 12:59:26 GMT",
+        "server": "AmazonS3",
+        "x-amz-id-2": "WiijK9i33Mm6hZGYNNP2Yugkxu8VTEQwcBWwHIRnMuDW3UwDCNPnl/lIN4pnXP6VgS3qLcdHOJJbvXiFLB6CMcVrcJxtSHzX",
+        "x-amz-request-id": "5YFZQ9ER0HJKHYHQ",
+        "x-amz-version-id": "null"
+      },
+      "bytes": 65536,
+      "sha256": "62b3ec045e59c33346baca73f0cadff7ec06c454ad88024b17ab36b43d5d9850",
+      "capturedAt": "2026-09-12T20:59:12.798Z"
+    },
+    {
+      "url": "https://s3.amazonaws.com/elevation-tiles-prod/geotiff/13/4011/3088.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/515081",
+        "content-type": "image/tiff",
+        "date": "Sat, 12 Sep 2026 20:59:14 GMT",
+        "etag": "\"4e9691be868afdcb4c5a012c7c63ad9c\"",
+        "last-modified": "Sat, 02 Dec 2017 00:23:57 GMT",
+        "server": "AmazonS3",
+        "x-amz-id-2": "SkvIkp3GpH+/bI5nTHQJLzS72AOGlubkTb/itxfm1mm/4hymq6onVE8v9OTU7XD8PtLjT9XJtCXx/gETZvwbSrlU6Rc+b0zQ",
+        "x-amz-meta-x-imagery-sources": "eudem/eudem_dem_5deg_n40w005.tif",
+        "x-amz-request-id": "RFKFQHT0M5JEBSK6",
+        "x-amz-version-id": "ghY3xC70xF_9Lw.fLvLGW5NMwd4bA27r"
+      },
+      "bytes": 65536,
+      "sha256": "caa86dabeb1f98d08cb9c0efb10632c6058f62af0b17cd82b4c76b0e51f2887c",
+      "capturedAt": "2026-09-12T20:59:13.149Z"
+    },
+    {
+      "url": "https://cdn.proj.org/es_ign_egm08-rednap.tif",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "connection": "keep-alive",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/827857",
+        "content-type": "image/tiff",
+        "date": "Sun, 13 Sep 2026 01:04:38 GMT",
+        "etag": "\"df0a63b54749a69ea990ab627b2c6b1b\"",
+        "last-modified": "Tue, 09 Jun 2020 14:49:49 GMT",
+        "server": "AmazonS3",
+        "via": "1.1 432913c0b9b6a4264c846f9505ef2ce6.cloudfront.net (CloudFront)",
+        "x-amz-cf-id": "axThbgFBngSIDTWPjn-5o1_eWhdp3YCdc7CJbLO28rC9-nzlBZvTBQ==",
+        "x-amz-cf-pop": "IAH50-P3",
+        "x-amz-version-id": "ro3yXgMUN95jerb.rz4aLFg1rFAeScMj",
+        "x-cache": "RefreshHit from cloudfront"
+      },
+      "bytes": 65536,
+      "sha256": "76c9420969c4c33d84c634fdf454b6a8e07b655336fffe3b826382ebecbac492",
+      "capturedAt": "2026-09-13T01:04:37.791Z"
+    },
+    {
+      "url": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/AS21.tiff",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/2152909",
+        "content-type": "image/tiff; application=geotiff; profile=cloud-optimized",
+        "date": "Sun, 13 Sep 2026 01:04:39 GMT",
+        "etag": "\"4701003399aa4443dbc9f57fff95801c\"",
+        "last-modified": "Tue, 03 Dec 2024 02:28:43 GMT",
+        "server": "AmazonS3",
+        "x-amz-id-2": "j/D09IIQjlYmsC4ecJdy5sWH4m7bUak1DFlcacGxQR741FjBfFnCh0hXvQH+PYMUDNbHPlALjgI=",
+        "x-amz-meta-multihash": "122019bb924956d5c0c2f5da0aed0e43d761a79e5683bbb91e632356394dbd7cff75",
+        "x-amz-request-id": "CXQR0DZ3828VC5W3",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-storage-class": "INTELLIGENT_TIERING",
+        "x-amz-version-id": "jnf.90Upy1Mzwlr.MM.qsuhgESulJrX6"
+      },
+      "bytes": 65536,
+      "sha256": "9e5e73895538bf23d8f7ee3825df606838f3f4b1911f6738413cb3205656b15d",
+      "capturedAt": "2026-09-13T01:04:38.778Z"
+    }
+  ]
+}

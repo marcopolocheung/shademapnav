@@ -1,0 +1,716 @@
+[
+  {
+    "i": 28,
+    "city": "madrid",
+    "side": "left",
+    "delta": 0.625,
+    "edgeIndex": 5,
+    "when": "2026-12-21T13:00:00.000Z",
+    "altitudeDeg": 25.217082528565427,
+    "azimuthNorthDeg": 191.90701883732945,
+    "edgeBearingDeg": 0,
+    "answer": 0.625,
+    "reference": 0,
+    "mismatchingPoints": [
+      {
+        "lng": -3.70428381011182,
+        "lat": 40.41628667932858,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          136
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.7042719581039902,
+        "pixelLat": 40.41627718289616,
+        "pixelShiftM": 1.4582744767287021,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20505494030250482,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70428381011182,
+        "lat": 40.41649200759715,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          117
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.7042719581039902,
+        "pixelLat": 40.41648199784405,
+        "pixelShiftM": 1.5002153458206469,
+        "footprintDistanceM": 9.96425753707278,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20505494030250482,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70428381011182,
+        "lat": 40.41669733586572,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          98
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.7042719581039902,
+        "pixelLat": 40.41668681279195,
+        "pixelShiftM": 1.5431326348576233,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20505494030250482,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70428381011182,
+        "lat": 40.417107992402855,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          59
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.7042719581039902,
+        "pixelLat": 40.41710722242185,
+        "pixelShiftM": 1.008146997400863,
+        "footprintDistanceM": 9.964257537072783,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.2050549403025048,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70428381011182,
+        "lat": 40.417313320671425,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          40
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.7042719581039902,
+        "pixelLat": 40.41731203736975,
+        "pixelShiftM": 1.0146041557435208,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.2050549403025048,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      }
+    ]
+  },
+  {
+    "i": 38,
+    "city": "madrid",
+    "side": "left",
+    "delta": 0.625,
+    "edgeIndex": 7,
+    "when": "2026-12-21T13:00:00.000Z",
+    "altitudeDeg": 25.216934248188142,
+    "azimuthNorthDeg": 191.90796196790583,
+    "edgeBearingDeg": 0,
+    "answer": 0.625,
+    "reference": 0,
+    "mismatchingPoints": [
+      {
+        "lng": -3.70333989390384,
+        "lat": 40.41628667932858,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          136
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.70332804189601,
+        "pixelLat": 40.41627718289616,
+        "pixelShiftM": 1.4582744767287021,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20583495488653192,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70333989390384,
+        "lat": 40.41649200759715,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          117
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.70332804189601,
+        "pixelLat": 40.41648199784405,
+        "pixelShiftM": 1.5002153458206469,
+        "footprintDistanceM": 9.96425753707278,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20583495488653192,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70333989390384,
+        "lat": 40.41669733586572,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          98
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.70332804189601,
+        "pixelLat": 40.41668681279195,
+        "pixelShiftM": 1.5431326348576233,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20583495488653192,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70333989390384,
+        "lat": 40.417107992402855,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          59
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.70332804189601,
+        "pixelLat": 40.41710722242185,
+        "pixelShiftM": 1.008146997400863,
+        "footprintDistanceM": 9.964257537072783,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20583495488653192,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -3.70333989390384,
+        "lat": 40.417313320671425,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          18,
+          40
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -3.70332804189601,
+        "pixelLat": 40.41731203736975,
+        "pixelShiftM": 1.0146041557435208,
+        "footprintDistanceM": 8.995503394930347,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.20583495488653192,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      }
+    ]
+  },
+  {
+    "i": 45,
+    "city": "madrid",
+    "side": "left",
+    "delta": 0.5,
+    "edgeIndex": 9,
+    "when": "2026-06-21T10:00:00.000Z",
+    "altitudeDeg": 56.68321450470941,
+    "azimuthNorthDeg": 110.14348647953575,
+    "edgeBearingDeg": 135.0000000000548,
+    "answer": 0,
+    "reference": 0.5,
+    "mismatchingPoints": [
+      {
+        "lng": -3.7041441564899027,
+        "lat": 40.417112896215464,
+        "valid": true,
+        "candidate": 0,
+        "reference": 1,
+        "pixel": [
+          63,
+          59
+        ],
+        "rgb": [
+          88,
+          109,
+          142
+        ],
+        "pixelLng": -3.704139809834873,
+        "pixelLat": 40.41710722242185,
+        "pixelShiftM": 0.7311912542589607,
+        "footprintDistanceM": 4.831606705165257,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 1,
+        "shadowBoundaryDistanceM": 0.07815587391865364,
+        "nearestShadowBoundaryBearingDeg": 90.0,
+        "boundaryToEdgeAcuteDeg": 45.0000000000548
+      },
+      {
+        "lng": -3.7032002402819226,
+        "lat": 40.41639424727547,
+        "valid": true,
+        "candidate": 0,
+        "reference": 1,
+        "pixel": [
+          130,
+          126
+        ],
+        "rgb": [
+          88,
+          109,
+          142
+        ],
+        "pixelLng": -3.703191174045853,
+        "pixelLat": 40.416384980237154,
+        "pixelShiftM": 1.2863283603527367,
+        "footprintDistanceM": 4.831606705165257,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 1,
+        "shadowBoundaryDistanceM": 0.07815587391865364,
+        "nearestShadowBoundaryBearingDeg": 90.0,
+        "boundaryToEdgeAcuteDeg": 45.0000000000548
+      }
+    ]
+  },
+  {
+    "i": 48,
+    "city": "madrid",
+    "side": "left",
+    "delta": 0.5,
+    "edgeIndex": 9,
+    "when": "2026-12-21T13:00:00.000Z",
+    "altitudeDeg": 25.21701395031902,
+    "azimuthNorthDeg": 191.90745503570795,
+    "edgeBearingDeg": 135.0000000000548,
+    "answer": 0.5,
+    "reference": 1,
+    "mismatchingPoints": [
+      {
+        "lng": -3.7041441564899027,
+        "lat": 40.417112896215464,
+        "valid": true,
+        "candidate": 0,
+        "reference": 1,
+        "pixel": [
+          63,
+          59
+        ],
+        "rgb": [
+          93,
+          116,
+          153
+        ],
+        "pixelLng": -3.704139809834873,
+        "pixelLat": 40.41710722242185,
+        "pixelShiftM": 0.7311912542589607,
+        "footprintDistanceM": 4.831606705165257,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 1,
+        "shadowBoundaryDistanceM": 0.18320035635131438,
+        "nearestShadowBoundaryBearingDeg": 11.907455035707983,
+        "boundaryToEdgeAcuteDeg": 56.907455035653186
+      },
+      {
+        "lng": -3.7032002402819226,
+        "lat": 40.41639424727547,
+        "valid": true,
+        "candidate": 0,
+        "reference": 1,
+        "pixel": [
+          130,
+          126
+        ],
+        "rgb": [
+          93,
+          116,
+          153
+        ],
+        "pixelLng": -3.703191174045853,
+        "pixelLat": 40.416384980237154,
+        "pixelShiftM": 1.2863283603527367,
+        "footprintDistanceM": 4.831606705165257,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 1,
+        "shadowBoundaryDistanceM": 0.1832003563513135,
+        "nearestShadowBoundaryBearingDeg": 11.907455035707926,
+        "boundaryToEdgeAcuteDeg": 56.90745503565313
+      }
+    ]
+  },
+  {
+    "i": 84,
+    "city": "singapore",
+    "side": "right",
+    "delta": 0.28571428571428575,
+    "edgeIndex": 6,
+    "when": "2026-09-21T10:00:00.000Z",
+    "altitudeDeg": 14.583524653295795,
+    "azimuthNorthDeg": 270.4756380120308,
+    "edgeBearingDeg": 0,
+    "answer": 0.7142857142857143,
+    "reference": 0.42857142857142855,
+    "mismatchingPoints": [
+      {
+        "lng": 103.8201504793371,
+        "lat": 1.3518903940591689,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          99
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": 103.82015223605507,
+        "pixelLat": 1.3518844053180021,
+        "pixelShiftM": 0.6947416940527453,
+        "footprintDistanceM": 8.536276845395552,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.2583607609394389,
+        "nearestShadowBoundaryBearingDeg": 90.4756380120308,
+        "boundaryToEdgeAcuteDeg": 89.5243619879692
+      },
+      {
+        "lng": 103.8201504793371,
+        "lat": 1.3525192118816627,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          41
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": 103.82015223605507,
+        "pixelLat": 1.352509629895796,
+        "pixelShiftM": 1.0844350394613564,
+        "footprintDistanceM": 8.536276845395552,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.2583607609394389,
+        "nearestShadowBoundaryBearingDeg": 90.4756380120308,
+        "boundaryToEdgeAcuteDeg": 89.5243619879692
+      }
+    ]
+  },
+  {
+    "i": 135,
+    "city": "kent-wa",
+    "side": "right",
+    "delta": 0.5,
+    "edgeIndex": 7,
+    "when": "2026-06-21T18:00:00.000Z",
+    "altitudeDeg": 54.61001651485365,
+    "azimuthNorthDeg": 121.02550633634594,
+    "edgeBearingDeg": 0,
+    "answer": 0.75,
+    "reference": 0.25,
+    "mismatchingPoints": [
+      {
+        "lng": -122.23449480806627,
+        "lat": 47.380612540423996,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          75
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23449221439687,
+        "pixelLat": 47.38060355731225,
+        "pixelShiftM": 1.0189315859566088,
+        "footprintDistanceM": 0.004496604903007914,
+        "onFootprint": true,
+        "pixelOnFootprint": true,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.004496604903007295,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -122.23449480806627,
+        "lat": 47.381187459576,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          21
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23449221439687,
+        "pixelLat": 47.38118566295364,
+        "pixelShiftM": 0.27968120714196465,
+        "footprintDistanceM": 0.004496604903007914,
+        "onFootprint": true,
+        "pixelOnFootprint": true,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.004496604903007295,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      }
+    ]
+  },
+  {
+    "i": 138,
+    "city": "kent-wa",
+    "side": "right",
+    "delta": 0.5,
+    "edgeIndex": 7,
+    "when": "2026-12-21T20:00:00.000Z",
+    "altitudeDeg": 19.161154425660825,
+    "azimuthNorthDeg": 178.2245163696881,
+    "edgeBearingDeg": 0,
+    "answer": 1,
+    "reference": 0.5,
+    "mismatchingPoints": [
+      {
+        "lng": -122.23449480806627,
+        "lat": 47.380612540423996,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          75
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23449221439687,
+        "pixelLat": 47.38060355731225,
+        "pixelShiftM": 1.0189315859566088,
+        "footprintDistanceM": 0.004496604903007914,
+        "onFootprint": true,
+        "pixelOnFootprint": true,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.004496604903007295,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      },
+      {
+        "lng": -122.23449480806627,
+        "lat": 47.381187459576,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          24,
+          21
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23449221439687,
+        "pixelLat": 47.38118566295364,
+        "pixelShiftM": 0.27968120714196465,
+        "footprintDistanceM": 0.004496604903007914,
+        "onFootprint": true,
+        "pixelOnFootprint": true,
+        "vectorAtPoint": 0,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.004496604903007295,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 0.0
+      }
+    ]
+  },
+  {
+    "i": 144,
+    "city": "kent-wa",
+    "side": "right",
+    "delta": 1,
+    "edgeIndex": 8,
+    "when": "2026-12-21T22:00:00.000Z",
+    "altitudeDeg": 14.773302496420847,
+    "azimuthNorthDeg": 206.6037015440237,
+    "edgeBearingDeg": 45.00000000013597,
+    "answer": 1,
+    "reference": 0,
+    "mismatchingPoints": [
+      {
+        "lng": -122.23497470008074,
+        "lat": 47.380730833572535,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          37,
+          64
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23496715942241,
+        "pixelLat": 47.38072213438735,
+        "pixelShiftM": 1.1228786720917636,
+        "footprintDistanceM": 5.894998331466989,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.35712654342364125,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 45.00000000013597
+      },
+      {
+        "lng": -122.23455016821431,
+        "lat": 47.381018293148536,
+        "valid": true,
+        "candidate": 1,
+        "reference": 0,
+        "pixel": [
+          64,
+          37
+        ],
+        "rgb": [
+          232,
+          228,
+          220
+        ],
+        "pixelLng": -122.23453732090766,
+        "pixelLat": 47.38101318720805,
+        "pixelShiftM": 1.1228786715675918,
+        "footprintDistanceM": 5.894998330709556,
+        "onFootprint": false,
+        "pixelOnFootprint": false,
+        "vectorAtPoint": 1,
+        "vectorAtPixel": 0,
+        "shadowBoundaryDistanceM": 0.3571265423524679,
+        "nearestShadowBoundaryBearingDeg": 0.0,
+        "boundaryToEdgeAcuteDeg": 45.00000000013597
+      }
+    ]
+  }
+]

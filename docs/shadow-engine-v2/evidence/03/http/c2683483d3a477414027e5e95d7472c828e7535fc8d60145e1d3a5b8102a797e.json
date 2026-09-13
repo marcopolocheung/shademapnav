@@ -1,0 +1,24 @@
+{
+  "url": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/AS21.tiff",
+  "range": "bytes=0-65535",
+  "status": 206,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "65536",
+    "content-range": "bytes 0-65535/2152909",
+    "content-type": "image/tiff; application=geotiff; profile=cloud-optimized",
+    "date": "Sun, 13 Sep 2026 01:04:39 GMT",
+    "etag": "\"4701003399aa4443dbc9f57fff95801c\"",
+    "last-modified": "Tue, 03 Dec 2024 02:28:43 GMT",
+    "server": "AmazonS3",
+    "x-amz-id-2": "j/D09IIQjlYmsC4ecJdy5sWH4m7bUak1DFlcacGxQR741FjBfFnCh0hXvQH+PYMUDNbHPlALjgI=",
+    "x-amz-meta-multihash": "122019bb924956d5c0c2f5da0aed0e43d761a79e5683bbb91e632356394dbd7cff75",
+    "x-amz-request-id": "CXQR0DZ3828VC5W3",
+    "x-amz-server-side-encryption": "AES256",
+    "x-amz-storage-class": "INTELLIGENT_TIERING",
+    "x-amz-version-id": "jnf.90Upy1Mzwlr.MM.qsuhgESulJrX6"
+  },
+  "bytes": 65536,
+  "sha256": "9e5e73895538bf23d8f7ee3825df606838f3f4b1911f6738413cb3205656b15d",
+  "capturedAt": "2026-09-13T01:04:38.778Z"
+}

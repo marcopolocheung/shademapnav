@@ -1,0 +1,18 @@
+{
+  "id": "chm-origin-meta-list",
+  "url": "https://dataforgood-fb-data.s3.amazonaws.com/?list-type=2&prefix=forests%2Fv2%2Fglobal%2Fdinov3_global_chm_v2_ml3%2Fmetadata%2F&delimiter=%2F&max-keys=15",
+  "capturedAt": "2026-09-13T01:03:30.950875+00:00",
+  "status": 200,
+  "finalUrl": "https://dataforgood-fb-data.s3.amazonaws.com/?list-type=2&prefix=forests%2Fv2%2Fglobal%2Fdinov3_global_chm_v2_ml3%2Fmetadata%2F&delimiter=%2F&max-keys=15",
+  "headers": {
+    "x-amz-id-2": "ppKAleIvKLErEwGOhYf+M2zaRBVw2eHhh01VMUdYpy+tNCFDRB8IUR9Tccs5NA+W8dmprETwOGY=",
+    "x-amz-request-id": "MP43BSH127598QK3",
+    "Date": "Sun, 13 Sep 2026 01:03:32 GMT",
+    "x-amz-bucket-region": "us-east-1",
+    "Content-Type": "application/xml",
+    "Transfer-Encoding": "chunked",
+    "Server": "AmazonS3"
+  },
+  "bytes": 5747,
+  "sha256": "243e9739a4db236cd8abdd1a87a09c4dcb54577e93cdc76e0d11fa208fcb8972"
+}

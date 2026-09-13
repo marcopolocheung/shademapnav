@@ -1,0 +1,5 @@
+Settled inputs and recorded application source hashes unchanged.
+Assertion file, original harness/painter, fixture source and pixel sampler match HEAD.
+450 Node/browser/GPU answers, 6060 validity classifications, and valid-only pixel averages verified.
+All relative document links resolve.
+No app/ diff; branch remains main.

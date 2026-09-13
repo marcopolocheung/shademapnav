@@ -1,0 +1,25 @@
+{
+  "id": "gmted-report",
+  "url": "https://pubs.usgs.gov/of/2011/1073/pdf/of2011-1073.pdf",
+  "capturedAt": "2026-09-12T20:56:59.956528+00:00",
+  "status": 200,
+  "finalUrl": "https://pubs.usgs.gov/of/2011/1073/pdf/of2011-1073.pdf",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:57:01 GMT",
+    "Content-Type": "application/pdf",
+    "Content-Length": "3015201",
+    "Connection": "keep-alive",
+    "Accept-Ranges": "bytes",
+    "etag": "\"2e0221-4a37d8915f640\"",
+    "last-modified": "Tue, 17 May 2011 19:11:13 GMT",
+    "Server": "cloudflare",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "x-frame-options": "SAMEORIGIN",
+    "x-xss-protection": "1; mode=block",
+    "X-Content-Type-Options": "nosniff",
+    "cf-cache-status": "BYPASS",
+    "CF-RAY": "a3a1d2756eb5462c-DFW"
+  },
+  "bytes": 3015201,
+  "sha256": "502225c4a66c188cf22bc51fd72d4d307256dda78f52e45b1425adcdbce27f74"
+}

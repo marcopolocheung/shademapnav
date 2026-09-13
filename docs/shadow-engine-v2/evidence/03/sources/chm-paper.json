@@ -1,0 +1,27 @@
+{
+  "id": "chm-paper",
+  "url": "https://arxiv.org/html/2603.06382v1",
+  "capturedAt": "2026-09-12T20:57:03.207545+00:00",
+  "status": 200,
+  "finalUrl": "https://arxiv.org/html/2603.06382v1",
+  "headers": {
+    "Connection": "keep-alive",
+    "Content-Length": "320771",
+    "server": "Google Frontend",
+    "content-type": "text/html; charset=utf-8",
+    "etag": "\"CLyu/ZSTupYDEAE=\"",
+    "access-control-allow-origin": "*",
+    "via": "1.1 google, 1.1 varnish, 1.1 varnish, 1.1 varnish",
+    "x-robots-tag": "nofollow",
+    "last-modified": "Mon, 24 Aug 2026 20:54:52 GMT",
+    "link": "<https://arxiv.org/html/2603.06382>; rel='canonical'",
+    "Accept-Ranges": "bytes",
+    "Age": "393328",
+    "Date": "Sat, 12 Sep 2026 20:57:04 GMT",
+    "X-Served-By": "cache-lga21932-LGA, cache-lga21932-LGA, cache-lga21935-LGA, cache-iah-kiah1900058-IAH",
+    "X-Cache": "MISS, HIT, MISS",
+    "X-Timer": "S1789246625.560849,VS0,VE39"
+  },
+  "bytes": 320771,
+  "sha256": "01767823a63685366d3feb4e82b22265a81a304f287c86e17ea3f495add5de74"
+}

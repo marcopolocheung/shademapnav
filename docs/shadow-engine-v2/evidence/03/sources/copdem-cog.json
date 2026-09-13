@@ -1,0 +1,22 @@
+{
+  "id": "copdem-cog",
+  "url": "https://copernicus-dem-30m.s3.amazonaws.com/readme.html",
+  "capturedAt": "2026-09-12T20:57:02.814498+00:00",
+  "status": 200,
+  "finalUrl": "https://copernicus-dem-30m.s3.amazonaws.com/readme.html",
+  "headers": {
+    "x-amz-id-2": "hUBRJj4xr3ClHLdEsz4hyewtwDLtht+RmCDgBhD9LjTVVDX1Hli23FPZZoSBschV9yfPV279IZfSK9EaKpxn3/72hWlITPFq",
+    "x-amz-request-id": "GA9V08KYBM0S19RS",
+    "Date": "Sat, 12 Sep 2026 20:57:05 GMT",
+    "Last-Modified": "Wed, 22 Nov 2023 10:39:04 GMT",
+    "ETag": "\"022cee281269bfa9eafa36401ef3e104\"",
+    "x-amz-server-side-encryption": "AES256",
+    "x-amz-version-id": "SU9qbl.Xkmjg07K5gjdZy37kas6_.h97",
+    "Accept-Ranges": "bytes",
+    "Content-Type": "text/html",
+    "Content-Length": "8536",
+    "Server": "AmazonS3"
+  },
+  "bytes": 8536,
+  "sha256": "922461d55070e3c7e0cf2903ec54190d69e3773da2dc9e776a3f03566cfd56d2"
+}

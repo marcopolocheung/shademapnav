@@ -1,0 +1,23 @@
+{
+  "url": "https://cdn.proj.org/es_ign_egm08-rednap.tif",
+  "range": "bytes=0-65535",
+  "status": 206,
+  "headers": {
+    "connection": "keep-alive",
+    "content-length": "65536",
+    "content-range": "bytes 0-65535/827857",
+    "content-type": "image/tiff",
+    "date": "Sun, 13 Sep 2026 01:04:38 GMT",
+    "etag": "\"df0a63b54749a69ea990ab627b2c6b1b\"",
+    "last-modified": "Tue, 09 Jun 2020 14:49:49 GMT",
+    "server": "AmazonS3",
+    "via": "1.1 432913c0b9b6a4264c846f9505ef2ce6.cloudfront.net (CloudFront)",
+    "x-amz-cf-id": "axThbgFBngSIDTWPjn-5o1_eWhdp3YCdc7CJbLO28rC9-nzlBZvTBQ==",
+    "x-amz-cf-pop": "IAH50-P3",
+    "x-amz-version-id": "ro3yXgMUN95jerb.rz4aLFg1rFAeScMj",
+    "x-cache": "RefreshHit from cloudfront"
+  },
+  "bytes": 65536,
+  "sha256": "76c9420969c4c33d84c634fdf454b6a8e07b655336fffe3b826382ebecbac492",
+  "capturedAt": "2026-09-13T01:04:37.791Z"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "chm-zenodo-readme",
+  "url": "https://zenodo.org/records/20628959/files/README.txt?download=1",
+  "capturedAt": "2026-09-13T01:03:57.330952+00:00",
+  "status": 200,
+  "finalUrl": "https://zenodo.org/records/20628959/files/README.txt?download=1",
+  "headers": {
+    "server": "nginx",
+    "date": "Sun, 13 Sep 2026 01:03:57 GMT",
+    "content-type": "text/plain; charset=utf-8, text/plain; charset=utf-8",
+    "transfer-encoding": "chunked",
+    "vary": "Accept-Encoding",
+    "content-disposition": "attachment; filename=README.txt",
+    "oc-checksum": "MD5:5bcdd808fbef28c21ea164739b036c99",
+    "accept-ranges": "bytes",
+    "content-security-policy": "default-src 'self' fonts.googleapis.com *.gstatic.com data: 'unsafe-inline' 'unsafe-eval' blob: zenodo-broker.web.cern.ch zenodo-broker-qa.web.cern.ch maxcdn.bootstrapcdn.com cdnjs.cloudflare.com ajax.googleapis.com webanalytics.web.cern.ch",
+    "x-content-type-options": "nosniff",
+    "x-download-options": "noopen",
+    "x-permitted-cross-domain-policies": "none",
+    "x-frame-options": "sameorigin",
+    "x-xss-protection": "1; mode=block",
+    "x-ratelimit-limit": "133",
+    "x-ratelimit-remaining": "130",
+    "x-ratelimit-reset": "1789261498",
+    "retry-after": "60",
+    "strict-transport-security": "max-age=31556926; includeSubDomains",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-source": "files-primary",
+    "content-encoding": "gzip"
+  },
+  "bytes": 478,
+  "sha256": "dcb084b0782353983be221e2472969b1496dadf3163f4ade7b0e4374a6a6ebb7"
+}

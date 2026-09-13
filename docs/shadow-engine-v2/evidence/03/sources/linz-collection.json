@@ -1,0 +1,23 @@
+{
+  "id": "linz-collection",
+  "url": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/collection.json",
+  "capturedAt": "2026-09-13T01:03:30.722311+00:00",
+  "status": 200,
+  "finalUrl": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/collection.json",
+  "headers": {
+    "x-amz-id-2": "JHB4zpS/Li5JW+VJVaJaka90Ir0RVRu0nh7IU6VBcuhmyYzbnVyWNSr3hnwfzVVWhW/RIPw57OM=",
+    "x-amz-request-id": "MP41NWF0J8ZBTFER",
+    "Date": "Sun, 13 Sep 2026 01:03:32 GMT",
+    "Last-Modified": "Mon, 07 Sep 2026 19:44:59 GMT",
+    "ETag": "\"caf4eef948704ccf8b719e8c65d60520\"",
+    "x-amz-server-side-encryption": "AES256",
+    "x-amz-meta-multihash": "1220b278cdc3b30479205a7fa583bd0d2a80bb1052fb3db973178788a398ee9495b3",
+    "x-amz-version-id": "uVsc.hEOY3dWYCUP8j0hJmASojNjE2xj",
+    "Accept-Ranges": "bytes",
+    "Content-Type": "application/json",
+    "Content-Length": "84950",
+    "Server": "AmazonS3"
+  },
+  "bytes": 84950,
+  "sha256": "b278cdc3b30479205a7fa583bd0d2a80bb1052fb3db973178788a398ee9495b3"
+}

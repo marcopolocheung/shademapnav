@@ -1,0 +1,629 @@
+{
+  "all": {
+    "tiles": 50,
+    "buildingRange": [
+      0.030181884765625,
+      0.6703338623046875
+    ],
+    "layouts": {
+      "interleaved": {
+        "gzip6": {
+          "total": 1747225,
+          "mean": 34944.5,
+          "min": 8307,
+          "p50": 30350.0,
+          "p90": 54129,
+          "max": 84237,
+          "aggregateRatio": 45.01034497560417,
+          "withMetadataMean": 36178.24
+        },
+        "zstd3": {
+          "total": 1873576,
+          "mean": 37471.52,
+          "min": 3655,
+          "p50": 32001.0,
+          "p90": 61583,
+          "max": 87751,
+          "aggregateRatio": 41.974918551475895,
+          "withMetadataMean": 38732.64
+        },
+        "brotli5": {
+          "total": 1079831,
+          "mean": 21596.62,
+          "min": 1622,
+          "p50": 19481.5,
+          "p90": 37726,
+          "max": 62266,
+          "aggregateRatio": 72.82917419485086,
+          "withMetadataMean": 22729.0
+        }
+      },
+      "planar": {
+        "gzip6": {
+          "total": 1344829,
+          "mean": 26896.58,
+          "min": 7411,
+          "p50": 25286.5,
+          "p90": 39435,
+          "max": 57771,
+          "aggregateRatio": 58.478215445978634,
+          "withMetadataMean": 28130.32
+        },
+        "zstd3": {
+          "total": 1476400,
+          "mean": 29528.0,
+          "min": 6364,
+          "p50": 29212.0,
+          "p90": 45242,
+          "max": 62024,
+          "aggregateRatio": 53.26686534814414,
+          "withMetadataMean": 30789.12
+        },
+        "brotli5": {
+          "total": 921934,
+          "mean": 18438.68,
+          "min": 1651,
+          "p50": 17571.0,
+          "p90": 29493,
+          "max": 44396,
+          "aggregateRatio": 85.30241861131057,
+          "withMetadataMean": 19571.06
+        }
+      },
+      "planarDelta": {
+        "gzip6": {
+          "total": 1175807,
+          "mean": 23516.14,
+          "min": 7092,
+          "p50": 22945.0,
+          "p90": 29657,
+          "max": 34347,
+          "aggregateRatio": 66.88444617186325,
+          "withMetadataMean": 24749.88
+        },
+        "zstd3": {
+          "total": 1274070,
+          "mean": 25481.4,
+          "min": 4953,
+          "p50": 25060.0,
+          "p90": 33001,
+          "max": 40380,
+          "aggregateRatio": 61.72596482139914,
+          "withMetadataMean": 26742.52
+        },
+        "brotli5": {
+          "total": 908248,
+          "mean": 18164.96,
+          "min": 2170,
+          "p50": 17611.0,
+          "p90": 23917,
+          "max": 29761,
+          "aggregateRatio": 86.58780421206542,
+          "withMetadataMean": 19297.34
+        }
+      }
+    },
+    "bands": {
+      "G": {
+        "gzip6": {
+          "rawBytes": 611179,
+          "deltaBytes": 458429,
+          "deltaRatio": 28.591559434503488
+        },
+        "zstd3": {
+          "rawBytes": 852885,
+          "deltaBytes": 674343,
+          "deltaRatio": 19.4369927470145
+        },
+        "brotli5": {
+          "rawBytes": 538868,
+          "deltaBytes": 512450,
+          "deltaRatio": 25.577519758025172
+        }
+      },
+      "B": {
+        "gzip6": {
+          "rawBytes": 100200,
+          "deltaBytes": 111727,
+          "deltaRatio": 117.31452558468409
+        },
+        "zstd3": {
+          "rawBytes": 95447,
+          "deltaBytes": 87369,
+          "deltaRatio": 150.02117455848185
+        },
+        "brotli5": {
+          "rawBytes": 50456,
+          "deltaBytes": 65996,
+          "deltaRatio": 198.60597611976485
+        }
+      },
+      "C0": {
+        "gzip6": {
+          "rawBytes": 153691,
+          "deltaBytes": 144512,
+          "deltaRatio": 90.69973427812224
+        },
+        "zstd3": {
+          "rawBytes": 139777,
+          "deltaBytes": 132429,
+          "deltaRatio": 98.9752999720605
+        },
+        "brotli5": {
+          "rawBytes": 108761,
+          "deltaBytes": 106612,
+          "deltaRatio": 122.94300829174952
+        }
+      },
+      "C1": {
+        "gzip6": {
+          "rawBytes": 158363,
+          "deltaBytes": 146773,
+          "deltaRatio": 89.30252839418694
+        },
+        "zstd3": {
+          "rawBytes": 143539,
+          "deltaBytes": 128480,
+          "deltaRatio": 102.01743462017434
+        },
+        "brotli5": {
+          "rawBytes": 112052,
+          "deltaBytes": 104486,
+          "deltaRatio": 125.44455716555328
+        }
+      },
+      "flags": {
+        "gzip6": {
+          "rawBytes": 115905,
+          "deltaBytes": 123939,
+          "deltaRatio": 105.7552505668111
+        },
+        "zstd3": {
+          "rawBytes": 124389,
+          "deltaBytes": 132192,
+          "deltaRatio": 99.15274751876059
+        },
+        "brotli5": {
+          "rawBytes": 50165,
+          "deltaBytes": 60861,
+          "deltaRatio": 215.36287606184584
+        }
+      },
+      "provenance": {
+        "gzip6": {
+          "rawBytes": 121966,
+          "deltaBytes": 134523,
+          "deltaRatio": 97.4346394296886
+        },
+        "zstd3": {
+          "rawBytes": 121392,
+          "deltaBytes": 122217,
+          "deltaRatio": 107.24530957231809
+        },
+        "brotli5": {
+          "rawBytes": 59921,
+          "deltaBytes": 75943,
+          "deltaRatio": 172.5926023464967
+        }
+      }
+    }
+  },
+  "madrid": {
+    "tiles": 25,
+    "buildingRange": [
+      0.114990234375,
+      0.6703338623046875
+    ],
+    "layouts": {
+      "interleaved": {
+        "gzip6": {
+          "total": 1123386,
+          "mean": 44935.44,
+          "min": 27166,
+          "p50": 40410.0,
+          "p90": 60432,
+          "max": 84237,
+          "aggregateRatio": 35.002750612879275,
+          "withMetadataMean": 46524.0
+        },
+        "zstd3": {
+          "total": 1321177,
+          "mean": 52847.08,
+          "min": 31950,
+          "p50": 49662.0,
+          "p90": 71760,
+          "max": 87751,
+          "aggregateRatio": 29.762552632993156,
+          "withMetadataMean": 54470.0
+        },
+        "brotli5": {
+          "total": 761739,
+          "mean": 30469.56,
+          "min": 16355,
+          "p50": 27567.0,
+          "p90": 40576,
+          "max": 62266,
+          "aggregateRatio": 51.620830756991566,
+          "withMetadataMean": 31923.16
+        }
+      },
+      "planar": {
+        "gzip6": {
+          "total": 802446,
+          "mean": 32097.84,
+          "min": 19553,
+          "p50": 28957.0,
+          "p90": 40891,
+          "max": 57771,
+          "aggregateRatio": 49.002175847346734,
+          "withMetadataMean": 33686.4
+        },
+        "zstd3": {
+          "total": 932438,
+          "mean": 37297.52,
+          "min": 23983,
+          "p50": 34722.0,
+          "p90": 47843,
+          "max": 62024,
+          "aggregateRatio": 42.17073950225109,
+          "withMetadataMean": 38920.44
+        },
+        "brotli5": {
+          "total": 594288,
+          "mean": 23771.52,
+          "min": 13565,
+          "p50": 20909.0,
+          "p90": 32563,
+          "max": 44396,
+          "aggregateRatio": 66.16589936192553,
+          "withMetadataMean": 25225.12
+        }
+      },
+      "planarDelta": {
+        "gzip6": {
+          "total": 617715,
+          "mean": 24708.6,
+          "min": 18076,
+          "p50": 23453.0,
+          "p90": 31006,
+          "max": 34347,
+          "aggregateRatio": 63.65654063767271,
+          "withMetadataMean": 26297.16
+        },
+        "zstd3": {
+          "total": 695642,
+          "mean": 27825.68,
+          "min": 19219,
+          "p50": 26191.0,
+          "p90": 36633,
+          "max": 40380,
+          "aggregateRatio": 56.5256266872903,
+          "withMetadataMean": 29448.6
+        },
+        "brotli5": {
+          "total": 492131,
+          "mean": 19685.24,
+          "min": 13978,
+          "p50": 18796.0,
+          "p90": 24928,
+          "max": 29761,
+          "aggregateRatio": 79.90067685230152,
+          "withMetadataMean": 21138.84
+        }
+      }
+    },
+    "bands": {
+      "G": {
+        "gzip6": {
+          "rawBytes": 448565,
+          "deltaBytes": 276868,
+          "deltaRatio": 23.670485574353123
+        },
+        "zstd3": {
+          "rawBytes": 638494,
+          "deltaBytes": 400885,
+          "deltaRatio": 16.34783042518428
+        },
+        "brotli5": {
+          "rawBytes": 406587,
+          "deltaBytes": 297778,
+          "deltaRatio": 22.008341784819564
+        }
+      },
+      "B": {
+        "gzip6": {
+          "rawBytes": 67234,
+          "deltaBytes": 81519,
+          "deltaRatio": 80.39352788920374
+        },
+        "zstd3": {
+          "rawBytes": 71402,
+          "deltaBytes": 73829,
+          "deltaRatio": 88.76728656760893
+        },
+        "brotli5": {
+          "rawBytes": 44417,
+          "deltaBytes": 57757,
+          "deltaRatio": 113.46849732499956
+        }
+      },
+      "C0": {
+        "gzip6": {
+          "rawBytes": 49397,
+          "deltaBytes": 35866,
+          "deltaRatio": 182.72458595884683
+        },
+        "zstd3": {
+          "rawBytes": 44261,
+          "deltaBytes": 31544,
+          "deltaRatio": 207.76058838447884
+        },
+        "brotli5": {
+          "rawBytes": 34518,
+          "deltaBytes": 25055,
+          "deltaRatio": 261.56854919177806
+        }
+      },
+      "C1": {
+        "gzip6": {
+          "rawBytes": 53563,
+          "deltaBytes": 35721,
+          "deltaRatio": 183.46630833403322
+        },
+        "zstd3": {
+          "rawBytes": 47290,
+          "deltaBytes": 30971,
+          "deltaRatio": 211.6044041199832
+        },
+        "brotli5": {
+          "rawBytes": 37057,
+          "deltaBytes": 24892,
+          "deltaRatio": 263.2813755423429
+        }
+      },
+      "flags": {
+        "gzip6": {
+          "rawBytes": 62229,
+          "deltaBytes": 70033,
+          "deltaRatio": 93.57874145045906
+        },
+        "zstd3": {
+          "rawBytes": 67329,
+          "deltaBytes": 79939,
+          "deltaRatio": 81.98251166514467
+        },
+        "brotli5": {
+          "rawBytes": 33155,
+          "deltaBytes": 41966,
+          "deltaRatio": 156.1645141304866
+        }
+      },
+      "provenance": {
+        "gzip6": {
+          "rawBytes": 70291,
+          "deltaBytes": 84385,
+          "deltaRatio": 77.66309178171475
+        },
+        "zstd3": {
+          "rawBytes": 68423,
+          "deltaBytes": 78032,
+          "deltaRatio": 83.98605700225548
+        },
+        "brotli5": {
+          "rawBytes": 41940,
+          "deltaBytes": 57040,
+          "deltaRatio": 114.89481065918653
+        }
+      }
+    }
+  },
+  "kent": {
+    "tiles": 25,
+    "buildingRange": [
+      0.030181884765625,
+      0.488372802734375
+    ],
+    "layouts": {
+      "interleaved": {
+        "gzip6": {
+          "total": 623839,
+          "mean": 24953.56,
+          "min": 8307,
+          "p50": 24972.0,
+          "p90": 31644,
+          "max": 35726,
+          "aggregateRatio": 63.03164758856051,
+          "withMetadataMean": 25832.48
+        },
+        "zstd3": {
+          "total": 552399,
+          "mean": 22095.96,
+          "min": 3655,
+          "p50": 22199.0,
+          "p90": 28890,
+          "max": 32052,
+          "aggregateRatio": 71.18332944121912,
+          "withMetadataMean": 22995.28
+        },
+        "brotli5": {
+          "total": 318092,
+          "mean": 12723.68,
+          "min": 1622,
+          "p50": 12696.0,
+          "p90": 17835,
+          "max": 20022,
+          "aggregateRatio": 123.61706676055984,
+          "withMetadataMean": 13534.84
+        }
+      },
+      "planar": {
+        "gzip6": {
+          "total": 542383,
+          "mean": 21695.32,
+          "min": 7411,
+          "p50": 21619.0,
+          "p90": 28870,
+          "max": 34176,
+          "aggregateRatio": 72.49784746203329,
+          "withMetadataMean": 22574.24
+        },
+        "zstd3": {
+          "total": 543962,
+          "mean": 21758.48,
+          "min": 6364,
+          "p50": 22248.0,
+          "p90": 29638,
+          "max": 33556,
+          "aggregateRatio": 72.28740242884614,
+          "withMetadataMean": 22657.8
+        },
+        "brotli5": {
+          "total": 327646,
+          "mean": 13105.84,
+          "min": 1651,
+          "p50": 12869.0,
+          "p90": 18507,
+          "max": 22843,
+          "aggregateRatio": 120.01245246393974,
+          "withMetadataMean": 13917.0
+        }
+      },
+      "planarDelta": {
+        "gzip6": {
+          "total": 558092,
+          "mean": 22323.68,
+          "min": 7092,
+          "p50": 22365.0,
+          "p90": 28859,
+          "max": 34007,
+          "aggregateRatio": 70.45720060491819,
+          "withMetadataMean": 23202.6
+        },
+        "zstd3": {
+          "total": 578428,
+          "mean": 23137.12,
+          "min": 4953,
+          "p50": 22693.0,
+          "p90": 30061,
+          "max": 36752,
+          "aggregateRatio": 67.98011161285415,
+          "withMetadataMean": 24036.44
+        },
+        "brotli5": {
+          "total": 416117,
+          "mean": 16644.68,
+          "min": 2170,
+          "p50": 16821.0,
+          "p90": 21951,
+          "max": 26167,
+          "aggregateRatio": 94.4964997825131,
+          "withMetadataMean": 17455.84
+        }
+      }
+    },
+    "bands": {
+      "G": {
+        "gzip6": {
+          "rawBytes": 162614,
+          "deltaBytes": 181561,
+          "deltaRatio": 36.09585759056185
+        },
+        "zstd3": {
+          "rawBytes": 214391,
+          "deltaBytes": 273458,
+          "deltaRatio": 23.96565468920273
+        },
+        "brotli5": {
+          "rawBytes": 132281,
+          "deltaBytes": 214672,
+          "deltaRatio": 30.528434076172022
+        }
+      },
+      "B": {
+        "gzip6": {
+          "rawBytes": 32966,
+          "deltaBytes": 30208,
+          "deltaRatio": 216.94915254237287
+        },
+        "zstd3": {
+          "rawBytes": 24045,
+          "deltaBytes": 13540,
+          "deltaRatio": 484.01772525849333
+        },
+        "brotli5": {
+          "rawBytes": 6039,
+          "deltaBytes": 8239,
+          "deltaRatio": 795.436339361573
+        }
+      },
+      "C0": {
+        "gzip6": {
+          "rawBytes": 104294,
+          "deltaBytes": 108646,
+          "deltaRatio": 60.32067448410434
+        },
+        "zstd3": {
+          "rawBytes": 95516,
+          "deltaBytes": 100885,
+          "deltaRatio": 64.96109431530951
+        },
+        "brotli5": {
+          "rawBytes": 74243,
+          "deltaBytes": 81557,
+          "deltaRatio": 80.35606998786125
+        }
+      },
+      "C1": {
+        "gzip6": {
+          "rawBytes": 104800,
+          "deltaBytes": 111052,
+          "deltaRatio": 59.01379533912041
+        },
+        "zstd3": {
+          "rawBytes": 96249,
+          "deltaBytes": 97509,
+          "deltaRatio": 67.21020623737296
+        },
+        "brotli5": {
+          "rawBytes": 74995,
+          "deltaBytes": 79594,
+          "deltaRatio": 82.33786466316556
+        }
+      },
+      "flags": {
+        "gzip6": {
+          "rawBytes": 53676,
+          "deltaBytes": 53906,
+          "deltaRatio": 121.57459280970578
+        },
+        "zstd3": {
+          "rawBytes": 57060,
+          "deltaBytes": 52253,
+          "deltaRatio": 125.42055001626701
+        },
+        "brotli5": {
+          "rawBytes": 17010,
+          "deltaBytes": 18895,
+          "deltaRatio": 346.8430801799418
+        }
+      },
+      "provenance": {
+        "gzip6": {
+          "rawBytes": 51675,
+          "deltaBytes": 50138,
+          "deltaRatio": 130.71123698591887
+        },
+        "zstd3": {
+          "rawBytes": 52969,
+          "deltaBytes": 44185,
+          "deltaRatio": 148.32182867488967
+        },
+        "brotli5": {
+          "rawBytes": 17981,
+          "deltaBytes": 18903,
+          "deltaRatio": 346.6962915939269
+        }
+      }
+    }
+  }
+}

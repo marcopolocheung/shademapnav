@@ -1,0 +1,6771 @@
+[
+  {
+    "id": 42791399,
+    "foundation": 12.841091921733696,
+    "height": 15.0,
+    "roof": 1782,
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "building": "yes",
+      "building:levels": "5",
+      "capacity": "877",
+      "fee": "no",
+      "name": "Kent Station Parking",
+      "park_ride": "yes",
+      "parking": "multi-storey",
+      "supervised": "yes",
+      "surface": "asphalt"
+    }
+  },
+  {
+    "id": 42791411,
+    "foundation": 13.108788183198692,
+    "height": 10,
+    "roof": 1479,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "212",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue North",
+      "amenity": "library",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "internet_access": "terminal;wlan",
+      "internet_access:fee": "no",
+      "internet_access:ssid": "kcls.org Wireless",
+      "name": "Kent Regional Library",
+      "opening_hours": "Mo,Th-Fr 10:00-18:00; Tu-We 12:00-20:00; Sa-Su 11:00-18:00",
+      "operator": "King County Library System",
+      "operator:short": "KCLS",
+      "operator:type": "public",
+      "operator:wikidata": "Q6411390",
+      "phone": "+1-253-859-3330",
+      "service:computer": "yes",
+      "service:copy": "yes",
+      "service:fax": "yes",
+      "service:print": "yes",
+      "service:scan": "yes",
+      "website": "https://kcls.org/locations/1520/"
+    }
+  },
+  {
+    "id": 42791425,
+    "foundation": 10.881652547785743,
+    "height": 15.0,
+    "roof": 1656,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "620",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West James Street",
+      "amenity": "prison",
+      "building": "yes",
+      "building:levels": "5",
+      "name": "King County Adult Detention Facility",
+      "operator": "King County Department of Adult and Juvenile Detention",
+      "operator:type": "government"
+    }
+  },
+  {
+    "id": 42791429,
+    "foundation": 10.931941758999313,
+    "height": 10,
+    "roof": 1340,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 242675231,
+    "foundation": 12.386082489348942,
+    "height": 6.0,
+    "roof": 1177,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "512",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail",
+      "building:levels": "2",
+      "roof:levels": "0"
+    }
+  },
+  {
+    "id": 242675233,
+    "foundation": 12.688393536584515,
+    "height": 10,
+    "roof": 1452,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "418",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 242675235,
+    "foundation": 12.566996743360107,
+    "height": 10,
+    "roof": 1444,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "504",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 282598746,
+    "foundation": 14.453937931554584,
+    "height": 10,
+    "roof": 1565,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:country": "US",
+      "addr:housenumber": "310",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "alt_name": "St. Vincent de Paul Thrift Store",
+      "branch": "Kent Thrift Store",
+      "brand": "Saint Vincent de Paul Thrift Store",
+      "brand:wikidata": "Q7592120",
+      "building": "retail",
+      "contact:facebook": "https://www.facebook.com/SVDPKent/",
+      "contact:phone": "+1-253-277-0211",
+      "contact:website": "https://svdpseattle.org/",
+      "name": "Saint Vincent de Paul Thrift Store",
+      "opening_hours": "Mo-Sa 10:00-17:30; Su 11:00-17:00",
+      "opening_hours:donations": "Tu-Sa 10:00-15:30",
+      "second_hand": "yes",
+      "shop": "charity",
+      "short_name": "SVdP"
+    }
+  },
+  {
+    "id": 353916124,
+    "foundation": 12.224718099603752,
+    "height": 10,
+    "roof": 1422,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "240",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Kent Station Street",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 353916130,
+    "foundation": 12.764350100750901,
+    "height": 10,
+    "roof": 1457,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "208",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Kent Station Street",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 353916133,
+    "foundation": 12.040878725348415,
+    "height": 10,
+    "roof": 1411,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "438",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 353916136,
+    "foundation": 11.764828466352999,
+    "height": 10,
+    "roof": 1393,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "444",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail"
+    }
+  },
+  {
+    "id": 353916137,
+    "foundation": 12.186438291176668,
+    "height": 3.0,
+    "roof": 972,
+    "tags": {
+      "building": "retail",
+      "building:levels": "1"
+    }
+  },
+  {
+    "id": 353916138,
+    "foundation": 12.4694704873753,
+    "height": 6.0,
+    "roof": 1182,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "417",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail",
+      "building:levels": "2"
+    }
+  },
+  {
+    "id": 353916139,
+    "foundation": 12.535312612249601,
+    "height": 12.0,
+    "roof": 1570,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "321",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail",
+      "building:levels": "4"
+    }
+  },
+  {
+    "id": 353916140,
+    "foundation": 11.863341005034572,
+    "height": 3.0,
+    "roof": 951,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "445",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail",
+      "building:levels": "1",
+      "name": "School of Rock",
+      "roof:shape": "flat"
+    }
+  },
+  {
+    "id": 353916141,
+    "foundation": 12.755953578065101,
+    "height": 10,
+    "roof": 1456,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "426",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "amenity": "cinema",
+      "brand": "AMC",
+      "brand:wikidata": "Q294721",
+      "building": "yes",
+      "check_date": "2024-08-29",
+      "name": "AMC Theatre - Kent Station",
+      "website": "https://www.amctheatres.com/movie-theatres/seattle-tacoma/amc-kent-station-14",
+      "wheelchair": "yes",
+      "wikidata": "Q43305707"
+    }
+  },
+  {
+    "id": 353930762,
+    "foundation": 12.201706770575338,
+    "height": 10,
+    "roof": 1421,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "437",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "addr:unit": "103",
+      "amenity": "restaurant",
+      "building": "yes",
+      "capacity": "90",
+      "check_date:opening_hours": "2022-10-30",
+      "cuisine": "ramen;japanese",
+      "diet:vegetarian": "no",
+      "highchair": "3",
+      "indoor": "room",
+      "indoor_seating": "yes",
+      "internet_access": "no",
+      "kids_area": "no",
+      "level": "0",
+      "name": "Hikari Ramen",
+      "opening_hours": "11:00-21:00",
+      "outdoor_seating": "no",
+      "phone": "+1-253-246-7744",
+      "takeaway": "yes",
+      "website": "https://hikariramenwa.com/",
+      "wheelchair": "yes"
+    }
+  },
+  {
+    "id": 353932780,
+    "foundation": 12.285670517801917,
+    "height": 10,
+    "roof": 1426,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "514",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "amenity": "cafe",
+      "building": "yes",
+      "cuisine": "coffee_shop",
+      "diet:vegetarian": "yes",
+      "indoor_seating": "yes",
+      "internet_access": "wlan",
+      "name": "Dilettante Mocha & Espresso Cafe",
+      "opening_hours": "Mo-Th 06:30-20:00; Fr 06:30-21:00; Sa 08:00-21:00; Su 08:00-20:00",
+      "outdoor_seating": "yes",
+      "wheelchair": "limited"
+    }
+  },
+  {
+    "id": 353941241,
+    "foundation": 11.330535559387746,
+    "height": 12.0,
+    "roof": 1493,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "401",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue North",
+      "amenity": "courthouse",
+      "building": "yes",
+      "building:levels": "4",
+      "check_date": "2025-08-08",
+      "name": "Norm Maleng Regional Justice Center",
+      "operator": "King County",
+      "wheelchair": "yes"
+    }
+  },
+  {
+    "id": 359639345,
+    "foundation": 12.472189489801671,
+    "height": 3.0,
+    "roof": 990,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "504",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "retail",
+      "building:levels": "1",
+      "roof:levels": "0",
+      "roof:shape": "flat"
+    }
+  },
+  {
+    "id": 362498432,
+    "foundation": 11.994092027490304,
+    "height": 10,
+    "roof": 1408,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "311",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue North",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "Bank of America",
+      "brand:wikidata": "Q487907",
+      "building": "commercial",
+      "check_date": "2025-03-18",
+      "drive_through": "yes",
+      "name": "Bank of America",
+      "opening_hours": "Mo-Fr 10:00-17:00; Sa 10:00-14:00; Su off",
+      "website": "https://locators.bankofamerica.com/wa/kent/financial-centers-kent-8998.html"
+    }
+  },
+  {
+    "id": 362511859,
+    "foundation": 12.435947054361115,
+    "height": 10,
+    "roof": 1436,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "321",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "building": "commercial",
+      "check_date": "2025-03-18",
+      "name": "Beauty Direct Supply",
+      "shop": "hairdresser_supply"
+    }
+  },
+  {
+    "id": 362513373,
+    "foundation": 11.793806826472418,
+    "height": 6.0,
+    "roof": 1139,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "512",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "Chase",
+      "brand:wikidata": "Q524629",
+      "building": "commercial",
+      "building:levels": "2",
+      "drive_through": "yes",
+      "name": "Chase",
+      "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-13:00"
+    }
+  },
+  {
+    "id": 362625599,
+    "foundation": 12.20187479925677,
+    "height": 15.0,
+    "roof": 1741,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "building": "apartments",
+      "building:levels": "5",
+      "name": "The Platform",
+      "phone": "+1-866-296-6514",
+      "website": "https://www.theplatformkent.com/"
+    }
+  },
+  {
+    "id": 363973927,
+    "foundation": 12.239240551412555,
+    "height": 6.0,
+    "roof": 1167,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "yes",
+      "building:levels": "2",
+      "name": "Meeker Street Law Building"
+    }
+  },
+  {
+    "id": 368316786,
+    "foundation": 12.505876627868417,
+    "height": 10,
+    "roof": 1440,
+    "tags": {
+      "amenity": "toilets",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "fee": "no",
+      "unisex": "yes"
+    }
+  },
+  {
+    "id": 396484926,
+    "foundation": 11.293677229708068,
+    "height": 10,
+    "roof": 1363,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "525",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue North",
+      "building": "yes",
+      "name": "Kent Commons"
+    }
+  },
+  {
+    "id": 396485056,
+    "foundation": 15.191782503437569,
+    "height": 10,
+    "roof": 1612,
+    "tags": {
+      "building": "commercial"
+    }
+  },
+  {
+    "id": 396485057,
+    "foundation": 15.466352970623355,
+    "height": 10,
+    "roof": 1630,
+    "tags": {
+      "building": "commercial"
+    }
+  },
+  {
+    "id": 396485060,
+    "foundation": 14.600117575457304,
+    "height": 10,
+    "roof": 1574,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "124",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 396485062,
+    "foundation": 14.74739396886048,
+    "height": 10,
+    "roof": 1584,
+    "tags": {
+      "building": "commercial"
+    }
+  },
+  {
+    "id": 396485063,
+    "foundation": 14.33425004863809,
+    "height": 10,
+    "roof": 1557,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "206",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "State Avenue South",
+      "building": "yes",
+      "name": "CenturyLink",
+      "office": "company"
+    }
+  },
+  {
+    "id": 396485064,
+    "foundation": 14.425052231695805,
+    "height": 10,
+    "roof": 1563,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "222",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "dance:teaching": "yes",
+      "leisure": "dance",
+      "name": "Allegro Performing Arts Academy"
+    }
+  },
+  {
+    "id": 396485065,
+    "foundation": 15.068320806378956,
+    "height": 10,
+    "roof": 1604,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "320",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes",
+      "name": "Pawn Express",
+      "shop": "pawnbroker"
+    }
+  },
+  {
+    "id": 396485067,
+    "foundation": 13.983269963035923,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "233",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes",
+      "name": "Kent Gypsum",
+      "office": "company"
+    }
+  },
+  {
+    "id": 396485068,
+    "foundation": 13.820830994722627,
+    "height": 10,
+    "roof": 1525,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "304",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "disused:office": "company",
+      "name": "AAA Pest Control",
+      "opening_hours": "Mo-Fr 08:00-17:00; Sa 10:00-14:00",
+      "phone": "+1-235-854-7117",
+      "website": "https://aaapest.com/"
+    }
+  },
+  {
+    "id": 396485069,
+    "foundation": 13.456558584797381,
+    "height": 6.0,
+    "roof": 1245,
+    "tags": {
+      "building": "yes",
+      "building:levels": "2"
+    }
+  },
+  {
+    "id": 396485070,
+    "foundation": 13.166353347680717,
+    "height": 10,
+    "roof": 1483,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "216",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 396485071,
+    "foundation": 12.690482335270794,
+    "height": 12.0,
+    "roof": 1580,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "400",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes",
+      "building:levels": "4",
+      "name": "Centennial Center"
+    }
+  },
+  {
+    "id": 396485072,
+    "foundation": 13.224515228932361,
+    "height": 10,
+    "roof": 1486,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "221",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Dawn - Center For Peaceful Communities",
+      "office": "ngo"
+    }
+  },
+  {
+    "id": 396485073,
+    "foundation": 13.24972850257198,
+    "height": 6.0,
+    "roof": 1232,
+    "tags": {
+      "building": "yes",
+      "building:levels": "2",
+      "name": "Bouldron Building",
+      "start_date": "1935"
+    }
+  },
+  {
+    "id": 396485074,
+    "foundation": 13.528878753457391,
+    "height": 10,
+    "roof": 1506,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "204",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "amenity": "bank",
+      "brand": "Wells Fargo",
+      "brand:wikidata": "Q744149",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Wells Fargo",
+      "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-12:00"
+    }
+  },
+  {
+    "id": 396485075,
+    "foundation": 13.441766286590749,
+    "height": 10,
+    "roof": 1500,
+    "tags": {
+      "building": "commercial",
+      "name": "Carnation Creamery Building",
+      "start_date": "1893"
+    }
+  },
+  {
+    "id": 422115078,
+    "foundation": 13.783260992743019,
+    "height": 10,
+    "roof": 1522,
+    "tags": {
+      "amenity": "shelter",
+      "building": "roof"
+    }
+  },
+  {
+    "id": 422766740,
+    "foundation": 11.182205173439424,
+    "height": 10,
+    "roof": 1356,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 422766741,
+    "foundation": 11.073143777434536,
+    "height": 10,
+    "roof": 1349,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 424638838,
+    "foundation": 13.091998478903129,
+    "height": 10,
+    "roof": 1478,
+    "tags": {
+      "building": "roof",
+      "layer": "1"
+    }
+  },
+  {
+    "id": 424646169,
+    "foundation": 12.622824511401411,
+    "height": 10,
+    "roof": 1448,
+    "tags": {
+      "building": "roof",
+      "layer": "1"
+    }
+  },
+  {
+    "id": 435080931,
+    "foundation": 12.57670931210178,
+    "height": 9.0,
+    "roof": 1381,
+    "tags": {
+      "building": "yes",
+      "building:levels": "3",
+      "building:min_level": "2",
+      "layer": "1"
+    }
+  },
+  {
+    "id": 436146307,
+    "foundation": 12.286639686550302,
+    "height": 12.0,
+    "roof": 1554,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "220",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes",
+      "building:levels": "4"
+    }
+  },
+  {
+    "id": 436146308,
+    "foundation": 12.276159937453773,
+    "height": 6.0,
+    "roof": 1170,
+    "tags": {
+      "building": "yes",
+      "building:levels": "2"
+    }
+  },
+  {
+    "id": 495040434,
+    "foundation": 13.889991385070905,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "215",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes",
+      "name": "Gonnason Building"
+    }
+  },
+  {
+    "id": 495040437,
+    "foundation": 12.21329221019938,
+    "height": 10,
+    "roof": 1422,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "232",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes",
+      "name": "Robert E. Lee Memorial Building",
+      "name:etymology:wikidata": "Q139815223"
+    }
+  },
+  {
+    "id": 528607311,
+    "foundation": 13.865400329999531,
+    "height": 10,
+    "roof": 1527,
+    "tags": {
+      "building": "school",
+      "name": "B Building"
+    }
+  },
+  {
+    "id": 528607312,
+    "foundation": 14.415952329901263,
+    "height": 10,
+    "roof": 1563,
+    "tags": {
+      "building": "school",
+      "name": "A Building"
+    }
+  },
+  {
+    "id": 556159950,
+    "foundation": 11.977784885698611,
+    "height": 10,
+    "roof": 1407,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "443",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Ramsay Way",
+      "building": "apartments",
+      "name": "Dwell at Kent Station",
+      "phone": "+1-253-573-9355",
+      "website": "http://www.dwellatkentstation.com"
+    }
+  },
+  {
+    "id": 581067822,
+    "foundation": 12.606199740580228,
+    "height": 6.0,
+    "roof": 1191,
+    "tags": {
+      "access": "private",
+      "addr:city": "Kent",
+      "addr:housenumber": "400",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "amenity": "parking",
+      "building": "yes",
+      "building:levels": "2",
+      "name": "City of Kent Government Employee Parking",
+      "parking": "multi-storey"
+    }
+  },
+  {
+    "id": 638953584,
+    "foundation": 33.772692240094635,
+    "height": 10,
+    "roof": 2801,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "424",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953598,
+    "foundation": 46.092500300939875,
+    "height": 10,
+    "roof": 3590,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "468",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953629,
+    "foundation": 45.97413726204026,
+    "height": 10,
+    "roof": 3582,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953643,
+    "foundation": 47.1713912964631,
+    "height": 10,
+    "roof": 3659,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953659,
+    "foundation": 53.78194996440593,
+    "height": 10,
+    "roof": 4082,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953681,
+    "foundation": 38.35677684852541,
+    "height": 10,
+    "roof": 3095,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953729,
+    "foundation": 47.74633166777542,
+    "height": 10,
+    "roof": 3696,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "458",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953734,
+    "foundation": 28.909217918631853,
+    "height": 10,
+    "roof": 2490,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "412",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953796,
+    "foundation": 49.17861039536458,
+    "height": 10,
+    "roof": 3787,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953801,
+    "foundation": 45.74052764126157,
+    "height": 10,
+    "roof": 3567,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "431",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953810,
+    "foundation": 26.41382001222389,
+    "height": 10,
+    "roof": 2330,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "406",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953819,
+    "foundation": 22.266526657046107,
+    "height": 10,
+    "roof": 2065,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953822,
+    "foundation": 45.00758009261499,
+    "height": 10,
+    "roof": 3520,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "421",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953839,
+    "foundation": 24.073115986269524,
+    "height": 10,
+    "roof": 2181,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "310",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953844,
+    "foundation": 29.11023160257225,
+    "height": 10,
+    "roof": 2503,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953850,
+    "foundation": 35.63080918229652,
+    "height": 10,
+    "roof": 2920,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953882,
+    "foundation": 36.20061577774787,
+    "height": 10,
+    "roof": 2957,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953890,
+    "foundation": 38.100965296391415,
+    "height": 10,
+    "roof": 3078,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953908,
+    "foundation": 35.71546740763024,
+    "height": 10,
+    "roof": 2926,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "317",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "Kennebeck Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953922,
+    "foundation": 34.95727067013962,
+    "height": 10,
+    "roof": 2877,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "325",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "Kennebeck Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953982,
+    "foundation": 18.65620018687182,
+    "height": 10,
+    "roof": 1834,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "304",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638953996,
+    "foundation": 32.75455586251408,
+    "height": 10,
+    "roof": 2736,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954035,
+    "foundation": 20.666614857662992,
+    "height": 10,
+    "roof": 1963,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "322",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954087,
+    "foundation": 32.27671618991344,
+    "height": 10,
+    "roof": 2706,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "311",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "Kennebeck Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954113,
+    "foundation": 28.66858232753339,
+    "height": 10,
+    "roof": 2475,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "412",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954160,
+    "foundation": 26.64255629788998,
+    "height": 10,
+    "roof": 2345,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954168,
+    "foundation": 27.399603871232223,
+    "height": 10,
+    "roof": 2394,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "416",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954185,
+    "foundation": 27.467241932546777,
+    "height": 10,
+    "roof": 2398,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "428",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954190,
+    "foundation": 15.660022526725655,
+    "height": 10,
+    "roof": 1642,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954238,
+    "foundation": 25.684634364457878,
+    "height": 10,
+    "roof": 2284,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954291,
+    "foundation": 23.09293977031215,
+    "height": 10,
+    "roof": 2118,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "434",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954333,
+    "foundation": 13.89077911430843,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "405",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954431,
+    "foundation": 13.890341263064366,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "424",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954434,
+    "foundation": 13.892774963617605,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "418",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954444,
+    "foundation": 14.43313847576381,
+    "height": 10,
+    "roof": 1564,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954454,
+    "foundation": 14.07607621513828,
+    "height": 10,
+    "roof": 1541,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954464,
+    "foundation": 15.440904182299116,
+    "height": 10,
+    "roof": 1628,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "430",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954475,
+    "foundation": 14.78968020363523,
+    "height": 10,
+    "roof": 1587,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "208",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "check_date": "2025-07-27",
+      "name": "JC Central Tire Shop",
+      "shop": "tyres"
+    }
+  },
+  {
+    "id": 638954539,
+    "foundation": 14.001755423880635,
+    "height": 10,
+    "roof": 1536,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "411",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954542,
+    "foundation": 14.505047249027484,
+    "height": 10,
+    "roof": 1568,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "218",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "State Avenue South",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "check_date": "2025-07-27",
+      "name": "Iglesia De Dios Vivo",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 638954584,
+    "foundation": 13.8941893550859,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954605,
+    "foundation": 14.062508618828254,
+    "height": 10,
+    "roof": 1540,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "412",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954608,
+    "foundation": 14.207934628527529,
+    "height": 10,
+    "roof": 1549,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "408",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954630,
+    "foundation": 14.434676765731307,
+    "height": 10,
+    "roof": 1564,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "106",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "State Avenue South",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "name": "First Church of Christ Scientist",
+      "name:en": "First Church of Christ Scientist",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 638954647,
+    "foundation": 13.889813139866028,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954718,
+    "foundation": 14.615064792068903,
+    "height": 10,
+    "roof": 1575,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "315",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "government"
+    }
+  },
+  {
+    "id": 638954732,
+    "foundation": 14.255522723837714,
+    "height": 10,
+    "roof": 1552,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "403",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "yes",
+      "layer": "1"
+    }
+  },
+  {
+    "id": 638954795,
+    "foundation": 14.043136805697372,
+    "height": 10,
+    "roof": 1539,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "121",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "Kennebeck Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954955,
+    "foundation": 58.35249771935426,
+    "height": 10,
+    "roof": 4375,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954970,
+    "foundation": 43.97184467229295,
+    "height": 10,
+    "roof": 3454,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "300",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638954982,
+    "foundation": 54.178587949264404,
+    "height": 10,
+    "roof": 4107,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955000,
+    "foundation": 63.447669382538166,
+    "height": 10,
+    "roof": 4701,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "511",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955003,
+    "foundation": 57.334705792192004,
+    "height": 10,
+    "roof": 4309,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "509",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955024,
+    "foundation": 61.022866875956595,
+    "height": 10,
+    "roof": 4545,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "505",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955030,
+    "foundation": 52.05395309004948,
+    "height": 10,
+    "roof": 3971,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "417",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Alpine Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955045,
+    "foundation": 63.2655557011165,
+    "height": 10,
+    "roof": 4689,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955047,
+    "foundation": 63.83281873218848,
+    "height": 10,
+    "roof": 4725,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "501",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955053,
+    "foundation": 49.93841411027354,
+    "height": 10,
+    "roof": 3836,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955055,
+    "foundation": 46.35875213489626,
+    "height": 10,
+    "roof": 3607,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955057,
+    "foundation": 46.42782707644011,
+    "height": 10,
+    "roof": 3611,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955066,
+    "foundation": 63.31913929993607,
+    "height": 10,
+    "roof": 4692,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "443",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Alpine Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955074,
+    "foundation": 52.44324772052395,
+    "height": 10,
+    "roof": 3996,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "415",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Alpine Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955083,
+    "foundation": 41.26277759915079,
+    "height": 10,
+    "roof": 3281,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "302",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955091,
+    "foundation": 62.60039172591122,
+    "height": 10,
+    "roof": 4646,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "435",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955116,
+    "foundation": 55.211006764207156,
+    "height": 10,
+    "roof": 4174,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955125,
+    "foundation": 59.80649465183825,
+    "height": 10,
+    "roof": 4468,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "425",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955136,
+    "foundation": 36.28499849743208,
+    "height": 10,
+    "roof": 2962,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 638955151,
+    "foundation": 44.93933443464925,
+    "height": 10,
+    "roof": 3516,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "367",
+      "addr:postcode": "98031",
+      "addr:state": "WA",
+      "addr:street": "Scenic Way South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250165,
+    "foundation": 12.550679001066698,
+    "height": 10,
+    "roof": 1443,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250166,
+    "foundation": 12.365143338074837,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250167,
+    "foundation": 13.588359206959268,
+    "height": 10,
+    "roof": 1510,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250168,
+    "foundation": 11.29026130382101,
+    "height": 10,
+    "roof": 1363,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250169,
+    "foundation": 10.879380915141668,
+    "height": 10,
+    "roof": 1336,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "531",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250170,
+    "foundation": 11.685030798362277,
+    "height": 10,
+    "roof": 1388,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250172,
+    "foundation": 13.172091394487312,
+    "height": 10,
+    "roof": 1483,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "529",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250173,
+    "foundation": 11.752742843063212,
+    "height": 10,
+    "roof": 1392,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250174,
+    "foundation": 13.473820042277609,
+    "height": 10,
+    "roof": 1502,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "528",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250175,
+    "foundation": 12.999577572314394,
+    "height": 10,
+    "roof": 1472,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250176,
+    "foundation": 11.829327216283609,
+    "height": 10,
+    "roof": 1397,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250177,
+    "foundation": 12.87206577112956,
+    "height": 10,
+    "roof": 1464,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "530",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250178,
+    "foundation": 11.10519610004412,
+    "height": 10,
+    "roof": 1351,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "534",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250179,
+    "foundation": 10.88570310568274,
+    "height": 10,
+    "roof": 1337,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250180,
+    "foundation": 12.615682444068499,
+    "height": 10,
+    "roof": 1447,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "527",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250181,
+    "foundation": 12.579340837453666,
+    "height": 10,
+    "roof": 1445,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250182,
+    "foundation": 12.356505725032063,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "530",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250183,
+    "foundation": 11.704609599221499,
+    "height": 10,
+    "roof": 1389,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "526",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250184,
+    "foundation": 13.484831835464487,
+    "height": 10,
+    "roof": 1503,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "526",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250185,
+    "foundation": 12.505481650262647,
+    "height": 10,
+    "roof": 1440,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250186,
+    "foundation": 12.917894107303162,
+    "height": 10,
+    "roof": 1467,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "524",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250187,
+    "foundation": 11.999359585324532,
+    "height": 10,
+    "roof": 1408,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "523",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250188,
+    "foundation": 11.709036997875025,
+    "height": 10,
+    "roof": 1389,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250189,
+    "foundation": 12.693580894922126,
+    "height": 10,
+    "roof": 1452,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "523",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250190,
+    "foundation": 13.118515027015025,
+    "height": 10,
+    "roof": 1480,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250191,
+    "foundation": 11.225357852596971,
+    "height": 10,
+    "roof": 1358,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250192,
+    "foundation": 13.016132511273625,
+    "height": 10,
+    "roof": 1473,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250193,
+    "foundation": 13.61376722725722,
+    "height": 10,
+    "roof": 1511,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250194,
+    "foundation": 10.898091314150811,
+    "height": 10,
+    "roof": 1337,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "521",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250195,
+    "foundation": 11.268944218750324,
+    "height": 10,
+    "roof": 1361,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250196,
+    "foundation": 11.647173491799117,
+    "height": 10,
+    "roof": 1385,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "522",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250197,
+    "foundation": 13.575009074444518,
+    "height": 10,
+    "roof": 1509,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250198,
+    "foundation": 12.33479327699693,
+    "height": 10,
+    "roof": 1429,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "528",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250199,
+    "foundation": 11.19816433237931,
+    "height": 10,
+    "roof": 1357,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "522",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250200,
+    "foundation": 12.584587345442646,
+    "height": 10,
+    "roof": 1445,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250201,
+    "foundation": 13.50104089232114,
+    "height": 10,
+    "roof": 1504,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "522",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250202,
+    "foundation": 12.913533112716431,
+    "height": 10,
+    "roof": 1466,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "520",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250205,
+    "foundation": 13.30966060908596,
+    "height": 10,
+    "roof": 1492,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "521",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250208,
+    "foundation": 12.682116401835252,
+    "height": 10,
+    "roof": 1452,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "519",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250210,
+    "foundation": 11.707296652504859,
+    "height": 10,
+    "roof": 1389,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250211,
+    "foundation": 13.847675333138632,
+    "height": 10,
+    "roof": 1526,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250212,
+    "foundation": 11.396541446493591,
+    "height": 10,
+    "roof": 1369,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250213,
+    "foundation": 13.077700869677763,
+    "height": 10,
+    "roof": 1477,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250214,
+    "foundation": 13.203500040274209,
+    "height": 10,
+    "roof": 1485,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250215,
+    "foundation": 12.486444073339,
+    "height": 10,
+    "roof": 1439,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250216,
+    "foundation": 12.362402041766785,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "518",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250217,
+    "foundation": 13.926825236950911,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "519",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250220,
+    "foundation": 13.111700627110299,
+    "height": 10,
+    "roof": 1479,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250221,
+    "foundation": 13.263841554838018,
+    "height": 10,
+    "roof": 1489,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250222,
+    "foundation": 11.900035707350222,
+    "height": 10,
+    "roof": 1402,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250223,
+    "foundation": 11.64265849491585,
+    "height": 10,
+    "roof": 1385,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "516",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250224,
+    "foundation": 10.974078549370727,
+    "height": 10,
+    "roof": 1342,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250225,
+    "foundation": 11.90203591579141,
+    "height": 10,
+    "roof": 1402,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250226,
+    "foundation": 11.982525677701359,
+    "height": 10,
+    "roof": 1407,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "517",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250227,
+    "foundation": 11.30960814309492,
+    "height": 10,
+    "roof": 1364,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250228,
+    "foundation": 12.946288201225581,
+    "height": 10,
+    "roof": 1469,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "516",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250229,
+    "foundation": 12.687816458133828,
+    "height": 10,
+    "roof": 1452,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250231,
+    "foundation": 11.33437841299671,
+    "height": 10,
+    "roof": 1365,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250233,
+    "foundation": 11.213205692749394,
+    "height": 10,
+    "roof": 1358,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "516",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250236,
+    "foundation": 11.443829779314216,
+    "height": 10,
+    "roof": 1372,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250239,
+    "foundation": 11.73835635036187,
+    "height": 10,
+    "roof": 1391,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250241,
+    "foundation": 12.35542198251783,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "514",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250244,
+    "foundation": 10.852600816052448,
+    "height": 10,
+    "roof": 1335,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250245,
+    "foundation": 13.510517673567781,
+    "height": 10,
+    "roof": 1505,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "518",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250246,
+    "foundation": 13.289998422969825,
+    "height": 10,
+    "roof": 1491,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "513",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250247,
+    "foundation": 11.312077815187191,
+    "height": 10,
+    "roof": 1364,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250248,
+    "foundation": 13.928833059797494,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250249,
+    "foundation": 13.039279150820278,
+    "height": 10,
+    "roof": 1475,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250250,
+    "foundation": 13.559426709473684,
+    "height": 10,
+    "roof": 1508,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250251,
+    "foundation": 11.212702884478656,
+    "height": 10,
+    "roof": 1358,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "510",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "6th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250252,
+    "foundation": 13.771402341268976,
+    "height": 10,
+    "roof": 1521,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250253,
+    "foundation": 13.505122141665135,
+    "height": 10,
+    "roof": 1504,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250254,
+    "foundation": 11.344071248627424,
+    "height": 10,
+    "roof": 1366,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250255,
+    "foundation": 13.699065902259322,
+    "height": 10,
+    "roof": 1517,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250256,
+    "foundation": 13.198050997686034,
+    "height": 10,
+    "roof": 1485,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250257,
+    "foundation": 11.774300449829644,
+    "height": 10,
+    "roof": 1394,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250258,
+    "foundation": 12.593795325720002,
+    "height": 10,
+    "roof": 1446,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250259,
+    "foundation": 12.972667197842798,
+    "height": 10,
+    "roof": 1470,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "510",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250260,
+    "foundation": 12.735044797560874,
+    "height": 10,
+    "roof": 1455,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "509",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250261,
+    "foundation": 11.990319947756657,
+    "height": 10,
+    "roof": 1407,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "509",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250262,
+    "foundation": 11.492317144331544,
+    "height": 10,
+    "roof": 1376,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "509",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250263,
+    "foundation": 12.349621899721768,
+    "height": 10,
+    "roof": 1430,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "510",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250265,
+    "foundation": 13.890988422592237,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "206",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250266,
+    "foundation": 11.175840992596676,
+    "height": 10,
+    "roof": 1355,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "624",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250267,
+    "foundation": 13.79994504042132,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "214",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250268,
+    "foundation": 13.684763958951947,
+    "height": 10,
+    "roof": 1516,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "218",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250269,
+    "foundation": 13.297710866297036,
+    "height": 10,
+    "roof": 1491,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "304",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250270,
+    "foundation": 13.619381876239046,
+    "height": 10,
+    "roof": 1512,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "220",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250271,
+    "foundation": 13.186399925968722,
+    "height": 10,
+    "roof": 1484,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "312",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250272,
+    "foundation": 12.46184597494487,
+    "height": 10,
+    "roof": 1438,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250273,
+    "foundation": 13.437222220588941,
+    "height": 10,
+    "roof": 1500,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "234",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250274,
+    "foundation": 11.726601487036328,
+    "height": 10,
+    "roof": 1391,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "524",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250275,
+    "foundation": 13.088413381911042,
+    "height": 10,
+    "roof": 1478,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "314",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250276,
+    "foundation": 11.434485112168677,
+    "height": 10,
+    "roof": 1372,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250277,
+    "foundation": 11.283926947655727,
+    "height": 10,
+    "roof": 1362,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250278,
+    "foundation": 10.838223777565972,
+    "height": 10,
+    "roof": 1334,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250279,
+    "foundation": 10.956376272210026,
+    "height": 10,
+    "roof": 1341,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "704",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250280,
+    "foundation": 12.98092462675967,
+    "height": 10,
+    "roof": 1471,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "502",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250281,
+    "foundation": 13.881183910418718,
+    "height": 10,
+    "roof": 1528,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250282,
+    "foundation": 11.802201834236392,
+    "height": 10,
+    "roof": 1395,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "518",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250283,
+    "foundation": 13.559078698402626,
+    "height": 10,
+    "roof": 1508,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "230",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250284,
+    "foundation": 13.263350087213732,
+    "height": 10,
+    "roof": 1489,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "308",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250285,
+    "foundation": 12.677072869819117,
+    "height": 10,
+    "roof": 1451,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "503",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250286,
+    "foundation": 12.369624032566144,
+    "height": 10,
+    "roof": 1432,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250287,
+    "foundation": 11.494280919655715,
+    "height": 10,
+    "roof": 1376,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "503",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 639250288,
+    "foundation": 11.95229381623948,
+    "height": 10,
+    "roof": 1405,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "503",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715078,
+    "foundation": 13.89049333932972,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715079,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "520",
+      "addr:postcode": "98032;98032-5914",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes",
+      "craft": "stonemason",
+      "name": "SolarStone NW LLC",
+      "website": "https://solarstonenw.com/"
+    }
+  },
+  {
+    "id": 640715080,
+    "foundation": 14.009389182592052,
+    "height": 10,
+    "roof": 1537,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "540",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes",
+      "name": "CJ Marine",
+      "shop": "boat"
+    }
+  },
+  {
+    "id": 640715277,
+    "foundation": 13.96255301211084,
+    "height": 10,
+    "roof": 1534,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "534",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "name": "C&D Auto Sales",
+      "shop": "car"
+    }
+  },
+  {
+    "id": 640715279,
+    "foundation": 14.112635687818175,
+    "height": 10,
+    "roof": 1543,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "532",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715284,
+    "foundation": 13.989036235178666,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715285,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "529",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715286,
+    "foundation": 13.979910664385358,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715287,
+    "foundation": 14.089838587053418,
+    "height": 10,
+    "roof": 1542,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "528",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715288,
+    "foundation": 14.029507425008306,
+    "height": 10,
+    "roof": 1538,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715289,
+    "foundation": 13.930112051909004,
+    "height": 10,
+    "roof": 1532,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "525",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715290,
+    "foundation": 13.896921165000094,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "530",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715291,
+    "foundation": 13.903238502227202,
+    "height": 10,
+    "roof": 1530,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715292,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715293,
+    "foundation": 13.992175984600117,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715294,
+    "foundation": 14.015207882491724,
+    "height": 10,
+    "roof": 1537,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "529",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715295,
+    "foundation": 13.891152685857517,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "523",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715296,
+    "foundation": 13.916662143183597,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715297,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715298,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715299,
+    "foundation": 14.007666834440851,
+    "height": 10,
+    "roof": 1536,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715300,
+    "foundation": 14.071776151734253,
+    "height": 10,
+    "roof": 1541,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "524",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715301,
+    "foundation": 13.923720584393774,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715302,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715303,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "514",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715304,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "513",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715305,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715306,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715307,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715308,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715309,
+    "foundation": 14.034361333559673,
+    "height": 10,
+    "roof": 1538,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "516",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715311,
+    "foundation": 13.892192095896288,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "510",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715313,
+    "foundation": 13.964959659419577,
+    "height": 10,
+    "roof": 1534,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715314,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "509",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Bridges Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715315,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "511",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "brand": "7-Eleven",
+      "brand:wikidata": "Q259340",
+      "building": "yes",
+      "contact:website": "https://www.7-eleven.com/locations/wa/kent/511-central-ave-s-25303",
+      "name": "7-Eleven",
+      "opening_hours": "24/7",
+      "shop": "convenience"
+    }
+  },
+  {
+    "id": 640715317,
+    "foundation": 13.987783683413227,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "510",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715318,
+    "foundation": 13.890433054732707,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715323,
+    "foundation": 13.933835414714608,
+    "height": 10,
+    "roof": 1532,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715324,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "112",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Willis Street",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "name": "Prayer Warriors Ministries"
+    }
+  },
+  {
+    "id": 640715325,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "114",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 640715331,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "amenity": "fuel",
+      "brand": "7-Eleven",
+      "brand:wikidata": "Q259340",
+      "building": "yes",
+      "name": "7-Eleven"
+    }
+  },
+  {
+    "id": 649910479,
+    "foundation": 14.051955253785554,
+    "height": 10,
+    "roof": 1539,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910480,
+    "foundation": 13.89064483033252,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "233",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "branch": "Tire",
+      "brand": "Dunlop",
+      "brand:wikidata": "Q5315444",
+      "building": "yes",
+      "name": "Dunlop",
+      "shop": "tyres"
+    }
+  },
+  {
+    "id": 649910483,
+    "foundation": 13.411522743703898,
+    "height": 10,
+    "roof": 1498,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910485,
+    "foundation": 13.37030258328409,
+    "height": 10,
+    "roof": 1496,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "213",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Running Stitch Fabrics",
+      "opening_hours": "Tu-Sa 10:00-17:00; Su 11:00-16:00",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes",
+      "shop": "fabric"
+    }
+  },
+  {
+    "id": 649910487,
+    "foundation": 13.357822026121259,
+    "height": 10,
+    "roof": 1495,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "211",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "amenity": "restaurant",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "cuisine": "thai",
+      "name": "Thai Chili Restaurant",
+      "opening_hours": "Tu-Sa 11:00-21:00",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes"
+    }
+  },
+  {
+    "id": 649910490,
+    "foundation": 13.36204113961361,
+    "height": 10,
+    "roof": 1495,
+    "tags": {
+      "building": "yes",
+      "name": "Naden Building"
+    }
+  },
+  {
+    "id": 649910491,
+    "foundation": 13.333812619266304,
+    "height": 6.0,
+    "roof": 1237,
+    "tags": {
+      "building": "yes",
+      "building:levels": "2"
+    }
+  },
+  {
+    "id": 649910493,
+    "foundation": 13.720220270265981,
+    "height": 10,
+    "roof": 1518,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910495,
+    "foundation": 13.685360029685471,
+    "height": 10,
+    "roof": 1516,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910496,
+    "foundation": 13.598750604414741,
+    "height": 10,
+    "roof": 1510,
+    "tags": {
+      "building": "yes",
+      "name": "Harmon Rice Building"
+    }
+  },
+  {
+    "id": 649910498,
+    "foundation": 13.579612575765662,
+    "height": 10,
+    "roof": 1509,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "216",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910500,
+    "foundation": 13.565442223153738,
+    "height": 3.0,
+    "roof": 1060,
+    "tags": {
+      "building": "yes",
+      "building:levels": "1"
+    }
+  },
+  {
+    "id": 649910502,
+    "foundation": 12.568753921881068,
+    "height": 10,
+    "roof": 1444,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "331",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910504,
+    "foundation": 13.896490473737396,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "339",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910506,
+    "foundation": 13.90991839653821,
+    "height": 10,
+    "roof": 1530,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "341",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910509,
+    "foundation": 13.834427391082738,
+    "height": 10,
+    "roof": 1525,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "316",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910511,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "317",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910513,
+    "foundation": 13.341879522951508,
+    "height": 10,
+    "roof": 1494,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "316",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Dobson Hanks, CPA",
+      "office": "accountant",
+      "phone": "+1-253-852-6029"
+    }
+  },
+  {
+    "id": 649910516,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "322",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910519,
+    "foundation": 13.617046200552881,
+    "height": 10,
+    "roof": 1511,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910520,
+    "foundation": 12.86286914312674,
+    "height": 10,
+    "roof": 1463,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "318",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "amenity": "school",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "ele": "13",
+      "gnis:feature_id": "2494233",
+      "name": "Montessori Plus School",
+      "phone": "+1-253-854-2880"
+    }
+  },
+  {
+    "id": 649910526,
+    "foundation": 13.665294356244901,
+    "height": 10,
+    "roof": 1515,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "321",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910529,
+    "foundation": 12.19977877326562,
+    "height": 10,
+    "roof": 1421,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "328",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "amenity": "clinic",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "healthcare": "clinic",
+      "name": "Pediatric Interim Care Center"
+    }
+  },
+  {
+    "id": 649910534,
+    "foundation": 13.558440255791847,
+    "height": 10,
+    "roof": 1508,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910535,
+    "foundation": 13.31252401808797,
+    "height": 10,
+    "roof": 1492,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "336",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "denomination": "lutheran",
+      "name": "Kent Lutheran Church",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 649910539,
+    "foundation": 13.818345963462756,
+    "height": 10,
+    "roof": 1524,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "324",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910541,
+    "foundation": 12.498489417291312,
+    "height": 10,
+    "roof": 1440,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "321",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910544,
+    "foundation": 13.889338357776849,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "325",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910546,
+    "foundation": 13.532003505143052,
+    "height": 10,
+    "roof": 1506,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910548,
+    "foundation": 13.089883846711018,
+    "height": 10,
+    "roof": 1478,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "327",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "denomination": "catholic",
+      "name": "Holy Spirit Catholic Church",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 649910550,
+    "foundation": 12.190006361313833,
+    "height": 10,
+    "roof": 1420,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "amenity": "social_facility",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "New Connection",
+      "opening_hours": "Mo-Fr 09:00-17:00"
+    }
+  },
+  {
+    "id": 649910553,
+    "foundation": 12.405388848683241,
+    "height": 10,
+    "roof": 1434,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "404",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910555,
+    "foundation": 12.711467274409777,
+    "height": 10,
+    "roof": 1454,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "304",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "denomination": "catholic",
+      "name": "Holy Spirit Catholic Church",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 649910561,
+    "foundation": 13.978607684461167,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "106",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910564,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910566,
+    "foundation": 12.09714949911825,
+    "height": 10,
+    "roof": 1414,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "314",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "amenity": "dentist",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "healthcare": "dentist",
+      "name": "Kent Family Dental - Abert Lee"
+    }
+  },
+  {
+    "id": 649910569,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "314",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910571,
+    "foundation": 12.883628707561256,
+    "height": 10,
+    "roof": 1465,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910572,
+    "foundation": 13.95762717141011,
+    "height": 10,
+    "roof": 1533,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "317",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910575,
+    "foundation": 12.742854479016241,
+    "height": 10,
+    "roof": 1456,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "310",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910577,
+    "foundation": 13.848850496998544,
+    "height": 10,
+    "roof": 1526,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "316 1/2",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910581,
+    "foundation": 13.914351604693179,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "232",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes",
+      "name": "Hydro Rents",
+      "office": "company",
+      "shop": "rental"
+    }
+  },
+  {
+    "id": 649910588,
+    "foundation": 13.797643678867676,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910590,
+    "foundation": 12.89328777697422,
+    "height": 10,
+    "roof": 1465,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "233",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "alt_name": "SMCHC",
+      "amenity": "clinic",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "fax": "+1-206-436-6368",
+      "healthcare": "clinic",
+      "name": "Sea Mar Community Health Center",
+      "opening_hours": "Mo,We 08:00-20:00; Tu,Th,Fr 08:00-17:00",
+      "phone": "+1-206-436-6380",
+      "website": "https://www.seamar.org/king-medical-kent.html"
+    }
+  },
+  {
+    "id": 649910595,
+    "foundation": 12.849783637286004,
+    "height": 10,
+    "roof": 1462,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910596,
+    "foundation": 13.927411089992894,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910598,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "307",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910600,
+    "foundation": 14.161344969451847,
+    "height": 10,
+    "roof": 1546,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "209",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "amenity": "car_wash",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Mr. Sudsy Car Wash"
+    }
+  },
+  {
+    "id": 649910604,
+    "foundation": 14.29933992383295,
+    "height": 10,
+    "roof": 1555,
+    "tags": {
+      "amenity": "fuel",
+      "brand": "76",
+      "brand:wikidata": "Q1658320",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "76",
+      "opening_hours": "24/7",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes",
+      "website": "https://www.76.com/station/U76-76-KENT-STATION-0000882154/"
+    }
+  },
+  {
+    "id": 649910606,
+    "foundation": 12.793088423404695,
+    "height": 10,
+    "roof": 1459,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910608,
+    "foundation": 14.031383323396447,
+    "height": 10,
+    "roof": 1538,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "220",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910610,
+    "foundation": 14.08181101326484,
+    "height": 10,
+    "roof": 1541,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "214",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes",
+      "name": "Valley Tool Company",
+      "office": "company"
+    }
+  },
+  {
+    "id": 649910613,
+    "foundation": 14.00662129327453,
+    "height": 10,
+    "roof": 1536,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "233",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "name": "Autotek",
+      "name:en": "Autotek",
+      "shop": "car_repair"
+    }
+  },
+  {
+    "id": 649910618,
+    "foundation": 12.837164449037362,
+    "height": 10,
+    "roof": 1462,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "221",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes",
+      "name": "221 Dental Building"
+    }
+  },
+  {
+    "id": 649910620,
+    "foundation": 13.128325078874756,
+    "height": 10,
+    "roof": 1480,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "232",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "alt_name": "KYFS",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Kent Youth and Family Services",
+      "office": "government",
+      "opening_hours": "Mo-Fr 09:00-17:00"
+    }
+  },
+  {
+    "id": 649910623,
+    "foundation": 13.40516304485351,
+    "height": 10,
+    "roof": 1498,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Step Up ABA Therapy",
+      "office": "therapist",
+      "phone": "+1-425-246-7038",
+      "website": "https://www.stepupabatherapy.com/"
+    }
+  },
+  {
+    "id": 649910625,
+    "foundation": 13.941491018235654,
+    "height": 10,
+    "roof": 1532,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910627,
+    "foundation": 12.997758816626169,
+    "height": 10,
+    "roof": 1472,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "302",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910629,
+    "foundation": 14.198540456048587,
+    "height": 10,
+    "roof": 1549,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "216",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "amenity": "restaurant",
+      "building": "yes",
+      "check_date": "2025-07-26",
+      "name": "Kabul Kebabs"
+    }
+  },
+  {
+    "id": 649910632,
+    "foundation": 13.979883208169056,
+    "height": 10,
+    "roof": 1535,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "206",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Gowe Street",
+      "building": "yes",
+      "name": "GM Collision",
+      "name:en": "GM Collision",
+      "shop": "car_repair"
+    }
+  },
+  {
+    "id": 649910635,
+    "foundation": 13.370151413741898,
+    "height": 10,
+    "roof": 1496,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "410",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910638,
+    "foundation": 13.81746652054187,
+    "height": 10,
+    "roof": 1524,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "414",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910642,
+    "foundation": 13.936822610873136,
+    "height": 10,
+    "roof": 1532,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "415",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910646,
+    "foundation": 13.57447387629986,
+    "height": 10,
+    "roof": 1509,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "411",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910650,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "414",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910652,
+    "foundation": 12.548569650397274,
+    "height": 10,
+    "roof": 1443,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "409",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Toro Taxes",
+      "office": "tax_advisor"
+    }
+  },
+  {
+    "id": 649910654,
+    "foundation": 12.986210939327242,
+    "height": 10,
+    "roof": 1471,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910656,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "417",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "name": "The City Smoke Shop",
+      "shop": "tobacco"
+    }
+  },
+  {
+    "id": 649910658,
+    "foundation": 13.51014718675841,
+    "height": 10,
+    "roof": 1505,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910660,
+    "foundation": 13.795822915915014,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "420",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910667,
+    "foundation": 12.980078188029012,
+    "height": 10,
+    "roof": 1471,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910670,
+    "foundation": 13.37767177717386,
+    "height": 10,
+    "roof": 1496,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "414",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910672,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "115",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Willis Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910675,
+    "foundation": 13.51157374444665,
+    "height": 10,
+    "roof": 1505,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910676,
+    "foundation": 13.798295048213754,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910680,
+    "foundation": 12.932580013463152,
+    "height": 10,
+    "roof": 1468,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "disused:shop": "bicycle"
+    }
+  },
+  {
+    "id": 649910682,
+    "foundation": 13.90409434197015,
+    "height": 10,
+    "roof": 1530,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910684,
+    "foundation": 13.202380090017241,
+    "height": 10,
+    "roof": 1485,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "421",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "2nd Avenue South",
+      "brand": "Farmers Insurance",
+      "brand:wikidata": "Q1396863",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "disused:office": "insurance",
+      "name": "Farmers Insurance"
+    }
+  },
+  {
+    "id": 649910687,
+    "foundation": 13.490920861328297,
+    "height": 10,
+    "roof": 1503,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910688,
+    "foundation": 13.847247938160553,
+    "height": 10,
+    "roof": 1526,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "424",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910694,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "421",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "check_date": "2026-03-10",
+      "disused:amenity": "restaurant",
+      "name": "Ishtar Greek Cuisine"
+    }
+  },
+  {
+    "id": 649910697,
+    "foundation": 13.586792219335479,
+    "height": 10,
+    "roof": 1510,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "419",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "brand": "Farmers Insurance",
+      "brand:wikidata": "Q1396863",
+      "building": "yes",
+      "name": "Farmers Insurance - Myron Johnson",
+      "office": "insurance"
+    }
+  },
+  {
+    "id": 649910700,
+    "foundation": 13.765914641601995,
+    "height": 10,
+    "roof": 1521,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910701,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "402",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910704,
+    "foundation": 13.722521422554792,
+    "height": 10,
+    "roof": 1518,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "340",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910706,
+    "foundation": 13.798670656804546,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910708,
+    "foundation": 12.997050619733365,
+    "height": 10,
+    "roof": 1472,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "306",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910709,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910710,
+    "foundation": 13.187970168369892,
+    "height": 10,
+    "roof": 1484,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "300",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "amenity": "place_of_worship",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Kent First Korean Church",
+      "phone": "+1-253-850-9191",
+      "religion": "christian"
+    }
+  },
+  {
+    "id": 649910712,
+    "foundation": 12.871106165140981,
+    "height": 10,
+    "roof": 1464,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "404",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910715,
+    "foundation": 12.663907416630739,
+    "height": 10,
+    "roof": 1450,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "401",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910719,
+    "foundation": 13.91785019508551,
+    "height": 10,
+    "roof": 1531,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "407",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910722,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "405",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "name": "Sun Star Food Mart",
+      "name:en": "Sun Star Food Mart",
+      "shop": "convenience"
+    }
+  },
+  {
+    "id": 649910725,
+    "foundation": 13.613524904870086,
+    "height": 10,
+    "roof": 1511,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "403",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910728,
+    "foundation": 13.822697513209624,
+    "height": 10,
+    "roof": 1525,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "404",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910730,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910732,
+    "foundation": 13.585534641674052,
+    "height": 10,
+    "roof": 1509,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "323",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910737,
+    "foundation": 13.890625,
+    "height": 10,
+    "roof": 1529,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "327",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "amenity": "car_rental",
+      "brand": "Enterprise",
+      "brand:wikidata": "Q17085454",
+      "building": "yes",
+      "name": "Enterprise",
+      "official_name": "Enterprise Rent-A-Car"
+    }
+  },
+  {
+    "id": 649910740,
+    "foundation": 12.521954036614957,
+    "height": 10,
+    "roof": 1441,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "327",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "3rd Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910743,
+    "foundation": 13.479976213511918,
+    "height": 10,
+    "roof": 1503,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "225",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes",
+      "name": "Kent Valley Early Childhood Education & Assistance Program",
+      "office": "government"
+    }
+  },
+  {
+    "id": 649910747,
+    "foundation": 12.362508300232237,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910750,
+    "foundation": 13.541489640880421,
+    "height": 10,
+    "roof": 1507,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "205",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910753,
+    "foundation": 13.838822951486328,
+    "height": 10,
+    "roof": 1526,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "338",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "1st Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910755,
+    "foundation": 13.824128398481935,
+    "height": 10,
+    "roof": 1525,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 649910757,
+    "foundation": 13.80375936702969,
+    "height": 10,
+    "roof": 1523,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251569,
+    "foundation": 11.198645837163681,
+    "height": 10,
+    "roof": 1357,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "615",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251570,
+    "foundation": 11.257808428769758,
+    "height": 10,
+    "roof": 1360,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251571,
+    "foundation": 11.315753101212401,
+    "height": 10,
+    "roof": 1364,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "333",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251572,
+    "foundation": 11.068397742165807,
+    "height": 10,
+    "roof": 1348,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "619",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251573,
+    "foundation": 11.070056839510157,
+    "height": 10,
+    "roof": 1348,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251574,
+    "foundation": 11.315687048167803,
+    "height": 10,
+    "roof": 1364,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "327",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251576,
+    "foundation": 10.996747162180368,
+    "height": 10,
+    "roof": 1344,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "705",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251578,
+    "foundation": 10.9652142454875,
+    "height": 10,
+    "roof": 1342,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251582,
+    "foundation": 10.981482571479576,
+    "height": 10,
+    "roof": 1343,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251584,
+    "foundation": 10.792975171631245,
+    "height": 10,
+    "roof": 1331,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "725",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Saar Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251587,
+    "foundation": 11.155175625443915,
+    "height": 10,
+    "roof": 1354,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251588,
+    "foundation": 11.182336493255967,
+    "height": 10,
+    "roof": 1356,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "626",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251589,
+    "foundation": 10.91962904468516,
+    "height": 10,
+    "roof": 1339,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251590,
+    "foundation": 11.327650271173578,
+    "height": 15.0,
+    "roof": 1685,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "309",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes",
+      "building:levels": "5"
+    }
+  },
+  {
+    "id": 652251591,
+    "foundation": 11.289808824411207,
+    "height": 10,
+    "roof": 1363,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "621",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251593,
+    "foundation": 11.311484083888445,
+    "height": 10,
+    "roof": 1364,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251594,
+    "foundation": 11.37281076212049,
+    "height": 10,
+    "roof": 1368,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "615",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251596,
+    "foundation": 11.381939812106715,
+    "height": 10,
+    "roof": 1368,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251598,
+    "foundation": 11.068769001726167,
+    "height": 10,
+    "roof": 1348,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251599,
+    "foundation": 11.777944257227187,
+    "height": 10,
+    "roof": 1394,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "317",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251600,
+    "foundation": 11.477669396491365,
+    "height": 15.0,
+    "roof": 1695,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "233",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes",
+      "building:levels": "5"
+    }
+  },
+  {
+    "id": 652251611,
+    "foundation": 10.762861555452595,
+    "height": 10,
+    "roof": 1329,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "711",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251612,
+    "foundation": 10.716408202877087,
+    "height": 10,
+    "roof": 1326,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251615,
+    "foundation": 10.737504801631212,
+    "height": 10,
+    "roof": 1327,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251619,
+    "foundation": 11.673538549716673,
+    "height": 10,
+    "roof": 1387,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "505",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "KeyBank",
+      "brand:wikidata": "Q1740314",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "drive_through": "yes",
+      "name": "KeyBank",
+      "opening_hours": "Mo-Th 09:00-17:00; Fr 09:00-18:00"
+    }
+  },
+  {
+    "id": 652251620,
+    "foundation": 10.774438252525275,
+    "height": 10,
+    "roof": 1330,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "708",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251624,
+    "foundation": 10.590348710000399,
+    "height": 10,
+    "roof": 1318,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251625,
+    "foundation": 10.691673899008109,
+    "height": 10,
+    "roof": 1324,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "713",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251628,
+    "foundation": 10.743740240350164,
+    "height": 10,
+    "roof": 1328,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "707",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251629,
+    "foundation": 11.748427631657083,
+    "height": 10,
+    "roof": 1392,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "505",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "HomeStreet Bank",
+      "brand:wikidata": "Q60762481",
+      "building": "yes",
+      "drive_through": "yes",
+      "name": "HomeStreet Bank",
+      "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-13:00",
+      "operator": "HomeStreet Bank",
+      "operator:wikidata": "Q60762481"
+    }
+  },
+  {
+    "id": 652251630,
+    "foundation": 11.39614783195916,
+    "height": 10,
+    "roof": 1369,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "515",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "commercial",
+      "name": "The Alliance Center"
+    }
+  },
+  {
+    "id": 652251631,
+    "foundation": 11.682010894658813,
+    "height": 10,
+    "roof": 1388,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "212",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251632,
+    "foundation": 11.267809273176201,
+    "height": 10,
+    "roof": 1361,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "624",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251633,
+    "foundation": 11.401585265012665,
+    "height": 10,
+    "roof": 1370,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "614",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251634,
+    "foundation": 11.966732259977034,
+    "height": 10,
+    "roof": 1406,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "212",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "5th Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Akin",
+      "office": "ngo"
+    }
+  },
+  {
+    "id": 652251635,
+    "foundation": 11.549374472696151,
+    "height": 10,
+    "roof": 1379,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "606",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251636,
+    "foundation": 11.172048189729146,
+    "height": 10,
+    "roof": 1355,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "627",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Titus Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251637,
+    "foundation": 11.37076794397289,
+    "height": 10,
+    "roof": 1368,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "616",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251638,
+    "foundation": 12.038390106917674,
+    "height": 10,
+    "roof": 1410,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "203",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "cuisine": "mexican",
+      "disused:amenity": "restaurant",
+      "name": "Mexico Lindo Restaurant"
+    }
+  },
+  {
+    "id": 652251644,
+    "foundation": 12.02375606580338,
+    "height": 10,
+    "roof": 1410,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "504",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "Umpqua Bank",
+      "brand:wikidata": "Q7881772",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "drive_through": "yes",
+      "name": "Umpqua Bank",
+      "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-18:00",
+      "operator": "Umpqua Bank",
+      "operator:wikidata": "Q7881772"
+    }
+  },
+  {
+    "id": 652251645,
+    "foundation": 11.295594266318803,
+    "height": 10,
+    "roof": 1363,
+    "tags": {
+      "building": "commercial",
+      "name": "Kent Professional Center"
+    }
+  },
+  {
+    "id": 652251646,
+    "foundation": 11.258249581650624,
+    "height": 10,
+    "roof": 1361,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251649,
+    "foundation": 11.839263113357275,
+    "height": 10,
+    "roof": 1398,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "512",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "disused:office": "accountant",
+      "name": "Personal Financial Planning"
+    }
+  },
+  {
+    "id": 652251651,
+    "foundation": 11.77944525442353,
+    "height": 10,
+    "roof": 1394,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "524",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251652,
+    "foundation": 10.72472025590936,
+    "height": 10,
+    "roof": 1326,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "716",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251653,
+    "foundation": 11.461539265143195,
+    "height": 10,
+    "roof": 1374,
+    "tags": {
+      "building": "commercial",
+      "name": "604 Meeker Building"
+    }
+  },
+  {
+    "id": 652251654,
+    "foundation": 11.06507124532627,
+    "height": 10,
+    "roof": 1348,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251658,
+    "foundation": 11.34544754606073,
+    "height": 10,
+    "roof": 1366,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251659,
+    "foundation": 10.87680909814487,
+    "height": 10,
+    "roof": 1336,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251663,
+    "foundation": 10.801121793792662,
+    "height": 10,
+    "roof": 1331,
+    "tags": {
+      "building": "yes",
+      "name": "King County Prosecuting Attorney - Family Assistance Division",
+      "office": "government",
+      "opening_hours": "Mo-Fr 08:30-16:30"
+    }
+  },
+  {
+    "id": 652251664,
+    "foundation": 11.094252765120782,
+    "height": 10,
+    "roof": 1350,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "615",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "amenity": "nursing_home",
+      "building": "yes",
+      "name": "Harrison House"
+    }
+  },
+  {
+    "id": 652251665,
+    "foundation": 10.677458611060167,
+    "height": 10,
+    "roof": 1323,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251666,
+    "foundation": 10.762045140794205,
+    "height": 10,
+    "roof": 1329,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251667,
+    "foundation": 10.685283638903858,
+    "height": 10,
+    "roof": 1324,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251668,
+    "foundation": 10.704743992428543,
+    "height": 10,
+    "roof": 1325,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251669,
+    "foundation": 11.604371577004942,
+    "height": 10,
+    "roof": 1383,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "305",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "4th Avenue North",
+      "amenity": "bank",
+      "atm": "yes",
+      "brand": "U.S. Bank",
+      "brand:wikidata": "Q739084",
+      "building": "commercial",
+      "drive_through": "yes",
+      "name": "U.S. Bank",
+      "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-13:00"
+    }
+  },
+  {
+    "id": 652251670,
+    "foundation": 10.788142081327296,
+    "height": 10,
+    "roof": 1330,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251671,
+    "foundation": 10.778768811483133,
+    "height": 10,
+    "roof": 1330,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "715",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251672,
+    "foundation": 11.275222179468718,
+    "height": 10,
+    "roof": 1362,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "555",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251673,
+    "foundation": 10.917622313277477,
+    "height": 10,
+    "roof": 1339,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "655",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Smith Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 652251675,
+    "foundation": 10.76388887531592,
+    "height": 10,
+    "roof": 1329,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638585,
+    "foundation": 14.35667748761226,
+    "height": 10,
+    "roof": 1559,
+    "tags": {
+      "building": "school",
+      "name": "C Building"
+    }
+  },
+  {
+    "id": 653638587,
+    "foundation": 14.085177856102879,
+    "height": 10,
+    "roof": 1541,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638588,
+    "foundation": 14.056760401092724,
+    "height": 10,
+    "roof": 1540,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638589,
+    "foundation": 14.080989165485253,
+    "height": 10,
+    "roof": 1541,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638590,
+    "foundation": 14.054622996850986,
+    "height": 10,
+    "roof": 1539,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638591,
+    "foundation": 12.881693480966018,
+    "height": 3.0,
+    "roof": 1016,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "311",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "amenity": "pub",
+      "building": "yes",
+      "building:levels": "1",
+      "check_date": "2025-03-18",
+      "name": "Pied Piper Pub",
+      "opening_hours": "Mo-Th 11:00-24:00; Fr-Su 10:00-02:00",
+      "outdoor_seating": "yes",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes"
+    }
+  },
+  {
+    "id": 653638592,
+    "foundation": 12.817615551823542,
+    "height": 3.0,
+    "roof": 1012,
+    "tags": {
+      "building": "yes",
+      "building:levels": "1"
+    }
+  },
+  {
+    "id": 653638593,
+    "foundation": 12.890948219443564,
+    "height": 6.0,
+    "roof": 1209,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "307",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "amenity": "restaurant",
+      "building": "yes",
+      "building:levels": "2",
+      "check_date": "2025-03-18",
+      "cuisine": "american",
+      "name": "Maggie's On Meeker",
+      "opening_hours": "07:00-16:00",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes"
+    }
+  },
+  {
+    "id": 653638594,
+    "foundation": 12.476234690109962,
+    "height": 10,
+    "roof": 1438,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "403",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "disused:shop": "yes",
+      "name": "Meeker Street Emporium"
+    }
+  },
+  {
+    "id": 653638595,
+    "foundation": 12.551301506415257,
+    "height": 10,
+    "roof": 1443,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638596,
+    "foundation": 12.506421618779017,
+    "height": 10,
+    "roof": 1440,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "407",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Gowe Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638597,
+    "foundation": 12.357561959516865,
+    "height": 10,
+    "roof": 1431,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638598,
+    "foundation": 12.65338220075189,
+    "height": 10,
+    "roof": 1450,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638599,
+    "foundation": 12.70511268044988,
+    "height": 10,
+    "roof": 1453,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638600,
+    "foundation": 12.786808694542998,
+    "height": 10,
+    "roof": 1458,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638601,
+    "foundation": 12.948279450362861,
+    "height": 6.0,
+    "roof": 1213,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "303",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Meeker Street",
+      "building": "yes",
+      "building:levels": "2"
+    }
+  },
+  {
+    "id": 653638602,
+    "foundation": 14.584894925504159,
+    "height": 10,
+    "roof": 1573,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638603,
+    "foundation": 14.60035413338274,
+    "height": 10,
+    "roof": 1574,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "106",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638604,
+    "foundation": 14.449738875384291,
+    "height": 10,
+    "roof": 1565,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "209",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Nieman Glass",
+      "shop": "furniture"
+    }
+  },
+  {
+    "id": 653638605,
+    "foundation": 14.47796682935472,
+    "height": 10,
+    "roof": 1567,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638606,
+    "foundation": 14.467587622651761,
+    "height": 10,
+    "roof": 1566,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "203",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes",
+      "check_date": "2026-05-29",
+      "name": "Tim's Collision",
+      "shop": "car_repair"
+    }
+  },
+  {
+    "id": 653638608,
+    "foundation": 13.96021450054276,
+    "height": 10,
+    "roof": 1533,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "325",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes",
+      "name": "Jones & Associates, Inc., PS Certified Public Accountants",
+      "office": "accountant"
+    }
+  },
+  {
+    "id": 653638609,
+    "foundation": 13.96021450054276,
+    "height": 10,
+    "roof": 1533,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "315",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Torklift Central",
+      "phone": "+1-253-854-1832",
+      "shop": "trade",
+      "website": "https://torkliftcentral.com/"
+    }
+  },
+  {
+    "id": 653638610,
+    "foundation": 12.99729862414204,
+    "height": 10,
+    "roof": 1472,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638612,
+    "foundation": 14.09412992502022,
+    "height": 10,
+    "roof": 1542,
+    "tags": {
+      "building": "apartments"
+    }
+  },
+  {
+    "id": 653638613,
+    "foundation": 13.762256781587293,
+    "height": 10,
+    "roof": 1521,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "109",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue South",
+      "building": "train_station",
+      "name": "Northern Pacific Kent Station"
+    }
+  },
+  {
+    "id": 653638614,
+    "foundation": 13.857608265058477,
+    "height": 10,
+    "roof": 1527,
+    "tags": {
+      "building": "service"
+    }
+  },
+  {
+    "id": 653638616,
+    "foundation": 14.337239140599383,
+    "height": 10,
+    "roof": 1558,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "111",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue South",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Smart Motorz",
+      "phone": "+1-253-236-8984",
+      "shop": "car"
+    }
+  },
+  {
+    "id": 653638617,
+    "foundation": 14.093622933398729,
+    "height": 10,
+    "roof": 1542,
+    "tags": {
+      "building": "retail"
+    }
+  },
+  {
+    "id": 653638618,
+    "foundation": 14.262731231706937,
+    "height": 10,
+    "roof": 1553,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "217",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Meeker Street",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "FlexxStaff",
+      "office": "employment_agency",
+      "phone": "+1-253-856-3539"
+    }
+  },
+  {
+    "id": 653638619,
+    "foundation": 14.176242287781308,
+    "height": 3.0,
+    "roof": 1099,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "114",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue North",
+      "amenity": "bar",
+      "building": "yes",
+      "building:levels": "1",
+      "check_date": "2025-03-18",
+      "name": "Nashville's Sports Bar & Grill",
+      "opening_hours": "08:00-02:00",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes"
+    }
+  },
+  {
+    "id": 653638620,
+    "foundation": 12.776822119348953,
+    "height": 6.0,
+    "roof": 1202,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "316",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "West Harrison Street",
+      "building": "office",
+      "building:levels": "2",
+      "roof:levels": "0"
+    }
+  },
+  {
+    "id": 653638621,
+    "foundation": 14.583556478905543,
+    "height": 10,
+    "roof": 1573,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638622,
+    "foundation": 12.217517555642335,
+    "height": 10,
+    "roof": 1422,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638623,
+    "foundation": 13.253844833906264,
+    "height": 10,
+    "roof": 1488,
+    "tags": {
+      "building": "retail"
+    }
+  },
+  {
+    "id": 653638624,
+    "foundation": 14.382490875595703,
+    "height": 10,
+    "roof": 1560,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "105",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638625,
+    "foundation": 14.63665007332243,
+    "height": 10,
+    "roof": 1577,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638626,
+    "foundation": 14.164620933850754,
+    "height": 6.0,
+    "roof": 1291,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "206",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue North",
+      "building": "yes",
+      "building:levels": "2",
+      "roof:shape": "gabled"
+    }
+  },
+  {
+    "id": 653638627,
+    "foundation": 14.63003874877975,
+    "height": 10,
+    "roof": 1576,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "204",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638629,
+    "foundation": 14.395846117321064,
+    "height": 10,
+    "roof": 1561,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "221",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "fast_food",
+      "brand": "Jack in the Box",
+      "brand:wikidata": "Q1538507",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "cuisine": "burger",
+      "delivery": "no",
+      "drive_through": "yes",
+      "name": "Jack in the Box",
+      "opening_hours": "24/7",
+      "outdoor_seating": "yes",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes",
+      "phone": "+1-253-854-2689",
+      "smoking": "no",
+      "takeaway": "yes",
+      "website": "https://locations.jackinthebox.com/us/wa/kent/221-central-ave-n"
+    }
+  },
+  {
+    "id": 653638630,
+    "foundation": 13.524572532851698,
+    "height": 10,
+    "roof": 1506,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638631,
+    "foundation": 14.689825060933028,
+    "height": 10,
+    "roof": 1580,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "302",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Smith Street",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "name": "Bonaci Fine Jewelers",
+      "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-16:00",
+      "shop": "jewelry"
+    }
+  },
+  {
+    "id": 653638632,
+    "foundation": 15.353061271485576,
+    "height": 10,
+    "roof": 1623,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "434",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Smith Street",
+      "amenity": "dentist",
+      "building": "yes",
+      "healthcare": "dentist",
+      "name": "Greg Knugson Family Dentistry",
+      "name:en": "Greg Knugson Family Dentistry"
+    }
+  },
+  {
+    "id": 653638633,
+    "foundation": 14.150296387323424,
+    "height": 10,
+    "roof": 1546,
+    "tags": {
+      "building": "retail"
+    }
+  },
+  {
+    "id": 653638634,
+    "foundation": 15.083285632819386,
+    "height": 10,
+    "roof": 1605,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "422",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Smith Street",
+      "amenity": "dentist",
+      "building": "yes",
+      "healthcare": "dentist",
+      "name": "Meridian Dental Clinic",
+      "name:en": "Kent Dental"
+    }
+  },
+  {
+    "id": 653638635,
+    "foundation": 14.6617607123204,
+    "height": 10,
+    "roof": 1578,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "212",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "restaurant",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "cuisine": "chinese",
+      "name": "Megastar BBQ Chinese Restaurant"
+    }
+  },
+  {
+    "id": 653638636,
+    "foundation": 14.799520708933812,
+    "height": 10,
+    "roof": 1587,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "225",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "State Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638639,
+    "foundation": 13.261335256516759,
+    "height": 10,
+    "roof": 1489,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "301",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638640,
+    "foundation": 13.722756194327133,
+    "height": 10,
+    "roof": 1518,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "322",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638641,
+    "foundation": 13.304167593938821,
+    "height": 10,
+    "roof": 1491,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638642,
+    "foundation": 14.77402203191637,
+    "height": 10,
+    "roof": 1586,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "317",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "East Smith Street",
+      "amenity": "restaurant",
+      "building": "yes",
+      "cuisine": "chinese",
+      "name": "Lucky House",
+      "opening_hours": "Su-Th 10:00-21:30; Fr-Sa 10:00-22:00",
+      "phone": "+1-253-520-1688",
+      "website": "https://luckyhouseinkent.com/"
+    }
+  },
+  {
+    "id": 653638643,
+    "foundation": 14.261943024016071,
+    "height": 10,
+    "roof": 1553,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "301",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "fast_food",
+      "brand": "El Rinconsito",
+      "brand:wikidata": "Q114187652",
+      "building": "yes",
+      "check_date": "2025-03-18",
+      "cuisine": "mexican",
+      "drive_through": "yes",
+      "name": "El Rinconsito",
+      "opening_hours": "Su-Th 10:00-00:00; Fr-Sa 10:00-01:00",
+      "payment:cash": "yes",
+      "payment:credit_cards": "yes",
+      "payment:debit_cards": "yes",
+      "phone": "+1-253-813-1300",
+      "takeaway": "yes"
+    }
+  },
+  {
+    "id": 653638644,
+    "foundation": 14.716298792040838,
+    "height": 10,
+    "roof": 1582,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638645,
+    "foundation": 14.637658542073304,
+    "height": 10,
+    "roof": 1577,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638646,
+    "foundation": 14.682867717117915,
+    "height": 10,
+    "roof": 1580,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638647,
+    "foundation": 14.636320920022673,
+    "height": 10,
+    "roof": 1577,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "407",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "State Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638649,
+    "foundation": 14.714969789403822,
+    "height": 10,
+    "roof": 1582,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "407",
+      "addr:postcode": "98030",
+      "addr:state": "WA",
+      "addr:street": "State Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638650,
+    "foundation": 13.043086707443699,
+    "height": 10,
+    "roof": 1475,
+    "tags": {
+      "building": "yes",
+      "layer": "2"
+    }
+  },
+  {
+    "id": 653638651,
+    "foundation": 13.034511981017525,
+    "height": 10,
+    "roof": 1474,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638652,
+    "foundation": 13.1003066100062,
+    "height": 10,
+    "roof": 1478,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638653,
+    "foundation": 13.404449667026565,
+    "height": 10,
+    "roof": 1498,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "204",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Pioneer Street",
+      "building": "yes",
+      "check_date": "2025-07-06",
+      "name": "LaborMax Staffing",
+      "office": "employment_agency"
+    }
+  },
+  {
+    "id": 653638654,
+    "foundation": 13.546443762266971,
+    "height": 10,
+    "roof": 1507,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "210",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "East Pioneer Street",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638655,
+    "foundation": 14.171993409102459,
+    "height": 10,
+    "roof": 1547,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "418",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes",
+      "name": "Town & Country Trucks & Trailers",
+      "shop": "car",
+      "website": "http://www.townandcountrytrucks.com"
+    }
+  },
+  {
+    "id": 653638656,
+    "foundation": 13.188912491146642,
+    "height": 10,
+    "roof": 1484,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638657,
+    "foundation": 13.636225030285138,
+    "height": 10,
+    "roof": 1513,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "404",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Railroad Avenue North",
+      "building": "yes",
+      "name": "Doorman Service Company",
+      "office": "company"
+    }
+  },
+  {
+    "id": 653638658,
+    "foundation": 12.995630138730062,
+    "height": 10,
+    "roof": 1472,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638659,
+    "foundation": 13.860606700826633,
+    "height": 10,
+    "roof": 1527,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "415",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "restaurant",
+      "building": "yes",
+      "cuisine": "mexican",
+      "name": "El Sabor Mexican Restaurant",
+      "phone": "+1-253-520-0161"
+    }
+  },
+  {
+    "id": 653638662,
+    "foundation": 13.563941064527947,
+    "height": 10,
+    "roof": 1508,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "501",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "restaurant",
+      "building": "yes",
+      "cuisine": "chicken",
+      "name": "El Senor Pollo de Kent"
+    }
+  },
+  {
+    "id": 653638663,
+    "foundation": 13.48418332660123,
+    "height": 10,
+    "roof": 1503,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638664,
+    "foundation": 13.633519224112304,
+    "height": 10,
+    "roof": 1513,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638665,
+    "foundation": 13.116717481887548,
+    "height": 10,
+    "roof": 1479,
+    "tags": {
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638667,
+    "foundation": 13.541396258059077,
+    "height": 10,
+    "roof": 1507,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "521",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 653638669,
+    "foundation": 13.562549876482743,
+    "height": 10,
+    "roof": 1508,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "517",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "building": "yes"
+    }
+  },
+  {
+    "id": 691047495,
+    "foundation": 14.70458462684109,
+    "height": 6.0,
+    "roof": 1325,
+    "tags": {
+      "amenity": "clinic",
+      "building": "yes",
+      "building:levels": "2",
+      "check_date": "2025-03-18",
+      "healthcare": "clinic",
+      "name": "MultiCare - Kent Clinic"
+    }
+  },
+  {
+    "id": 880023885,
+    "foundation": 13.788968534680453,
+    "height": 10,
+    "roof": 1522,
+    "tags": {
+      "addr:city": "Kent",
+      "addr:housenumber": "405",
+      "addr:postcode": "98032",
+      "addr:state": "WA",
+      "addr:street": "Central Avenue North",
+      "amenity": "fast_food",
+      "brand": "Subway",
+      "brand:wikidata": "Q244457",
+      "building": "yes",
+      "check_date": "2023-03-28",
+      "cuisine": "sandwich",
+      "name": "Subway",
+      "opening_hours": "Mo-Fr 07:00-22:00; Sa-Su 09:00-21:00",
+      "phone": "+1-253-859-3830",
+      "takeaway": "yes",
+      "website": "https://restaurants.subway.com/united-states/wa/kent/405-central-ave-n"
+    }
+  },
+  {
+    "id": 1038357896,
+    "foundation": 11.387251776669272,
+    "height": 10,
+    "roof": 1369,
+    "tags": {
+      "building": "detached"
+    }
+  },
+  {
+    "id": 1099706099,
+    "foundation": 13.703715847870667,
+    "height": 10,
+    "roof": 1517,
+    "tags": {
+      "building": "service"
+    }
+  },
+  {
+    "id": 1352421841,
+    "foundation": 10.90295414075771,
+    "height": 10,
+    "roof": 1338,
+    "tags": {
+      "building": "roof"
+    }
+  },
+  {
+    "id": 1486225309,
+    "foundation": 12.659599083874266,
+    "height": 10,
+    "roof": 1450,
+    "tags": {
+      "building": "roof",
+      "layer": "1"
+    }
+  }
+]

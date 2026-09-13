@@ -1,0 +1,107 @@
+{
+  "rows": 450,
+  "mismatchingEdges": 0,
+  "pointMismatches": [],
+  "witnesses": [
+    {
+      "name": "interior-day",
+      "cpu": null,
+      "gpu": null
+    },
+    {
+      "name": "interior-night",
+      "cpu": null,
+      "gpu": null
+    },
+    {
+      "name": "open-night",
+      "cpu": 1,
+      "gpu": 1
+    },
+    {
+      "name": "roof-at-10m",
+      "cpu": 0,
+      "gpu": 0
+    },
+    {
+      "name": "wall-outward-5m",
+      "cpu": 0,
+      "gpu": 0
+    },
+    {
+      "name": "wall-facing-caster-5m",
+      "cpu": 1,
+      "gpu": 1
+    }
+  ],
+  "zero": [
+    {
+      "left": null,
+      "right": null,
+      "sidewalks": {
+        "left": {
+          "shadow": null,
+          "source": "none",
+          "confidence": 0,
+          "validSampleFraction": 0,
+          "validSamples": 0,
+          "totalSamples": 2
+        },
+        "right": {
+          "shadow": null,
+          "source": "none",
+          "confidence": 0,
+          "validSampleFraction": 0,
+          "validSamples": 0,
+          "totalSamples": 2
+        }
+      },
+      "validSampleFraction": {
+        "left": 0,
+        "right": 0
+      },
+      "source": "none",
+      "confidence": 0,
+      "buildingSource": null,
+      "canopySources": {
+        "osm": false,
+        "raster": false
+      }
+    }
+  ],
+  "partial": [
+    {
+      "left": 1,
+      "right": 0.5,
+      "sidewalks": {
+        "left": {
+          "shadow": 1,
+          "source": "tiles",
+          "confidence": 0.4,
+          "validSampleFraction": 0.5,
+          "validSamples": 1,
+          "totalSamples": 2
+        },
+        "right": {
+          "shadow": 0.5,
+          "source": "tiles",
+          "confidence": 0.8,
+          "validSampleFraction": 1,
+          "validSamples": 2,
+          "totalSamples": 2
+        }
+      },
+      "validSampleFraction": {
+        "left": 0.5,
+        "right": 1
+      },
+      "source": "tiles",
+      "confidence": 0.4,
+      "buildingSource": "tiles",
+      "canopySources": {
+        "osm": false,
+        "raster": false
+      }
+    }
+  ]
+}

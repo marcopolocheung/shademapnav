@@ -1,0 +1,20 @@
+{
+  "finishedAt": "2026-09-12T20:40:52.747465+00:00",
+  "revision": "cbefb8a02ef136e83447754ec35acd9bd71f6d28",
+  "branch": "main",
+  "node": "v20.20.1",
+  "inputs": {
+    "docs/shadow-engine-v2/02-architecture.md": "fd87407043cd97b59af25e98f539135939f8f4a6d0c6df8bf2b0202a8ef860f3",
+    "docs/shadow-engine-v2/02a-feasibility.md": "73642d4aa58e5d72a64d96d331884861380840c5682c93cdaffc0fab940a3b1c",
+    "docs/shadow-engine-v2/02b-placement.md": "9b1efea88bcd63f014e5f28a2cf7d9b8e5bbc9224736c7cb4678a60811a3de99",
+    "docs/shadow-engine-v2/02c-lattice.md": "97ad97a0efa26f7ea0297b7fd963ed7e72af59efd0d3645e8f93fe4b0d7ce91e",
+    "docs/shadow-engine-v2/evidence/02c/core.mjs": "8e6fdcefac2aa7e339e73d89a57dbbc10fefb92e7491054051d168219e1a857e",
+    "docs/shadow-engine-v2/evidence/02c/raw-z18.json.gz": "b3e6dd09f349fef6c498e2ef46a68ae9de0bbc488a1a17353efdb21fa1528a51",
+    "app/lib/shadowField/__tests__/agreement/fixtures.ts": "b16d03d69841b23aaa8f1eef45f796102f32fcc34d7962b082707830e75e3c7d",
+    "app/lib/shadowField/__tests__/agreement/harness.ts": "b3aef606625d74f00f7db331a96e23de20024b7e138e728e69c9d83fe7396178",
+    "app/lib/shadowSampling.ts": "4dc2fe5ddf348fec5b1560a77926a0ff64bfc65752fbc6548ddefb8904795dc9",
+    "app/lib/shadowField/ShadowField.ts": "2222e954bc22641412924810ad9de02644f1ed0154477ec1279984072ce26df3",
+    "app/lib/shadowField/geometry.ts": "a9083a5d6385417ffa93a0a07bcf02ee73ffb06d2f60420be1168684521e081e"
+  },
+  "deliverableSha256": "c1bc447e51bd456ee8137d69f3bbb469d7a76e32bfbd717bc1b88dfe0a8b2c0b"
+}
