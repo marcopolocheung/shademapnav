@@ -1,0 +1,707 @@
+{
+  "offline": true,
+  "sourceRecords": 74,
+  "checks": [
+    {
+      "name": "source body arcticdem",
+      "pass": true
+    },
+    {
+      "name": "source body austria-dgm",
+      "pass": true
+    },
+    {
+      "name": "source body aws-terrain",
+      "pass": true
+    },
+    {
+      "name": "source body canada-spec-ftp-v11",
+      "pass": true
+    },
+    {
+      "name": "source body canada-spec-ftp",
+      "pass": true
+    },
+    {
+      "name": "source body canada-spec",
+      "pass": true
+    },
+    {
+      "name": "source body ccby",
+      "pass": true
+    },
+    {
+      "name": "source body cdla",
+      "pass": true
+    },
+    {
+      "name": "source body chm-aws",
+      "pass": true
+    },
+    {
+      "name": "source body chm-mirror-license",
+      "pass": true
+    },
+    {
+      "name": "source body chm-mirror",
+      "pass": true
+    },
+    {
+      "name": "source body chm-origin-list",
+      "pass": true
+    },
+    {
+      "name": "source body chm-origin-meta-list",
+      "pass": true
+    },
+    {
+      "name": "source body chm-paper",
+      "pass": true
+    },
+    {
+      "name": "source body chm-registry-yaml",
+      "pass": true
+    },
+    {
+      "name": "source body chm-stac",
+      "pass": true
+    },
+    {
+      "name": "source body chm-zenodo-api",
+      "pass": true
+    },
+    {
+      "name": "source body chm-zenodo-readme",
+      "pass": true
+    },
+    {
+      "name": "source body chm-zenodo",
+      "pass": true
+    },
+    {
+      "name": "source body copdem-aws",
+      "pass": true
+    },
+    {
+      "name": "source body copdem-cog",
+      "pass": true
+    },
+    {
+      "name": "source body copdem-product",
+      "pass": true
+    },
+    {
+      "name": "source body dinov3-license",
+      "pass": true
+    },
+    {
+      "name": "source body dinov3-readme",
+      "pass": true
+    },
+    {
+      "name": "source body ea-dtm",
+      "pass": true
+    },
+    {
+      "name": "source body egg2008",
+      "pass": true
+    },
+    {
+      "name": "source body eudem-retired",
+      "pass": true
+    },
+    {
+      "name": "source body eudem-validation",
+      "pass": true
+    },
+    {
+      "name": "source body fabdem-catalog",
+      "pass": true
+    },
+    {
+      "name": "source body gmted-report",
+      "pass": true
+    },
+    {
+      "name": "source body google-buildings",
+      "pass": true
+    },
+    {
+      "name": "source body google-temporal",
+      "pass": true
+    },
+    {
+      "name": "source body jaxa-aw3d",
+      "pass": true
+    },
+    {
+      "name": "source body jaxa-terms",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-attribution",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-composite",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-copying",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-formats",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-license",
+      "pass": true
+    },
+    {
+      "name": "source body joerd-sources",
+      "pass": true
+    },
+    {
+      "name": "source body linz-aws",
+      "pass": true
+    },
+    {
+      "name": "source body linz-collection",
+      "pass": true
+    },
+    {
+      "name": "source body linz-elevation",
+      "pass": true
+    },
+    {
+      "name": "source body linz-item",
+      "pass": true
+    },
+    {
+      "name": "source body linz-readme",
+      "pass": true
+    },
+    {
+      "name": "source body linz-tiff-spec",
+      "pass": true
+    },
+    {
+      "name": "source body maptiler-price",
+      "pass": true
+    },
+    {
+      "name": "source body maptiler-terms",
+      "pass": true
+    },
+    {
+      "name": "source body microsoft-buildings",
+      "pass": true
+    },
+    {
+      "name": "source body microsoft-license",
+      "pass": true
+    },
+    {
+      "name": "source body microsoft-pinned-license",
+      "pass": true
+    },
+    {
+      "name": "source body microsoft-pinned-readme",
+      "pass": true
+    },
+    {
+      "name": "source body microsoft-revision",
+      "pass": true
+    },
+    {
+      "name": "source body nasadem-guide",
+      "pass": true
+    },
+    {
+      "name": "source body odbl",
+      "pass": true
+    },
+    {
+      "name": "source body osm-copyright",
+      "pass": true
+    },
+    {
+      "name": "source body overpass-limits",
+      "pass": true
+    },
+    {
+      "name": "source body overture-attribution",
+      "pass": true
+    },
+    {
+      "name": "source body overture-buildings",
+      "pass": true
+    },
+    {
+      "name": "source body overture-schema",
+      "pass": true
+    },
+    {
+      "name": "source body pgc-guide",
+      "pass": true
+    },
+    {
+      "name": "source body proj-canada",
+      "pass": true
+    },
+    {
+      "name": "source body proj-nga",
+      "pass": true
+    },
+    {
+      "name": "source body proj-noaa",
+      "pass": true
+    },
+    {
+      "name": "source body proj-nz",
+      "pass": true
+    },
+    {
+      "name": "source body proj-spain",
+      "pass": true
+    },
+    {
+      "name": "source body r2-price",
+      "pass": true
+    },
+    {
+      "name": "source body srtm-accuracy",
+      "pass": true
+    },
+    {
+      "name": "source body srtm-mission",
+      "pass": true
+    },
+    {
+      "name": "source body srtm-product",
+      "pass": true
+    },
+    {
+      "name": "source body usgs-accuracy",
+      "pass": true
+    },
+    {
+      "name": "source body usgs-datums",
+      "pass": true
+    },
+    {
+      "name": "source body usgs-gmted",
+      "pass": true
+    },
+    {
+      "name": "range body 100359bda27960ff6e0b9132b8bca9ac69fa6e766038e8c6d911ff46ccba3274",
+      "pass": true
+    },
+    {
+      "name": "range body 3116ab30c2c2e8c0fd673c2dc7be736ca2b74eb7b866dc8ba04f254408ed0852",
+      "pass": true
+    },
+    {
+      "name": "range body 4876373dcbee31ef91f2b1b9479ed2d38bdae77e1aba38380a96fd7b5f88a03a",
+      "pass": true
+    },
+    {
+      "name": "range body 52e1f13679cf4873861b4ac40bcd724bdeacd3484bd38cadea505c893bd2460c",
+      "pass": true
+    },
+    {
+      "name": "range body 54e3f918ca0ac497389955664606ce86c27fec01fb610785b254ef19a2eac180",
+      "pass": true
+    },
+    {
+      "name": "range body 66cabcce07e8cf584733e90d19fa064e28e249c5a12be776bd26324eec444aca",
+      "pass": true
+    },
+    {
+      "name": "range body 6aed370ca24caab66db791b1885d711428ffb95747e674d778ffbd927cb3712f",
+      "pass": true
+    },
+    {
+      "name": "range body 74808d3bf5af9ce6e66b4ca3153bf5bea7af2c3a8c369b72f6ded52548201f97",
+      "pass": true
+    },
+    {
+      "name": "range body 8210a1f3c60aa4e162f3de9b0e352f368fddfc26b346fa1e8899dad6db42804a",
+      "pass": true
+    },
+    {
+      "name": "range body 82c816f73a83adc67b5857b5769324f1630db93e90b9b04b0838f07937a181b3",
+      "pass": true
+    },
+    {
+      "name": "range body a53c52d78068d37df6902e4846e1915d949ee0fc64d61d582b320e72a0325ffe",
+      "pass": true
+    },
+    {
+      "name": "range body a89527a57139e2e2e41bd294ffb711093df937e632bd2d8f6d44ffff4fd42ed0",
+      "pass": true
+    },
+    {
+      "name": "range body c2683483d3a477414027e5e95d7472c828e7535fc8d60145e1d3a5b8102a797e",
+      "pass": true
+    },
+    {
+      "name": "range body e0506364348fe477fc7aa00063bc2c707ac3da921b85d554d4e6bf2310efec03",
+      "pass": true
+    },
+    {
+      "name": "range body e8a244ef137584411fcf9d27d3c81c0c4510a49d2fb7d1666488428a123bbca4",
+      "pass": true
+    },
+    {
+      "name": "range body eade1d420c45fac9c14d92b225f7acff038057e85ff3b201b1c747911eadc904",
+      "pass": true
+    },
+    {
+      "name": "range body f59b869830951f5d60b4f7844dbbc54db25dbc1473938c870b8dc8d107e21f49",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./BRIEF.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./00-findings.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./01-current-engine-audit.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02-architecture.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02a-feasibility.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02b-placement.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02c-lattice.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02d-delivery.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/README.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/raster-metadata.json",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./02-architecture.md",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/terrain-levels.json",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/datum-operations.json",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/datum_probe.py",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/calculations.py",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/calculations.json",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/sources/chm-zenodo-api.txt",
+      "pass": true
+    },
+    {
+      "name": "local link 03-data-sources.md:./evidence/03/sources/chm-zenodo-readme.txt",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:../../03-data-sources.md",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./sources/",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./capture.py",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./terrain-levels.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./raster-metadata.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./http/",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./probe.mjs",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./datum-operations.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./datum_probe.py",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./calculations.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./calculations.py",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./joerd-revision.txt",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./checks.json",
+      "pass": true
+    },
+    {
+      "name": "local link evidence/03/README.md:./verify.py",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T1",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T2",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T3",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T4",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T5",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T6",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T7",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T8",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T9",
+      "pass": true
+    },
+    {
+      "name": "catalogue row T10",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B1",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B2",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B3",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B4",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B5",
+      "pass": true
+    },
+    {
+      "name": "catalogue row B6",
+      "pass": true
+    },
+    {
+      "name": "catalogue row C1",
+      "pass": true
+    },
+    {
+      "name": "catalogue row C2",
+      "pass": true
+    },
+    {
+      "name": "catalogue row C3",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V1",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V2",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V3",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V4",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V5",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V6",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V7",
+      "pass": true
+    },
+    {
+      "name": "catalogue row V8",
+      "pass": true
+    },
+    {
+      "name": "51 site/level entries",
+      "pass": true
+    },
+    {
+      "name": "madrid level responses",
+      "pass": true
+    },
+    {
+      "name": "kent level responses",
+      "pass": true
+    },
+    {
+      "name": "singapore level responses",
+      "pass": true
+    },
+    {
+      "name": "madrid z14/15 contributor",
+      "pass": true
+    },
+    {
+      "name": "kent z14/15 contributor",
+      "pass": true
+    },
+    {
+      "name": "11 successful metadata probes",
+      "pass": true
+    },
+    {
+      "name": "chm-madrid levels and masks",
+      "pass": true
+    },
+    {
+      "name": "chm-kent levels and masks",
+      "pass": true
+    },
+    {
+      "name": "chm-singapore levels and masks",
+      "pass": true
+    },
+    {
+      "name": "chm-nairobi levels and masks",
+      "pass": true
+    },
+    {
+      "name": "chm-sao_paulo levels and masks",
+      "pass": true
+    },
+    {
+      "name": "chm-jakarta levels and masks",
+      "pass": true
+    },
+    {
+      "name": "AWS GeoTIFF one IFD",
+      "pass": true
+    },
+    {
+      "name": "Copernicus GLO30 levels",
+      "pass": true
+    },
+    {
+      "name": "Copernicus GLO90 levels",
+      "pass": true
+    },
+    {
+      "name": "IGN grid spacing",
+      "pass": true
+    },
+    {
+      "name": "LINZ 8 levels",
+      "pass": true
+    },
+    {
+      "name": "506 tile volume arithmetic",
+      "pass": true
+    },
+    {
+      "name": "price scenario arithmetic",
+      "pass": true
+    },
+    {
+      "name": "author CHMv2 licence",
+      "pass": true
+    },
+    {
+      "name": "pinned Microsoft licence",
+      "pass": true
+    },
+    {
+      "name": "kent operation discovery",
+      "pass": true
+    },
+    {
+      "name": "madrid operation discovery",
+      "pass": true
+    },
+    {
+      "name": "copdem operation discovery",
+      "pass": true
+    }
+  ],
+  "failures": []
+}

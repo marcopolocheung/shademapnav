@@ -1,0 +1,31 @@
+{
+  "id": "chm-aws",
+  "url": "https://registry.opendata.aws/dataforgood-fb-forestsv2/",
+  "capturedAt": "2026-09-12T20:57:02.985567+00:00",
+  "status": 200,
+  "finalUrl": "https://registry.opendata.aws/dataforgood-fb-forestsv2/",
+  "headers": {
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Last-Modified": "Thu, 10 Sep 2026 18:10:43 GMT",
+    "x-amz-version-id": "WDxIm6RlKVauMUVjjnEub319FIAMzXkF",
+    "Server": "AmazonS3",
+    "Strict-Transport-Security": "max-age= 63072000; includeSubdomains; preload",
+    "Content-Security-Policy": "default-src 'self' studiolab.sagemaker.aws assets.opendata.aws a0.awsstatic.com; object-src 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "same-origin",
+    "Content-Encoding": "gzip",
+    "Date": "Sat, 12 Sep 2026 20:57:05 GMT",
+    "ETag": "W/\"0deed3e73cf9e52d592bbfda38bb276c\"",
+    "Vary": "Accept-Encoding",
+    "X-Cache": "RefreshHit from cloudfront",
+    "Via": "1.1 bd93c89b6d3749d6355af9b7bb5b78be.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Pop": "IAH50-P4",
+    "X-Amz-Cf-Id": "JDEvwpJNHq_7zanoZcbDGM8UC9j9WHJGFAnsrfv6dxbixva2Sne5bw=="
+  },
+  "bytes": 9387,
+  "sha256": "188c8bf946606d945a91572af85a9bd807830ab02f4b94c4ae484000d63daa00"
+}

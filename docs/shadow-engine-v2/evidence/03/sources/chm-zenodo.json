@@ -1,0 +1,30 @@
+{
+  "id": "chm-zenodo",
+  "url": "https://zenodo.org/records/20628959",
+  "capturedAt": "2026-09-13T01:03:57.324255+00:00",
+  "status": 200,
+  "finalUrl": "https://zenodo.org/records/20628959",
+  "headers": {
+    "server": "nginx",
+    "date": "Sun, 13 Sep 2026 01:03:58 GMT",
+    "content-type": "text/html; charset=utf-8",
+    "transfer-encoding": "chunked",
+    "vary": "Accept-Encoding",
+    "link": "<https://orcid.org/0000-0001-6212-0460> ; rel=\"author\" , <https://doi.org/10.5281/zenodo.20628959> ; rel=\"cite-as\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/dcat+xml\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/ld+json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/ld+json\" ; profile=\"https://datapackage.org/profiles/2.0/datapackage.json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/marcxml+xml\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.citationstyles.csl+json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.datacite.datacite+json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.datacite.datacite+xml\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.geo+json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.inveniordm.v1+json\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.inveniordm.v1.full+csv\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/vnd.inveniordm.v1.simple+csv\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/x-bibtex\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"application/x-dc+xml\" , <https://zenodo.org/api/records/20628959> ; rel=\"describedby\" ; type=\"text/x-bibliography\" , <https://zenodo.org/records/20628959/files/README.txt> ; rel=\"item\" ; type=\"text/plain\" , <https://creativecommons.org/licenses/by/4.0/legalcode> ; rel=\"license\" , <https://schema.org/Dataset> ; rel=\"type\" , <https://schema.org/AboutPage> ; rel=\"type\" , <https://zenodo.org/api/records/20628959> ; rel=\"linkset\" ; type=\"application/linkset+json\"",
+    "x-ratelimit-limit": "133",
+    "x-ratelimit-remaining": "130",
+    "x-ratelimit-reset": "1789261498",
+    "retry-after": "59",
+    "permissions-policy": "interest-cohort=()",
+    "x-frame-options": "sameorigin",
+    "x-xss-protection": "1; mode=block",
+    "x-content-type-options": "nosniff",
+    "content-security-policy": "default-src 'self' fonts.googleapis.com *.gstatic.com data: 'unsafe-inline' 'unsafe-eval' blob: zenodo-broker.web.cern.ch zenodo-broker-qa.web.cern.ch maxcdn.bootstrapcdn.com cdnjs.cloudflare.com ajax.googleapis.com webanalytics.web.cern.ch",
+    "strict-transport-security": "max-age=31556926; includeSubDomains",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-source": "ui",
+    "content-encoding": "gzip"
+  },
+  "bytes": 86706,
+  "sha256": "7e09bcc431aadbdb545ede0c2406276b051fe923cf26e481a5f4e5730fa9e846"
+}

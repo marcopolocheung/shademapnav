@@ -1,0 +1,27 @@
+{
+  "id": "nasadem-guide",
+  "url": "https://lpdaac.usgs.gov/documents/1318/NASADEM_User_Guide_V12.pdf",
+  "capturedAt": "2026-09-13T01:02:58.532580+00:00",
+  "status": 200,
+  "finalUrl": "https://lpdaac.usgs.gov/documents/1318/NASADEM_User_Guide_V12.pdf",
+  "headers": {
+    "Server": "nginx",
+    "Date": "Sun, 13 Sep 2026 01:02:58 GMT",
+    "Content-Type": "application/pdf",
+    "Content-Length": "2984607",
+    "Connection": "keep-alive",
+    "Keep-Alive": "timeout=5",
+    "Content-Disposition": "filename=\"NASADEM_User_Guide_V12.pdf\"",
+    "ETag": "\"34acd62aa19211b73774b1b481f9b4ff2b40a0fc\"",
+    "X-Content-Type-Options": "nosniff, nosniff",
+    "Referrer-Policy": "same-origin",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN",
+    "Allow": "GET, POST, PUT, PATCH, DELETE",
+    "X-XSS-Protection": "1; mode=block",
+    "Content-Security-Policy": "frame-ancestors 'self' https://*.cr.usgs.gov;",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+  },
+  "bytes": 2984607,
+  "sha256": "6f60bbdedf5d39873cba644661df90c78cc8e222377ca9bfe9f9c2e427745b72"
+}

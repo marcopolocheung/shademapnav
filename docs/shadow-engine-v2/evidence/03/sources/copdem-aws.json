@@ -1,0 +1,31 @@
+{
+  "id": "copdem-aws",
+  "url": "https://registry.opendata.aws/copernicus-dem/",
+  "capturedAt": "2026-09-12T20:57:02.738505+00:00",
+  "status": 200,
+  "finalUrl": "https://registry.opendata.aws/copernicus-dem/",
+  "headers": {
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Last-Modified": "Thu, 10 Sep 2026 18:10:43 GMT",
+    "x-amz-version-id": "ffXmvOi7tbZmSTsE6q7VSX_Y9rYVQFr2",
+    "Server": "AmazonS3",
+    "Strict-Transport-Security": "max-age= 63072000; includeSubdomains; preload",
+    "Content-Security-Policy": "default-src 'self' studiolab.sagemaker.aws assets.opendata.aws a0.awsstatic.com; object-src 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "same-origin",
+    "Content-Encoding": "gzip",
+    "Date": "Sat, 12 Sep 2026 20:57:05 GMT",
+    "ETag": "W/\"950039a9bdefbaacb0fa555a4ce2292f\"",
+    "Vary": "Accept-Encoding",
+    "X-Cache": "RefreshHit from cloudfront",
+    "Via": "1.1 1d4e9d615186256ff8b0a487c6ebc920.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Pop": "IAH50-P4",
+    "X-Amz-Cf-Id": "rLUBNm2PMRGUQ73K-4k49n0F_ZHfd2WUm3th73Qj3F40sZ4OOYykvQ=="
+  },
+  "bytes": 9202,
+  "sha256": "c9215f2e18745ffcb33a2ed16c3f2ef5fab4dce70babace9132afe402c149320"
+}

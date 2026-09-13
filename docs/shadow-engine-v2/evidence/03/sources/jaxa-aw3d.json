@@ -1,0 +1,23 @@
+{
+  "id": "jaxa-aw3d",
+  "url": "https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/aw3d30_e.htm",
+  "capturedAt": "2026-09-12T20:57:47.589152+00:00",
+  "status": 200,
+  "finalUrl": "https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/aw3d30_e.htm",
+  "headers": {
+    "date": "Sat, 12 Sep 2026 20:57:50 GMT",
+    "last-modified": "Mon, 17 Mar 2025 05:53:20 GMT",
+    "etag": "\"5831-6308367c3d400\"",
+    "accept-ranges": "bytes",
+    "content-length": "22577",
+    "x-xss-protection": "1; mode=block",
+    "x-content-type-options": "nosniff",
+    "content-type": "text/html",
+    "strict-transport-security": "max-age=16070400; includeSubDomains",
+    "x-envoy-upstream-service-time": "714",
+    "x-volterra-location": "b-dal3-dal",
+    "server": "volt-adc"
+  },
+  "bytes": 22577,
+  "sha256": "9aff47e836340c40ae010e7295de30d20a8cc6c7f47f5cf385c57b6df2d1a312"
+}

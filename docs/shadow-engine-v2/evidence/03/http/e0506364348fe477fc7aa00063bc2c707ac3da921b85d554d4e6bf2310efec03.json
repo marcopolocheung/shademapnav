@@ -1,0 +1,22 @@
+{
+  "url": "https://s3.amazonaws.com/elevation-tiles-prod/geotiff/13/4011/3088.tif",
+  "range": "bytes=0-65535",
+  "status": 206,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "65536",
+    "content-range": "bytes 0-65535/515081",
+    "content-type": "image/tiff",
+    "date": "Sat, 12 Sep 2026 20:59:14 GMT",
+    "etag": "\"4e9691be868afdcb4c5a012c7c63ad9c\"",
+    "last-modified": "Sat, 02 Dec 2017 00:23:57 GMT",
+    "server": "AmazonS3",
+    "x-amz-id-2": "SkvIkp3GpH+/bI5nTHQJLzS72AOGlubkTb/itxfm1mm/4hymq6onVE8v9OTU7XD8PtLjT9XJtCXx/gETZvwbSrlU6Rc+b0zQ",
+    "x-amz-meta-x-imagery-sources": "eudem/eudem_dem_5deg_n40w005.tif",
+    "x-amz-request-id": "RFKFQHT0M5JEBSK6",
+    "x-amz-version-id": "ghY3xC70xF_9Lw.fLvLGW5NMwd4bA27r"
+  },
+  "bytes": 65536,
+  "sha256": "caa86dabeb1f98d08cb9c0efb10632c6058f62af0b17cd82b4c76b0e51f2887c",
+  "capturedAt": "2026-09-12T20:59:13.149Z"
+}

@@ -1,0 +1,62 @@
+madrid-18-128372-98842 building 0.402 gzip 60211 -> 28194
+madrid-18-128373-98842 building 0.385 gzip 50770 -> 27850
+madrid-18-128374-98842 building 0.559 gzip 83698 -> 34347
+madrid-18-128375-98842 building 0.325 gzip 84237 -> 32757
+madrid-18-128376-98842 building 0.446 gzip 54129 -> 31006
+madrid-18-128372-98843 building 0.372 gzip 45164 -> 24121
+madrid-18-128373-98843 building 0.367 gzip 34075 -> 23453
+madrid-18-128374-98843 building 0.487 gzip 59134 -> 30421
+madrid-18-128375-98843 building 0.562 gzip 60432 -> 28156
+madrid-18-128376-98843 building 0.387 gzip 40410 -> 22634
+madrid-18-128372-98844 building 0.331 gzip 30012 -> 23103
+madrid-18-128373-98844 building 0.585 gzip 42055 -> 24358
+madrid-18-128374-98844 building 0.266 gzip 48213 -> 21698
+madrid-18-128375-98844 building 0.218 gzip 39801 -> 19516
+madrid-18-128376-98844 building 0.115 gzip 48532 -> 18076
+madrid-18-128372-98845 building 0.573 gzip 34504 -> 22636
+madrid-18-128373-98845 building 0.592 gzip 40202 -> 27214
+madrid-18-128374-98845 building 0.29 gzip 29714 -> 19700
+madrid-18-128375-98845 building 0.556 gzip 35755 -> 20276
+madrid-18-128376-98845 building 0.67 gzip 45560 -> 22885
+madrid-18-128372-98846 building 0.299 gzip 27166 -> 18348
+madrid-18-128373-98846 building 0.379 gzip 34719 -> 23093
+madrid-18-128374-98846 building 0.574 gzip 29935 -> 24875
+madrid-18-128375-98846 building 0.67 gzip 30812 -> 21998
+madrid-18-128376-98846 building 0.613 gzip 34146 -> 27000
+kent-18-42061-91792 building 0.236 gzip 22336 -> 19970
+kent-18-42062-91792 building 0.219 gzip 22994 -> 20124
+kent-18-42063-91792 building 0.262 gzip 27797 -> 24634
+kent-18-42064-91792 building 0.039 gzip 33151 -> 29657
+kent-18-42065-91792 building 0.232 gzip 23832 -> 20216
+kent-18-42061-91793 building 0.21 gzip 25965 -> 22905
+kent-18-42062-91793 building 0.432 gzip 22765 -> 19727
+kent-18-42063-91793 building 0.356 gzip 24972 -> 22232
+kent-18-42064-91793 building 0.03 gzip 35726 -> 34007
+kent-18-42065-91793 building 0.225 gzip 23808 -> 20433
+kent-18-42061-91794 building 0.245 gzip 25103 -> 22985
+kent-18-42062-91794 building 0.352 gzip 22352 -> 19108
+kent-18-42063-91794 building 0.225 gzip 24798 -> 22386
+kent-18-42064-91794 building 0.134 gzip 24704 -> 22365
+kent-18-42065-91794 building 0.201 gzip 25522 -> 22359
+kent-18-42061-91795 building 0.417 gzip 27033 -> 26876
+kent-18-42062-91795 building 0.488 gzip 25816 -> 24368
+kent-18-42063-91795 building 0.347 gzip 29014 -> 27977
+kent-18-42064-91795 building 0.295 gzip 20979 -> 17747
+kent-18-42065-91795 building 0.186 gzip 17642 -> 13927
+kent-18-42061-91796 building 0.207 gzip 30688 -> 28859
+kent-18-42062-91796 building 0.27 gzip 26331 -> 23482
+kent-18-42063-91796 building 0.167 gzip 31644 -> 28326
+kent-18-42064-91796 building 0.177 gzip 20560 -> 16330
+kent-18-42065-91796 building 0.237 gzip 8307 -> 7092
+D2 graph 45 error 0 tiles 50 wire gzip MiB 1.253946304321289
+D2 graph 45 error 10 tiles 53 wire gzip MiB 1.3291830825805664
+D2 graph 10 error 0 tiles 99 wire gzip MiB 2.482813682556152
+D2 graph 10 error 10 tiles 102 wire gzip MiB 2.5580504608154295
+D2 graph 3 error 0 tiles 232 wire gzip MiB 5.818310852050781
+D2 graph 3 error 10 tiles 234 wire gzip MiB 5.868468704223633
+D2 chosen-walk 45 error 0 tiles 6 wire gzip MiB 0.15047355651855468
+D2 chosen-walk 45 error 10 tiles 7 wire gzip MiB 0.17555248260498046
+D2 chosen-walk 10 error 0 tiles 20 wire gzip MiB 0.5015785217285156
+D2 chosen-walk 10 error 10 tiles 21 wire gzip MiB 0.5266574478149414
+D2 chosen-walk 3 error 0 tiles 60 wire gzip MiB 1.504735565185547
+D2 chosen-walk 3 error 10 tiles 61 wire gzip MiB 1.5298144912719727

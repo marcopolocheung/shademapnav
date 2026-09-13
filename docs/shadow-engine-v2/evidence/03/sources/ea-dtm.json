@@ -1,0 +1,32 @@
+{
+  "id": "ea-dtm",
+  "url": "https://www.data.gov.uk/dataset/01b3ee39-da3f-47b6-83da-dc98e73a461f/lidar-composite-digital-terrain-model-dtm-1m",
+  "capturedAt": "2026-09-12T21:05:21.452510+00:00",
+  "status": 200,
+  "finalUrl": "https://www.data.gov.uk/dataset/01b3ee39-da3f-47b6-83da-dc98e73a461f/lidar-composite-digital-terrain-model-dtm-1m",
+  "headers": {
+    "Connection": "keep-alive",
+    "Content-Length": "35096",
+    "Content-Type": "text/html; charset=utf-8",
+    "Server": "gunicorn",
+    "Content-Security-Policy": "default-src 'self'; connect-src 'self' *.google-analytics.com *.googletagmanager.com *.analytics.google.com s3-eu-west-1.amazonaws.com ckan.publishing.service.gov.uk; font-src 'self'; img-src 'self' *.google-analytics.com *.googletagmanager.com; manifest-src 'self'; media-src 'self'; object-src 'self'; script-src 'self' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com; style-src 'self' 'unsafe-inline'",
+    "X-Frame-Options": "DENY",
+    "Content-Language": "en-GB",
+    "Cache-Control": "max-age=1800, public",
+    "Strict-Transport-Security": "max-age=60; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "same-origin",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Fastly-Backend-Name": "origin",
+    "Accept-Ranges": "bytes",
+    "Age": "0",
+    "Date": "Sat, 12 Sep 2026 21:05:23 GMT",
+    "Via": "1.1 varnish",
+    "X-Served-By": "cache-iah-kiah1900043-IAH",
+    "X-Cache": "MISS",
+    "X-Cache-Hits": "0",
+    "Vary": "Accept-Language"
+  },
+  "bytes": 35096,
+  "sha256": "0a406e6c05bb5ad3d796bb1734615b0ab6744ca4fae159395ed8674ce2571180"
+}

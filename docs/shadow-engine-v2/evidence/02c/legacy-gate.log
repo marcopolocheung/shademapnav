@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /home/wslunusn/ShadeMapNavigation
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  15:05:52
+   Duration  3.20s (transform 166ms, setup 0ms, import 1.58s, tests 1.48s, environment 0ms)
+

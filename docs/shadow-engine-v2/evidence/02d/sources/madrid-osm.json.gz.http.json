@@ -1,0 +1,17 @@
+{
+  "url": "https://overpass-api.de/api/interpreter",
+  "capturedAt": "2026-09-12T20:17:02.456131+00:00",
+  "status": 200,
+  "bytes": 6542492,
+  "sha256": "574a3c50bb9e3edf7f7a962c71b33d13b39018d009eb0a0bd9f4782ee18bcb0a",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 20:17:03 GMT",
+    "Server": "Apache/2.4.68 (Debian)",
+    "Vary": "Accept-Encoding",
+    "Content-Encoding": "gzip",
+    "Connection": "close",
+    "Transfer-Encoding": "chunked",
+    "Content-Type": "application/json"
+  },
+  "query": "[out:json][timeout:80];(way[\"highway\"~\"^(footway|path|pedestrian|living_street|residential|unclassified|tertiary|secondary|service|cycleway|steps|track|bridleway)$\"][\"area\"!=\"yes\"](40.414,-3.709,40.418,-3.702);way[\"building\"](40.405,-3.720,40.427,-3.690););out body geom;"
+}

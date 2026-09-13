@@ -1,0 +1,22 @@
+{
+  "id": "canada-spec-ftp",
+  "url": "https://ftp.maps.canada.ca/pub/nrcan_rncan/elevation/cdem_mnec/doc/CDEM_product_specs.pdf",
+  "capturedAt": "2026-09-13T01:09:40.662721+00:00",
+  "status": 200,
+  "finalUrl": "https://ftp.maps.canada.ca/pub/nrcan_rncan/elevation/cdem_mnec/doc/CDEM_product_specs.pdf",
+  "headers": {
+    "Date": "Sun, 13 Sep 2026 01:09:40 GMT",
+    "Server": "Apache/2.4.54 () OpenSSL/1.0.2k-fips",
+    "Upgrade": "h2,h2c",
+    "Connection": "Upgrade, Keep-Alive",
+    "Last-Modified": "Tue, 23 Jul 2019 17:30:09 GMT",
+    "ETag": "\"132d01-58e5c8b508a40\"",
+    "Accept-Ranges": "bytes",
+    "Content-Length": "1256705",
+    "X-Download-Start": "t=1789261780879591",
+    "Keep-Alive": "timeout=5, max=100",
+    "Content-Type": "application/pdf"
+  },
+  "bytes": 1256705,
+  "sha256": "8abcc01f4a41a6d4ca1742a9e732e78dd6c3542be9dd00571516d6552a975f80"
+}

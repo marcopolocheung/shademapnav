@@ -1,0 +1,21 @@
+{
+  "url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N40_00_W004_00_DEM/Copernicus_DSM_COG_10_N40_00_W004_00_DEM.tif",
+  "range": "bytes=0-65535",
+  "status": 206,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "65536",
+    "content-range": "bytes 0-65535/40869620",
+    "content-type": "image/tiff",
+    "date": "Sat, 12 Sep 2026 20:59:12 GMT",
+    "etag": "\"15e58eaf5057acf1705499c9298945ee\"",
+    "last-modified": "Mon, 09 May 2022 14:21:38 GMT",
+    "server": "AmazonS3",
+    "x-amz-id-2": "ZQqKgAJFfXX45OmC3CZOischnU5qLA3bH3k22z0htIrRsERTZ8lVFmQ2uwoKyPyiGMC4jNoo4ew=",
+    "x-amz-request-id": "W6WG2M7PA7927EXW",
+    "x-amz-version-id": "null"
+  },
+  "bytes": 65536,
+  "sha256": "5c10f702b74a2c039d6b6271d30de5d7e31d5747fac42ac5fc992f881527f88e",
+  "capturedAt": "2026-09-12T20:59:11.990Z"
+}

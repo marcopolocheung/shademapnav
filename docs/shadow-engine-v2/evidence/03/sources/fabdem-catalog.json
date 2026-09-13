@@ -1,0 +1,32 @@
+{
+  "id": "fabdem-catalog",
+  "url": "https://research-information.bris.ac.uk/en/datasets/fabdem-v1-2/",
+  "capturedAt": "2026-09-12T21:05:21.452974+00:00",
+  "status": 200,
+  "finalUrl": "https://research-information.bris.ac.uk/en/datasets/fabdem-v1-2/",
+  "headers": {
+    "Date": "Sat, 12 Sep 2026 21:05:24 GMT",
+    "Content-Type": "text/html;charset=UTF-8",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Cache-Control": "public, max-age=14400, stale-while-revalidate=30",
+    "content-language": "en-GB",
+    "content-security-policy": "default-src 'self' *.adobedtm.com *.altmetric.com *.cloudfront.net *.demdex.net *.elsevier.com *.google-analytics.com *.analytics.google.com *.googleapis.com *.googletagmanager.com *.gstatic.com *.cloudflare.com *.hotjar.com *.onetrust.com *.vimeo.com *.youtube.com *.g.doubleclick.net api.plu.mx bam-cell.nr-data.net bam.nr-data.net cdn.cookielaw.org *.elseviercdn.cn elsevier.data.adobedc.cn cdn.plu.mx cm.everesttech.net js-agent.newrelic.com www.google.com 'unsafe-inline' 'unsafe-eval' data: *.pendo.io analytics.google.com google-analytics.com googletagmanager.com; img-src 'self' * data:; frame-src 'self' *.cloudflare.com *.vimeo.com *.youtube.com elsevier.demdex.net *.pendo.io research-information.bris.ac.uk",
+    "last-modified": "Tue, 08 Sep 2026 19:06:26 GMT",
+    "permissions-policy": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+    "referrer-policy": "origin",
+    "Server": "cloudflare",
+    "strict-transport-security": "max-age=2592000; preload",
+    "tdm-reservation": "0",
+    "vary": "Origin,Access-Control-Request-Method,Access-Control-Request-Headers",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "SAMEORIGIN",
+    "x-product": "Pure Portal",
+    "cf-cache-status": "REVALIDATED",
+    "Content-Encoding": "br",
+    "CF-RAY": "a3a1deb9eb93f0ad-DFW",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "bytes": 26065,
+  "sha256": "429aa5e16a29a3e9c2cd78587b0553722849c6d25063e7dc81ca6779ed4fb6be"
+}

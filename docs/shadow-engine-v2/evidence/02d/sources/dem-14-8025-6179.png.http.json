@@ -1,0 +1,21 @@
+{
+  "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/14/8025/6179.png",
+  "capturedAt": "2026-09-12T20:17:04.489994+00:00",
+  "status": 200,
+  "bytes": 86136,
+  "sha256": "2641bd8a8d9ccabefc2df7a4893a569021baecb09715af6b11c93ea7f56adc9f",
+  "headers": {
+    "x-amz-id-2": "2Zh6L4F498nptQH8s7DMNQXZKdh0bSqHnHOaxIVJHkYxnHs0CnYWDScgMVrjs66Fc/zwE/egro9w+Wm0Ua80FepP1sFz8KGD",
+    "x-amz-request-id": "9VEG0Y4SK3RMC4XF",
+    "Date": "Sat, 12 Sep 2026 20:17:06 GMT",
+    "Last-Modified": "Wed, 15 Nov 2017 11:01:14 GMT",
+    "ETag": "\"d0990d27f343bd4c63b3c27f8b9aead0\"",
+    "x-amz-meta-x-imagery-sources": "eudem/eudem_dem_5deg_n40w005.tif",
+    "x-amz-version-id": "eoo1jlMVYLtUyAlTif4Ps5jPQF5TMugA",
+    "Accept-Ranges": "bytes",
+    "Content-Type": "image/png",
+    "Content-Length": "86136",
+    "Server": "AmazonS3"
+  },
+  "query": null
+}

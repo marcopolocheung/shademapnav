@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-12T20:05:52.006Z",
+  "revision": "cbefb8a02ef136e83447754ec35acd9bd71f6d28",
+  "node": "v20.20.1",
+  "platform": "linux",
+  "release": "6.18.33.2-microsoft-standard-WSL2",
+  "arch": "x64",
+  "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+  "logicalCPUs": 20,
+  "inputs": {
+    "docs/shadow-engine-v2/BRIEF.md": "2984ca05986a652bb41c5e1d12dbbe1160f73eaa2505e2f2ad867011140ce723",
+    "docs/shadow-engine-v2/00-findings.md": "747e5ed77ac8e0e62fb257ad8b07f2aa5bd375e40d58d1ea7e36029096b91e57",
+    "docs/shadow-engine-v2/01-current-engine-audit.md": "0b2fdd62069d7f52ed766604a11f7ff20d6c92605cd9ba2be9f84c542b87db1f",
+    "docs/shadow-engine-v2/02-architecture.md": "fd87407043cd97b59af25e98f539135939f8f4a6d0c6df8bf2b0202a8ef860f3",
+    "docs/shadow-engine-v2/02a-feasibility.md": "73642d4aa58e5d72a64d96d331884861380840c5682c93cdaffc0fab940a3b1c",
+    "docs/shadow-engine-v2/02b-placement.md": "9b1efea88bcd63f014e5f28a2cf7d9b8e5bbc9224736c7cb4678a60811a3de99",
+    "app/lib/shadowField/__tests__/agreement/agreement.test.ts": "44d142a15ece35847aa4a2eda46826abdc069f5136462597bf7b61358674cb42",
+    "app/lib/shadowField/__tests__/agreement/harness.ts": "b3aef606625d74f00f7db331a96e23de20024b7e138e728e69c9d83fe7396178",
+    "app/lib/shadowField/__tests__/agreement/fixtures.ts": "b16d03d69841b23aaa8f1eef45f796102f32fcc34d7962b082707830e75e3c7d",
+    "app/lib/shadowSampling.ts": "4dc2fe5ddf348fec5b1560a77926a0ff64bfc65752fbc6548ddefb8904795dc9",
+    "app/lib/shadowField/ShadowField.ts": "2222e954bc22641412924810ad9de02644f1ed0154477ec1279984072ce26df3",
+    "app/hooks/useNavigation.ts": "b8acc2f6c6ef15b4af406541d794425b311d06e1dbef73ddc2d460254e84ec15"
+  }
+}

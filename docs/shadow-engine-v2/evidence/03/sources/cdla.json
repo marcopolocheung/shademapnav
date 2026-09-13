@@ -1,0 +1,33 @@
+{
+  "id": "cdla",
+  "url": "https://cdla.dev/permissive-2-0/",
+  "capturedAt": "2026-09-12T20:57:42.845540+00:00",
+  "status": 200,
+  "finalUrl": "https://cdla.dev/permissive-2-0/",
+  "headers": {
+    "Connection": "keep-alive",
+    "Content-Length": "49196",
+    "Cache-Control": "public, max-age=60, s-maxage=43200, stale-while-revalidate=86400, stale-if-error=604800",
+    "Content-Encoding": "gzip",
+    "Content-Type": "text/html; charset=UTF-8",
+    "Link": "<https://cdla.dev/wp-json/>; rel=\"https://api.w.org/\", <https://cdla.dev/wp-json/wp/v2/pages/220>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://cdla.dev/?p=220>; rel=shortlink",
+    "Server": "nginx",
+    "X-Pantheon-Styx-Hostname": "styx-us-a-77885d8d78-89gsx",
+    "X-Styx-Req-Id": "9a529315-aeec-11f1-bb10-56b3e1f0f0bd",
+    "X-Tec-Api-Origin": "https://cdla.dev",
+    "X-Tec-Api-Root": "https://cdla.dev/wp-json/tribe/events/v1/",
+    "X-Tec-Api-Version": "v1",
+    "Age": "0",
+    "Accept-Ranges": "bytes",
+    "Via": "1.1 varnish, 1.1 varnish, 1.1 varnish, 1.1 varnish",
+    "Strict-Transport-Security": "max-age=300; includeSubDomains;",
+    "Date": "Sat, 12 Sep 2026 20:57:45 GMT",
+    "X-Served-By": "cache-chi-kmdw8640065-CHI, cache-iah-kiah1900029-IAH, cache-iah-kiah1900037-IAH, cache-iah-kiah1900037-IAH",
+    "X-Cache": "MISS, MISS, MISS, MISS",
+    "X-Cache-Hits": "0, 0, 0, 0",
+    "X-Timer": "S1789246665.915672,VS0,VE772",
+    "Vary": "Accept-Encoding, Accept, Cookie, Cookie"
+  },
+  "bytes": 139778,
+  "sha256": "c3498dc23b73f3fdfe28f4d260d0ef1697715526acb2222f8a461358d09e9660"
+}

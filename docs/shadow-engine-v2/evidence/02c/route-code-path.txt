@@ -1,0 +1,243 @@
+app/hooks/useShadowTime.ts
+125:           ? longitudeToUtcOffsetMin(mapCenter[1])
+126:           : -new Date().getTimezoneOffset(),
+127:     [mapZone, date, mapCenter]
+128:   );
+129: 
+130:   dateRef.current = date;
+131:   mapUtcOffsetMinRef.current = mapUtcOffsetMin;
+132:   mapZoneRef.current = mapZone;
+210:   const handleSliderChange = useCallback((m: number) => {
+211:     setDate((prev) => {
+212:       const offsetMin = mapUtcOffsetMinRef.current;
+213:       const { hours, minutes } = toMapLocal(prev, offsetMin);
+214:       if (hours * 60 + minutes === m) return prev;
+215:       const zone = mapZoneRef.current;
+216:       return zone
+217:         ? fromMapLocalInZone(prev, zone, Math.floor(m / 60), m % 60)
+218:         : fromMapLocal(prev, offsetMin, Math.floor(m / 60), m % 60);
+219:     });
+220:   }, []);
+221: 
+
+app/page.tsx
+193:     date, setDate,
+194:     showSunLines, setShowSunLines,
+195:     accumulation, setAccumulation,
+196:     isPlaying, setIsPlaying,
+197:     sliderMode, setSliderMode,
+198:     mapCenter, mapZoom, mapPitch, mapUtcOffsetMin, mapZone,
+199:     handleMapReady, handleSliderChange, handleDayOfYearChange,
+200:     adjustYear, jumpTo, getCanvas, getBounds,
+201:     mapRef, dateRef,
+202:   } = shadow;
+203: 
+204:   const shadowLayerRef = useRef<IShadowLayer | null>(null);
+205:   const nav = useNavigation({ mapRef, shadowLayerRef, dateRef, setDate });
+206:   const {
+234:   // "When should I go?" for the selected route. One strip, rendered in whichever
+235:   // of the two route surfaces the current breakpoint shows.
+236:   const hourlyExposure = useHourlyExposure(
+237:     filteredRoutes[selectedRouteIndex] ?? null,
+238:     shadowField,
+239:     date,
+240:     mapUtcOffsetMin,
+241:   );
+242:   const exposureSlot = (
+243:     <HourlyExposureStrip
+244:       exposure={hourlyExposure}
+245:       currentHour={toMapLocal(date, mapUtcOffsetMin).hours}
+246:       onPickHour={setDate}
+247:     />
+248:   );
+249: 
+
+app/components/MapView.tsx
+827:   useEffect(() => {
+828:     dateRef.current = date;
+829:     if (shadowUpdateTimerRef.current) clearTimeout(shadowUpdateTimerRef.current);
+830:     shadowUpdateTimerRef.current = setTimeout(() => { shadowRef.current?.setDate(date); }, 1);
+831: 
+832:     const map = mapRef.current;
+833:     if (map?.isStyleLoaded() && showSunLinesRef.current) {
+834:       const { lng, lat } = map.getCenter();
+835:       const sunAz = computeSolarAzimuthCached(date, lat, lng);
+836:       const rs    = computeSunriseSetAzimuthsCached(date, lat, lng);
+837:       setSunViz({
+838:         sunAz,
+839:         riseAz:  rs?.rise ?? null,
+840:         setAz:   rs?.set  ?? null,
+841:         bearing: map.getBearing(),
+842:       });
+843:     }
+844:   }, [date]);
+845: 
+846:   // -------------------------------------------------------------------------
+
+app/hooks/useNavigation.ts
+127:   mapRef: React.MutableRefObject<maplibregl.Map | null>;
+128:   shadowLayerRef?: React.MutableRefObject<IShadowLayer | null>;
+129:   dateRef: React.MutableRefObject<Date>;
+130:   setDate: React.Dispatch<React.SetStateAction<Date>>;
+131: }
+132: 
+133: export function useNavigation({ mapRef, shadowLayerRef, dateRef, setDate }: UseNavigationArgs) {
+134:   // Navigation state
+135:   const [navMode, setNavMode] = useState(false);
+136:   const [waypointA, setWaypointA] = useState<[number, number] | null>(null);
+137:   const [waypointB, setWaypointB] = useState<[number, number] | null>(null);
+138:   const [navRoutes, setNavRoutes] = useState<RouteOption[]>([]);
+139:   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+518:   const handleShadowPreferenceChange = useCallback((v: number) => {
+519:     setShadowPreference(v);
+520:     setNavRoutes((routes) => {
+521:       if (routes.length === 0) return routes;
+522:       let bestIdx = 0;
+523:       let bestDiff = Infinity;
+524:       for (let i = 0; i < routes.length; i++) {
+525:         const diff = Math.abs(routes[i].shadowCoverage - v);
+526:         if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+527:       }
+528:       setSelectedRouteIndex(bestIdx);
+529:       return routes;
+530:     });
+531:   }, []);
+532: 
+1225:       updateProgress({
+1226:         message: "Sampling street shadow",
+1227:         current: 0,
+1228:         total: edgeRefs.length,
+1229:       });
+1230:       const fieldShadow = edgeRefs.length > 0 ? field.sampleEdges(edgeRefs, dateRef.current) : [];
+1231:       if (myGen !== calcGenRef.current) return;
+1232: 
+1233:       // Per edge: trust the geometry, or fall back to pixels for that edge alone.
+1234:       // When the canvas was never read — the field covered the route — a weak edge
+1235:       // keeps the field's answer and its real confidence, and the route says so
+1236:       // rather than pretending to a certainty nothing measured.
+1237:       let canvasFallbackEdges = 0;
+1238:       const buildingProviders: Array<"tiles" | "overpass" | "dedicated-mask" | "none"> = [];
+1239:       const canopyProviders: Array<"osm" | "raster" | "both" | "none"> = [];
+1240:       for (let i = 0; i < edgeRefs.length; i++) {
+1241:         const sample = fieldShadow[i];
+1242:         if (sample.confidence >= LOW_CONFIDENCE || !buildingMask) {
+1243:           edgeShadowCache.set(edgeKeys[i], {
+1244:             left: sample.left,
+1245:             right: sample.right,
+1246:             source: sample.source,
+1247:             confidence: sample.confidence,
+1248:           });
+1364:         const ROUTE_LABELS =
+1365:           paretoResults.length === 2
+1366:             ? ["Shortest", "Most shadowed"]
+1367:             : ["Shortest", "Balanced", "Most shadowed"];
+1368:         options = paretoResults.map((result, i) => ({
+1369:           label: ROUTE_LABELS[i] ?? "Route",
+1370:           geojson: connectRouteEndpoints(graphToGeoJSON(result.nodeIds, routingGraph), a, b),
+1371:           sides: result.sides,
+1372:           distanceM: result.distanceM,
+1373:           shadowCoverage: result.shadowCoverage,
+1374:           longestContinuousShadowM: result.longestContinuousShadowM,
+1375:           longestContinuousSunM: result.longestContinuousSunM,
+1376:           shadowTransitions: result.shadowTransitions,
+1377:           detourRatio: result.detourRatio,
+1378:           turnCount: result.turnCount,
+1379:           shadowSource: summarizeShadowSource(result.nodeIds, edgeShadowCache, edgeDistanceFor),
+1380:         }));
+1711:       if (calcGenRef.current !== myGen) return;
+1712:       updateProgress({ message: "Finalizing route options" });
+1713:       const partialWarning = options.find((o) => o.partial)?.partial;
+1714:       setNavRoutes(options);
+1715:       setSelectedRouteIndex(0);
+1716:       setRouteSolarIntensity(solarIntensity);
+1717:       setRoutePreview(null);
+1718:       setSketchPoints([]);
+1719:       setNavWarning(partialWarning ? partialRouteNotice(partialWarning) : null);
+1720:       setSimplifiedWaypoints(null);
+
+app/components/RouteCard.tsx
+20: export default function RouteCard({ route: r, selected, onSelect, onSave, onExport, recommended }: RouteCardProps) {
+21:   const streak = r.longestContinuousShadowM >= 10 ? `${Math.round(r.longestContinuousShadowM)}m shadow` : null;
+22:   const transitions = r.shadowTransitions === 0 ? "continuous" : `${r.shadowTransitions} break${r.shadowTransitions === 1 ? "" : "s"}`;
+23:   const detour = r.detourRatio > 1.05 ? `${r.detourRatio.toFixed(1)}×` : null;
+24:   const shadowPct = Math.round(r.shadowCoverage * 100);
+25:   // Absent on sketch and transit routes, whose shadow was not sampled per sidewalk.
+26:   const shadowSource = r.shadowSource ? describeShadowProvenance(r.shadowSource) : null;
+27:   const isPartial = !!r.partial;
+
+app/hooks/useHourlyExposure.ts
+60:   const edges = useMemo(() => edgesFromRoute(route), [route]);
+61: 
+62:   // The series covers a calendar day, so dragging the timeline within one day must
+63:   // not restart the sweep — only the day is an input. `fromMapLocal` reads nothing
+64:   // from its anchor but the map-local calendar date, so map-local midnight stands in
+65:   // for whatever time `date` currently holds, and changes only when the day does.
+66:   const { year, month, day } = toMapLocal(date, utcOffsetMin);
+67:   const dayAnchor = useMemo(
+68:     () => new Date(Date.UTC(year, month, day) - utcOffsetMin * 60000),
+69:     [year, month, day, utcOffsetMin],
+70:   );
+71: 
+72:   const [state, setState] = useState<HourlyExposure>(EMPTY);
+73: 
+74:   useEffect(() => {
+91:     const sampleHour = (when: Date): number => {
+92:       if (totalM <= 0) return 0;
+93:       const shadows = field.sweep(edges, [when])[0];
+94:       let shadowedM = 0;
+95:       for (let i = 0; i < edges.length; i++) {
+96:         const edge = shadows[i];
+97:         // Credit the sidewalk the route actually uses; average only when the
+98:         // search never chose a side (sketch and transit legs).
+99:         const side = route?.sides?.[i];
+100:         const shadow =
+101:           side === "left" ? edge.left : side === "right" ? edge.right : (edge.left + edge.right) / 2;
+102:         shadowedM += haversineMeters(edges[i].from, edges[i].to) * shadow;
+103:       }
+104:       return shadowedM / totalM;
+105:     };
+106: 
+107:     const publish = (readyCount: number) => {
+129:       if (!cancelled) frame = requestAnimationFrame(() => step(0));
+130:     };
+131:     // Geometry may still need fetching; a failed preload is not fatal, the field
+132:     // reports its own low confidence when it cannot answer.
+133:     if (bbox) field.ready(bbox).then(start, start);
+134:     else start();
+135: 
+136:     return () => {
+137:       cancelled = true;
+138:       cancelAnimationFrame(frame);
+139:     };
+140:   }, [edges, field, dayAnchor, utcOffsetMin, route?.sides]);
+141: 
+142:   return state;
+143: }
+
+app/components/HourlyExposureStrip.tsx
+45:       </div>
+46: 
+47:       <fieldset className="mt-1.5 flex items-end gap-[3px] border-0 p-0 m-0">
+48:         <legend className="sr-only">Sun exposure by hour</legend>
+49:         {samples.map((sample, i) => {
+50:           const ready = i < readyCount;
+51:           const sunPct = Math.round(sample.sunExposure * 100);
+52:           const isNow = sample.hour === currentHour;
+53:           return (
+54:             <button
+55:               key={sample.date.getTime()}
+56:               type="button"
+57:               onClick={() => onPickHour(sample.date)}
+58:               disabled={!ready}
+59:               // 44px of touch target, of which only the bar is inked — the app is
+60:               // used one-handed, outdoors, and a 12px bar is not a tap target.
+61:               className="group relative flex h-11 flex-1 items-end justify-center"
+62:               aria-label={
+63:                 ready
+64:                   ? `${sample.label}: ${sunPct}% in sun. Set the timeline to ${sample.label}.`
+65:                   : `${sample.label}: not sampled yet`
+66:               }
+67:               aria-current={isNow ? "time" : undefined}
+68:               title={ready ? `${sample.label} · ${sunPct}% sun` : sample.label}
+69:             >
+

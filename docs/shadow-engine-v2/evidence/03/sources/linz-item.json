@@ -1,0 +1,23 @@
+{
+  "id": "linz-item",
+  "url": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/AS21.json",
+  "capturedAt": "2026-09-13T01:04:20.624171+00:00",
+  "status": 200,
+  "finalUrl": "https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/AS21.json",
+  "headers": {
+    "x-amz-id-2": "WZ+dvVN8j+jQK+rqyEEqc0kdStIoKsmhvNMD4PTw1pEVLr8TjqqfMmyY2wSbKMiybY7V4UniPOs=",
+    "x-amz-request-id": "F21F35B7NKGQP2RT",
+    "Date": "Sun, 13 Sep 2026 01:04:22 GMT",
+    "Last-Modified": "Thu, 25 Sep 2025 21:17:10 GMT",
+    "ETag": "\"b25ed42d158d76945c6435459d7edfd1\"",
+    "x-amz-server-side-encryption": "AES256",
+    "x-amz-meta-multihash": "1220e057a0578a5802d98490921b5dad7be3eca2459bcc13698f1b0ae902aff12673",
+    "x-amz-version-id": "XO_8cGXHgXYhGn2seX8VWHJ.MIL2hJl6",
+    "Accept-Ranges": "bytes",
+    "Content-Type": "application/geo+json",
+    "Content-Length": "1933",
+    "Server": "AmazonS3"
+  },
+  "bytes": 1933,
+  "sha256": "e057a0578a5802d98490921b5dad7be3eca2459bcc13698f1b0ae902aff12673"
+}

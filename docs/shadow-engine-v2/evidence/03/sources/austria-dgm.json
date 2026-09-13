@@ -1,0 +1,21 @@
+{
+  "id": "austria-dgm",
+  "url": "https://www.data.gv.at/katalog/de/dataset/dgm",
+  "capturedAt": "2026-09-13T01:02:58.533786+00:00",
+  "status": 404,
+  "finalUrl": "https://www.data.gv.at/katalog/de/dataset/dgm",
+  "headers": {
+    "Date": "Sun, 13 Sep 2026 01:02:58 GMT",
+    "Server": "Apache",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "content-type": "text/html",
+    "etag": "W/\"6a87650d-1402\"",
+    "content-encoding": "gzip",
+    "cache-control": "private",
+    "Keep-Alive": "timeout=5, max=100",
+    "Connection": "Keep-Alive",
+    "Transfer-Encoding": "chunked"
+  },
+  "bytes": 5122,
+  "sha256": "618999d0574dea992fb43bda11ad6435f59b6257c8f37ea2469a296885667da4"
+}

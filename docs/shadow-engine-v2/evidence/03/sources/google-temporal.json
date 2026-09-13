@@ -1,0 +1,27 @@
+{
+  "id": "google-temporal",
+  "url": "https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_Research_open-buildings-temporal_v1",
+  "capturedAt": "2026-09-12T20:57:04.731796+00:00",
+  "status": 200,
+  "finalUrl": "https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_Research_open-buildings-temporal_v1",
+  "headers": {
+    "last-modified": "Wed, 06 May 2026 18:50:49 GMT",
+    "content-type": "text/html; charset=utf-8",
+    "vary": "Cookie, Accept-Encoding",
+    "content-security-policy": "base-uri 'self'; object-src 'none'; script-src 'strict-dynamic' 'unsafe-inline' https: http: 'nonce-z6XsonJGEiuWP6SXNaAT8MN8VtmLf7' 'unsafe-eval'; frame-ancestors 'self' https://codeassist.google.com https://code-assist-free-tier.corp.google.com; report-uri https://csp.withgoogle.com/csp/devsite/v2",
+    "strict-transport-security": "max-age=63072000; includeSubdomains; preload",
+    "x-xss-protection": "0",
+    "x-content-type-options": "nosniff",
+    "cache-control": "no-cache, must-revalidate",
+    "expires": "0",
+    "pragma": "no-cache",
+    "content-encoding": "gzip",
+    "x-cloud-trace-context": "eb55efcb0e23912018c5abfbad2d62ce",
+    "date": "Sat, 12 Sep 2026 20:57:06 GMT",
+    "server": "Google Frontend",
+    "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+    "Transfer-Encoding": "chunked"
+  },
+  "bytes": 103112,
+  "sha256": "0d450a46798fc745f011cc9de1ddc4ffd532bb6398696af2ef68890a28489eff"
+}

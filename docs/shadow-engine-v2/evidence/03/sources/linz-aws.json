@@ -1,0 +1,31 @@
+{
+  "id": "linz-aws",
+  "url": "https://registry.opendata.aws/nz-elevation/",
+  "capturedAt": "2026-09-13T01:02:58.531996+00:00",
+  "status": 200,
+  "finalUrl": "https://registry.opendata.aws/nz-elevation/",
+  "headers": {
+    "Content-Type": "text/html",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Last-Modified": "Thu, 10 Sep 2026 18:10:52 GMT",
+    "x-amz-version-id": "tMJoLK.vtsGRodbyrVa3_IVhiwwoAPYA",
+    "Server": "AmazonS3",
+    "Strict-Transport-Security": "max-age= 63072000; includeSubdomains; preload",
+    "Content-Security-Policy": "default-src 'self' studiolab.sagemaker.aws assets.opendata.aws a0.awsstatic.com; object-src 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "same-origin",
+    "Content-Encoding": "gzip",
+    "Date": "Sun, 13 Sep 2026 01:02:59 GMT",
+    "ETag": "W/\"8d78dea9ac87893a0185d694061aa71e\"",
+    "Vary": "Accept-Encoding",
+    "X-Cache": "RefreshHit from cloudfront",
+    "Via": "1.1 26c79a3d32f9ca3aae00f8f2263c581e.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Pop": "IAH50-P4",
+    "X-Amz-Cf-Id": "f28Eg9lXd49NAs0FZiqwCQmXowz-pfY99K1gUomWqEzSvWQYFEwpEw=="
+  },
+  "bytes": 10438,
+  "sha256": "92f1a834b0447d08039f6f251755f66ae7b7c048428a74c9b5e8adea8b0e29d9"
+}
